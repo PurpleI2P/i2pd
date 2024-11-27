@@ -172,9 +172,11 @@ namespace transport
 
 			void HandleSessionRequestSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleSessionRequestReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+			void ProcessSessionRequest (size_t len);
 			void HandleSessionRequestPaddingReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleSessionCreatedSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleSessionCreatedReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+			void ProcessSessionCreated (size_t len);
 			void HandleSessionCreatedPaddingReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleSessionConfirmedSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleSessionConfirmedReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
@@ -239,6 +241,18 @@ namespace transport
 
 	class NTCP2Server: private i2p::util::RunnableServiceWithWork
 	{
+		private:
+
+			class EstablisherService: public i2p::util::RunnableServiceWithWork
+			{
+				public:
+
+					EstablisherService (): RunnableServiceWithWork ("NTCP2e") {};
+					auto& GetService () { return GetIOService (); };
+					void Start () { StartIOService (); };
+					void Stop () { StopIOService (); };
+			};
+			
 		public:
 
 			enum ProxyType
@@ -247,13 +261,14 @@ namespace transport
 				eSocksProxy,
 				eHTTPProxy
 			};
-
+			
 			NTCP2Server ();
 			~NTCP2Server ();
 
 			void Start ();
 			void Stop ();
 			auto& GetService () { return GetIOService (); };
+			auto& GetEstablisherService () { return m_EstablisherService.GetService (); };
 			std::mt19937& GetRng () { return m_Rng; };
 
 			bool AddNTCP2Session (std::shared_ptr<NTCP2Session> session, bool incoming = false);
@@ -294,7 +309,8 @@ namespace transport
 			std::unique_ptr<boost::asio::ip::tcp::endpoint> m_ProxyEndpoint;
 			std::shared_ptr<boost::asio::ip::tcp::endpoint> m_Address4, m_Address6, m_YggdrasilAddress;
 			std::mt19937 m_Rng;
-
+			EstablisherService m_EstablisherService;
+			
 		public:
 
 			// for HTTP/I2PControl

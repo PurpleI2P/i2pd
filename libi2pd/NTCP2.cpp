@@ -491,7 +491,6 @@ namespace transport
 
 	void NTCP2Session::HandleSessionRequestReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
-		(void) bytes_transferred;
 		if (ecode)
 		{
 			LogPrint (eLogWarning, "NTCP2: SessionRequest read error: ", ecode.message ());
@@ -499,38 +498,47 @@ namespace transport
 		}
 		else
 		{
-			LogPrint (eLogDebug, "NTCP2: SessionRequest received ", bytes_transferred);
-			uint16_t paddingLen = 0;
-			bool clockSkew = false;
-			if (m_Establisher->ProcessSessionRequestMessage (paddingLen, clockSkew))
-			{
-				if (clockSkew)
+			boost::asio::post (m_Server.GetEstablisherService (), 
+				[s = shared_from_this (), bytes_transferred] ()
 				{
-					// we don't care about padding, send SessionCreated and close session
-					SendSessionCreated ();
-					boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
-				}
-				else if (paddingLen > 0)
-				{
-					if (paddingLen <= NTCP2_SESSION_REQUEST_MAX_SIZE - 64) // session request is 287 bytes max
-					{
-						boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionRequestBuffer + 64, paddingLen), boost::asio::transfer_all (),
-							std::bind(&NTCP2Session::HandleSessionRequestPaddingReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
-					}
-					else
-					{
-						LogPrint (eLogWarning, "NTCP2: SessionRequest padding length ", (int)paddingLen, " is too long");
-						Terminate ();
-					}
-				}
-				else
-					SendSessionCreated ();
-			}
-			else
-				Terminate ();
+					s->ProcessSessionRequest (bytes_transferred);;
+				});	
 		}
 	}
 
+	void NTCP2Session::ProcessSessionRequest (size_t len)
+	{
+		LogPrint (eLogDebug, "NTCP2: SessionRequest received ", len);
+		uint16_t paddingLen = 0;
+		bool clockSkew = false;
+		if (m_Establisher->ProcessSessionRequestMessage (paddingLen, clockSkew))
+		{
+			if (clockSkew)
+			{
+				// we don't care about padding, send SessionCreated and close session
+				SendSessionCreated ();
+				boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+			}
+			else if (paddingLen > 0)
+			{
+				if (paddingLen <= NTCP2_SESSION_REQUEST_MAX_SIZE - 64) // session request is 287 bytes max
+				{
+					boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionRequestBuffer + 64, paddingLen), boost::asio::transfer_all (),
+						std::bind(&NTCP2Session::HandleSessionRequestPaddingReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
+				}
+				else
+				{
+					LogPrint (eLogWarning, "NTCP2: SessionRequest padding length ", (int)paddingLen, " is too long");
+					boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+				}
+			}
+			else
+				SendSessionCreated ();
+		}
+		else
+			boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+	}	
+		
 	void NTCP2Session::HandleSessionRequestPaddingReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
 		if (ecode)
@@ -539,7 +547,13 @@ namespace transport
 			Terminate ();
 		}
 		else
-			SendSessionCreated ();
+		{
+			boost::asio::post (m_Server.GetEstablisherService (), 
+				[s = shared_from_this ()] ()
+				{
+					s->SendSessionCreated ();
+				});	
+		}	
 	}
 
 	void NTCP2Session::SendSessionCreated ()
@@ -561,35 +575,44 @@ namespace transport
 		else
 		{
 			m_HandshakeInterval = i2p::util::GetMillisecondsSinceEpoch () - m_HandshakeInterval;
-			LogPrint (eLogDebug, "NTCP2: SessionCreated received ", bytes_transferred);
-			uint16_t paddingLen = 0;
-			if (m_Establisher->ProcessSessionCreatedMessage (paddingLen))
-			{
-				if (paddingLen > 0)
+			boost::asio::post (m_Server.GetEstablisherService (), 
+				[s = shared_from_this (), bytes_transferred] ()
 				{
-					if (paddingLen <= NTCP2_SESSION_CREATED_MAX_SIZE - 64) // session created is 287 bytes max
-					{
-						boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionCreatedBuffer + 64, paddingLen), boost::asio::transfer_all (),
-							std::bind(&NTCP2Session::HandleSessionCreatedPaddingReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
-					}
-					else
-					{
-						LogPrint (eLogWarning, "NTCP2: SessionCreated padding length ", (int)paddingLen, " is too long");
-						Terminate ();
-					}
-				}
-				else
-					SendSessionConfirmed ();
-			}
-			else
-			{
-				if (GetRemoteIdentity ())
-					i2p::data::netdb.SetUnreachable (GetRemoteIdentity ()->GetIdentHash (), true);  // assume wrong s key
-				Terminate ();
-			}	
+					s->ProcessSessionCreated (bytes_transferred);
+				});	
 		}
 	}
 
+	void NTCP2Session::ProcessSessionCreated (size_t len)
+	{
+		LogPrint (eLogDebug, "NTCP2: SessionCreated received ", len);
+		uint16_t paddingLen = 0;
+		if (m_Establisher->ProcessSessionCreatedMessage (paddingLen))
+		{
+			if (paddingLen > 0)
+			{
+				if (paddingLen <= NTCP2_SESSION_CREATED_MAX_SIZE - 64) // session created is 287 bytes max
+				{
+					boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionCreatedBuffer + 64, paddingLen), boost::asio::transfer_all (),
+						std::bind(&NTCP2Session::HandleSessionCreatedPaddingReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
+				}
+				else
+				{
+					LogPrint (eLogWarning, "NTCP2: SessionCreated padding length ", (int)paddingLen, " is too long");
+					boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+				}
+			}
+			else
+				SendSessionConfirmed ();
+		}
+		else
+		{
+			if (GetRemoteIdentity ())
+				i2p::data::netdb.SetUnreachable (GetRemoteIdentity ()->GetIdentHash (), true);  // assume wrong s key
+			boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+		}	
+	}	
+		
 	void NTCP2Session::HandleSessionCreatedPaddingReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
 		if (ecode)
@@ -600,7 +623,11 @@ namespace transport
 		else
 		{
 			m_Establisher->m_SessionCreatedBufferLen += bytes_transferred;
-			SendSessionConfirmed ();
+			boost::asio::post (m_Server.GetEstablisherService (), 
+				[s = shared_from_this ()] ()
+				{
+					s->SendSessionConfirmed ();
+				});	
 		}
 	}
 
@@ -679,7 +706,7 @@ namespace transport
 				// part 2
 				std::vector<uint8_t> buf(m_Establisher->m3p2Len - 16); // -MAC
 				memset (nonce, 0, 12); // set nonce to 0 again
-				if (m_Establisher->ProcessSessionConfirmedMessagePart2 (nonce, buf.data ()))
+				if (m_Establisher->ProcessSessionConfirmedMessagePart2 (nonce, buf.data ())) // TODO:handle in establisher thread
 				{
 					KeyDerivationFunctionDataPhase ();
 					// Bob data phase keys
@@ -811,7 +838,11 @@ namespace transport
 	void NTCP2Session::ClientLogin ()
 	{
 		m_Establisher->CreateEphemeralKey ();
-		SendSessionRequest ();
+		boost::asio::post (m_Server.GetEstablisherService (), 
+		    [s = shared_from_this ()] ()
+			{
+				s->SendSessionRequest ();
+			});	
 	}
 
 	void NTCP2Session::ServerLogin ()
@@ -1367,6 +1398,7 @@ namespace transport
 
 	void NTCP2Server::Start ()
 	{
+		m_EstablisherService.Start ();
 		if (!IsRunning ())
 		{
 			StartIOService ();
@@ -1476,6 +1508,7 @@ namespace transport
 			m_TerminationTimer.cancel ();
 			m_ProxyEndpoint = nullptr;
 		}
+		m_EstablisherService.Stop ();
 		StopIOService ();
 	}
 
