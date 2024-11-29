@@ -220,6 +220,7 @@ namespace tunnel
 
 	void TunnelGateway::SendBuffer ()
 	{
+		// create list or tunnel messages
 		m_Buffer.CompleteCurrentTunnelDataMessage ();
 		std::list<std::shared_ptr<I2NPMessage> > newTunnelMsgs;
 		const auto& tunnelDataMsgs = m_Buffer.GetTunnelDataMsgs ();
@@ -234,7 +235,36 @@ namespace tunnel
 			m_NumSentBytes += TUNNEL_DATA_MSG_SIZE;
 		}
 		m_Buffer.ClearTunnelDataMsgs ();
-		i2p::transport::transports.SendMessages (m_Tunnel->GetNextIdentHash (), std::move (newTunnelMsgs));
+
+		// send 
+		if (m_CurrentTransport && !m_CurrentTransport->IsEstablished ()) // check if session became invalid since last call
+			m_CurrentTransport = nullptr;
+		if (!m_CurrentTransport)
+		{
+			// try to obtain transport from peding reequest or send thought transport is not complete
+			if (m_PendingTransport.valid ()) // pending request?
+			{
+				if (m_PendingTransport.wait_for(std::chrono::seconds(0)) == std::future_status::ready) 
+				{	
+					// pending request complete
+					m_CurrentTransport = m_PendingTransport.get (); // take tarnsports used in pending request
+					if (m_CurrentTransport && !m_CurrentTransport->IsEstablished ()) 
+						m_CurrentTransport = nullptr;
+				}	
+				else // still pending
+				{	
+					// send through transports, but don't update pedning transport
+					i2p::transport::transports.SendMessages (m_Tunnel->GetNextIdentHash (), std::move (newTunnelMsgs));
+					return;
+				}	
+			}
+		}
+		if (m_CurrentTransport) // session is good
+			// send to session directly
+			m_CurrentTransport->SendI2NPMessages (newTunnelMsgs);
+		else // no session yet
+			// send through transports
+			m_PendingTransport = i2p::transport::transports.SendMessages (m_Tunnel->GetNextIdentHash (), std::move (newTunnelMsgs));
 	}
 }
 }

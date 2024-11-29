@@ -447,28 +447,29 @@ namespace transport
 		return std::max (bwCongestionLevel, tbwCongestionLevel);
 	}
 
-	void Transports::SendMessage (const i2p::data::IdentHash& ident, std::shared_ptr<i2p::I2NPMessage> msg)
+	std::future<std::shared_ptr<TransportSession> > Transports::SendMessage (const i2p::data::IdentHash& ident, std::shared_ptr<i2p::I2NPMessage> msg)
 	{
 		if (m_IsOnline)
-			SendMessages (ident, { msg });
+			return SendMessages (ident, { msg });
+		return {}; // invalid future
 	}
 
-	void Transports::SendMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >& msgs)
+	std::future<std::shared_ptr<TransportSession> > Transports::SendMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >& msgs)
 	{
 		std::list<std::shared_ptr<i2p::I2NPMessage> > msgs1;
 		msgs.swap (msgs1);
-		SendMessages (ident, std::move (msgs1));
+		return SendMessages (ident, std::move (msgs1));
 	}
 
-	void Transports::SendMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >&& msgs)
+	std::future<std::shared_ptr<TransportSession> > Transports::SendMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >&& msgs)
 	{
-		boost::asio::post (*m_Service, [this, ident, msgs = std::move(msgs)] () mutable
+		return boost::asio::post (*m_Service, boost::asio::use_future ([this, ident, msgs = std::move(msgs)] () mutable
 			{
-				PostMessages (ident, msgs);
-			});	
+				return PostMessages (ident, msgs);
+			}));	
 	}	
 	
-	void Transports::PostMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >& msgs)
+	std::shared_ptr<TransportSession> Transports::PostMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >& msgs)
 	{
 		if (ident == i2p::context.GetRouterInfo ().GetIdentHash ())
 		{
@@ -476,9 +477,9 @@ namespace transport
 			for (auto& it: msgs)
 				m_LoopbackHandler.PutNextMessage (std::move (it));
 			m_LoopbackHandler.Flush ();
-			return;
+			return nullptr;
 		}
-		if(RoutesRestricted() && !IsRestrictedPeer(ident)) return;
+		if(RoutesRestricted() && !IsRestrictedPeer(ident)) return nullptr;
 		std::shared_ptr<Peer> peer;
 		{
 			std::lock_guard<std::mutex> l(m_PeersMutex);
@@ -489,13 +490,13 @@ namespace transport
 		if (!peer)
 		{
 			// check if not banned
-			if (i2p::data::IsRouterBanned (ident)) return; // don't create peer to unreachable router
+			if (i2p::data::IsRouterBanned (ident)) return nullptr; // don't create peer to unreachable router
 			// try to connect
 			bool connected = false;
 			try
 			{
 				auto r = netdb.FindRouter (ident);
-				if (r && (r->IsUnreachable () || !r->IsReachableFrom (i2p::context.GetRouterInfo ()))) return; // router found but non-reachable
+				if (r && (r->IsUnreachable () || !r->IsReachableFrom (i2p::context.GetRouterInfo ()))) return nullptr; // router found but non-reachable
 
 				peer = std::make_shared<Peer>(r, i2p::util::GetSecondsSinceEpoch ());
 				{	
@@ -509,12 +510,16 @@ namespace transport
 			{
 				LogPrint (eLogError, "Transports: PostMessages exception:", ex.what ());
 			}
-			if (!connected) return;
+			if (!connected) return nullptr;
 		}
 		
-		if (!peer) return;
+		if (!peer) return nullptr;
 		if (peer->IsConnected ())
-			peer->sessions.front ()->SendI2NPMessages (msgs);
+		{	
+			auto session = peer->sessions.front (); 
+			if (session) session->SendI2NPMessages (msgs);
+			return session;
+		}	
 		else
 		{
 			auto sz = peer->delayedMessages.size (); 	
@@ -527,7 +532,7 @@ namespace transport
 						LogPrint (eLogWarning, "Transports: Router ", ident.ToBase64 (), " is banned. Peer dropped");
 						std::lock_guard<std::mutex> l(m_PeersMutex);
 						m_Peers.erase (ident);
-						return;
+						return nullptr;
 					}	
 				}	
 				if (sz > MAX_NUM_DELAYED_MESSAGES/2)
@@ -549,6 +554,7 @@ namespace transport
 				m_Peers.erase (ident);
 			}
 		}
+		return nullptr;
 	}
 
 	bool Transports::ConnectToPeer (const i2p::data::IdentHash& ident, std::shared_ptr<Peer> peer)
