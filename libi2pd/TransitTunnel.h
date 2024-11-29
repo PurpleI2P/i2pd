@@ -73,7 +73,7 @@ namespace tunnel
 				const i2p::data::IdentHash& nextIdent, uint32_t nextTunnelID,
 				const i2p::crypto::AESKey& layerKey, const i2p::crypto::AESKey& ivKey):
 				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID,
-				layerKey, ivKey), m_Gateway(this) {};
+				layerKey, ivKey), m_Gateway(*this) {};
 
 			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg) override;
 			void FlushTunnelDataMsgs () override;

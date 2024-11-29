@@ -227,8 +227,8 @@ namespace tunnel
 		for (auto& tunnelMsg : tunnelDataMsgs)
 		{
 			auto newMsg = CreateEmptyTunnelDataMsg (false);
-			m_Tunnel->EncryptTunnelMsg (tunnelMsg, newMsg);
-			htobe32buf (newMsg->GetPayload (), m_Tunnel->GetNextTunnelID ());
+			m_Tunnel.EncryptTunnelMsg (tunnelMsg, newMsg);
+			htobe32buf (newMsg->GetPayload (), m_Tunnel.GetNextTunnelID ());
 			newMsg->FillI2NPMessageHeader (eI2NPTunnelData);
 			if (tunnelMsg->onDrop) newMsg->onDrop = tunnelMsg->onDrop;
 			newTunnelMsgs.push_back (newMsg);
@@ -254,7 +254,7 @@ namespace tunnel
 				else // still pending
 				{	
 					// send through transports, but don't update pedning transport
-					i2p::transport::transports.SendMessages (m_Tunnel->GetNextIdentHash (), std::move (newTunnelMsgs));
+					i2p::transport::transports.SendMessages (m_Tunnel.GetNextIdentHash (), std::move (newTunnelMsgs));
 					return;
 				}	
 			}
@@ -264,7 +264,7 @@ namespace tunnel
 			m_CurrentTransport->SendI2NPMessages (newTunnelMsgs);
 		else // no session yet
 			// send through transports
-			m_PendingTransport = i2p::transport::transports.SendMessages (m_Tunnel->GetNextIdentHash (), std::move (newTunnelMsgs));
+			m_PendingTransport = i2p::transport::transports.SendMessages (m_Tunnel.GetNextIdentHash (), std::move (newTunnelMsgs));
 	}
 }
 }

@@ -47,7 +47,7 @@ namespace tunnel
 	{
 		public:
 
-			TunnelGateway (TunnelBase * tunnel):
+			TunnelGateway (TunnelBase& tunnel):
 				m_Tunnel (tunnel), m_NumSentBytes (0) {};
 			void SendTunnelDataMsg (const TunnelMessageBlock& block);
 			void PutTunnelDataMsg (const TunnelMessageBlock& block);
@@ -56,7 +56,7 @@ namespace tunnel
 
 		private:
 
-			TunnelBase * m_Tunnel;
+			TunnelBase& m_Tunnel;
 			TunnelGatewayBuffer m_Buffer;
 			size_t m_NumSentBytes;
 			std::shared_ptr<i2p::transport::TransportSession> m_CurrentTransport;
