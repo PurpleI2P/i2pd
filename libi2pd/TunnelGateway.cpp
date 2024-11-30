@@ -237,9 +237,8 @@ namespace tunnel
 		m_Buffer.ClearTunnelDataMsgs ();
 
 		// send 
-		if (m_CurrentTransport && !m_CurrentTransport->IsEstablished ()) // check if session became invalid since last call
-			m_CurrentTransport = nullptr;
-		if (!m_CurrentTransport)
+		auto currentTransport = m_CurrentTransport.lock ();
+		if (!currentTransport)
 		{
 			// try to obtain transport from peding reequest or send thought transport is not complete
 			if (m_PendingTransport.valid ()) // pending request?
@@ -247,9 +246,14 @@ namespace tunnel
 				if (m_PendingTransport.wait_for(std::chrono::seconds(0)) == std::future_status::ready) 
 				{	
 					// pending request complete
-					m_CurrentTransport = m_PendingTransport.get (); // take tarnsports used in pending request
-					if (m_CurrentTransport && !m_CurrentTransport->IsEstablished ()) 
-						m_CurrentTransport = nullptr;
+					currentTransport = m_PendingTransport.get (); // take tarnsports used in pending request
+					if (currentTransport)
+					{	
+						if (currentTransport->IsEstablished ()) 
+							m_CurrentTransport = currentTransport;
+						else
+							currentTransport = nullptr;
+					}
 				}	
 				else // still pending
 				{	
@@ -259,9 +263,9 @@ namespace tunnel
 				}	
 			}
 		}
-		if (m_CurrentTransport) // session is good
+		if (currentTransport) // session is good
 			// send to session directly
-			m_CurrentTransport->SendI2NPMessages (newTunnelMsgs);
+			currentTransport->SendI2NPMessages (newTunnelMsgs);
 		else // no session yet
 			// send through transports
 			m_PendingTransport = i2p::transport::transports.SendMessages (m_Tunnel.GetNextIdentHash (), std::move (newTunnelMsgs));

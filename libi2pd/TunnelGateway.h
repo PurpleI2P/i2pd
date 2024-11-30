@@ -59,7 +59,7 @@ namespace tunnel
 			TunnelBase& m_Tunnel;
 			TunnelGatewayBuffer m_Buffer;
 			size_t m_NumSentBytes;
-			std::shared_ptr<i2p::transport::TransportSession> m_CurrentTransport;
+			std::weak_ptr<i2p::transport::TransportSession> m_CurrentTransport;
 			std::future<std::shared_ptr<i2p::transport::TransportSession> > m_PendingTransport;
 	};
 }
