@@ -42,28 +42,29 @@ namespace transport
 		delete[] m_SessionConfirmedBuffer;
 	}
 
-	void NTCP2Establisher::KeyDerivationFunction1 (const uint8_t * pub, i2p::crypto::X25519Keys& priv, const uint8_t * rs, const uint8_t * epub)
+	bool NTCP2Establisher::KeyDerivationFunction1 (const uint8_t * pub, i2p::crypto::X25519Keys& priv, const uint8_t * rs, const uint8_t * epub)
 	{
 		i2p::crypto::InitNoiseXKState (*this, rs);
 		// h = SHA256(h || epub)
 		MixHash (epub, 32);
 		// x25519 between pub and priv
 		uint8_t inputKeyMaterial[32];
-		priv.Agree (pub, inputKeyMaterial);
+		if (!priv.Agree (pub, inputKeyMaterial)) return false;
 		MixKey (inputKeyMaterial);
+		return true;
 	}
 
-	void NTCP2Establisher::KDF1Alice ()
+	bool NTCP2Establisher::KDF1Alice ()
 	{
-		KeyDerivationFunction1 (m_RemoteStaticKey, *m_EphemeralKeys, m_RemoteStaticKey, GetPub ());
+		return KeyDerivationFunction1 (m_RemoteStaticKey, *m_EphemeralKeys, m_RemoteStaticKey, GetPub ());
 	}
 
-	void NTCP2Establisher::KDF1Bob ()
+	bool NTCP2Establisher::KDF1Bob ()
 	{
-		KeyDerivationFunction1 (GetRemotePub (), i2p::context.GetNTCP2StaticKeys (), i2p::context.GetNTCP2StaticPublicKey (), GetRemotePub ());
+		return KeyDerivationFunction1 (GetRemotePub (), i2p::context.GetNTCP2StaticKeys (), i2p::context.GetNTCP2StaticPublicKey (), GetRemotePub ());
 	}
 
-	void NTCP2Establisher::KeyDerivationFunction2 (const uint8_t * sessionRequest, size_t sessionRequestLen, const uint8_t * epub)
+	bool NTCP2Establisher::KeyDerivationFunction2 (const uint8_t * sessionRequest, size_t sessionRequestLen, const uint8_t * epub)
 	{
 		MixHash (sessionRequest + 32, 32); // encrypted payload
 
@@ -74,33 +75,35 @@ namespace transport
 
 		// x25519 between remote pub and ephemaral priv
 		uint8_t inputKeyMaterial[32];
-		m_EphemeralKeys->Agree (GetRemotePub (), inputKeyMaterial);
-
+		if (!m_EphemeralKeys->Agree (GetRemotePub (), inputKeyMaterial)) return false;
 		MixKey (inputKeyMaterial);
+		return true;
 	}
 
-	void NTCP2Establisher::KDF2Alice ()
+	bool NTCP2Establisher::KDF2Alice ()
 	{
-		KeyDerivationFunction2 (m_SessionRequestBuffer, m_SessionRequestBufferLen, GetRemotePub ());
+		return KeyDerivationFunction2 (m_SessionRequestBuffer, m_SessionRequestBufferLen, GetRemotePub ());
 	}
 
-	void NTCP2Establisher::KDF2Bob ()
+	bool NTCP2Establisher::KDF2Bob ()
 	{
-		KeyDerivationFunction2 (m_SessionRequestBuffer, m_SessionRequestBufferLen, GetPub ());
+		return KeyDerivationFunction2 (m_SessionRequestBuffer, m_SessionRequestBufferLen, GetPub ());
 	}
 
-	void NTCP2Establisher::KDF3Alice ()
+	bool NTCP2Establisher::KDF3Alice ()
 	{
 		uint8_t inputKeyMaterial[32];
-		i2p::context.GetNTCP2StaticKeys ().Agree (GetRemotePub (), inputKeyMaterial);
+		if (!i2p::context.GetNTCP2StaticKeys ().Agree (GetRemotePub (), inputKeyMaterial)) return false;
 		MixKey (inputKeyMaterial);
+		return true;
 	}
 
-	void NTCP2Establisher::KDF3Bob ()
+	bool NTCP2Establisher::KDF3Bob ()
 	{
 		uint8_t inputKeyMaterial[32];
-		m_EphemeralKeys->Agree (m_RemoteStaticKey, inputKeyMaterial);
+		if (!m_EphemeralKeys->Agree (m_RemoteStaticKey, inputKeyMaterial)) return false;
 		MixKey (inputKeyMaterial);
+		return true;
 	}
 
 	void NTCP2Establisher::CreateEphemeralKey ()
@@ -108,7 +111,7 @@ namespace transport
 		m_EphemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
 	}
 
-	void NTCP2Establisher::CreateSessionRequestMessage (std::mt19937& rng)
+	bool NTCP2Establisher::CreateSessionRequestMessage (std::mt19937& rng)
 	{
 		// create buffer and fill padding
 		auto paddingLength = rng () % (NTCP2_SESSION_REQUEST_MAX_SIZE - 64); // message length doesn't exceed 287 bytes
@@ -121,7 +124,7 @@ namespace transport
 		encryption.Encrypt (GetPub (), 32, m_SessionRequestBuffer); // X
 		encryption.GetIV (m_IV); // save IV for SessionCreated
 		// encryption key for next block
-		KDF1Alice ();
+		if (!KDF1Alice ()) return false;
 		// fill options
 		uint8_t options[32]; // actual options size is 16 bytes
 		memset (options, 0, 16);
@@ -147,9 +150,10 @@ namespace transport
 		uint8_t nonce[12];
 		memset (nonce, 0, 12); // set nonce to zero
 		i2p::crypto::AEADChaCha20Poly1305 (options, 16, GetH (), 32, GetK (), nonce, m_SessionRequestBuffer + 32, 32, true); // encrypt
+		return true;
 	}
 
-	void NTCP2Establisher::CreateSessionCreatedMessage (std::mt19937& rng)
+	bool NTCP2Establisher::CreateSessionCreatedMessage (std::mt19937& rng)
 	{
 		auto paddingLen = rng () % (NTCP2_SESSION_CREATED_MAX_SIZE - 64);
 		m_SessionCreatedBufferLen = paddingLen + 64;
@@ -160,7 +164,7 @@ namespace transport
 		encryption.SetIV (m_IV);
 		encryption.Encrypt (GetPub (), 32, m_SessionCreatedBuffer); // Y
 		// encryption key for next block (m_K)
-		KDF2Bob ();
+		if (!KDF2Bob ()) return false;
 		uint8_t options[16];
 		memset (options, 0, 16);
 		htobe16buf (options + 2, paddingLen); // padLen
@@ -169,7 +173,7 @@ namespace transport
 		uint8_t nonce[12];
 		memset (nonce, 0, 12); // set nonce to zero
 		i2p::crypto::AEADChaCha20Poly1305 (options, 16, GetH (), 32, GetK (), nonce, m_SessionCreatedBuffer + 32, 32, true); // encrypt
-
+		return true;
 	}
 
 	void NTCP2Establisher::CreateSessionConfirmedMessagePart1 (const uint8_t * nonce)
@@ -184,17 +188,18 @@ namespace transport
 		i2p::crypto::AEADChaCha20Poly1305 (i2p::context.GetNTCP2StaticPublicKey (), 32, GetH (), 32, GetK (), nonce, m_SessionConfirmedBuffer, 48, true); // encrypt
 	}
 
-	void NTCP2Establisher::CreateSessionConfirmedMessagePart2 (const uint8_t * nonce)
+	bool NTCP2Establisher::CreateSessionConfirmedMessagePart2 (const uint8_t * nonce)
 	{
 		// part 2
 		// update AD again
 		MixHash (m_SessionConfirmedBuffer, 48);
 		// encrypt m3p2, it must be filled in SessionRequest
-		KDF3Alice ();
+		if (!KDF3Alice ()) return false;
 		uint8_t * m3p2 = m_SessionConfirmedBuffer + 48;
 		i2p::crypto::AEADChaCha20Poly1305 (m3p2, m3p2Len - 16, GetH (), 32, GetK (), nonce, m3p2, m3p2Len, true); // encrypt
 		// update h again
 		MixHash (m3p2, m3p2Len); //h = SHA256(h || ciphertext)
+		return true;
 	}
 
 	bool NTCP2Establisher::ProcessSessionRequestMessage (uint16_t& paddingLen, bool& clockSkew)
@@ -207,7 +212,11 @@ namespace transport
 		decryption.Decrypt (m_SessionRequestBuffer, 32, GetRemotePub ());
 		decryption.GetIV (m_IV); // save IV for SessionCreated
 		// decryption key for next block
-		KDF1Bob ();
+		if (!KDF1Bob ())
+		{
+			LogPrint (eLogWarning, "NTCP2: SessionRequest KDF failed");
+			return false;
+		}	
 		// verify MAC and decrypt options block (32 bytes), use m_H as AD
 		uint8_t nonce[12], options[16];
 		memset (nonce, 0, 12); // set nonce to zero
@@ -262,7 +271,11 @@ namespace transport
 		decryption.SetIV (m_IV);
 		decryption.Decrypt (m_SessionCreatedBuffer, 32, GetRemotePub ());
 		// decryption key for next block (m_K)
-		KDF2Alice ();
+		if (!KDF2Alice ())
+		{
+			LogPrint (eLogWarning, "NTCP2: SessionCreated KDF failed");
+			return false;
+		}	
 		// decrypt and verify MAC
 		uint8_t payload[16];
 		uint8_t nonce[12];
@@ -309,7 +322,11 @@ namespace transport
 		// update AD again
 		MixHash (m_SessionConfirmedBuffer, 48);
 
-		KDF3Bob ();
+		if (!KDF3Bob ())
+		{
+			LogPrint (eLogWarning, "NTCP2: SessionConfirmed Part2 KDF failed");
+			return false;
+		}	
 		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionConfirmedBuffer + 48, m3p2Len - 16, GetH (), 32, GetK (), nonce, m3p2Buf, m3p2Len - 16, false)) // decrypt
 			// calculate new h again for KDF data
 			MixHash (m_SessionConfirmedBuffer + 48, m3p2Len); // h = SHA256(h || ciphertext)
@@ -466,7 +483,12 @@ namespace transport
 
 	void NTCP2Session::SendSessionRequest ()
 	{
-		m_Establisher->CreateSessionRequestMessage (m_Server.GetRng ());
+		if (!m_Establisher->CreateSessionRequestMessage (m_Server.GetRng ()))
+		{
+			LogPrint (eLogWarning, "NTCP2: Send SessionRequest KDF failed");
+			boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+			return;
+		}	
 		// send message
 		m_HandshakeInterval = i2p::util::GetMillisecondsSinceEpoch ();
 		boost::asio::async_write (m_Socket, boost::asio::buffer (m_Establisher->m_SessionRequestBuffer, m_Establisher->m_SessionRequestBufferLen), boost::asio::transfer_all (),
@@ -558,7 +580,12 @@ namespace transport
 
 	void NTCP2Session::SendSessionCreated ()
 	{
-		m_Establisher->CreateSessionCreatedMessage (m_Server.GetRng ());
+		if (!m_Establisher->CreateSessionCreatedMessage (m_Server.GetRng ()))
+		{
+			LogPrint (eLogWarning, "NTCP2: Send SessionCreated KDF failed");
+			boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+			return;
+		}	
 		// send message
 		m_HandshakeInterval = i2p::util::GetMillisecondsSinceEpoch ();
 		boost::asio::async_write (m_Socket, boost::asio::buffer (m_Establisher->m_SessionCreatedBuffer, m_Establisher->m_SessionCreatedBufferLen), boost::asio::transfer_all (),
@@ -637,7 +664,12 @@ namespace transport
 		CreateNonce (1, nonce); // set nonce to 1
 		m_Establisher->CreateSessionConfirmedMessagePart1 (nonce);
 		memset (nonce, 0, 12); // set nonce back to 0
-		m_Establisher->CreateSessionConfirmedMessagePart2 (nonce);
+		if (!m_Establisher->CreateSessionConfirmedMessagePart2 (nonce))
+		{
+			LogPrint (eLogWarning, "NTCP2: Send SessionConfirmed Part2 KDF failed");
+			boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+			return;
+		}	
 		// send message
 		boost::asio::async_write (m_Socket, boost::asio::buffer (m_Establisher->m_SessionConfirmedBuffer, m_Establisher->m3p2Len + 48), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionConfirmedSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));

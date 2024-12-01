@@ -95,21 +95,21 @@ namespace transport
 		const uint8_t * GetCK () const { return m_CK; };
 		const uint8_t * GetH () const { return m_H; };
 
-		void KDF1Alice ();
-		void KDF1Bob ();
-		void KDF2Alice ();
-		void KDF2Bob ();
-		void KDF3Alice (); // for SessionConfirmed part 2
-		void KDF3Bob ();
+		bool KDF1Alice ();
+		bool KDF1Bob ();
+		bool KDF2Alice ();
+		bool KDF2Bob ();
+		bool KDF3Alice (); // for SessionConfirmed part 2
+		bool KDF3Bob ();
 
-		void KeyDerivationFunction1 (const uint8_t * pub, i2p::crypto::X25519Keys& priv, const uint8_t * rs, const uint8_t * epub); // for SessionRequest, (pub, priv) for DH
-		void KeyDerivationFunction2 (const uint8_t * sessionRequest, size_t sessionRequestLen, const uint8_t * epub); // for SessionCreate
+		bool KeyDerivationFunction1 (const uint8_t * pub, i2p::crypto::X25519Keys& priv, const uint8_t * rs, const uint8_t * epub); // for SessionRequest, (pub, priv) for DH
+		bool KeyDerivationFunction2 (const uint8_t * sessionRequest, size_t sessionRequestLen, const uint8_t * epub); // for SessionCreate
 		void CreateEphemeralKey ();
 
-		void CreateSessionRequestMessage (std::mt19937& rng);
-		void CreateSessionCreatedMessage (std::mt19937& rng);
+		bool CreateSessionRequestMessage (std::mt19937& rng);
+		bool CreateSessionCreatedMessage (std::mt19937& rng);
 		void CreateSessionConfirmedMessagePart1 (const uint8_t * nonce);
-		void CreateSessionConfirmedMessagePart2 (const uint8_t * nonce);
+		bool CreateSessionConfirmedMessagePart2 (const uint8_t * nonce);
 
 		bool ProcessSessionRequestMessage (uint16_t& paddingLen, bool& clockSkew);
 		bool ProcessSessionCreatedMessage (uint16_t& paddingLen);
