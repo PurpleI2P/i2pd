@@ -31,9 +31,9 @@ namespace client
 	const int I2P_TUNNEL_CONNECTION_MAX_IDLE = 3600; // in seconds
 	const int I2P_TUNNEL_DESTINATION_REQUEST_TIMEOUT = 10; // in seconds
 	// for HTTP tunnels
-	const char X_I2P_DEST_HASH[] = "X-I2P-DestHash"; // hash in base64
-	const char X_I2P_DEST_B64[] = "X-I2P-DestB64"; // full address in base64
-	const char X_I2P_DEST_B32[] = "X-I2P-DestB32"; // .b32.i2p address
+	constexpr char X_I2P_DEST_HASH[] = "X-I2P-DestHash"; // hash in base64
+	constexpr char X_I2P_DEST_B64[] = "X-I2P-DestB64"; // full address in base64
+	constexpr char X_I2P_DEST_B32[] = "X-I2P-DestB32"; // .b32.i2p address
 	const int I2P_TUNNEL_HTTP_MAX_HEADER_SIZE = 8192;
 
 	class I2PTunnelConnection: public I2PServiceHandler, public std::enable_shared_from_this<I2PTunnelConnection>
@@ -107,7 +107,7 @@ namespace client
 		public:
 
 			I2PServerTunnelConnectionHTTP (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
-				const boost::asio::ip::tcp::endpoint& target, const std::string& host,
+				const boost::asio::ip::tcp::endpoint& target, const std::string& host, const std::string& XI2P,
 			    std::shared_ptr<boost::asio::ssl::context> sslCtx = nullptr);
 
 		protected:
@@ -117,10 +117,9 @@ namespace client
 
 		private:
 
-			std::string m_Host;
+			std::string m_Host, m_XI2P;
 			std::stringstream m_InHeader, m_OutHeader;
 			bool m_HeaderSent, m_ResponseHeaderSent;
-			std::shared_ptr<const i2p::data::IdentityEx> m_From;
 	};
 
 	class I2PTunnelConnectionIRC: public I2PTunnelConnection
@@ -242,7 +241,8 @@ namespace client
 
 		private:
 
-			std::string m_Host;
+			std::string m_Host, m_XI2P;
+			std::weak_ptr<const i2p::data::IdentityEx> m_From;
 	};
 
 	class I2PServerTunnelIRC: public I2PServerTunnel
