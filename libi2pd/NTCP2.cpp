@@ -740,15 +740,8 @@ namespace transport
 				memset (nonce, 0, 12); // set nonce to 0 again
 				if (m_Establisher->ProcessSessionConfirmedMessagePart2 (nonce, buf.data ())) // TODO:handle in establisher thread
 				{
-					KeyDerivationFunctionDataPhase ();
-					// Bob data phase keys
-					m_SendKey = m_Kba;
-					m_ReceiveKey = m_Kab;
-					SetSipKeys (m_Sipkeysba, m_Sipkeysab);
-					memcpy (m_ReceiveIV.buf, m_Sipkeysab + 16, 8);
-					memcpy (m_SendIV.buf, m_Sipkeysba + 16, 8);
-					// payload
-					// process RI
+					// payload 
+					// RI block must be first 
 					if (buf[0] != eNTCP2BlkRouterInfo)
 					{
 						LogPrint (eLogWarning, "NTCP2: Unexpected block ", (int)buf[0], " in SessionConfirmed");
@@ -825,12 +818,20 @@ namespace transport
 						SendTerminationAndTerminate (eNTCP2Banned);
 						return;
 					}
-					// TODO: process options
+					// TODO: process options block
 
 					// ready to communicate
 					SetRemoteIdentity (ri1->GetRouterIdentity ());
 					if (m_Server.AddNTCP2Session (shared_from_this (), true))
 					{
+						KeyDerivationFunctionDataPhase ();
+						// Bob data phase keys
+						m_SendKey = m_Kba;
+						m_ReceiveKey = m_Kab;
+						SetSipKeys (m_Sipkeysba, m_Sipkeysab);
+						memcpy (m_ReceiveIV.buf, m_Sipkeysab + 16, 8);
+						memcpy (m_SendIV.buf, m_Sipkeysba + 16, 8);
+						
 						Established ();
 						ReceiveLength ();
 					}
