@@ -344,6 +344,7 @@ namespace transport
 		m_Server (server), m_Socket (m_Server.GetService ()),
 		m_IsEstablished (false), m_IsTerminated (false),
 		m_Establisher (new NTCP2Establisher),
+		m_SendKey (nullptr), m_ReceiveKey (nullptr),
 #if OPENSSL_SIPHASH
 		m_SendMDCtx(nullptr), m_ReceiveMDCtx (nullptr),
 #else
@@ -721,6 +722,7 @@ namespace transport
 
 	void NTCP2Session::HandleSessionConfirmedReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
+		(void) bytes_transferred;
 		if (ecode)
 		{
 			LogPrint (eLogWarning, "NTCP2: SessionConfirmed read error: ", ecode.message ());
@@ -729,123 +731,143 @@ namespace transport
 		else
 		{
 			m_HandshakeInterval = i2p::util::GetMillisecondsSinceEpoch () - m_HandshakeInterval;
-			LogPrint (eLogDebug, "NTCP2: SessionConfirmed received");
-			// part 1
-			uint8_t nonce[12];
-			CreateNonce (1, nonce);
-			if (m_Establisher->ProcessSessionConfirmedMessagePart1 (nonce))
-			{
-				// part 2
-				std::vector<uint8_t> buf(m_Establisher->m3p2Len - 16); // -MAC
-				memset (nonce, 0, 12); // set nonce to 0 again
-				if (m_Establisher->ProcessSessionConfirmedMessagePart2 (nonce, buf.data ())) // TODO:handle in establisher thread
+			boost::asio::post (m_Server.GetEstablisherService (), 
+				[s = shared_from_this ()] ()
 				{
-					// payload 
-					// RI block must be first 
-					if (buf[0] != eNTCP2BlkRouterInfo)
-					{
-						LogPrint (eLogWarning, "NTCP2: Unexpected block ", (int)buf[0], " in SessionConfirmed");
-						Terminate ();
-						return;
-					}
-					auto size = bufbe16toh (buf.data () + 1);
-					if (size > buf.size () - 3 || size > i2p::data::MAX_RI_BUFFER_SIZE + 1)
-					{
-						LogPrint (eLogError, "NTCP2: Unexpected RouterInfo size ", size, " in SessionConfirmed");
-						Terminate ();
-						return;
-					}
-					// TODO: check flag
-					i2p::data::RouterInfo ri (buf.data () + 4, size - 1); // 1 byte block type + 2 bytes size + 1 byte flag
-					if (ri.IsUnreachable ())
-					{
-						LogPrint (eLogError, "NTCP2: RouterInfo verification failed in SessionConfirmed from ", GetRemoteEndpoint ());
-						SendTerminationAndTerminate (eNTCP2RouterInfoSignatureVerificationFail);
-						return;
-					}
-					LogPrint(eLogDebug, "NTCP2: SessionConfirmed from ", GetRemoteEndpoint (),
-						" (", i2p::data::GetIdentHashAbbreviation (ri.GetIdentHash ()), ")");
-					auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-					if (ts > ri.GetTimestamp () + i2p::data::NETDB_MIN_EXPIRATION_TIMEOUT*1000LL) // 90 minutes
-					{
-						LogPrint (eLogError, "NTCP2: RouterInfo is too old in SessionConfirmed for ", (ts - ri.GetTimestamp ())/1000LL, " seconds");
-						SendTerminationAndTerminate (eNTCP2Message3Error);
-						return;
-					}
-					if (ts + i2p::data::NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < ri.GetTimestamp ()) // 2 minutes
-					{
-						LogPrint (eLogError, "NTCP2: RouterInfo is from future for ", (ri.GetTimestamp () - ts)/1000LL, " seconds");
-						SendTerminationAndTerminate (eNTCP2Message3Error);
-						return;
-					}	
-					// update RouterInfo in netdb
-					auto ri1 = i2p::data::netdb.AddRouterInfo (ri.GetBuffer (), ri.GetBufferLen ()); // ri1 points to one from netdb now
-					if (!ri1)
-					{
-						LogPrint (eLogError, "NTCP2: Couldn't update RouterInfo from SessionConfirmed in netdb");
-						Terminate ();
-						return;
-					}
-					std::shared_ptr<i2p::data::RouterProfile> profile; // not null if older 
-					if (ri.GetTimestamp () + i2p::data::NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < ri1->GetTimestamp ())
-					{	
-						// received RouterInfo is older than one in netdb
-						profile = i2p::data::GetRouterProfile (ri1->GetIdentHash ()); // retrieve profile	
-						if (profile && profile->IsDuplicated ())
-						{	
-							SendTerminationAndTerminate (eNTCP2Banned);
-							return;
-						}	
-					}
-					
-					auto addr = m_RemoteEndpoint.address ().is_v4 () ? ri1->GetNTCP2V4Address () :
-						(i2p::util::net::IsYggdrasilAddress (m_RemoteEndpoint.address ()) ? ri1->GetYggdrasilAddress () : ri1->GetNTCP2V6Address ());
-					if (!addr || memcmp (m_Establisher->m_RemoteStaticKey, addr->s, 32))
-					{
-						LogPrint (eLogError, "NTCP2: Wrong static key in SessionConfirmed");
-						Terminate ();
-						return;
-					}
-					if (addr->IsPublishedNTCP2 () && m_RemoteEndpoint.address () != addr->host &&
-					    (!m_RemoteEndpoint.address ().is_v6 () || (i2p::util::net::IsYggdrasilAddress (m_RemoteEndpoint.address ()) ?
-					     memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data () + 1, addr->host.to_v6 ().to_bytes ().data () + 1, 7) : // from the same yggdrasil subnet
-					     memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), addr->host.to_v6 ().to_bytes ().data (), 8)))) // temporary address
-					{
-						if (profile) // older router?
-							profile->Duplicated (); // mark router as duplicated in profile
-						else
-							LogPrint (eLogInfo, "NTCP2: Host mismatch between published address ", addr->host, " and actual endpoint ", m_RemoteEndpoint.address ());
-						SendTerminationAndTerminate (eNTCP2Banned);
-						return;
-					}
-					// TODO: process options block
-
-					// ready to communicate
-					SetRemoteIdentity (ri1->GetRouterIdentity ());
-					if (m_Server.AddNTCP2Session (shared_from_this (), true))
-					{
-						KeyDerivationFunctionDataPhase ();
-						// Bob data phase keys
-						m_SendKey = m_Kba;
-						m_ReceiveKey = m_Kab;
-						SetSipKeys (m_Sipkeysba, m_Sipkeysab);
-						memcpy (m_ReceiveIV.buf, m_Sipkeysab + 16, 8);
-						memcpy (m_SendIV.buf, m_Sipkeysba + 16, 8);
-						
-						Established ();
-						ReceiveLength ();
-					}
-					else
-						Terminate ();
-				}
-				else
-					Terminate ();
-			}
-			else
-				Terminate ();
+					s->ProcessSessionConfirmed ();;
+				});	
 		}
 	}
 
+	void NTCP2Session::ProcessSessionConfirmed ()
+	{
+		// run on establisher thread
+		LogPrint (eLogDebug, "NTCP2: SessionConfirmed received");
+		// part 1
+		uint8_t nonce[12];
+		CreateNonce (1, nonce);
+		if (m_Establisher->ProcessSessionConfirmedMessagePart1 (nonce))
+		{
+			// part 2
+			auto buf = std::make_shared<std::vector<uint8_t> > (m_Establisher->m3p2Len - 16); // -MAC
+			memset (nonce, 0, 12); // set nonce to 0 again
+			if (m_Establisher->ProcessSessionConfirmedMessagePart2 (nonce, buf->data ())) // TODO:handle in establisher thread
+			{
+				// payload 
+				// RI block must be first 
+				if ((*buf)[0] != eNTCP2BlkRouterInfo)
+				{
+					LogPrint (eLogWarning, "NTCP2: Unexpected block ", (int)(*buf)[0], " in SessionConfirmed");
+					boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+					return;
+				}
+				auto size = bufbe16toh (buf->data () + 1);
+				if (size > buf->size () - 3 || size > i2p::data::MAX_RI_BUFFER_SIZE + 1)
+				{
+					LogPrint (eLogError, "NTCP2: Unexpected RouterInfo size ", size, " in SessionConfirmed");
+					boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+					return;
+				}
+				boost::asio::post (m_Server.GetService (), 
+					[s = shared_from_this (), buf, size] ()
+					{
+						s->EstablishSessionAfterSessionConfirmed (buf, size);
+					});
+			}
+			else
+				boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+		}
+		else
+			boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));	
+	}	
+
+	void NTCP2Session::EstablishSessionAfterSessionConfirmed (std::shared_ptr<std::vector<uint8_t> > buf, size_t size)
+	{
+		// run on main NTCP2 thread
+		KeyDerivationFunctionDataPhase ();
+		// Bob data phase keys
+		m_SendKey = m_Kba;
+		m_ReceiveKey = m_Kab;
+		SetSipKeys (m_Sipkeysba, m_Sipkeysab);
+		memcpy (m_ReceiveIV.buf, m_Sipkeysab + 16, 8);
+		memcpy (m_SendIV.buf, m_Sipkeysba + 16, 8);
+		// we need to set keys for SendTerminationAndTerminate
+		// TODO: check flag
+		i2p::data::RouterInfo ri (buf->data () + 4, size - 1); // 1 byte block type + 2 bytes size + 1 byte flag
+		if (ri.IsUnreachable ())
+		{
+			LogPrint (eLogError, "NTCP2: RouterInfo verification failed in SessionConfirmed from ", GetRemoteEndpoint ());
+			SendTerminationAndTerminate (eNTCP2RouterInfoSignatureVerificationFail);
+			return;
+		}
+		LogPrint(eLogDebug, "NTCP2: SessionConfirmed from ", GetRemoteEndpoint (),
+			" (", i2p::data::GetIdentHashAbbreviation (ri.GetIdentHash ()), ")");
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		if (ts > ri.GetTimestamp () + i2p::data::NETDB_MIN_EXPIRATION_TIMEOUT*1000LL) // 90 minutes
+		{
+			LogPrint (eLogError, "NTCP2: RouterInfo is too old in SessionConfirmed for ", (ts - ri.GetTimestamp ())/1000LL, " seconds");
+			SendTerminationAndTerminate (eNTCP2Message3Error);
+			return;
+		}
+		if (ts + i2p::data::NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < ri.GetTimestamp ()) // 2 minutes
+		{
+			LogPrint (eLogError, "NTCP2: RouterInfo is from future for ", (ri.GetTimestamp () - ts)/1000LL, " seconds");
+			SendTerminationAndTerminate (eNTCP2Message3Error);
+			return;
+		}	
+		// update RouterInfo in netdb
+		auto ri1 = i2p::data::netdb.AddRouterInfo (ri.GetBuffer (), ri.GetBufferLen ()); // ri1 points to one from netdb now
+		if (!ri1)
+		{
+			LogPrint (eLogError, "NTCP2: Couldn't update RouterInfo from SessionConfirmed in netdb");
+			Terminate ();
+			return;
+		}
+		std::shared_ptr<i2p::data::RouterProfile> profile; // not null if older 
+		if (ri.GetTimestamp () + i2p::data::NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < ri1->GetTimestamp ())
+		{	
+			// received RouterInfo is older than one in netdb
+			profile = i2p::data::GetRouterProfile (ri1->GetIdentHash ()); // retrieve profile	
+			if (profile && profile->IsDuplicated ())
+			{	
+				SendTerminationAndTerminate (eNTCP2Banned);
+				return;
+			}	
+		}
+		
+		auto addr = m_RemoteEndpoint.address ().is_v4 () ? ri1->GetNTCP2V4Address () :
+			(i2p::util::net::IsYggdrasilAddress (m_RemoteEndpoint.address ()) ? ri1->GetYggdrasilAddress () : ri1->GetNTCP2V6Address ());
+		if (!addr || memcmp (m_Establisher->m_RemoteStaticKey, addr->s, 32))
+		{
+			LogPrint (eLogError, "NTCP2: Wrong static key in SessionConfirmed");
+			Terminate ();
+			return;
+		}
+		if (addr->IsPublishedNTCP2 () && m_RemoteEndpoint.address () != addr->host &&
+		    (!m_RemoteEndpoint.address ().is_v6 () || (i2p::util::net::IsYggdrasilAddress (m_RemoteEndpoint.address ()) ?
+		     memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data () + 1, addr->host.to_v6 ().to_bytes ().data () + 1, 7) : // from the same yggdrasil subnet
+		     memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), addr->host.to_v6 ().to_bytes ().data (), 8)))) // temporary address
+		{
+			if (profile) // older router?
+				profile->Duplicated (); // mark router as duplicated in profile
+			else
+				LogPrint (eLogInfo, "NTCP2: Host mismatch between published address ", addr->host, " and actual endpoint ", m_RemoteEndpoint.address ());
+			SendTerminationAndTerminate (eNTCP2Banned);
+			return;
+		}
+		// TODO: process options block
+
+		// ready to communicate
+		SetRemoteIdentity (ri1->GetRouterIdentity ());
+		if (m_Server.AddNTCP2Session (shared_from_this (), true))
+		{
+			Established ();
+			ReceiveLength ();
+		}
+		else
+			Terminate ();
+	}	
+		
 	void NTCP2Session::SetSipKeys (const uint8_t * sendSipKey, const uint8_t * receiveSipKey)
 	{
 #if OPENSSL_SIPHASH

@@ -180,7 +180,9 @@ namespace transport
 			void HandleSessionCreatedPaddingReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleSessionConfirmedSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleSessionConfirmedReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-
+			void ProcessSessionConfirmed ();
+			void EstablishSessionAfterSessionConfirmed (std::shared_ptr<std::vector<uint8_t> > buf, size_t size);
+			
 			// data
 			void ReceiveLength ();
 			void HandleReceivedLength (const boost::system::error_code& ecode, std::size_t bytes_transferred);
