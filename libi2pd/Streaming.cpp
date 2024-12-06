@@ -73,7 +73,7 @@ namespace stream
 		m_LastConfirmedReceivedSequenceNumber (0), // for limit inbound speed
 		m_Status (eStreamStatusNew), m_IsIncoming (false), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false), 
 		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true), m_IsWinDropped (false),
-		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_IsRemoteLeaseChangeInProgress (false), m_LocalDestination (local),
+		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_IsRemoteLeaseChangeInProgress (false), m_DoubleWinIncCounter (false), m_LocalDestination (local),
 		m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service),
 		m_AckSendTimer (m_Service), m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (port),
 		m_RTT (INITIAL_RTT), m_SlowRTT (INITIAL_RTT), m_SlowRTT2 (INITIAL_RTT), m_WindowSize (INITIAL_WINDOW_SIZE), m_LastWindowDropSize  (0),
@@ -101,7 +101,7 @@ namespace stream
 		m_LastConfirmedReceivedSequenceNumber (0), // for limit inbound speed
 		m_Status (eStreamStatusNew), m_IsIncoming (true), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false), 
 		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true), m_IsWinDropped (false),
-		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_IsRemoteLeaseChangeInProgress (false), m_LocalDestination (local),
+		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_IsRemoteLeaseChangeInProgress (false), m_DoubleWinIncCounter (false), m_LocalDestination (local),
 		m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service),
 		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0), m_RTT (INITIAL_RTT), m_SlowRTT (INITIAL_RTT), m_SlowRTT2 (INITIAL_RTT),
 		m_WindowSize (INITIAL_WINDOW_SIZE), m_LastWindowDropSize  (0), m_WindowDropTargetSize (0), m_WindowIncCounter (0), 
@@ -495,6 +495,7 @@ namespace stream
 			return;
 		}
 		int rttSample = INT_MAX;
+		int incCounter = 0;
 		m_IsNAcked = false;
 		m_IsResendNeeded = false;
 		int nackCount = packet->GetNACKCount ();
@@ -537,8 +538,7 @@ namespace stream
 				m_LocalDestination.DeletePacket (sentPacket);
 				acknowledged = true;
 				if (m_WindowSize < MAX_WINDOW_SIZE && !m_IsFirstACK)
-					if (m_RTT < m_LocalDestination.GetRandom () % INITIAL_RTO) // dirty
-						m_WindowIncCounter++;
+					incCounter++;
 			}
 			else
 				break;
@@ -552,7 +552,7 @@ namespace stream
 				m_SlowRTT2 = rttSample;
 				m_PrevRTTSample = rttSample;
 				m_Jitter = rttSample / 10; // 10%
-				m_Jitter += 5; // for low-latency connections
+				m_Jitter += 15; // for low-latency connections
 				m_IsFirstRttSample = false;
 			}
 			else
@@ -569,9 +569,23 @@ namespace stream
 					jitter = m_PrevRTTSample - rttSample;
 				else
 					jitter = rttSample / 10; // 10%
-				jitter += 5; // for low-latency connections
+				jitter += 15; // for low-latency connections
 				m_Jitter = (0.05 * jitter) + (1.0 - 0.05) * m_Jitter;
 			}
+			if (rttSample > m_SlowRTT)
+			{
+				incCounter = 0;
+				m_DoubleWinIncCounter = 1;
+			}
+			else if (rttSample < m_SlowRTT)
+			{
+				if (m_DoubleWinIncCounter)
+				{
+					incCounter = incCounter * 2;
+					m_DoubleWinIncCounter = 0;
+				}
+			}
+			m_WindowIncCounter = m_WindowIncCounter + incCounter;
 			//
 			// delay-based CC
 			if ((m_SlowRTT2 > m_SlowRTT + m_Jitter && rttSample > m_SlowRTT2 && rttSample > m_PrevRTTSample) && !m_IsWinDropped) // Drop window if RTT grows too fast, late detection
@@ -1297,8 +1311,6 @@ namespace stream
 				else if (m_IsResendNeeded) // resend packets
 					ResendPacket ();
 				// delay-based CC
-				else if (!m_IsWinDropped && int(m_SentPackets.size ()) == m_WindowSize) // we sending packets too fast, early detection
-					ProcessWindowDrop ();
 				else if (m_WindowSize > int(m_SentPackets.size ())) // send packets
 					SendBuffer ();
 			}

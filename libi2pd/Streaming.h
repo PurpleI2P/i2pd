@@ -19,6 +19,7 @@
 #include <mutex>
 #include <boost/asio.hpp>
 #include "Base.h"
+#include "Gzip.h"
 #include "I2PEndian.h"
 #include "Identity.h"
 #include "LeaseSet.h"
@@ -54,7 +55,7 @@ namespace stream
 	const size_t COMPRESSION_THRESHOLD_SIZE = 66;
 	const int MAX_NUM_RESEND_ATTEMPTS = 10;
 	const int INITIAL_WINDOW_SIZE = 10;
-	const int MIN_WINDOW_SIZE = 2;
+	const int MIN_WINDOW_SIZE = 3;
 	const int MAX_WINDOW_SIZE = 512;
 	const double RTT_EWMA_ALPHA = 0.25;
 	const double SLOWRTT_EWMA_ALPHA = 0.05;
@@ -274,6 +275,7 @@ namespace stream
 			bool m_IsTimeOutResend;
 			bool m_IsImmediateAckRequested;
 			bool m_IsRemoteLeaseChangeInProgress;
+			bool m_DoubleWinIncCounter;
 			StreamingDestination& m_LocalDestination;
 			std::shared_ptr<const i2p::data::IdentityEx> m_RemoteIdentity;
 			std::shared_ptr<const i2p::crypto::Verifier> m_TransientVerifier; // in case of offline key
