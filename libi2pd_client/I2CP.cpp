@@ -879,7 +879,7 @@ namespace client
 							if (!remoteSession || !m_Destination->SendMsg (buf + offset, payloadLen, remoteSession, nonce))
 							{	
 								i2p::data::IdentHash identHash;
-								SHA256(ident, identSize, identHash); // caclulate ident hash, because we don't need full identity
+								SHA256(ident, identSize, identHash); // calculate ident hash, because we don't need full identity
 								m_Destination->SendMsgTo (buf + offset, payloadLen, identHash, nonce);
 							}	
 						}

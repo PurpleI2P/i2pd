@@ -240,13 +240,13 @@ namespace tunnel
 		auto currentTransport = m_CurrentTransport.lock ();
 		if (!currentTransport)
 		{
-			// try to obtain transport from peding reequest or send thought transport is not complete
+			// try to obtain transport from pending request or send thought transport is not complete
 			if (m_PendingTransport.valid ()) // pending request?
 			{
 				if (m_PendingTransport.wait_for(std::chrono::seconds(0)) == std::future_status::ready) 
 				{	
 					// pending request complete
-					currentTransport = m_PendingTransport.get (); // take tarnsports used in pending request
+					currentTransport = m_PendingTransport.get (); // take transports used in pending request
 					if (currentTransport)
 					{	
 						if (currentTransport->IsEstablished ()) 
@@ -257,7 +257,7 @@ namespace tunnel
 				}	
 				else // still pending
 				{	
-					// send through transports, but don't update pedning transport
+					// send through transports, but don't update pending transport
 					i2p::transport::transports.SendMessages (m_Tunnel.GetNextIdentHash (), std::move (newTunnelMsgs));
 					return;
 				}	

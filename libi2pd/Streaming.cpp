@@ -958,7 +958,7 @@ namespace stream
 		if (choking || requestImmediateAck)
 		{
 			htobe16buf (packet + size, 2); // 2 bytes delay interval
-			htobe16buf (packet + size + 2, choking ? DELAY_CHOKING : 0); // set choking or immediated ack interval
+			htobe16buf (packet + size + 2, choking ? DELAY_CHOKING : 0); // set choking or immediate ack interval
 			size += 2;
 			if (requestImmediateAck) // ack request sent
 			{
