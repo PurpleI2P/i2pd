@@ -286,7 +286,7 @@ namespace garlic
 			std::unordered_map<i2p::data::IdentHash, ElGamalAESSessionPtr> m_Sessions;
 			std::unordered_map<i2p::data::Tag<32>, ECIESX25519AEADRatchetSessionPtr> m_ECIESx25519Sessions; // static key -> session
 			uint8_t * m_PayloadBuffer; // for ECIESX25519AEADRatchet
-			uint64_t m_LastIncomingSessionTimestamp; // in millseconds
+			uint64_t m_LastIncomingSessionTimestamp; // in milliseconds
 			// incoming
 			int m_NumRatchetInboundTags;
 			std::unordered_map<SessionTag, std::shared_ptr<AESDecryption>, std::hash<i2p::data::Tag<32> > > m_Tags;

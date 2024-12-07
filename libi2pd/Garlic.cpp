@@ -550,7 +550,7 @@ namespace garlic
 							LogPrint (eLogError, "Garlic: Can't handle ECIES-X25519-AEAD-Ratchet message");
 					}
 					else
-						LogPrint (eLogWarning, "Garlic: Incoming sessions come too ofter");
+						LogPrint (eLogWarning, "Garlic: Incoming sessions come too often");
 				}
 				else
 					LogPrint (eLogError, "Garlic: Failed to decrypt message");

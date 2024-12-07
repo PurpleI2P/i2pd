@@ -1389,7 +1389,7 @@ namespace transport
 					excluded.insert (ident);
 			}	
 
-			// sesssion about to expire are not counted
+			// session about to expire are not counted
 			for (auto i = introducers.size (); i < SSU2_MAX_NUM_INTRODUCERS + numOldSessions; i++)
 			{
 				auto introducer = i2p::data::netdb.GetRandomSSU2Introducer (v4, excluded);

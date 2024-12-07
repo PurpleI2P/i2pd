@@ -86,7 +86,7 @@ namespace client
 				}
 				else
 				{
-					LogPrint(eLogWarning, "UDPServer: Session with from ", remotePort, " and to ", localPort, " ports already exists. But from differend address. Removed");
+					LogPrint(eLogWarning, "UDPServer: Session with from ", remotePort, " and to ", localPort, " ports already exists. But from different address. Removed");
 					m_Sessions.erase (it);
 				}
 			}

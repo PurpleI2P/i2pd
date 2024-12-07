@@ -68,7 +68,7 @@ namespace transport
 	void SSU2PeerTestSession::HandleAddress (const uint8_t * buf, size_t len)
 	{
 		if (!ExtractEndpoint (buf, len, m_OurEndpoint))
-			LogPrint (eLogWarning, "SSU2: Can't hanlde address block from peer test message");
+			LogPrint (eLogWarning, "SSU2: Can't handle address block from peer test message");
 	}	
 		
 	void SSU2PeerTestSession::HandlePeerTest (const uint8_t * buf, size_t len)
@@ -89,7 +89,7 @@ namespace transport
 			{	
 				if (htobe64 (((uint64_t)nonce << 32) | nonce) == GetSourceConnID ())
 				{
-					m_PeerTestResendTimer.cancel (); // calcel delayed msg 6 if any
+					m_PeerTestResendTimer.cancel (); // cancel delayed msg 6 if any
 					m_IsConnectedRecently = GetServer ().IsConnectedRecently (GetRemoteEndpoint ());
 					if (GetAddress ())
 					{
