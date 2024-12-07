@@ -42,12 +42,6 @@ ifeq ($(USE_WIN32_APP), yes)
 	DAEMON_OBJS += $(patsubst %.rc,obj/%.o,$(DAEMON_RC))
 endif
 
-ifeq ($(USE_AESNI),yes)
-	NEEDED_CXXFLAGS += -maes
-	LDFLAGS += -maes
-	DEFINES += -D__AES__
-endif
-
 ifeq ($(USE_ASLR),yes)
 	LDFLAGS += -Wl,--nxcompat -Wl,--high-entropy-va -Wl,--dynamicbase,--export-all-symbols
 endif

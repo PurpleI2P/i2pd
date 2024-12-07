@@ -51,13 +51,6 @@ ifeq ($(USE_UPNP),yes)
 	DEFINES += -DUSE_UPNP
 endif
 
-ifeq ($(USE_AESNI),yes)
-ifneq (, $(findstring i386, $(SYS))$(findstring i686, $(SYS))$(findstring x86_64, $(SYS))) # only x86-based CPU supports that
-	NEEDED_CXXFLAGS += -maes
-	DEFINES += -D__AES__
-endif
-endif
-
 install: all
 	install -d ${PREFIX}/bin
 	install -m 755 ${I2PD} ${PREFIX}/bin

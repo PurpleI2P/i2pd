@@ -29,7 +29,6 @@ DAEMON_SRC_DIR := daemon
 # import source files lists
 include filelist.mk
 
-USE_AESNI       := $(or $(USE_AESNI),yes)
 USE_STATIC      := $(or $(USE_STATIC),no)
 USE_UPNP        := $(or $(USE_UPNP),no)
 DEBUG           := $(or $(DEBUG),yes)

@@ -29,7 +29,6 @@ project(
 )
 
 # configurable options
-option(WITH_AESNI           "Use AES-NI instructions set"             ON)
 option(WITH_HARDENING       "Use hardening compiler flags"            OFF)
 option(WITH_LIBRARY         "Build library"                           ON)
 option(WITH_BINARY          "Build binary"                            ON)
@@ -185,16 +184,6 @@ if(UNIX)
   endif()
 endif()
 
-# Note: AES-NI and AVX is available on x86-based CPU's.
-# Here also ARM64 implementation, but currently we don't support it.
-# MSVC is not supported due to different ASM processing, so we hope OpenSSL has its own checks to run optimized code.
-if(WITH_AESNI AND (ARCHITECTURE MATCHES "x86_64" OR ARCHITECTURE MATCHES "i386"))
-  if(NOT MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -maes")
-  endif()
-  add_definitions(-D__AES__)
-endif()
-
 if(WITH_ADDRSANITIZER)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
@@ -335,7 +324,6 @@ message(STATUS "Architecture       : ${ARCHITECTURE}")
 message(STATUS "Compiler flags     : ${CMAKE_CXX_FLAGS}")
 message(STATUS "Install prefix:    : ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "Options:")
-message(STATUS "  AESNI            : ${WITH_AESNI}")
 message(STATUS "  HARDENING        : ${WITH_HARDENING}")
 message(STATUS "  LIBRARY          : ${WITH_LIBRARY}")
 message(STATUS "  BINARY           : ${WITH_BINARY}")

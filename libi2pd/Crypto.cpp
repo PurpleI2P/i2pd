@@ -834,7 +834,7 @@ namespace crypto
 		}
 	}*/
 
-	void InitCrypto (bool precomputation, bool aesni, bool force)
+	void InitCrypto (bool precomputation)
 	{
 /*		auto numLocks = CRYPTO_num_locks();
 		for (int i = 0; i < numLocks; i++)

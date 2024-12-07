@@ -25,9 +25,5 @@ endif
 OSARCH = $(shell uname -p)
 
 ifneq ($(OSARCH),powerpc)
-	ifeq ($(USE_AESNI),yes)
-		CXXFLAGS += -D__AES__ -maes
-	else
-		CXXFLAGS += -msse
-	endif
+	CXXFLAGS += -msse
 endif

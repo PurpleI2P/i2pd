@@ -149,12 +149,10 @@ namespace util
 		LogPrint(eLogDebug, "FS: Certificates directory: ", certsdir);
 
 		bool precomputation; i2p::config::GetOption("precomputation.elgamal", precomputation);
-		bool aesni; i2p::config::GetOption("cpuext.aesni", aesni);
-		bool forceCpuExt; i2p::config::GetOption("cpuext.force", forceCpuExt);
 		bool ssu; i2p::config::GetOption("ssu", ssu);
 		if (!ssu && i2p::config::IsDefault ("precomputation.elgamal"))
 			precomputation = false; // we don't elgamal table if no ssu, unless it's specified explicitly
-		i2p::crypto::InitCrypto (precomputation, aesni, forceCpuExt);
+		i2p::crypto::InitCrypto (precomputation);
 
 		i2p::transport::InitAddressFromIface (); // get address4/6 from interfaces
 
