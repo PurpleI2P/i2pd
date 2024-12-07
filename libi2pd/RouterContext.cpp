@@ -140,7 +140,7 @@ namespace i2p
 				{
 					boost::asio::ip::address addr;
 					if (!host.empty ())
-						addr = boost::asio::ip::address::from_string (host);
+						addr = boost::asio::ip::make_address (host);
 					if (!addr.is_v4())
 						addr = boost::asio::ip::address_v4 ();
 					routerInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, addr, ntcp2Port);
@@ -161,7 +161,7 @@ namespace i2p
 				{
 					boost::asio::ip::address addr;
 					if (!host.empty ())
-						addr = boost::asio::ip::address::from_string (host);
+						addr = boost::asio::ip::make_address (host);
 					if (!addr.is_v4())
 						addr = boost::asio::ip::address_v4 ();
 					routerInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, addr, ssu2Port);
@@ -192,7 +192,7 @@ namespace i2p
 						ntcp2Host = host;
 					boost::asio::ip::address addr;
 					if (!ntcp2Host.empty ())
-						addr = boost::asio::ip::address::from_string (ntcp2Host);
+						addr = boost::asio::ip::make_address (ntcp2Host);
 					if (!addr.is_v6())
 						addr = boost::asio::ip::address_v6 ();
 					routerInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, addr, ntcp2Port);
@@ -211,7 +211,7 @@ namespace i2p
 				{
 					boost::asio::ip::address addr;
 					if (!host.empty ())
-						addr = boost::asio::ip::address::from_string (host);
+						addr = boost::asio::ip::make_address (host);
 					if (!addr.is_v6())
 						addr = boost::asio::ip::address_v6 ();
 					routerInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, addr, ssu2Port);
@@ -802,7 +802,7 @@ namespace i2p
 							i2p::config::GetOption("host", ntcp2Host);
 						if (!ntcp2Host.empty () && ntcp2Port)
 						{
-							auto addr = boost::asio::ip::address::from_string (ntcp2Host);
+							auto addr = boost::asio::ip::make_address (ntcp2Host);
 							if (addr.is_v6 ())
 							{
 								m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, addr, ntcp2Port);
@@ -831,7 +831,7 @@ namespace i2p
 						std::string host; i2p::config::GetOption("host", host);
 						if (!host.empty ())
 						{
-						    auto addr = boost::asio::ip::address::from_string (host);
+						    auto addr = boost::asio::ip::make_address (host);
 							if (addr.is_v6 ())
 							{
 								m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, addr, ssu2Port);
@@ -900,7 +900,7 @@ namespace i2p
 						std::string host; i2p::config::GetOption("host", host);
 						if (!host.empty ())
 						{
-						    auto addr = boost::asio::ip::address::from_string (host);
+						    auto addr = boost::asio::ip::make_address (host);
 							if (addr.is_v4 ())
 							{
 								m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, addr, ntcp2Port);
@@ -930,7 +930,7 @@ namespace i2p
 						std::string host; i2p::config::GetOption("host", host);
 						if (!host.empty ())
 						{
-						    auto addr = boost::asio::ip::address::from_string (host);
+						    auto addr = boost::asio::ip::make_address (host);
 							if (addr.is_v4 ())
 							{
 								m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, addr, ssu2Port);
@@ -1185,7 +1185,7 @@ namespace i2p
 	void RouterContext::ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		if (m_Service)
-			m_Service->GetService ().post (std::bind (&RouterContext::PostGarlicMessage, this, msg));
+			boost::asio::post (m_Service->GetService (), std::bind (&RouterContext::PostGarlicMessage, this, msg));
 		else
 			LogPrint (eLogError, "Router: service is NULL");
 	}
@@ -1213,7 +1213,7 @@ namespace i2p
 	void RouterContext::ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		if (m_Service)
-			m_Service->GetService ().post (std::bind (&RouterContext::PostDeliveryStatusMessage, this, msg));
+			boost::asio::post (m_Service->GetService (), std::bind (&RouterContext::PostDeliveryStatusMessage, this, msg));
 		else
 			LogPrint (eLogError, "Router: service is NULL");
 	}
@@ -1242,7 +1242,7 @@ namespace i2p
 			} data;
 			memcpy (data.k, key, 32);
 			data.t = tag;
-			m_Service->GetService ().post ([this,data](void)
+			boost::asio::post (m_Service->GetService (), [this,data](void)
 				{
 					AddECIESx25519Key (data.k, data.t);
 				});
@@ -1408,7 +1408,7 @@ namespace i2p
 			auto onDrop = [this]()
 				{
 					if (m_Service)
-						m_Service->GetService ().post ([this]() { HandlePublishResendTimer (boost::system::error_code ()); });
+						boost::asio::post (m_Service->GetService (), [this]() { HandlePublishResendTimer (boost::system::error_code ()); });
 				};
 			if (i2p::transport::transports.IsConnected (floodfill->GetIdentHash ()) || // already connected
 				(floodfill->IsReachableFrom (i2p::context.GetRouterInfo ()) && // are we able to connect

@@ -66,14 +66,14 @@ namespace stream
 		}
 	}
 
-	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local,
+	Stream::Stream (boost::asio::io_context& service, StreamingDestination& local,
 		std::shared_ptr<const i2p::data::LeaseSet> remote, int port): m_Service (service),
 		m_SendStreamID (0), m_SequenceNumber (0), m_DropWindowDelaySequenceNumber (0),
 		m_TunnelsChangeSequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_PreviousReceivedSequenceNumber (-1),
 		m_LastConfirmedReceivedSequenceNumber (0), // for limit inbound speed
 		m_Status (eStreamStatusNew), m_IsIncoming (false), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false), 
 		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true), m_IsWinDropped (false),
-		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_IsRemoteLeaseChangeInProgress (false), m_LocalDestination (local),
+		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_IsRemoteLeaseChangeInProgress (false), m_DoubleWinIncCounter (false), m_LocalDestination (local),
 		m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service),
 		m_AckSendTimer (m_Service), m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (port),
 		m_RTT (INITIAL_RTT), m_SlowRTT (INITIAL_RTT), m_SlowRTT2 (INITIAL_RTT), m_WindowSize (INITIAL_WINDOW_SIZE), m_LastWindowDropSize  (0),
@@ -95,13 +95,13 @@ namespace stream
 			m_PacketACKInterval = (1000000LL*STREAMING_MTU)/inboundSpeed;
 	}
 
-	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local):
+	Stream::Stream (boost::asio::io_context& service, StreamingDestination& local):
 		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0), m_DropWindowDelaySequenceNumber (0),
 		m_TunnelsChangeSequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_PreviousReceivedSequenceNumber (-1),
 		m_LastConfirmedReceivedSequenceNumber (0), // for limit inbound speed
 		m_Status (eStreamStatusNew), m_IsIncoming (true), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false), 
 		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true), m_IsWinDropped (false),
-		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_IsRemoteLeaseChangeInProgress (false), m_LocalDestination (local),
+		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_IsRemoteLeaseChangeInProgress (false), m_DoubleWinIncCounter (false), m_LocalDestination (local),
 		m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service),
 		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0), m_RTT (INITIAL_RTT), m_SlowRTT (INITIAL_RTT), m_SlowRTT2 (INITIAL_RTT),
 		m_WindowSize (INITIAL_WINDOW_SIZE), m_LastWindowDropSize  (0), m_WindowDropTargetSize (0), m_WindowIncCounter (0), 
@@ -495,6 +495,7 @@ namespace stream
 			return;
 		}
 		int rttSample = INT_MAX;
+		int incCounter = 0;
 		m_IsNAcked = false;
 		m_IsResendNeeded = false;
 		int nackCount = packet->GetNACKCount ();
@@ -537,8 +538,7 @@ namespace stream
 				m_LocalDestination.DeletePacket (sentPacket);
 				acknowledged = true;
 				if (m_WindowSize < MAX_WINDOW_SIZE && !m_IsFirstACK)
-					if (m_RTT < m_LocalDestination.GetRandom () % INITIAL_RTT) // dirty
-						m_WindowIncCounter++;
+					incCounter++;
 			}
 			else
 				break;
@@ -552,7 +552,7 @@ namespace stream
 				m_SlowRTT2 = rttSample;
 				m_PrevRTTSample = rttSample;
 				m_Jitter = rttSample / 10; // 10%
-				m_Jitter += 5; // for low-latency connections
+				m_Jitter += 15; // for low-latency connections
 				m_IsFirstRttSample = false;
 			}
 			else
@@ -569,9 +569,23 @@ namespace stream
 					jitter = m_PrevRTTSample - rttSample;
 				else
 					jitter = rttSample / 10; // 10%
-				jitter += 5; // for low-latency connections
+				jitter += 15; // for low-latency connections
 				m_Jitter = (0.05 * jitter) + (1.0 - 0.05) * m_Jitter;
 			}
+			if (rttSample > m_SlowRTT)
+			{
+				incCounter = 0;
+				m_DoubleWinIncCounter = 1;
+			}
+			else if (rttSample < m_SlowRTT)
+			{
+				if (m_DoubleWinIncCounter)
+				{
+					incCounter = incCounter * 2;
+					m_DoubleWinIncCounter = 0;
+				}
+			}
+			m_WindowIncCounter = m_WindowIncCounter + incCounter;
 			//
 			// delay-based CC
 			if ((m_SlowRTT2 > m_SlowRTT + m_Jitter && rttSample > m_SlowRTT2 && rttSample > m_PrevRTTSample) && !m_IsWinDropped) // Drop window if RTT grows too fast, late detection
@@ -667,7 +681,7 @@ namespace stream
 		{
 			// make sure that AsycReceive complete
 			auto s = shared_from_this();
-			m_Service.post ([s]()
+			boost::asio::post (m_Service, [s]()
 		    {
 				s->m_ReceiveTimer.cancel ();
 			});
@@ -695,7 +709,7 @@ namespace stream
 		else if (handler)
 			handler(boost::system::error_code ());
 		auto s = shared_from_this ();
-		m_Service.post ([s, buffer]()
+		boost::asio::post (m_Service, [s, buffer]()
 			{
 				if (buffer)
 					s->m_SendBuffer.Add (buffer);
@@ -1058,7 +1072,7 @@ namespace stream
 		m_LocalDestination.GetOwner ()->Sign (packet, size, signature);
 
 		p->len = size;
-		m_Service.post (std::bind (&Stream::SendPacket, shared_from_this (), p));
+		boost::asio::post (m_Service, std::bind (&Stream::SendPacket, shared_from_this (), p));
 		LogPrint (eLogDebug, "Streaming: FIN sent, sSID=", m_SendStreamID);
 	}
 
@@ -1143,7 +1157,7 @@ namespace stream
 			CancelRemoteLeaseChange ();
 			UpdateCurrentRemoteLease (true);
 		}
-		if (m_RemoteLeaseChangeTime && m_IsRemoteLeaseChangeInProgress && ts > m_RemoteLeaseChangeTime + INITIAL_RTT)
+		if (m_RemoteLeaseChangeTime && m_IsRemoteLeaseChangeInProgress && ts > m_RemoteLeaseChangeTime + INITIAL_RTO)
 		{
 			CancelRemoteLeaseChange ();
 			m_CurrentRemoteLease = m_NextRemoteLease;
@@ -1297,8 +1311,6 @@ namespace stream
 				else if (m_IsResendNeeded) // resend packets
 					ResendPacket ();
 				// delay-based CC
-				else if (!m_IsWinDropped && int(m_SentPackets.size ()) == m_WindowSize) // we sending packets too fast, early detection
-					ProcessWindowDrop ();
 				else if (m_WindowSize > int(m_SentPackets.size ())) // send packets
 					SendBuffer ();
 			}
@@ -1855,7 +1867,7 @@ namespace stream
 		if (it == m_Streams.end ())
 			return false;
 		auto s = it->second;
-		m_Owner->GetService ().post ([this, s] ()
+		boost::asio::post (m_Owner->GetService (), [this, s] ()
 			{
 				s->Close (); // try to send FIN
 				s->Terminate (false);
@@ -1868,7 +1880,7 @@ namespace stream
 	{
 		m_Acceptor = acceptor; // we must set it immediately for IsAcceptorSet
 		auto s = shared_from_this ();
-		m_Owner->GetService ().post([s](void)
+		boost::asio::post (m_Owner->GetService (), [s](void)
 			{
 				// take care about incoming queue
 				for (auto& it: s->m_PendingIncomingStreams)
@@ -1887,7 +1899,7 @@ namespace stream
 
 	void StreamingDestination::AcceptOnce (const Acceptor& acceptor)
 	{
-		m_Owner->GetService ().post([acceptor, this](void)
+		boost::asio::post (m_Owner->GetService (), [acceptor, this](void)
 			{
 				if (!m_PendingIncomingStreams.empty ())
 				{

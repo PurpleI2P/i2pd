@@ -701,6 +701,7 @@ namespace http {
 	{
 		s << "<b>" << tr("Tunnels") << ":</b><br>\r\n";
 		s << "<b>" << tr("Queue size") << ":</b> " << i2p::tunnel::tunnels.GetQueueSize () << "<br>\r\n<br>\r\n";
+		s << "<b>" << tr("TBM Queue size") << ":</b> " << i2p::tunnel::tunnels.GetTBMQueueSize () << "<br>\r\n<br>\r\n";
 
 		auto ExplPool = i2p::tunnel::tunnels.GetExploratoryPool ();
 
@@ -1485,8 +1486,8 @@ namespace http {
 	}
 
 	HTTPServer::HTTPServer (const std::string& address, int port):
-		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service),
-		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint (boost::asio::ip::address::from_string(address), port)),
+		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service.get_executor ()),
+		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint (boost::asio::ip::make_address(address), port)),
 		m_Hostname(address)
 	{
 	}

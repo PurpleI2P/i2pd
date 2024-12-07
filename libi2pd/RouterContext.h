@@ -90,7 +90,7 @@ namespace garlic
 				public:
 
 					RouterService (): RunnableServiceWithWork ("Router") {};
-					boost::asio::io_service& GetService () { return GetIOService (); };
+					auto& GetService () { return GetIOService (); };
 					void Start () { StartIOService (); };
 					void Stop () { StopIOService (); };
 			};

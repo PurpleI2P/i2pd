@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -129,7 +129,7 @@ namespace client
 
 	BOBI2POutboundTunnel::BOBI2POutboundTunnel (const std::string& outhost, uint16_t port,
 		std::shared_ptr<ClientDestination> localDestination, bool quiet): BOBI2PTunnel (localDestination),
-		m_Endpoint (boost::asio::ip::address::from_string (outhost), port), m_IsQuiet (quiet)
+		m_Endpoint (boost::asio::ip::make_address (outhost), port), m_IsQuiet (quiet)
 	{
 	}
 
@@ -220,7 +220,7 @@ namespace client
 			if (!inhost.empty ())
 			{
 				boost::system::error_code ec;
-				auto addr = boost::asio::ip::address::from_string (inhost, ec);
+				auto addr = boost::asio::ip::make_address (inhost, ec);
 				if (!ec)
 					ep.address (addr);
 				else
@@ -425,7 +425,7 @@ namespace client
 		{
 			// TODO: FIXME: temporary validation, until hostname support is added
 			boost::system::error_code ec;
-			boost::asio::ip::address::from_string(m_InHost, ec);
+			boost::asio::ip::make_address(m_InHost, ec);
 			if (ec)
 			{
 				SendReplyError("inhost must be a valid IPv4 address.");
@@ -436,7 +436,7 @@ namespace client
 		{
 			// TODO: FIXME: temporary validation, until hostname support is added
 			boost::system::error_code ec;
-			boost::asio::ip::address::from_string(m_OutHost, ec);
+			boost::asio::ip::make_address(m_OutHost, ec);
 			if (ec)
 			{
 				SendReplyError("outhost must be a IPv4 address.");
@@ -828,7 +828,7 @@ namespace client
 
 	BOBCommandChannel::BOBCommandChannel (const std::string& address, uint16_t port):
 		RunnableService ("BOB"),
-		m_Acceptor (GetIOService (), boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(address), port))
+		m_Acceptor (GetIOService (), boost::asio::ip::tcp::endpoint(boost::asio::ip::make_address(address), port))
 	{
 		// command -> handler
 		m_CommandHandlers[BOB_COMMAND_ZAP] = &BOBCommandSession::ZapCommandHandler;

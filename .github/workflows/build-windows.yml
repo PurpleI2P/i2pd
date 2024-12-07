@@ -231,7 +231,7 @@ jobs:
         cd MINGW-packages/mingw-w64-boost
         MINGW_ARCH=mingw32 makepkg-mingw -sCLf --noconfirm --nocheck
     - name: Install boost package
-      run: pacman --noconfirm -U MINGW-packages/mingw-w64-boost/mingw-w64-i686-*-any.pkg.tar.zst
+      run: pacman --noconfirm -U --overwrite MINGW-packages/mingw-w64-boost/mingw-w64-i686-*-any.pkg.tar.zst
 
     # Building i2pd
     - name: Build application

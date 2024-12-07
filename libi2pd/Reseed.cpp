@@ -552,7 +552,7 @@ namespace data
 		if (!url.port)
 			url.port = 443;
 
-		boost::asio::io_service service;
+		boost::asio::io_context service;
 		boost::system::error_code ecode;
 
 		boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);
@@ -562,11 +562,10 @@ namespace data
 		if(proxyUrl.schema.size())
 		{
 			// proxy connection
-			auto it = boost::asio::ip::tcp::resolver(service).resolve (
-				boost::asio::ip::tcp::resolver::query (proxyUrl.host, std::to_string(proxyUrl.port)), ecode);
+			auto it = boost::asio::ip::tcp::resolver(service).resolve (proxyUrl.host, std::to_string(proxyUrl.port), ecode);
 			if(!ecode)
 			{
-				s.lowest_layer().connect(*it, ecode);
+				s.lowest_layer().connect(*it.begin (), ecode);
 				if(!ecode)
 				{
 					auto & sock = s.next_layer();
@@ -599,7 +598,7 @@ namespace data
 							LogPrint(eLogError, "Reseed: HTTP CONNECT read error: ", ecode.message());
 							return "";
 						}
-						if(proxyRes.parse(boost::asio::buffer_cast<const char *>(readbuf.data()), readbuf.size()) <= 0)
+						if(proxyRes.parse(std::string {boost::asio::buffers_begin(readbuf.data ()), boost::asio::buffers_begin(readbuf.data ()) + readbuf.size ()}) <= 0)
 						{
 							sock.close();
 							LogPrint(eLogError, "Reseed: HTTP CONNECT malformed reply");
@@ -638,15 +637,13 @@ namespace data
 		else
 		{
 			// direct connection
-			auto it = boost::asio::ip::tcp::resolver(service).resolve (
-				boost::asio::ip::tcp::resolver::query (url.host, std::to_string(url.port)), ecode);
+			auto endpoints = boost::asio::ip::tcp::resolver(service).resolve (url.host, std::to_string(url.port), ecode);
 			if (!ecode)
 			{
 				bool connected = false;
-				boost::asio::ip::tcp::resolver::iterator end;
-				while (it != end)
+				for (const auto& it: endpoints)
 				{
-					boost::asio::ip::tcp::endpoint ep = *it;
+					boost::asio::ip::tcp::endpoint ep = it;
 					bool supported = false;
 					if (!ep.address ().is_unspecified ())
 					{
@@ -666,7 +663,6 @@ namespace data
 							break;
 						}
 					}
-					it++;
 				}
 				if (!connected)
 				{
@@ -746,19 +742,16 @@ namespace data
 		if (!url.port) url.port = 80;
 
 		boost::system::error_code ecode;
-		boost::asio::io_service service;
+		boost::asio::io_context service;
 		boost::asio::ip::tcp::socket s(service, boost::asio::ip::tcp::v6());
 
-		auto it = boost::asio::ip::tcp::resolver(service).resolve (
-			boost::asio::ip::tcp::resolver::query (url.host, std::to_string(url.port)), ecode);
-
+		auto endpoints = boost::asio::ip::tcp::resolver(service).resolve (url.host, std::to_string(url.port), ecode);
 		if (!ecode)
 		{
 			bool connected = false;
-			boost::asio::ip::tcp::resolver::iterator end;
-			while (it != end)
+			for (const auto& it: endpoints)
 			{
-				boost::asio::ip::tcp::endpoint ep = *it;
+				boost::asio::ip::tcp::endpoint ep = it;
 				if (
 					i2p::util::net::IsYggdrasilAddress (ep.address ()) &&
 					i2p::context.SupportsMesh ()
@@ -772,7 +765,6 @@ namespace data
 						break;
 					}
 				}
-				it++;
 			}
 			if (!connected)
 			{

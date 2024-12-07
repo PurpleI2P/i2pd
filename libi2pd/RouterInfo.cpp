@@ -257,7 +257,7 @@ namespace data
 				if (!strcmp (key, "host"))
 				{
 					boost::system::error_code ecode;
-					address->host = boost::asio::ip::address::from_string (value, ecode);
+					address->host = boost::asio::ip::make_address (value, ecode);
 					if (!ecode && !address->host.is_unspecified ())
 					{
 						if (!i2p::transport::transports.IsInReservedRange (address->host) ||

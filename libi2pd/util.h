@@ -177,7 +177,7 @@ namespace util
 			RunnableService (const std::string& name): m_Name (name), m_IsRunning (false) {}
 			virtual ~RunnableService () {}
 
-			boost::asio::io_service& GetIOService () { return m_Service; }
+			auto& GetIOService () { return m_Service; }
 			bool IsRunning () const { return m_IsRunning; };
 
 			void StartIOService ();
@@ -194,7 +194,7 @@ namespace util
 			std::string m_Name;
 			volatile bool m_IsRunning;
 			std::unique_ptr<std::thread> m_Thread;
-			boost::asio::io_service m_Service;
+			boost::asio::io_context m_Service;
 	};
 
 	class RunnableServiceWithWork: public RunnableService
@@ -202,11 +202,11 @@ namespace util
 		protected:
 
 			RunnableServiceWithWork (const std::string& name):
-				RunnableService (name), m_Work (GetIOService ()) {}
+				RunnableService (name), m_Work (GetIOService ().get_executor ()) {}
 
 		private:
 
-			boost::asio::io_service::work m_Work;
+			boost::asio::executor_work_guard<boost::asio::io_context::executor_type> m_Work;
 	};
 
 	void SetThreadName (const char *name);

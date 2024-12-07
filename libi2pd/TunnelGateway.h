@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -12,7 +12,9 @@
 #include <inttypes.h>
 #include <vector>
 #include <memory>
+#include <future>
 #include "I2NPProtocol.h"
+#include "TransportSession.h"
 #include "TunnelBase.h"
 
 namespace i2p
@@ -45,7 +47,7 @@ namespace tunnel
 	{
 		public:
 
-			TunnelGateway (TunnelBase * tunnel):
+			TunnelGateway (TunnelBase& tunnel):
 				m_Tunnel (tunnel), m_NumSentBytes (0) {};
 			void SendTunnelDataMsg (const TunnelMessageBlock& block);
 			void PutTunnelDataMsg (const TunnelMessageBlock& block);
@@ -54,9 +56,11 @@ namespace tunnel
 
 		private:
 
-			TunnelBase * m_Tunnel;
+			TunnelBase& m_Tunnel;
 			TunnelGatewayBuffer m_Buffer;
 			size_t m_NumSentBytes;
+			std::weak_ptr<i2p::transport::TransportSession> m_CurrentTransport;
+			std::future<std::shared_ptr<i2p::transport::TransportSession> > m_PendingTransport;
 	};
 }
 }

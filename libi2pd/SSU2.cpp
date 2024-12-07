@@ -81,7 +81,7 @@ namespace transport
 							found = true;
 							LogPrint (eLogDebug, "SSU2: Opening IPv4 socket at Start");
 							OpenSocket (boost::asio::ip::udp::endpoint (m_AddressV4, port));
-							m_ReceiveService.GetService ().post(
+							boost::asio::post (m_ReceiveService.GetService (),
 								[this]()
 								{
 									Receive (m_SocketV4);
@@ -93,8 +93,8 @@ namespace transport
 							found = true;
 							LogPrint (eLogDebug, "SSU2: Opening IPv6 socket at Start");
 							OpenSocket (boost::asio::ip::udp::endpoint (m_AddressV6, port));
-							m_ReceiveService.GetService ().post(
-							[this]()
+							boost::asio::post (m_ReceiveService.GetService (),
+								[this]()
 								{
 									Receive (m_SocketV6);
 								});
@@ -451,7 +451,7 @@ namespace transport
 			m_ReceivedPacketsQueue.push_back (packet);
 		}
 		if (empty)
-			GetService ().post([this]() { HandleReceivedPacketsQueue (); });
+			boost::asio::post (GetService (), [this]() { HandleReceivedPacketsQueue (); });
 	}	
 
 	void SSU2Server::InsertToReceivedPacketsQueue (std::list<Packet *>& packets)
@@ -471,7 +471,7 @@ namespace transport
 			}		
 		}
 		if (!queueSize)
-			GetService ().post([this]() { HandleReceivedPacketsQueue (); });
+			boost::asio::post (GetService (), [this]() { HandleReceivedPacketsQueue (); });
 	}	
 		
 	void SSU2Server::HandleReceivedPacketsQueue ()
@@ -522,7 +522,7 @@ namespace transport
 
 	void SSU2Server::RequestRemoveSession (uint64_t connID)
 	{
-		GetService ().post ([connID, this]() { RemoveSession (connID); });
+		boost::asio::post (GetService (), [connID, this]() { RemoveSession (connID); });
 	}	
 		
 	void SSU2Server::AddSessionByRouterHash (std::shared_ptr<SSU2Session> session)
@@ -550,7 +550,7 @@ namespace transport
 					// move unsent msgs to new session
 					oldSession->MoveSendQueue (session);
 					// terminate existing
-					GetService ().post (std::bind (&SSU2Session::RequestTermination, oldSession, eSSU2TerminationReasonReplacedByNewSession));
+					boost::asio::post (GetService (), std::bind (&SSU2Session::RequestTermination, oldSession, eSSU2TerminationReasonReplacedByNewSession));
 				}	
 			}
 		}
@@ -878,7 +878,7 @@ namespace transport
 			{
 				// session with router found, trying to send peer test if requested
 				if (peerTest && existingSession->IsEstablished ())
-					GetService ().post ([existingSession]() { existingSession->SendPeerTest (); });
+					boost::asio::post (GetService (), [existingSession]() { existingSession->SendPeerTest (); });
 				return false;
 			}
 			// check is no pending session
@@ -905,9 +905,9 @@ namespace transport
 				session->SetOnEstablished ([session]() {session->SendPeerTest (); });
 
 			if (isValidEndpoint) // we know endpoint
-				GetService ().post ([session]() { session->Connect (); });
+				boost::asio::post (GetService (), [session]() { session->Connect (); });
 			else if (address->UsesIntroducer ()) // we don't know endpoint yet
-				GetService ().post (std::bind (&SSU2Server::ConnectThroughIntroducer, this, session));
+				boost::asio::post (GetService (), std::bind (&SSU2Server::ConnectThroughIntroducer, this, session));
 			else
 				return false;
 		}
@@ -1050,7 +1050,7 @@ namespace transport
 			if (!remoteAddr || !remoteAddr->IsPeerTesting () ||
 			    (v4 && !remoteAddr->IsV4 ()) || (!v4 && !remoteAddr->IsV6 ())) return false;   
 			if (session->IsEstablished ())
-				GetService ().post ([session]() { session->SendPeerTest (); });
+				boost::asio::post (GetService (), [session]() { session->SendPeerTest (); });
 			else
 				session->SetOnEstablished ([session]() { session->SendPeerTest (); });
 			return true;
@@ -1764,7 +1764,7 @@ namespace transport
 	bool SSU2Server::SetProxy (const std::string& address, uint16_t port)
 	{
 		boost::system::error_code ecode;
-		auto addr = boost::asio::ip::address::from_string (address, ecode);
+		auto addr = boost::asio::ip::make_address (address, ecode);
 		if (!ecode && !addr.is_unspecified () && port)
 		{
 			m_IsThroughProxy = true;

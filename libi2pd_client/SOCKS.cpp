@@ -126,9 +126,8 @@ namespace proxy
 			void HandleSockRecv(const boost::system::error_code & ecode, std::size_t bytes_transfered);
 			void Terminate();
 			void AsyncSockRead();
-			boost::asio::const_buffers_1 GenerateSOCKS5SelectAuth(authMethods method);
-			boost::asio::const_buffers_1 GenerateSOCKS4Response(errTypes error, uint32_t ip, uint16_t port);
-			boost::asio::const_buffers_1 GenerateSOCKS5Response(errTypes error, addrTypes type, const address &addr, uint16_t port);
+			boost::asio::const_buffer GenerateSOCKS4Response(errTypes error, uint32_t ip, uint16_t port);
+			boost::asio::const_buffer GenerateSOCKS5Response(errTypes error, addrTypes type, const address &addr, uint16_t port);
 			bool Socks5ChooseAuth();
 			void Socks5UserPasswdResponse ();
 			void SocksRequestFailed(errTypes error);
@@ -145,9 +144,9 @@ namespace proxy
 			template<typename Socket>
 			void SendUpstreamRequest(std::shared_ptr<Socket>& upstreamSock);
 			void HandleUpstreamConnected(const boost::system::error_code & ecode,
-			boost::asio::ip::tcp::resolver::iterator itr);
+				const boost::asio::ip::tcp::endpoint& ep);
 			void HandleUpstreamResolved(const boost::system::error_code & ecode,
-				boost::asio::ip::tcp::resolver::iterator itr);
+				boost::asio::ip::tcp::resolver::results_type endpoints);
 
 			boost::asio::ip::tcp::resolver m_proxy_resolver;
 			uint8_t m_sock_buff[socks_buffer_size];
@@ -233,17 +232,17 @@ namespace proxy
 		Done(shared_from_this());
 	}
 
-	boost::asio::const_buffers_1 SOCKSHandler::GenerateSOCKS4Response(SOCKSHandler::errTypes error, uint32_t ip, uint16_t port)
+	boost::asio::const_buffer SOCKSHandler::GenerateSOCKS4Response(SOCKSHandler::errTypes error, uint32_t ip, uint16_t port)
 	{
 		assert(error >= SOCKS4_OK);
 		m_response[0] = '\x00';           // version
 		m_response[1] = error;            // response code
 		htobe16buf(m_response + 2, port); // port
 		htobe32buf(m_response + 4, ip);   // IP
-		return boost::asio::const_buffers_1(m_response,8);
+		return boost::asio::const_buffer (m_response,8);
 	}
 
-	boost::asio::const_buffers_1 SOCKSHandler::GenerateSOCKS5Response(SOCKSHandler::errTypes error, SOCKSHandler::addrTypes type, const SOCKSHandler::address &addr, uint16_t port)
+	boost::asio::const_buffer SOCKSHandler::GenerateSOCKS5Response(SOCKSHandler::errTypes error, SOCKSHandler::addrTypes type, const SOCKSHandler::address &addr, uint16_t port)
 	{
 		size_t size = 6;        // header + port
 		assert(error <= SOCKS5_ADDR_UNSUP);
@@ -280,14 +279,14 @@ namespace proxy
 				}
 				break;
 		}
-		return boost::asio::const_buffers_1(m_response, size);
+		return boost::asio::const_buffer (m_response, size);
 	}
 
 	bool SOCKSHandler::Socks5ChooseAuth()
 	{
 		m_response[0] = '\x05'; // Version
 		m_response[1] = m_authchosen; // Response code
-		boost::asio::const_buffers_1 response(m_response, 2);
+		boost::asio::const_buffer response(m_response, 2);
 		if (m_authchosen == AUTH_UNACCEPTABLE)
 		{
 			LogPrint(eLogWarning, "SOCKS: v5 authentication negotiation failed");
@@ -307,14 +306,14 @@ namespace proxy
 		m_response[0] = 1; // Version of the subnegotiation
 		m_response[1] = 0; // Response code
 		LogPrint(eLogDebug, "SOCKS: v5 user/password response");
-		boost::asio::async_write(*m_sock, boost::asio::const_buffers_1(m_response, 2), 
+		boost::asio::async_write(*m_sock, boost::asio::const_buffer(m_response, 2), 
 			std::bind(&SOCKSHandler::SentSocksResponse, shared_from_this(), std::placeholders::_1));
 	}	
 	
 	/* All hope is lost beyond this point */
 	void SOCKSHandler::SocksRequestFailed(SOCKSHandler::errTypes error)
 	{
-		boost::asio::const_buffers_1 response(nullptr,0);
+		boost::asio::const_buffer response(nullptr,0);
 		assert(error != SOCKS4_OK && error != SOCKS5_OK);
 		switch (m_socksv)
 		{
@@ -334,7 +333,7 @@ namespace proxy
 
 	void SOCKSHandler::SocksRequestSuccess()
 	{
-		boost::asio::const_buffers_1 response(nullptr,0);
+		boost::asio::const_buffer response(nullptr,0);
 		// TODO: this should depend on things like the command type and callbacks may change
 		switch (m_socksv)
 		{
@@ -691,9 +690,8 @@ namespace proxy
 		if (m_UpstreamProxyPort) // TCP
 		{	
 			EnterState(UPSTREAM_RESOLVE);
-			boost::asio::ip::tcp::resolver::query q(m_UpstreamProxyAddress, std::to_string(m_UpstreamProxyPort));
-			m_proxy_resolver.async_resolve(q, std::bind(&SOCKSHandler::HandleUpstreamResolved, shared_from_this(),
-				std::placeholders::_1, std::placeholders::_2));
+			m_proxy_resolver.async_resolve(m_UpstreamProxyAddress, std::to_string(m_UpstreamProxyPort), 
+				std::bind(&SOCKSHandler::HandleUpstreamResolved, shared_from_this(), std::placeholders::_1, std::placeholders::_2));
 		}	
 		else  if (!m_UpstreamProxyAddress.empty ())// local
 		{
@@ -729,7 +727,7 @@ namespace proxy
 	void SOCKSHandler::SocksUpstreamSuccess(std::shared_ptr<Socket>& upstreamSock)
 	{
 		LogPrint(eLogInfo, "SOCKS: Upstream success");
-		boost::asio::const_buffers_1 response(nullptr, 0);
+		boost::asio::const_buffer response(nullptr, 0);
 		switch (m_socksv)
 		{
 			case SOCKS4:
@@ -775,7 +773,8 @@ namespace proxy
 			LogPrint(eLogError, "SOCKS: No upstream socket to send handshake to");
 	}
 
-	void SOCKSHandler::HandleUpstreamConnected(const boost::system::error_code & ecode, boost::asio::ip::tcp::resolver::iterator itr)
+	void SOCKSHandler::HandleUpstreamConnected(const boost::system::error_code & ecode, 
+		const boost::asio::ip::tcp::endpoint&  ep)
 	{
 		if (ecode) {
 			LogPrint(eLogWarning, "SOCKS: Could not connect to upstream proxy: ", ecode.message());
@@ -786,7 +785,8 @@ namespace proxy
 		SendUpstreamRequest(m_upstreamSock);
 	}
 
-	void SOCKSHandler::HandleUpstreamResolved(const boost::system::error_code & ecode, boost::asio::ip::tcp::resolver::iterator itr)
+	void SOCKSHandler::HandleUpstreamResolved(const boost::system::error_code & ecode, 
+		boost::asio::ip::tcp::resolver::results_type endpoints)
 	{
 		if (ecode) {
 			// error resolving
@@ -798,7 +798,7 @@ namespace proxy
 		EnterState(UPSTREAM_CONNECT);
 		auto & service = GetOwner()->GetService();
 		m_upstreamSock = std::make_shared<boost::asio::ip::tcp::socket>(service);
-		boost::asio::async_connect(*m_upstreamSock, itr,
+		boost::asio::async_connect(*m_upstreamSock, endpoints,
 			std::bind(&SOCKSHandler::HandleUpstreamConnected,
 			shared_from_this(), std::placeholders::_1, std::placeholders::_2));
 	}

@@ -139,7 +139,7 @@ namespace tunnel
 		public:
 
 			OutboundTunnel (std::shared_ptr<const TunnelConfig> config):
-				Tunnel (config), m_Gateway (this), m_EndpointIdentHash (config->GetLastIdentHash ()) {};
+				Tunnel (config), m_Gateway (*this), m_EndpointIdentHash (config->GetLastIdentHash ()) {};
 
 			void SendTunnelDataMsgTo (const uint8_t * gwHash, uint32_t gwTunnel, std::shared_ptr<i2p::I2NPMessage> msg);
 			virtual void SendTunnelDataMsgs (const std::vector<TunnelMessageBlock>& msgs); // multiple messages
@@ -300,8 +300,9 @@ namespace tunnel
 			std::map<uint32_t, std::shared_ptr<OutboundTunnel> > m_PendingOutboundTunnels; // by replyMsgID
 			std::list<std::shared_ptr<InboundTunnel> > m_InboundTunnels;
 			std::list<std::shared_ptr<OutboundTunnel> > m_OutboundTunnels;
+			mutable std::mutex m_TunnelsMutex;
 			std::unordered_map<uint32_t, std::shared_ptr<TunnelBase> > m_Tunnels; // tunnelID->tunnel known by this id
-			std::mutex m_PoolsMutex;
+			mutable std::mutex m_PoolsMutex;
 			std::list<std::shared_ptr<TunnelPool>> m_Pools;
 			std::shared_ptr<TunnelPool> m_ExploratoryPool;
 			i2p::util::Queue<std::shared_ptr<I2NPMessage> > m_Queue;
@@ -320,13 +321,14 @@ namespace tunnel
 			// for HTTP only
 			const decltype(m_OutboundTunnels)& GetOutboundTunnels () const { return m_OutboundTunnels; };
 			const decltype(m_InboundTunnels)& GetInboundTunnels () const { return m_InboundTunnels; };
-			auto& GetTransitTunnels () const { return m_TransitTunnels.GetTransitTunnels (); };
+			const auto& GetTransitTunnels () const { return m_TransitTunnels.GetTransitTunnels (); };
 
 			size_t CountTransitTunnels() const;
 			size_t CountInboundTunnels() const;
 			size_t CountOutboundTunnels() const;
 
-			int GetQueueSize () { return m_Queue.GetSize (); };
+			size_t GetQueueSize () const { return m_Queue.GetSize (); };
+			size_t GetTBMQueueSize () const { return m_TransitTunnels.GetTunnelBuildMsgQueueSize (); };
 			int GetTunnelCreationSuccessRate () const { return std::round(m_TunnelCreationSuccessRate * 100); } // in percents
 			double GetPreciseTunnelCreationSuccessRate () const { return m_TunnelCreationSuccessRate * 100; } // in percents
 			int GetTotalTunnelCreationSuccessRate () const // in percents

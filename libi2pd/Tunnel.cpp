@@ -373,6 +373,7 @@ namespace tunnel
 
 	std::shared_ptr<TunnelBase> Tunnels::GetTunnel (uint32_t tunnelID)
 	{
+		std::lock_guard<std::mutex> l(m_TunnelsMutex);
 		auto it = m_Tunnels.find(tunnelID);
 		if (it != m_Tunnels.end ())
 			return it->second;
@@ -382,11 +383,13 @@ namespace tunnel
 	bool Tunnels::AddTunnel (std::shared_ptr<TunnelBase> tunnel)
 	{
 		if (!tunnel) return false;
+		std::lock_guard<std::mutex> l(m_TunnelsMutex);
 		return m_Tunnels.emplace (tunnel->GetTunnelID (), tunnel).second;
 	}
 		
 	void Tunnels::RemoveTunnel (uint32_t tunnelID)
 	{
+		std::lock_guard<std::mutex> l(m_TunnelsMutex);
 		m_Tunnels.erase (tunnelID);
 	}	
 		
@@ -655,7 +658,7 @@ namespace tunnel
 			return;
 		}
 		else
-			m_TransitTunnels.HandleShortTransitTunnelBuildMsg (std::move (msg));
+			m_TransitTunnels.PostTransitTunnelBuildMsg (std::move (msg));
 	}	
 
 	void Tunnels::HandleVariableTunnelBuildMsg (std::shared_ptr<I2NPMessage> msg)
@@ -678,7 +681,7 @@ namespace tunnel
 			}
 		}
 		else
-			m_TransitTunnels.HandleVariableTransitTunnelBuildMsg (std::move (msg));
+			m_TransitTunnels.PostTransitTunnelBuildMsg (std::move (msg));
 	}	
 
 	void Tunnels::HandleTunnelBuildReplyMsg (std::shared_ptr<I2NPMessage> msg, bool isShort)
@@ -710,7 +713,6 @@ namespace tunnel
 		ManagePendingTunnels (ts);
 		ManageInboundTunnels (ts);
 		ManageOutboundTunnels (ts);
-		m_TransitTunnels.ManageTransitTunnels (ts);
 	}
 
 	void Tunnels::ManagePendingTunnels (uint64_t ts)

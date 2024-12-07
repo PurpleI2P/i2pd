@@ -14,6 +14,7 @@
 #include <mutex>
 #include <memory>
 #include "Crypto.h"
+#include "Queue.h"
 #include "I2NPProtocol.h"
 #include "TunnelEndpoint.h"
 #include "TunnelGateway.h"
@@ -72,7 +73,7 @@ namespace tunnel
 				const i2p::data::IdentHash& nextIdent, uint32_t nextTunnelID,
 				const i2p::crypto::AESKey& layerKey, const i2p::crypto::AESKey& ivKey):
 				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID,
-				layerKey, ivKey), m_Gateway(this) {};
+				layerKey, ivKey), m_Gateway(*this) {};
 
 			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg) override;
 			void FlushTunnelDataMsgs () override;
@@ -109,33 +110,46 @@ namespace tunnel
 		const i2p::crypto::AESKey& layerKey, const i2p::crypto::AESKey& ivKey,
 		bool isGateway, bool isEndpoint);
 
+	
+	const int TRANSIT_TUNNELS_QUEUE_WAIT_INTERVAL = 10; // in seconds
+		
 	class TransitTunnels
 	{	
 		public:
 
+			TransitTunnels ();
+			~TransitTunnels ();
+			
 			void Start ();
 			void Stop ();
-			void ManageTransitTunnels (uint64_t ts);
-
+			void PostTransitTunnelBuildMsg  (std::shared_ptr<I2NPMessage>&& msg);
+			
 			size_t GetNumTransitTunnels () const { return m_TransitTunnels.size (); }
 			int GetTransitTunnelsExpirationTimeout ();
-			
-			void HandleShortTransitTunnelBuildMsg (std::shared_ptr<I2NPMessage>&& msg);
-			void HandleVariableTransitTunnelBuildMsg (std::shared_ptr<I2NPMessage>&& msg);
 
 		private:
 
 			bool AddTransitTunnel (std::shared_ptr<TransitTunnel> tunnel);
+			void ManageTransitTunnels (uint64_t ts);
+
+			void HandleShortTransitTunnelBuildMsg (std::shared_ptr<I2NPMessage>&& msg);
+			void HandleVariableTransitTunnelBuildMsg (std::shared_ptr<I2NPMessage>&& msg);
 			bool HandleBuildRequestRecords (int num, uint8_t * records, uint8_t * clearText);
 
+			void Run ();
+			
 		private:
 
+			volatile bool m_IsRunning;
+			std::unique_ptr<std::thread> m_Thread;
 			std::list<std::shared_ptr<TransitTunnel> > m_TransitTunnels;
-
+			i2p::util::Queue<std::shared_ptr<I2NPMessage> > m_TunnelBuildMsgQueue;
+			
 		public:
 
 			// for HTTP only
-			auto& GetTransitTunnels () const { return m_TransitTunnels; };
+			const auto& GetTransitTunnels () const { return m_TransitTunnels; };
+			size_t GetTunnelBuildMsgQueueSize () const { return m_TunnelBuildMsgQueue.GetSize (); };
 	};
 }
 }

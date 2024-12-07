@@ -42,28 +42,29 @@ namespace transport
 		delete[] m_SessionConfirmedBuffer;
 	}
 
-	void NTCP2Establisher::KeyDerivationFunction1 (const uint8_t * pub, i2p::crypto::X25519Keys& priv, const uint8_t * rs, const uint8_t * epub)
+	bool NTCP2Establisher::KeyDerivationFunction1 (const uint8_t * pub, i2p::crypto::X25519Keys& priv, const uint8_t * rs, const uint8_t * epub)
 	{
 		i2p::crypto::InitNoiseXKState (*this, rs);
 		// h = SHA256(h || epub)
 		MixHash (epub, 32);
 		// x25519 between pub and priv
 		uint8_t inputKeyMaterial[32];
-		priv.Agree (pub, inputKeyMaterial);
+		if (!priv.Agree (pub, inputKeyMaterial)) return false;
 		MixKey (inputKeyMaterial);
+		return true;
 	}
 
-	void NTCP2Establisher::KDF1Alice ()
+	bool NTCP2Establisher::KDF1Alice ()
 	{
-		KeyDerivationFunction1 (m_RemoteStaticKey, *m_EphemeralKeys, m_RemoteStaticKey, GetPub ());
+		return KeyDerivationFunction1 (m_RemoteStaticKey, *m_EphemeralKeys, m_RemoteStaticKey, GetPub ());
 	}
 
-	void NTCP2Establisher::KDF1Bob ()
+	bool NTCP2Establisher::KDF1Bob ()
 	{
-		KeyDerivationFunction1 (GetRemotePub (), i2p::context.GetNTCP2StaticKeys (), i2p::context.GetNTCP2StaticPublicKey (), GetRemotePub ());
+		return KeyDerivationFunction1 (GetRemotePub (), i2p::context.GetNTCP2StaticKeys (), i2p::context.GetNTCP2StaticPublicKey (), GetRemotePub ());
 	}
 
-	void NTCP2Establisher::KeyDerivationFunction2 (const uint8_t * sessionRequest, size_t sessionRequestLen, const uint8_t * epub)
+	bool NTCP2Establisher::KeyDerivationFunction2 (const uint8_t * sessionRequest, size_t sessionRequestLen, const uint8_t * epub)
 	{
 		MixHash (sessionRequest + 32, 32); // encrypted payload
 
@@ -74,33 +75,35 @@ namespace transport
 
 		// x25519 between remote pub and ephemaral priv
 		uint8_t inputKeyMaterial[32];
-		m_EphemeralKeys->Agree (GetRemotePub (), inputKeyMaterial);
-
+		if (!m_EphemeralKeys->Agree (GetRemotePub (), inputKeyMaterial)) return false;
 		MixKey (inputKeyMaterial);
+		return true;
 	}
 
-	void NTCP2Establisher::KDF2Alice ()
+	bool NTCP2Establisher::KDF2Alice ()
 	{
-		KeyDerivationFunction2 (m_SessionRequestBuffer, m_SessionRequestBufferLen, GetRemotePub ());
+		return KeyDerivationFunction2 (m_SessionRequestBuffer, m_SessionRequestBufferLen, GetRemotePub ());
 	}
 
-	void NTCP2Establisher::KDF2Bob ()
+	bool NTCP2Establisher::KDF2Bob ()
 	{
-		KeyDerivationFunction2 (m_SessionRequestBuffer, m_SessionRequestBufferLen, GetPub ());
+		return KeyDerivationFunction2 (m_SessionRequestBuffer, m_SessionRequestBufferLen, GetPub ());
 	}
 
-	void NTCP2Establisher::KDF3Alice ()
+	bool NTCP2Establisher::KDF3Alice ()
 	{
 		uint8_t inputKeyMaterial[32];
-		i2p::context.GetNTCP2StaticKeys ().Agree (GetRemotePub (), inputKeyMaterial);
+		if (!i2p::context.GetNTCP2StaticKeys ().Agree (GetRemotePub (), inputKeyMaterial)) return false;
 		MixKey (inputKeyMaterial);
+		return true;
 	}
 
-	void NTCP2Establisher::KDF3Bob ()
+	bool NTCP2Establisher::KDF3Bob ()
 	{
 		uint8_t inputKeyMaterial[32];
-		m_EphemeralKeys->Agree (m_RemoteStaticKey, inputKeyMaterial);
+		if (!m_EphemeralKeys->Agree (m_RemoteStaticKey, inputKeyMaterial)) return false;
 		MixKey (inputKeyMaterial);
+		return true;
 	}
 
 	void NTCP2Establisher::CreateEphemeralKey ()
@@ -108,7 +111,7 @@ namespace transport
 		m_EphemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
 	}
 
-	void NTCP2Establisher::CreateSessionRequestMessage (std::mt19937& rng)
+	bool NTCP2Establisher::CreateSessionRequestMessage (std::mt19937& rng)
 	{
 		// create buffer and fill padding
 		auto paddingLength = rng () % (NTCP2_SESSION_REQUEST_MAX_SIZE - 64); // message length doesn't exceed 287 bytes
@@ -121,7 +124,7 @@ namespace transport
 		encryption.Encrypt (GetPub (), 32, m_SessionRequestBuffer); // X
 		encryption.GetIV (m_IV); // save IV for SessionCreated
 		// encryption key for next block
-		KDF1Alice ();
+		if (!KDF1Alice ()) return false;
 		// fill options
 		uint8_t options[32]; // actual options size is 16 bytes
 		memset (options, 0, 16);
@@ -147,9 +150,10 @@ namespace transport
 		uint8_t nonce[12];
 		memset (nonce, 0, 12); // set nonce to zero
 		i2p::crypto::AEADChaCha20Poly1305 (options, 16, GetH (), 32, GetK (), nonce, m_SessionRequestBuffer + 32, 32, true); // encrypt
+		return true;
 	}
 
-	void NTCP2Establisher::CreateSessionCreatedMessage (std::mt19937& rng)
+	bool NTCP2Establisher::CreateSessionCreatedMessage (std::mt19937& rng)
 	{
 		auto paddingLen = rng () % (NTCP2_SESSION_CREATED_MAX_SIZE - 64);
 		m_SessionCreatedBufferLen = paddingLen + 64;
@@ -160,7 +164,7 @@ namespace transport
 		encryption.SetIV (m_IV);
 		encryption.Encrypt (GetPub (), 32, m_SessionCreatedBuffer); // Y
 		// encryption key for next block (m_K)
-		KDF2Bob ();
+		if (!KDF2Bob ()) return false;
 		uint8_t options[16];
 		memset (options, 0, 16);
 		htobe16buf (options + 2, paddingLen); // padLen
@@ -169,7 +173,7 @@ namespace transport
 		uint8_t nonce[12];
 		memset (nonce, 0, 12); // set nonce to zero
 		i2p::crypto::AEADChaCha20Poly1305 (options, 16, GetH (), 32, GetK (), nonce, m_SessionCreatedBuffer + 32, 32, true); // encrypt
-
+		return true;
 	}
 
 	void NTCP2Establisher::CreateSessionConfirmedMessagePart1 (const uint8_t * nonce)
@@ -184,17 +188,18 @@ namespace transport
 		i2p::crypto::AEADChaCha20Poly1305 (i2p::context.GetNTCP2StaticPublicKey (), 32, GetH (), 32, GetK (), nonce, m_SessionConfirmedBuffer, 48, true); // encrypt
 	}
 
-	void NTCP2Establisher::CreateSessionConfirmedMessagePart2 (const uint8_t * nonce)
+	bool NTCP2Establisher::CreateSessionConfirmedMessagePart2 (const uint8_t * nonce)
 	{
 		// part 2
 		// update AD again
 		MixHash (m_SessionConfirmedBuffer, 48);
 		// encrypt m3p2, it must be filled in SessionRequest
-		KDF3Alice ();
+		if (!KDF3Alice ()) return false;
 		uint8_t * m3p2 = m_SessionConfirmedBuffer + 48;
 		i2p::crypto::AEADChaCha20Poly1305 (m3p2, m3p2Len - 16, GetH (), 32, GetK (), nonce, m3p2, m3p2Len, true); // encrypt
 		// update h again
 		MixHash (m3p2, m3p2Len); //h = SHA256(h || ciphertext)
+		return true;
 	}
 
 	bool NTCP2Establisher::ProcessSessionRequestMessage (uint16_t& paddingLen, bool& clockSkew)
@@ -207,7 +212,11 @@ namespace transport
 		decryption.Decrypt (m_SessionRequestBuffer, 32, GetRemotePub ());
 		decryption.GetIV (m_IV); // save IV for SessionCreated
 		// decryption key for next block
-		KDF1Bob ();
+		if (!KDF1Bob ())
+		{
+			LogPrint (eLogWarning, "NTCP2: SessionRequest KDF failed");
+			return false;
+		}	
 		// verify MAC and decrypt options block (32 bytes), use m_H as AD
 		uint8_t nonce[12], options[16];
 		memset (nonce, 0, 12); // set nonce to zero
@@ -262,7 +271,11 @@ namespace transport
 		decryption.SetIV (m_IV);
 		decryption.Decrypt (m_SessionCreatedBuffer, 32, GetRemotePub ());
 		// decryption key for next block (m_K)
-		KDF2Alice ();
+		if (!KDF2Alice ())
+		{
+			LogPrint (eLogWarning, "NTCP2: SessionCreated KDF failed");
+			return false;
+		}	
 		// decrypt and verify MAC
 		uint8_t payload[16];
 		uint8_t nonce[12];
@@ -309,7 +322,11 @@ namespace transport
 		// update AD again
 		MixHash (m_SessionConfirmedBuffer, 48);
 
-		KDF3Bob ();
+		if (!KDF3Bob ())
+		{
+			LogPrint (eLogWarning, "NTCP2: SessionConfirmed Part2 KDF failed");
+			return false;
+		}	
 		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionConfirmedBuffer + 48, m3p2Len - 16, GetH (), 32, GetK (), nonce, m3p2Buf, m3p2Len - 16, false)) // decrypt
 			// calculate new h again for KDF data
 			MixHash (m_SessionConfirmedBuffer + 48, m3p2Len); // h = SHA256(h || ciphertext)
@@ -327,6 +344,7 @@ namespace transport
 		m_Server (server), m_Socket (m_Server.GetService ()),
 		m_IsEstablished (false), m_IsTerminated (false),
 		m_Establisher (new NTCP2Establisher),
+		m_SendKey (nullptr), m_ReceiveKey (nullptr),
 #if OPENSSL_SIPHASH
 		m_SendMDCtx(nullptr), m_ReceiveMDCtx (nullptr),
 #else
@@ -406,7 +424,7 @@ namespace transport
 
 	void NTCP2Session::Done ()
 	{
-		m_Server.GetService ().post (std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+		boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
 	}
 
 	void NTCP2Session::Established ()
@@ -466,7 +484,12 @@ namespace transport
 
 	void NTCP2Session::SendSessionRequest ()
 	{
-		m_Establisher->CreateSessionRequestMessage (m_Server.GetRng ());
+		if (!m_Establisher->CreateSessionRequestMessage (m_Server.GetRng ()))
+		{
+			LogPrint (eLogWarning, "NTCP2: Send SessionRequest KDF failed");
+			boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+			return;
+		}	
 		// send message
 		m_HandshakeInterval = i2p::util::GetMillisecondsSinceEpoch ();
 		boost::asio::async_write (m_Socket, boost::asio::buffer (m_Establisher->m_SessionRequestBuffer, m_Establisher->m_SessionRequestBufferLen), boost::asio::transfer_all (),
@@ -491,7 +514,6 @@ namespace transport
 
 	void NTCP2Session::HandleSessionRequestReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
-		(void) bytes_transferred;
 		if (ecode)
 		{
 			LogPrint (eLogWarning, "NTCP2: SessionRequest read error: ", ecode.message ());
@@ -499,38 +521,47 @@ namespace transport
 		}
 		else
 		{
-			LogPrint (eLogDebug, "NTCP2: SessionRequest received ", bytes_transferred);
-			uint16_t paddingLen = 0;
-			bool clockSkew = false;
-			if (m_Establisher->ProcessSessionRequestMessage (paddingLen, clockSkew))
-			{
-				if (clockSkew)
+			boost::asio::post (m_Server.GetEstablisherService (), 
+				[s = shared_from_this (), bytes_transferred] ()
 				{
-					// we don't care about padding, send SessionCreated and close session
-					SendSessionCreated ();
-					m_Server.GetService ().post (std::bind (&NTCP2Session::Terminate, shared_from_this ()));
-				}
-				else if (paddingLen > 0)
-				{
-					if (paddingLen <= NTCP2_SESSION_REQUEST_MAX_SIZE - 64) // session request is 287 bytes max
-					{
-						boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionRequestBuffer + 64, paddingLen), boost::asio::transfer_all (),
-							std::bind(&NTCP2Session::HandleSessionRequestPaddingReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
-					}
-					else
-					{
-						LogPrint (eLogWarning, "NTCP2: SessionRequest padding length ", (int)paddingLen, " is too long");
-						Terminate ();
-					}
-				}
-				else
-					SendSessionCreated ();
-			}
-			else
-				Terminate ();
+					s->ProcessSessionRequest (bytes_transferred);;
+				});	
 		}
 	}
 
+	void NTCP2Session::ProcessSessionRequest (size_t len)
+	{
+		LogPrint (eLogDebug, "NTCP2: SessionRequest received ", len);
+		uint16_t paddingLen = 0;
+		bool clockSkew = false;
+		if (m_Establisher->ProcessSessionRequestMessage (paddingLen, clockSkew))
+		{
+			if (clockSkew)
+			{
+				// we don't care about padding, send SessionCreated and close session
+				SendSessionCreated ();
+				boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+			}
+			else if (paddingLen > 0)
+			{
+				if (paddingLen <= NTCP2_SESSION_REQUEST_MAX_SIZE - 64) // session request is 287 bytes max
+				{
+					boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionRequestBuffer + 64, paddingLen), boost::asio::transfer_all (),
+						std::bind(&NTCP2Session::HandleSessionRequestPaddingReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
+				}
+				else
+				{
+					LogPrint (eLogWarning, "NTCP2: SessionRequest padding length ", (int)paddingLen, " is too long");
+					boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+				}
+			}
+			else
+				SendSessionCreated ();
+		}
+		else
+			boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+	}	
+		
 	void NTCP2Session::HandleSessionRequestPaddingReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
 		if (ecode)
@@ -539,12 +570,23 @@ namespace transport
 			Terminate ();
 		}
 		else
-			SendSessionCreated ();
+		{
+			boost::asio::post (m_Server.GetEstablisherService (), 
+				[s = shared_from_this ()] ()
+				{
+					s->SendSessionCreated ();
+				});	
+		}	
 	}
 
 	void NTCP2Session::SendSessionCreated ()
 	{
-		m_Establisher->CreateSessionCreatedMessage (m_Server.GetRng ());
+		if (!m_Establisher->CreateSessionCreatedMessage (m_Server.GetRng ()))
+		{
+			LogPrint (eLogWarning, "NTCP2: Send SessionCreated KDF failed");
+			boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+			return;
+		}	
 		// send message
 		m_HandshakeInterval = i2p::util::GetMillisecondsSinceEpoch ();
 		boost::asio::async_write (m_Socket, boost::asio::buffer (m_Establisher->m_SessionCreatedBuffer, m_Establisher->m_SessionCreatedBufferLen), boost::asio::transfer_all (),
@@ -561,35 +603,44 @@ namespace transport
 		else
 		{
 			m_HandshakeInterval = i2p::util::GetMillisecondsSinceEpoch () - m_HandshakeInterval;
-			LogPrint (eLogDebug, "NTCP2: SessionCreated received ", bytes_transferred);
-			uint16_t paddingLen = 0;
-			if (m_Establisher->ProcessSessionCreatedMessage (paddingLen))
-			{
-				if (paddingLen > 0)
+			boost::asio::post (m_Server.GetEstablisherService (), 
+				[s = shared_from_this (), bytes_transferred] ()
 				{
-					if (paddingLen <= NTCP2_SESSION_CREATED_MAX_SIZE - 64) // session created is 287 bytes max
-					{
-						boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionCreatedBuffer + 64, paddingLen), boost::asio::transfer_all (),
-							std::bind(&NTCP2Session::HandleSessionCreatedPaddingReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
-					}
-					else
-					{
-						LogPrint (eLogWarning, "NTCP2: SessionCreated padding length ", (int)paddingLen, " is too long");
-						Terminate ();
-					}
-				}
-				else
-					SendSessionConfirmed ();
-			}
-			else
-			{
-				if (GetRemoteIdentity ())
-					i2p::data::netdb.SetUnreachable (GetRemoteIdentity ()->GetIdentHash (), true);  // assume wrong s key
-				Terminate ();
-			}	
+					s->ProcessSessionCreated (bytes_transferred);
+				});	
 		}
 	}
 
+	void NTCP2Session::ProcessSessionCreated (size_t len)
+	{
+		LogPrint (eLogDebug, "NTCP2: SessionCreated received ", len);
+		uint16_t paddingLen = 0;
+		if (m_Establisher->ProcessSessionCreatedMessage (paddingLen))
+		{
+			if (paddingLen > 0)
+			{
+				if (paddingLen <= NTCP2_SESSION_CREATED_MAX_SIZE - 64) // session created is 287 bytes max
+				{
+					boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionCreatedBuffer + 64, paddingLen), boost::asio::transfer_all (),
+						std::bind(&NTCP2Session::HandleSessionCreatedPaddingReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
+				}
+				else
+				{
+					LogPrint (eLogWarning, "NTCP2: SessionCreated padding length ", (int)paddingLen, " is too long");
+					boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+				}
+			}
+			else
+				SendSessionConfirmed ();
+		}
+		else
+		{
+			if (GetRemoteIdentity ())
+				i2p::data::netdb.SetUnreachable (GetRemoteIdentity ()->GetIdentHash (), true);  // assume wrong s key
+			boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+		}	
+	}	
+		
 	void NTCP2Session::HandleSessionCreatedPaddingReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
 		if (ecode)
@@ -600,7 +651,11 @@ namespace transport
 		else
 		{
 			m_Establisher->m_SessionCreatedBufferLen += bytes_transferred;
-			SendSessionConfirmed ();
+			boost::asio::post (m_Server.GetEstablisherService (), 
+				[s = shared_from_this ()] ()
+				{
+					s->SendSessionConfirmed ();
+				});	
 		}
 	}
 
@@ -610,7 +665,12 @@ namespace transport
 		CreateNonce (1, nonce); // set nonce to 1
 		m_Establisher->CreateSessionConfirmedMessagePart1 (nonce);
 		memset (nonce, 0, 12); // set nonce back to 0
-		m_Establisher->CreateSessionConfirmedMessagePart2 (nonce);
+		if (!m_Establisher->CreateSessionConfirmedMessagePart2 (nonce))
+		{
+			LogPrint (eLogWarning, "NTCP2: Send SessionConfirmed Part2 KDF failed");
+			boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+			return;
+		}	
 		// send message
 		boost::asio::async_write (m_Socket, boost::asio::buffer (m_Establisher->m_SessionConfirmedBuffer, m_Establisher->m3p2Len + 48), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionConfirmedSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
@@ -662,6 +722,7 @@ namespace transport
 
 	void NTCP2Session::HandleSessionConfirmedReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
+		(void) bytes_transferred;
 		if (ecode)
 		{
 			LogPrint (eLogWarning, "NTCP2: SessionConfirmed read error: ", ecode.message ());
@@ -670,122 +731,143 @@ namespace transport
 		else
 		{
 			m_HandshakeInterval = i2p::util::GetMillisecondsSinceEpoch () - m_HandshakeInterval;
-			LogPrint (eLogDebug, "NTCP2: SessionConfirmed received");
-			// part 1
-			uint8_t nonce[12];
-			CreateNonce (1, nonce);
-			if (m_Establisher->ProcessSessionConfirmedMessagePart1 (nonce))
-			{
-				// part 2
-				std::vector<uint8_t> buf(m_Establisher->m3p2Len - 16); // -MAC
-				memset (nonce, 0, 12); // set nonce to 0 again
-				if (m_Establisher->ProcessSessionConfirmedMessagePart2 (nonce, buf.data ()))
+			boost::asio::post (m_Server.GetEstablisherService (), 
+				[s = shared_from_this ()] ()
 				{
-					KeyDerivationFunctionDataPhase ();
-					// Bob data phase keys
-					m_SendKey = m_Kba;
-					m_ReceiveKey = m_Kab;
-					SetSipKeys (m_Sipkeysba, m_Sipkeysab);
-					memcpy (m_ReceiveIV.buf, m_Sipkeysab + 16, 8);
-					memcpy (m_SendIV.buf, m_Sipkeysba + 16, 8);
-					// payload
-					// process RI
-					if (buf[0] != eNTCP2BlkRouterInfo)
-					{
-						LogPrint (eLogWarning, "NTCP2: Unexpected block ", (int)buf[0], " in SessionConfirmed");
-						Terminate ();
-						return;
-					}
-					auto size = bufbe16toh (buf.data () + 1);
-					if (size > buf.size () - 3 || size > i2p::data::MAX_RI_BUFFER_SIZE + 1)
-					{
-						LogPrint (eLogError, "NTCP2: Unexpected RouterInfo size ", size, " in SessionConfirmed");
-						Terminate ();
-						return;
-					}
-					// TODO: check flag
-					i2p::data::RouterInfo ri (buf.data () + 4, size - 1); // 1 byte block type + 2 bytes size + 1 byte flag
-					if (ri.IsUnreachable ())
-					{
-						LogPrint (eLogError, "NTCP2: RouterInfo verification failed in SessionConfirmed from ", GetRemoteEndpoint ());
-						SendTerminationAndTerminate (eNTCP2RouterInfoSignatureVerificationFail);
-						return;
-					}
-					LogPrint(eLogDebug, "NTCP2: SessionConfirmed from ", GetRemoteEndpoint (),
-						" (", i2p::data::GetIdentHashAbbreviation (ri.GetIdentHash ()), ")");
-					auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-					if (ts > ri.GetTimestamp () + i2p::data::NETDB_MIN_EXPIRATION_TIMEOUT*1000LL) // 90 minutes
-					{
-						LogPrint (eLogError, "NTCP2: RouterInfo is too old in SessionConfirmed for ", (ts - ri.GetTimestamp ())/1000LL, " seconds");
-						SendTerminationAndTerminate (eNTCP2Message3Error);
-						return;
-					}
-					if (ts + i2p::data::NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < ri.GetTimestamp ()) // 2 minutes
-					{
-						LogPrint (eLogError, "NTCP2: RouterInfo is from future for ", (ri.GetTimestamp () - ts)/1000LL, " seconds");
-						SendTerminationAndTerminate (eNTCP2Message3Error);
-						return;
-					}	
-					// update RouterInfo in netdb
-					auto ri1 = i2p::data::netdb.AddRouterInfo (ri.GetBuffer (), ri.GetBufferLen ()); // ri1 points to one from netdb now
-					if (!ri1)
-					{
-						LogPrint (eLogError, "NTCP2: Couldn't update RouterInfo from SessionConfirmed in netdb");
-						Terminate ();
-						return;
-					}
-					std::shared_ptr<i2p::data::RouterProfile> profile; // not null if older 
-					if (ri.GetTimestamp () + i2p::data::NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < ri1->GetTimestamp ())
-					{	
-						// received RouterInfo is older than one in netdb
-						profile = i2p::data::GetRouterProfile (ri1->GetIdentHash ()); // retrieve profile	
-						if (profile && profile->IsDuplicated ())
-						{	
-							SendTerminationAndTerminate (eNTCP2Banned);
-							return;
-						}	
-					}
-					
-					auto addr = m_RemoteEndpoint.address ().is_v4 () ? ri1->GetNTCP2V4Address () :
-						(i2p::util::net::IsYggdrasilAddress (m_RemoteEndpoint.address ()) ? ri1->GetYggdrasilAddress () : ri1->GetNTCP2V6Address ());
-					if (!addr || memcmp (m_Establisher->m_RemoteStaticKey, addr->s, 32))
-					{
-						LogPrint (eLogError, "NTCP2: Wrong static key in SessionConfirmed");
-						Terminate ();
-						return;
-					}
-					if (addr->IsPublishedNTCP2 () && m_RemoteEndpoint.address () != addr->host &&
-					    (!m_RemoteEndpoint.address ().is_v6 () || (i2p::util::net::IsYggdrasilAddress (m_RemoteEndpoint.address ()) ?
-					     memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data () + 1, addr->host.to_v6 ().to_bytes ().data () + 1, 7) : // from the same yggdrasil subnet
-					     memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), addr->host.to_v6 ().to_bytes ().data (), 8)))) // temporary address
-					{
-						if (profile) // older router?
-							profile->Duplicated (); // mark router as duplicated in profile
-						else
-							LogPrint (eLogInfo, "NTCP2: Host mismatch between published address ", addr->host, " and actual endpoint ", m_RemoteEndpoint.address ());
-						SendTerminationAndTerminate (eNTCP2Banned);
-						return;
-					}
-					// TODO: process options
-
-					// ready to communicate
-					SetRemoteIdentity (ri1->GetRouterIdentity ());
-					if (m_Server.AddNTCP2Session (shared_from_this (), true))
-					{
-						Established ();
-						ReceiveLength ();
-					}
-					else
-						Terminate ();
-				}
-				else
-					Terminate ();
-			}
-			else
-				Terminate ();
+					s->ProcessSessionConfirmed ();;
+				});	
 		}
 	}
 
+	void NTCP2Session::ProcessSessionConfirmed ()
+	{
+		// run on establisher thread
+		LogPrint (eLogDebug, "NTCP2: SessionConfirmed received");
+		// part 1
+		uint8_t nonce[12];
+		CreateNonce (1, nonce);
+		if (m_Establisher->ProcessSessionConfirmedMessagePart1 (nonce))
+		{
+			// part 2
+			auto buf = std::make_shared<std::vector<uint8_t> > (m_Establisher->m3p2Len - 16); // -MAC
+			memset (nonce, 0, 12); // set nonce to 0 again
+			if (m_Establisher->ProcessSessionConfirmedMessagePart2 (nonce, buf->data ())) // TODO:handle in establisher thread
+			{
+				// payload 
+				// RI block must be first 
+				if ((*buf)[0] != eNTCP2BlkRouterInfo)
+				{
+					LogPrint (eLogWarning, "NTCP2: Unexpected block ", (int)(*buf)[0], " in SessionConfirmed");
+					boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+					return;
+				}
+				auto size = bufbe16toh (buf->data () + 1);
+				if (size > buf->size () - 3 || size > i2p::data::MAX_RI_BUFFER_SIZE + 1)
+				{
+					LogPrint (eLogError, "NTCP2: Unexpected RouterInfo size ", size, " in SessionConfirmed");
+					boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+					return;
+				}
+				boost::asio::post (m_Server.GetService (), 
+					[s = shared_from_this (), buf, size] ()
+					{
+						s->EstablishSessionAfterSessionConfirmed (buf, size);
+					});
+			}
+			else
+				boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+		}
+		else
+			boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));	
+	}	
+
+	void NTCP2Session::EstablishSessionAfterSessionConfirmed (std::shared_ptr<std::vector<uint8_t> > buf, size_t size)
+	{
+		// run on main NTCP2 thread
+		KeyDerivationFunctionDataPhase ();
+		// Bob data phase keys
+		m_SendKey = m_Kba;
+		m_ReceiveKey = m_Kab;
+		SetSipKeys (m_Sipkeysba, m_Sipkeysab);
+		memcpy (m_ReceiveIV.buf, m_Sipkeysab + 16, 8);
+		memcpy (m_SendIV.buf, m_Sipkeysba + 16, 8);
+		// we need to set keys for SendTerminationAndTerminate
+		// TODO: check flag
+		i2p::data::RouterInfo ri (buf->data () + 4, size - 1); // 1 byte block type + 2 bytes size + 1 byte flag
+		if (ri.IsUnreachable ())
+		{
+			LogPrint (eLogError, "NTCP2: RouterInfo verification failed in SessionConfirmed from ", GetRemoteEndpoint ());
+			SendTerminationAndTerminate (eNTCP2RouterInfoSignatureVerificationFail);
+			return;
+		}
+		LogPrint(eLogDebug, "NTCP2: SessionConfirmed from ", GetRemoteEndpoint (),
+			" (", i2p::data::GetIdentHashAbbreviation (ri.GetIdentHash ()), ")");
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		if (ts > ri.GetTimestamp () + i2p::data::NETDB_MIN_EXPIRATION_TIMEOUT*1000LL) // 90 minutes
+		{
+			LogPrint (eLogError, "NTCP2: RouterInfo is too old in SessionConfirmed for ", (ts - ri.GetTimestamp ())/1000LL, " seconds");
+			SendTerminationAndTerminate (eNTCP2Message3Error);
+			return;
+		}
+		if (ts + i2p::data::NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < ri.GetTimestamp ()) // 2 minutes
+		{
+			LogPrint (eLogError, "NTCP2: RouterInfo is from future for ", (ri.GetTimestamp () - ts)/1000LL, " seconds");
+			SendTerminationAndTerminate (eNTCP2Message3Error);
+			return;
+		}	
+		// update RouterInfo in netdb
+		auto ri1 = i2p::data::netdb.AddRouterInfo (ri.GetBuffer (), ri.GetBufferLen ()); // ri1 points to one from netdb now
+		if (!ri1)
+		{
+			LogPrint (eLogError, "NTCP2: Couldn't update RouterInfo from SessionConfirmed in netdb");
+			Terminate ();
+			return;
+		}
+		std::shared_ptr<i2p::data::RouterProfile> profile; // not null if older 
+		if (ri.GetTimestamp () + i2p::data::NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < ri1->GetTimestamp ())
+		{	
+			// received RouterInfo is older than one in netdb
+			profile = i2p::data::GetRouterProfile (ri1->GetIdentHash ()); // retrieve profile	
+			if (profile && profile->IsDuplicated ())
+			{	
+				SendTerminationAndTerminate (eNTCP2Banned);
+				return;
+			}	
+		}
+		
+		auto addr = m_RemoteEndpoint.address ().is_v4 () ? ri1->GetNTCP2V4Address () :
+			(i2p::util::net::IsYggdrasilAddress (m_RemoteEndpoint.address ()) ? ri1->GetYggdrasilAddress () : ri1->GetNTCP2V6Address ());
+		if (!addr || memcmp (m_Establisher->m_RemoteStaticKey, addr->s, 32))
+		{
+			LogPrint (eLogError, "NTCP2: Wrong static key in SessionConfirmed");
+			Terminate ();
+			return;
+		}
+		if (addr->IsPublishedNTCP2 () && m_RemoteEndpoint.address () != addr->host &&
+		    (!m_RemoteEndpoint.address ().is_v6 () || (i2p::util::net::IsYggdrasilAddress (m_RemoteEndpoint.address ()) ?
+		     memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data () + 1, addr->host.to_v6 ().to_bytes ().data () + 1, 7) : // from the same yggdrasil subnet
+		     memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), addr->host.to_v6 ().to_bytes ().data (), 8)))) // temporary address
+		{
+			if (profile) // older router?
+				profile->Duplicated (); // mark router as duplicated in profile
+			else
+				LogPrint (eLogInfo, "NTCP2: Host mismatch between published address ", addr->host, " and actual endpoint ", m_RemoteEndpoint.address ());
+			SendTerminationAndTerminate (eNTCP2Banned);
+			return;
+		}
+		// TODO: process options block
+
+		// ready to communicate
+		SetRemoteIdentity (ri1->GetRouterIdentity ());
+		if (m_Server.AddNTCP2Session (shared_from_this (), true))
+		{
+			Established ();
+			ReceiveLength ();
+		}
+		else
+			Terminate ();
+	}	
+		
 	void NTCP2Session::SetSipKeys (const uint8_t * sendSipKey, const uint8_t * receiveSipKey)
 	{
 #if OPENSSL_SIPHASH
@@ -811,7 +893,11 @@ namespace transport
 	void NTCP2Session::ClientLogin ()
 	{
 		m_Establisher->CreateEphemeralKey ();
-		SendSessionRequest ();
+		boost::asio::post (m_Server.GetEstablisherService (), 
+		    [s = shared_from_this ()] ()
+			{
+				s->SendSessionRequest ();
+			});	
 	}
 
 	void NTCP2Session::ServerLogin ()
@@ -1296,7 +1382,7 @@ namespace transport
 	void NTCP2Session::SendTerminationAndTerminate (NTCP2TerminationReason reason)
 	{
 		SendTermination (reason);
-		m_Server.GetService ().post (std::bind (&NTCP2Session::Terminate, shared_from_this ())); // let termination message go
+		boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ())); // let termination message go
 	}
 
 	void NTCP2Session::SendI2NPMessages (std::list<std::shared_ptr<I2NPMessage> >& msgs)
@@ -1313,7 +1399,7 @@ namespace transport
 			m_IntermediateQueue.splice (m_IntermediateQueue.end (), msgs);
 		}
 		if (empty)
-			m_Server.GetService ().post (std::bind (&NTCP2Session::PostI2NPMessages, shared_from_this ()));
+			boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::PostI2NPMessages, shared_from_this ()));
 	}
 
 	void NTCP2Session::PostI2NPMessages ()
@@ -1350,7 +1436,7 @@ namespace transport
 	void NTCP2Session::SendLocalRouterInfo (bool update)
 	{
 		if (update || !IsOutgoing ()) // we send it in SessionConfirmed for outgoing session
-			m_Server.GetService ().post (std::bind (&NTCP2Session::SendRouterInfo, shared_from_this ()));
+			boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::SendRouterInfo, shared_from_this ()));
 	}
 
 	NTCP2Server::NTCP2Server ():
@@ -1367,6 +1453,7 @@ namespace transport
 
 	void NTCP2Server::Start ()
 	{
+		m_EstablisherService.Start ();
 		if (!IsRunning ())
 		{
 			StartIOService ();
@@ -1374,14 +1461,13 @@ namespace transport
 			{
 				LogPrint(eLogInfo, "NTCP2: Using proxy to connect to peers");
 				// TODO: resolve proxy until it is resolved
-				boost::asio::ip::tcp::resolver::query q(m_ProxyAddress, std::to_string(m_ProxyPort));
 				boost::system::error_code e;
-				auto itr = m_Resolver.resolve(q, e);
+				auto itr = m_Resolver.resolve(m_ProxyAddress, std::to_string(m_ProxyPort), e);
 				if(e)
 					LogPrint(eLogCritical, "NTCP2: Failed to resolve proxy ", e.message());
 				else
 				{
-					m_ProxyEndpoint.reset (new boost::asio::ip::tcp::endpoint(*itr));
+					m_ProxyEndpoint.reset (new boost::asio::ip::tcp::endpoint(*itr.begin ()));
 					if (m_ProxyEndpoint)
 						LogPrint(eLogDebug, "NTCP2: m_ProxyEndpoint ", *m_ProxyEndpoint);
 				}
@@ -1477,6 +1563,7 @@ namespace transport
 			m_TerminationTimer.cancel ();
 			m_ProxyEndpoint = nullptr;
 		}
+		m_EstablisherService.Stop ();
 		StopIOService ();
 	}
 
@@ -1541,7 +1628,7 @@ namespace transport
 		}
 		LogPrint (eLogDebug, "NTCP2: Connecting to ", conn->GetRemoteEndpoint (),
 			" (", i2p::data::GetIdentHashAbbreviation (conn->GetRemoteIdentity ()->GetIdentHash ()), ")");
-		GetService ().post([this, conn]()
+		boost::asio::post (GetService (), [this, conn]()
 			{
 				if (this->AddNTCP2Session (conn))
 				{
@@ -1762,7 +1849,7 @@ namespace transport
 			LogPrint (eLogError, "NTCP2: Can't connect to unspecified address");
 			return;
 		}
-		GetService().post([this, conn]()
+		boost::asio::post (GetService(), [this, conn]()
 		{
 			if (this->AddNTCP2Session (conn))
 			{
@@ -1860,7 +1947,7 @@ namespace transport
 						{
 							readbuff->commit(transferred);
 							i2p::http::HTTPRes res;
-							if(res.parse(boost::asio::buffer_cast<const char*>(readbuff->data()), readbuff->size()) > 0)
+							if(res.parse(std::string {boost::asio::buffers_begin(readbuff->data ()), boost::asio::buffers_begin(readbuff->data ()) + readbuff->size ()}) > 0)
 							{
 								if(res.code == 200)
 								{

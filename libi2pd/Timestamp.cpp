@@ -60,18 +60,16 @@ namespace util
 	static void SyncTimeWithNTP (const std::string& address)
 	{
 		LogPrint (eLogInfo, "Timestamp: NTP request to ", address);
-		boost::asio::io_service service;
+		boost::asio::io_context service;
 		boost::system::error_code ec;
-		auto it = boost::asio::ip::udp::resolver (service).resolve (
-			boost::asio::ip::udp::resolver::query (address, "ntp"), ec);
+		auto endpoints = boost::asio::ip::udp::resolver (service).resolve (address, "ntp", ec);
 		if (!ec)
 		{
 			bool found = false;
-			boost::asio::ip::udp::resolver::iterator end;
 			boost::asio::ip::udp::endpoint ep;
-			while (it != end)
+			for (const auto& it: endpoints)
 			{
-				ep = *it;
+				ep = it;
 				if (!ep.address ().is_unspecified ())
 				{
 					if (ep.address ().is_v4 ())
@@ -88,7 +86,6 @@ namespace util
 					}
 				}
 				if (found) break;
-				it++;
 			}
 			if (!found)
 			{
@@ -154,7 +151,7 @@ namespace util
 		{
 			m_IsRunning = true;
 			LogPrint(eLogInfo, "Timestamp: NTP time sync starting");
-			m_Service.post (std::bind (&NTPTimeSync::Sync, this));
+			boost::asio::post (m_Service, std::bind (&NTPTimeSync::Sync, this));
 			m_Thread.reset (new std::thread (std::bind (&NTPTimeSync::Run, this)));
 		}
 		else

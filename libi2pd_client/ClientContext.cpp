@@ -345,7 +345,7 @@ namespace client
 	}
 
 	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (
-		boost::asio::io_service& service, bool isPublic,
+		boost::asio::io_context& service, bool isPublic,
 		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType,
 		const std::map<std::string, std::string> * params)
 	{
@@ -399,7 +399,7 @@ namespace client
 		return localDestination;
 	}
 
-	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (boost::asio::io_service& service,
+	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (boost::asio::io_context& service,
 		const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params)
 	{
 		auto it = m_Destinations.find (keys.GetPublic ()->GetIdentHash ());
@@ -631,7 +631,7 @@ namespace client
 					if (type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT) {
 						// udp client
 						// TODO: hostnames
-						boost::asio::ip::udp::endpoint end (boost::asio::ip::address::from_string(address), port);
+						boost::asio::ip::udp::endpoint end (boost::asio::ip::make_address(address), port);
 						if (!localDestination)
 							localDestination = m_SharedLocalDestination;
 
@@ -787,7 +787,7 @@ namespace client
 					{
 						// udp server tunnel
 						// TODO: hostnames
-						boost::asio::ip::udp::endpoint endpoint(boost::asio::ip::address::from_string(host), port);
+						boost::asio::ip::udp::endpoint endpoint(boost::asio::ip::make_address(host), port);
 						if (address.empty ())
 						{
 							if (!endpoint.address ().is_unspecified () && endpoint.address ().is_v6 ())
@@ -795,7 +795,7 @@ namespace client
 							else
 								address = "127.0.0.1";
 						}
-						auto localAddress = boost::asio::ip::address::from_string(address);
+						auto localAddress = boost::asio::ip::make_address(address);
 						auto serverTunnel = std::make_shared<I2PUDPServerTunnel>(name, localDestination, localAddress, endpoint, inPort, gzip);
 						if(!isUniqueLocal)
 						{

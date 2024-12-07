@@ -61,7 +61,7 @@ namespace client
 			}
 			void CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, uint16_t port = 0);
 			void CreateStream(StreamRequestComplete complete, std::shared_ptr<const Address> address, uint16_t port);
-			inline boost::asio::io_service& GetService () { return m_LocalDestination->GetService (); }
+			auto& GetService () { return m_LocalDestination->GetService (); }
 
 			virtual void Start () = 0;
 			virtual void Stop () = 0;
@@ -283,7 +283,7 @@ namespace client
 		public:
 
 			TCPIPAcceptor (const std::string& address, uint16_t port, std::shared_ptr<ClientDestination> localDestination = nullptr) :
-				ServiceAcceptor (boost::asio::ip::tcp::endpoint (boost::asio::ip::address::from_string(address), port), localDestination) {}
+				ServiceAcceptor (boost::asio::ip::tcp::endpoint (boost::asio::ip::make_address(address), port), localDestination) {}
 	};	
 }
 }

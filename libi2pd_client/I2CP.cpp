@@ -24,7 +24,7 @@ namespace i2p
 namespace client
 {
 
-	I2CPDestination::I2CPDestination (boost::asio::io_service& service, std::shared_ptr<I2CPSession> owner,
+	I2CPDestination::I2CPDestination (boost::asio::io_context& service, std::shared_ptr<I2CPSession> owner,
 		std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, bool isSameThread,
 	    const std::map<std::string, std::string>& params):
 		LeaseSetDestination (service, isPublic, &params),
@@ -88,7 +88,7 @@ namespace client
 
 	void I2CPDestination::CreateNewLeaseSet (const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels)
 	{
-		GetService ().post (std::bind (&I2CPDestination::PostCreateNewLeaseSet, this, tunnels));
+		boost::asio::post (GetService (), std::bind (&I2CPDestination::PostCreateNewLeaseSet, this, tunnels));
 	}
 
 	void I2CPDestination::PostCreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels)
@@ -170,7 +170,7 @@ namespace client
 			{	
 				// send in destination's thread
 				auto s = GetSharedFromThis ();
-				GetService ().post (
+				boost::asio::post (GetService (),
 					[s, msg, remote, nonce]()
 					{
 						bool sent = s->SendMsg (msg, remote);
@@ -1079,7 +1079,7 @@ namespace client
 	I2CPServer::I2CPServer (const std::string& interface, uint16_t port, bool isSingleThread):
 		RunnableService ("I2CP"), m_IsSingleThread (isSingleThread),
 		m_Acceptor (GetIOService (),
-		boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(interface), port))
+		boost::asio::ip::tcp::endpoint(boost::asio::ip::make_address(interface), port))
 	{
 		memset (m_MessagesHandlers, 0, sizeof (m_MessagesHandlers));
 		m_MessagesHandlers[I2CP_GET_DATE_MESSAGE] = &I2CPSession::GetDateMessageHandler;

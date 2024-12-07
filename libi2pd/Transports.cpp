@@ -174,8 +174,8 @@ namespace transport
 	{
 		if (!m_Service)
 		{
-			m_Service = new boost::asio::io_service ();
-			m_Work = new boost::asio::io_service::work (*m_Service);
+			m_Service = new boost::asio::io_context ();
+			m_Work = new boost::asio::executor_work_guard<boost::asio::io_context::executor_type> (m_Service->get_executor ());
 			m_PeerCleanupTimer = new boost::asio::deadline_timer (*m_Service);
 			m_PeerTestTimer = new boost::asio::deadline_timer (*m_Service);
 			m_UpdateBandwidthTimer = new boost::asio::deadline_timer (*m_Service);
@@ -249,7 +249,7 @@ namespace transport
 			if (!address.empty ())
 			{
 				boost::system::error_code ec;
-				auto addr = boost::asio::ip::address::from_string (address, ec);
+				auto addr = boost::asio::ip::make_address (address, ec);
 				if (!ec)
 				{
 					if (m_NTCP2Server) m_NTCP2Server->SetLocalAddress (addr);
@@ -275,7 +275,7 @@ namespace transport
 			if (!address.empty ())
 			{
 				boost::system::error_code ec;
-				auto addr = boost::asio::ip::address::from_string (address, ec);
+				auto addr = boost::asio::ip::make_address (address, ec);
 				if (!ec)
 				{
 					if (m_NTCP2Server) m_NTCP2Server->SetLocalAddress (addr);
@@ -302,7 +302,7 @@ namespace transport
 			if (!address.empty ())
 			{
 				boost::system::error_code ec;
-				auto addr = boost::asio::ip::address::from_string (address, ec);
+				auto addr = boost::asio::ip::make_address (address, ec);
 				if (!ec && m_NTCP2Server && i2p::util::net::IsYggdrasilAddress (addr))
 					m_NTCP2Server->SetLocalAddress (addr);
 			}
@@ -447,28 +447,29 @@ namespace transport
 		return std::max (bwCongestionLevel, tbwCongestionLevel);
 	}
 
-	void Transports::SendMessage (const i2p::data::IdentHash& ident, std::shared_ptr<i2p::I2NPMessage> msg)
+	std::future<std::shared_ptr<TransportSession> > Transports::SendMessage (const i2p::data::IdentHash& ident, std::shared_ptr<i2p::I2NPMessage> msg)
 	{
 		if (m_IsOnline)
-			SendMessages (ident, { msg });
+			return SendMessages (ident, { msg });
+		return {}; // invalid future
 	}
 
-	void Transports::SendMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >& msgs)
+	std::future<std::shared_ptr<TransportSession> > Transports::SendMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >& msgs)
 	{
 		std::list<std::shared_ptr<i2p::I2NPMessage> > msgs1;
 		msgs.swap (msgs1);
-		SendMessages (ident, std::move (msgs1));
+		return SendMessages (ident, std::move (msgs1));
 	}
 
-	void Transports::SendMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >&& msgs)
+	std::future<std::shared_ptr<TransportSession> > Transports::SendMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >&& msgs)
 	{
-		m_Service->post ([this, ident, msgs = std::move(msgs)] () mutable
+		return boost::asio::post (*m_Service, boost::asio::use_future ([this, ident, msgs = std::move(msgs)] () mutable
 			{
-				PostMessages (ident, msgs);
-			});	
+				return PostMessages (ident, msgs);
+			}));	
 	}	
 	
-	void Transports::PostMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >& msgs)
+	std::shared_ptr<TransportSession> Transports::PostMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >& msgs)
 	{
 		if (ident == i2p::context.GetRouterInfo ().GetIdentHash ())
 		{
@@ -476,9 +477,9 @@ namespace transport
 			for (auto& it: msgs)
 				m_LoopbackHandler.PutNextMessage (std::move (it));
 			m_LoopbackHandler.Flush ();
-			return;
+			return nullptr;
 		}
-		if(RoutesRestricted() && !IsRestrictedPeer(ident)) return;
+		if(RoutesRestricted() && !IsRestrictedPeer(ident)) return nullptr;
 		std::shared_ptr<Peer> peer;
 		{
 			std::lock_guard<std::mutex> l(m_PeersMutex);
@@ -489,13 +490,13 @@ namespace transport
 		if (!peer)
 		{
 			// check if not banned
-			if (i2p::data::IsRouterBanned (ident)) return; // don't create peer to unreachable router
+			if (i2p::data::IsRouterBanned (ident)) return nullptr; // don't create peer to unreachable router
 			// try to connect
 			bool connected = false;
 			try
 			{
 				auto r = netdb.FindRouter (ident);
-				if (r && (r->IsUnreachable () || !r->IsReachableFrom (i2p::context.GetRouterInfo ()))) return; // router found but non-reachable
+				if (r && (r->IsUnreachable () || !r->IsReachableFrom (i2p::context.GetRouterInfo ()))) return nullptr; // router found but non-reachable
 
 				peer = std::make_shared<Peer>(r, i2p::util::GetSecondsSinceEpoch ());
 				{	
@@ -509,12 +510,16 @@ namespace transport
 			{
 				LogPrint (eLogError, "Transports: PostMessages exception:", ex.what ());
 			}
-			if (!connected) return;
+			if (!connected) return nullptr;
 		}
 		
-		if (!peer) return;
+		if (!peer) return nullptr;
 		if (peer->IsConnected ())
-			peer->sessions.front ()->SendI2NPMessages (msgs);
+		{	
+			auto session = peer->sessions.front (); 
+			if (session) session->SendI2NPMessages (msgs);
+			return session;
+		}	
 		else
 		{
 			auto sz = peer->delayedMessages.size (); 	
@@ -527,7 +532,7 @@ namespace transport
 						LogPrint (eLogWarning, "Transports: Router ", ident.ToBase64 (), " is banned. Peer dropped");
 						std::lock_guard<std::mutex> l(m_PeersMutex);
 						m_Peers.erase (ident);
-						return;
+						return nullptr;
 					}	
 				}	
 				if (sz > MAX_NUM_DELAYED_MESSAGES/2)
@@ -549,6 +554,7 @@ namespace transport
 				m_Peers.erase (ident);
 			}
 		}
+		return nullptr;
 	}
 
 	bool Transports::ConnectToPeer (const i2p::data::IdentHash& ident, std::shared_ptr<Peer> peer)
@@ -719,7 +725,7 @@ namespace transport
 
 	void Transports::RequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, const i2p::data::IdentHash& ident)
 	{
-		m_Service->post (std::bind (&Transports::HandleRequestComplete, this, r, ident));
+		boost::asio::post (*m_Service, std::bind (&Transports::HandleRequestComplete, this, r, ident));
 	}
 
 	void Transports::HandleRequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, i2p::data::IdentHash ident)
@@ -856,7 +862,7 @@ namespace transport
 
 	void Transports::PeerConnected (std::shared_ptr<TransportSession> session)
 	{
-		m_Service->post([session, this]()
+		boost::asio::post (*m_Service, [session, this]()
 		{
 			auto remoteIdentity = session->GetRemoteIdentity ();
 			if (!remoteIdentity) return;
@@ -928,7 +934,7 @@ namespace transport
 
 	void Transports::PeerDisconnected (std::shared_ptr<TransportSession> session)
 	{
-		m_Service->post([session, this]()
+		boost::asio::post (*m_Service, [session, this]()
 		{
 			auto remoteIdentity = session->GetRemoteIdentity ();
 			if (!remoteIdentity) return;
@@ -1276,7 +1282,7 @@ namespace transport
 			std::string yggaddress; i2p::config::GetOption ("meshnets.yggaddress", yggaddress);
 			if (!yggaddress.empty ())
 			{
-				yggaddr = boost::asio::ip::address_v6::from_string (yggaddress);
+				yggaddr = boost::asio::ip::make_address (yggaddress).to_v6 ();
 				if (yggaddr.is_unspecified () || !i2p::util::net::IsYggdrasilAddress (yggaddr) ||
 					!i2p::util::net::IsLocalAddress (yggaddr))
 				{
@@ -1321,7 +1327,7 @@ namespace transport
 				if (ipv6)
 				{
 					std::string ipv6Addr; i2p::config::GetOption("ntcp2.addressv6", ipv6Addr);
-					auto addr = boost::asio::ip::address_v6::from_string (ipv6Addr);
+					auto addr = boost::asio::ip::make_address (ipv6Addr).to_v6 ();
 					if (!addr.is_unspecified () && addr != boost::asio::ip::address_v6::any ())
 						i2p::context.UpdateNTCP2V6Address (addr); // set ipv6 address if configured
 				}

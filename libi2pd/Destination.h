@@ -107,7 +107,7 @@ namespace client
 		// leaseSet = nullptr means not found
 		struct LeaseSetRequest
 		{
-			LeaseSetRequest (boost::asio::io_service& service): requestTime (0), requestTimeoutTimer (service) {};
+			LeaseSetRequest (boost::asio::io_context& service): requestTime (0), requestTimeoutTimer (service) {};
 			std::unordered_set<i2p::data::IdentHash> excluded;
 			uint64_t requestTime;
 			boost::asio::deadline_timer requestTimeoutTimer;
@@ -125,10 +125,10 @@ namespace client
 
 		public:
 
-			LeaseSetDestination (boost::asio::io_service& service, bool isPublic, const std::map<std::string, std::string> * params = nullptr);
+			LeaseSetDestination (boost::asio::io_context& service, bool isPublic, const std::map<std::string, std::string> * params = nullptr);
 			~LeaseSetDestination ();
 			const std::string& GetNickname () const { return m_Nickname; };
-			boost::asio::io_service& GetService () { return m_Service; };
+			auto& GetService () { return m_Service; };
 
 			virtual void Start ();
 			virtual void Stop ();
@@ -195,7 +195,7 @@ namespace client
 
 		private:
 
-			boost::asio::io_service& m_Service;
+			boost::asio::io_context& m_Service;
 			mutable std::mutex m_RemoteLeaseSetsMutex;
 			std::unordered_map<i2p::data::IdentHash, std::shared_ptr<i2p::data::LeaseSet> > m_RemoteLeaseSets;
 			std::unordered_map<i2p::data::IdentHash, std::shared_ptr<LeaseSetRequest> > m_LeaseSetRequests;
@@ -241,7 +241,7 @@ namespace client
 
 		public:
 
-			ClientDestination (boost::asio::io_service& service, const i2p::data::PrivateKeys& keys,
+			ClientDestination (boost::asio::io_context& service, const i2p::data::PrivateKeys& keys,
 				bool isPublic, const std::map<std::string, std::string> * params = nullptr);
 			~ClientDestination ();
 

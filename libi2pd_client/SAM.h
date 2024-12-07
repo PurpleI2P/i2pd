@@ -246,7 +246,7 @@ namespace client
 			void Start ();
 			void Stop ();
 
-			boost::asio::io_service& GetService () { return GetIOService (); };
+			auto& GetService () { return GetIOService (); };
 			std::shared_ptr<SAMSession> CreateSession (const std::string& id, SAMSessionType type, const std::string& destination, // empty string means transient
 				const std::map<std::string, std::string> * params);
 			bool AddSession (std::shared_ptr<SAMSession> session);

@@ -23,7 +23,7 @@ namespace i2p
 {
 namespace client
 {
-	LeaseSetDestination::LeaseSetDestination (boost::asio::io_service& service,
+	LeaseSetDestination::LeaseSetDestination (boost::asio::io_context& service,
 		bool isPublic, const std::map<std::string, std::string> * params):
 		m_Service (service), m_IsPublic (isPublic), m_PublishReplyToken (0),
 		m_LastSubmissionTime (0), m_PublishConfirmationTimer (m_Service),
@@ -294,7 +294,7 @@ namespace client
 		if (m_IsPublic)
 		{
 			auto s = shared_from_this ();
-			m_Service.post ([s](void)
+			boost::asio::post (m_Service, [s](void)
 			{
 				s->m_PublishVerificationTimer.cancel ();
 				s->Publish ();
@@ -322,7 +322,7 @@ namespace client
 		memcpy (data.k, key, 32);
 		memcpy (data.t, tag, 32);
 		auto s = shared_from_this ();
-		m_Service.post ([s,data](void)
+		boost::asio::post (m_Service, [s,data](void)
 			{
 				s->AddSessionKey (data.k, data.t);
 			});
@@ -339,7 +339,7 @@ namespace client
 		memcpy (data.k, key, 32);
 		data.t = tag;
 		auto s = shared_from_this ();
-		m_Service.post ([s,data](void)
+		boost::asio::post (m_Service, [s,data](void)
 			{
 				s->AddECIESx25519Key (data.k, data.t);
 			});
@@ -355,7 +355,7 @@ namespace client
 			m_IncomingMsgsQueue.push_back (msg);
 		}
 		if (empty)
-			m_Service.post([s = shared_from_this ()]() 
+			boost::asio::post (m_Service, [s = shared_from_this ()]() 
 			{ 
 				std::list<std::shared_ptr<I2NPMessage> > receivedMsgs;
 				{
@@ -370,7 +370,7 @@ namespace client
 	void LeaseSetDestination::ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		uint32_t msgID = bufbe32toh (msg->GetPayload () + DELIVERY_STATUS_MSGID_OFFSET);
-		m_Service.post (std::bind (&LeaseSetDestination::HandleDeliveryStatusMessage, shared_from_this (), msgID));
+		boost::asio::post (m_Service, std::bind (&LeaseSetDestination::HandleDeliveryStatusMessage, shared_from_this (), msgID));
 	}
 
 	void LeaseSetDestination::HandleI2NPMessage (const uint8_t * buf, size_t len)
@@ -608,7 +608,7 @@ namespace client
 	void LeaseSetDestination::SetLeaseSetUpdated (bool post)
 	{
 		if (post)
-			m_Service.post([s = shared_from_this ()]() { s->UpdateLeaseSet (); });
+			boost::asio::post (m_Service, [s = shared_from_this ()]() { s->UpdateLeaseSet (); });
 		else
 			UpdateLeaseSet ();
 	}
@@ -690,7 +690,7 @@ namespace client
 		auto s = shared_from_this ();
 		msg->onDrop = [s]()
 			{
-				s->GetService ().post([s]()
+				boost::asio::post (s->GetService (), [s]()
 					{
 						s->m_PublishConfirmationTimer.cancel ();
 						s->HandlePublishConfirmationTimer (boost::system::error_code());
@@ -775,10 +775,10 @@ namespace client
 		if (!m_Pool || !IsReady ())
 		{
 			if (requestComplete)
-				m_Service.post ([requestComplete](void){requestComplete (nullptr);});
+				boost::asio::post (m_Service, [requestComplete](void){requestComplete (nullptr);});
 			return false;
 		}
-		m_Service.post (std::bind (&LeaseSetDestination::RequestLeaseSet, shared_from_this (), dest, requestComplete, nullptr));
+		boost::asio::post (m_Service, std::bind (&LeaseSetDestination::RequestLeaseSet, shared_from_this (), dest, requestComplete, nullptr));
 		return true;
 	}
 
@@ -787,7 +787,7 @@ namespace client
 		if (!dest || !m_Pool || !IsReady ())
 		{
 			if (requestComplete)
-				m_Service.post ([requestComplete](void){requestComplete (nullptr);});
+				boost::asio::post (m_Service, [requestComplete](void){requestComplete (nullptr);});
 			return false;
 		}
 		auto storeHash = dest->GetStoreHash ();
@@ -795,17 +795,17 @@ namespace client
 		if (leaseSet)
 		{
 			if (requestComplete)
-				m_Service.post ([requestComplete, leaseSet](void){requestComplete (leaseSet);});
+				boost::asio::post (m_Service, [requestComplete, leaseSet](void){requestComplete (leaseSet);});
 			return true;
 		}
-		m_Service.post (std::bind (&LeaseSetDestination::RequestLeaseSet, shared_from_this (), storeHash, requestComplete, dest));
+		boost::asio::post (m_Service, std::bind (&LeaseSetDestination::RequestLeaseSet, shared_from_this (), storeHash, requestComplete, dest));
 		return true;
 	}
 
 	void LeaseSetDestination::CancelDestinationRequest (const i2p::data::IdentHash& dest, bool notify)
 	{
 		auto s = shared_from_this ();
-		m_Service.post ([dest, notify, s](void)
+		boost::asio::post (m_Service, [dest, notify, s](void)
 			{
 				auto it = s->m_LeaseSetRequests.find (dest);
 				if (it != s->m_LeaseSetRequests.end ())
@@ -903,7 +903,7 @@ namespace client
 			auto s = shared_from_this ();
 			msg->onDrop = [s, dest, request]()
 				{
-					s->GetService ().post([s, dest, request]()
+					boost::asio::post (s->GetService (), [s, dest, request]()
 						{
 							s->SendNextLeaseSetRequest (dest, request);
 						});
@@ -1000,7 +1000,7 @@ namespace client
 		return i2p::data::CRYPTO_KEY_TYPE_ELGAMAL;
 	}
 
-	ClientDestination::ClientDestination (boost::asio::io_service& service, const i2p::data::PrivateKeys& keys,
+	ClientDestination::ClientDestination (boost::asio::io_context& service, const i2p::data::PrivateKeys& keys,
 		bool isPublic, const std::map<std::string, std::string> * params):
 		LeaseSetDestination (service, isPublic, params),
 		m_Keys (keys), m_StreamingAckDelay (DEFAULT_INITIAL_ACK_DELAY),
@@ -1215,7 +1215,7 @@ namespace client
 		if (leaseSet)
 		{
 			auto stream = CreateStream (leaseSet, port);
-			GetService ().post ([streamRequestComplete, stream]()
+			boost::asio::post (GetService (), [streamRequestComplete, stream]()
 				{
 					streamRequestComplete(stream);
 				});
