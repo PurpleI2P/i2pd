@@ -122,7 +122,7 @@ namespace transport
 		encryption.SetKey (m_RemoteIdentHash);
 		encryption.SetIV (m_IV);
 		encryption.Encrypt (GetPub (), 32, m_SessionRequestBuffer); // X
-		encryption.GetIV (m_IV); // save IV for SessionCreated
+		memcpy (m_IV, m_SessionRequestBuffer + 16, 16); // save last block as IV for SessionCreated
 		// encryption key for next block
 		if (!KDF1Alice ()) return false;
 		// fill options
@@ -210,7 +210,7 @@ namespace transport
 		decryption.SetKey (i2p::context.GetIdentHash ());
 		decryption.SetIV (i2p::context.GetNTCP2IV ());
 		decryption.Decrypt (m_SessionRequestBuffer, 32, GetRemotePub ());
-		decryption.GetIV (m_IV); // save IV for SessionCreated
+		memcpy (m_IV, m_SessionRequestBuffer + 16, 16); // save last block as IV for SessionCreated
 		// decryption key for next block
 		if (!KDF1Bob ())
 		{

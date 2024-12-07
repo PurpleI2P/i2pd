@@ -25,7 +25,6 @@
 
 #include "Base.h"
 #include "Tag.h"
-#include "CPU.h"
 
 // recognize openssl version and features
 #if (OPENSSL_VERSION_NUMBER >= 0x010101000) // 1.1.1
@@ -85,142 +84,76 @@ namespace crypto
 	void GenerateECIESKeyPair (const EC_GROUP * curve, BIGNUM *& priv, EC_POINT *& pub);
 
 	// AES
-	struct ChipherBlock
-	{
-		uint8_t buf[16];
-
-		void operator^=(const ChipherBlock& other) // XOR
-		{
-			if (!(((size_t)buf | (size_t)other.buf) & 0x03)) // multiple of 4 ?
-			{
-				for (int i = 0; i < 4; i++)
-					reinterpret_cast<uint32_t *>(buf)[i] ^= reinterpret_cast<const uint32_t *>(other.buf)[i];
-			}
-			else
-			{
-				for (int i = 0; i < 16; i++)
-					buf[i] ^= other.buf[i];
-			}
-		}
-	};
-
 	typedef i2p::data::Tag<32> AESKey;
-
-	template<size_t sz>
-	class AESAlignedBuffer // 16 bytes alignment
-	{
-		public:
-
-			AESAlignedBuffer ()
-			{
-				m_Buf = m_UnalignedBuffer;
-				uint8_t rem = ((size_t)m_Buf) & 0x0f;
-				if (rem)
-					m_Buf += (16 - rem);
-			}
-
-			operator uint8_t * () { return m_Buf; };
-			operator const uint8_t * () const { return m_Buf; };
-			ChipherBlock * GetChipherBlock () { return (ChipherBlock *)m_Buf; };
-			const ChipherBlock * GetChipherBlock () const { return (const ChipherBlock *)m_Buf; };
-
-		private:
-
-			uint8_t m_UnalignedBuffer[sz + 15]; // up to 15 bytes alignment
-			uint8_t * m_Buf;
-	};
-
-
-#if SUPPORTS_AES
-	class ECBCryptoAESNI
-	{
-		public:
-
-			uint8_t * GetKeySchedule () { return m_KeySchedule; };
-
-		protected:
-
-			void ExpandKey (const AESKey& key);
-
-		private:
-
-			AESAlignedBuffer<240> m_KeySchedule;	// 14 rounds for AES-256, 240 bytes
-	};
-#endif
-
-#if SUPPORTS_AES
-	class ECBEncryption: public ECBCryptoAESNI
-#else
+	
 	class ECBEncryption
-#endif
 	{
 		public:
 
-		void SetKey (const AESKey& key);
+			ECBEncryption ();
+			~ECBEncryption ();
+			
+			void SetKey (const AESKey& key) { m_Key = key; };
+			void Encrypt(const uint8_t * in, uint8_t * out);
 
-		void Encrypt(const ChipherBlock * in, ChipherBlock * out);
+		private:
 
-	private:
-		AES_KEY m_Key;
+			AESKey m_Key;
+			EVP_CIPHER_CTX * m_Ctx;	
 	};
 
-#if SUPPORTS_AES
-	class ECBDecryption: public ECBCryptoAESNI
-#else
 	class ECBDecryption
-#endif
 	{
 		public:
 
-			void SetKey (const AESKey& key);
-			void Decrypt (const ChipherBlock * in, ChipherBlock * out);
+			ECBDecryption ();
+			~ECBDecryption ();
+			
+			void SetKey (const AESKey& key) { m_Key = key; };
+			void Decrypt (const uint8_t * in, uint8_t * out);
+			
 		private:
-			AES_KEY m_Key;
+			
+			AESKey m_Key;
+			EVP_CIPHER_CTX * m_Ctx;	
 	};
 
 	class CBCEncryption
 	{
 		public:
 
-			CBCEncryption () { memset ((uint8_t *)m_LastBlock, 0, 16); };
+			CBCEncryption ();
+			~CBCEncryption ();
 
-			void SetKey (const AESKey& key) { m_ECBEncryption.SetKey (key); }; // 32 bytes
-			void SetIV (const uint8_t * iv) { memcpy ((uint8_t *)m_LastBlock, iv, 16); }; // 16 bytes
-			void GetIV (uint8_t * iv) const { memcpy (iv, (const uint8_t *)m_LastBlock, 16); };
-
-			void Encrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out);
+			void SetKey (const AESKey& key) { m_Key = key; }; // 32 bytes
+			void SetIV (const uint8_t * iv) { m_IV = iv; }; // 16 bytes
+			
 			void Encrypt (const uint8_t * in, std::size_t len, uint8_t * out);
-			void Encrypt (const uint8_t * in, uint8_t * out); // one block
-
-			ECBEncryption & ECB() { return m_ECBEncryption; }
-
+			
 		private:
 
-			AESAlignedBuffer<16> m_LastBlock;
-
-			ECBEncryption m_ECBEncryption;
+			AESKey m_Key;
+			i2p::data::Tag<16> m_IV;
+			EVP_CIPHER_CTX * m_Ctx;	
 	};
 
 	class CBCDecryption
 	{
 		public:
 
-			CBCDecryption () { memset ((uint8_t *)m_IV, 0, 16); };
+			CBCDecryption ();
+			~CBCDecryption ();
+			
+			void SetKey (const AESKey& key) { m_Key = key; }; // 32 bytes
+			void SetIV (const uint8_t * iv) { m_IV = iv; }; // 16 bytes
 
-			void SetKey (const AESKey& key) { m_ECBDecryption.SetKey (key); }; // 32 bytes
-			void SetIV (const uint8_t * iv) { memcpy ((uint8_t *)m_IV, iv, 16); }; // 16 bytes
-			void GetIV (uint8_t * iv) const { memcpy (iv, (const uint8_t *)m_IV, 16); };
-
-			void Decrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out);
 			void Decrypt (const uint8_t * in, std::size_t len, uint8_t * out);
-			void Decrypt (const uint8_t * in, uint8_t * out); // one block
-
-			ECBDecryption & ECB() { return m_ECBDecryption; }
 
 		private:
 
-			AESAlignedBuffer<16> m_IV;
-			ECBDecryption m_ECBDecryption;
+			AESKey m_Key;
+			i2p::data::Tag<16> m_IV;
+			EVP_CIPHER_CTX * m_Ctx;	
 	};
 
 	class TunnelEncryption // with double IV encryption

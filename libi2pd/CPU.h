@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -20,21 +20,5 @@
 #	define IS_X86 0
 #	define IS_X86_64 0
 #endif
-
-#if defined(__AES__) && !defined(_MSC_VER) && IS_X86
-#	define SUPPORTS_AES 1
-#else
-#	define SUPPORTS_AES 0
-#endif
-
-namespace i2p
-{
-namespace cpu
-{
-	extern bool aesni;
-
-	void Detect(bool AesSwitch, bool force);
-}
-}
 
 #endif
