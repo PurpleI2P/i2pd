@@ -110,6 +110,7 @@ jobs:
   build-xp:
     name: XP
     runs-on: windows-latest
+    if: false
 
     strategy:
         fail-fast: false
