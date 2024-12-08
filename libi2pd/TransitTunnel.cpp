@@ -434,8 +434,7 @@ namespace tunnel
 					else
 					{
 						encryption.SetKey (clearText + ECIES_BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET);
-						encryption.SetIV (clearText + ECIES_BUILD_REQUEST_RECORD_REPLY_IV_OFFSET);
-						encryption.Encrypt(reply, TUNNEL_BUILD_RECORD_SIZE, reply);
+						encryption.Encrypt(reply, TUNNEL_BUILD_RECORD_SIZE, clearText + ECIES_BUILD_REQUEST_RECORD_REPLY_IV_OFFSET, reply);
 					}
 				}
 				return true;

@@ -79,8 +79,7 @@ namespace tunnel
 		uint8_t * record = records + index*TUNNEL_BUILD_RECORD_SIZE;
 		i2p::crypto::CBCDecryption decryption;
 		decryption.SetKey (replyKey);
-		decryption.SetIV (replyIV);
-		decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
+		decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, replyIV, record);
 	}
 
 	void ECIESTunnelHopConfig::EncryptECIES (const uint8_t * plainText, size_t len, uint8_t * encrypted)

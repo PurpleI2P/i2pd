@@ -205,6 +205,7 @@ namespace garlic
 			std::map<uint32_t, std::unique_ptr<UnconfirmedTags> > m_UnconfirmedTagsMsgs; // msgID->tags
 
 			i2p::crypto::CBCEncryption m_Encryption;
+			i2p::data::Tag<16> m_IV;
 
 		public:
 

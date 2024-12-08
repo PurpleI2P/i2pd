@@ -93,7 +93,7 @@ namespace crypto
 			ECBEncryption ();
 			~ECBEncryption ();
 			
-			void SetKey (const AESKey& key) { m_Key = key; };
+			void SetKey (const uint8_t * key) { m_Key = key; };
 			void Encrypt(const uint8_t * in, uint8_t * out);
 
 		private:
@@ -109,7 +109,7 @@ namespace crypto
 			ECBDecryption ();
 			~ECBDecryption ();
 			
-			void SetKey (const AESKey& key) { m_Key = key; };
+			void SetKey (const uint8_t * key) { m_Key = key; };
 			void Decrypt (const uint8_t * in, uint8_t * out);
 			
 		private:
@@ -125,15 +125,12 @@ namespace crypto
 			CBCEncryption ();
 			~CBCEncryption ();
 
-			void SetKey (const AESKey& key) { m_Key = key; }; // 32 bytes
-			void SetIV (const uint8_t * iv) { m_IV = iv; }; // 16 bytes
-			
-			void Encrypt (const uint8_t * in, std::size_t len, uint8_t * out);
+			void SetKey (const uint8_t * key) { m_Key = key; }; // 32 bytes		
+			void Encrypt (const uint8_t * in, size_t len, const uint8_t * iv, uint8_t * out);
 			
 		private:
 
 			AESKey m_Key;
-			i2p::data::Tag<16> m_IV;
 			EVP_CIPHER_CTX * m_Ctx;	
 	};
 
@@ -144,15 +141,12 @@ namespace crypto
 			CBCDecryption ();
 			~CBCDecryption ();
 			
-			void SetKey (const AESKey& key) { m_Key = key; }; // 32 bytes
-			void SetIV (const uint8_t * iv) { m_IV = iv; }; // 16 bytes
-
-			void Decrypt (const uint8_t * in, std::size_t len, uint8_t * out);
+			void SetKey (const uint8_t * key) { m_Key = key; }; // 32 bytes
+			void Decrypt (const uint8_t * in, size_t len, const uint8_t * iv, uint8_t * out);
 
 		private:
 
 			AESKey m_Key;
-			i2p::data::Tag<16> m_IV;
 			EVP_CIPHER_CTX * m_Ctx;	
 	};
 

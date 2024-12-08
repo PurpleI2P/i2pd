@@ -160,7 +160,7 @@ namespace garlic
 			uint8_t iv[32]; // IV is first 16 bytes
 			SHA256(elGamal.preIV, 32, iv);
 			m_Destination->Encrypt ((uint8_t *)&elGamal, buf);
-			m_Encryption.SetIV (iv);
+			m_IV = iv;
 			buf += 514;
 			len += 514;
 		}
@@ -170,7 +170,7 @@ namespace garlic
 			memcpy (buf, tag, 32);
 			uint8_t iv[32]; // IV is first 16 bytes
 			SHA256(tag, 32, iv);
-			m_Encryption.SetIV (iv);
+			m_IV = iv;
 			buf += 32;
 			len += 32;
 		}
@@ -210,7 +210,7 @@ namespace garlic
 		size_t rem = blockSize % 16;
 		if (rem)
 			blockSize += (16-rem); //padding
-		m_Encryption.Encrypt(buf, blockSize, buf);
+		m_Encryption.Encrypt(buf, blockSize, m_IV, buf);
 		return blockSize;
 	}
 
@@ -514,8 +514,7 @@ namespace garlic
 				{
 					uint8_t iv[32]; // IV is first 16 bytes
 					SHA256(buf, 32, iv);
-					decryption->SetIV (iv);
-					decryption->Decrypt (buf + 32, length - 32, buf + 32);
+					decryption->Decrypt (buf + 32, length - 32, iv, buf + 32);
 					HandleAESBlock (buf + 32, length - 32, decryption, msg->from);
 					found = true;
 				}
@@ -533,8 +532,7 @@ namespace garlic
 					auto decryption = std::make_shared<AESDecryption>(elGamal.sessionKey);
 					uint8_t iv[32]; // IV is first 16 bytes
 					SHA256(elGamal.preIV, 32, iv);
-					decryption->SetIV (iv);
-					decryption->Decrypt(buf + 514, length - 514, buf + 514);
+					decryption->Decrypt(buf + 514, length - 514, iv, buf + 514);
 					HandleAESBlock (buf + 514, length - 514, decryption, msg->from);
 				}
 				else if (SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD))

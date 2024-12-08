@@ -442,9 +442,8 @@ namespace crypto
 		// encrypt
 		CBCEncryption encryption;
 		encryption.SetKey (shared);
-		encryption.SetIV (iv);
 		encrypted[257] = 0;
-		encryption.Encrypt (m, 256, encrypted + 258);
+		encryption.Encrypt (m, 256, iv, encrypted + 258);
 		EC_POINT_free (p);
 		BN_CTX_end (ctx);
 		BN_CTX_free (ctx);
@@ -477,8 +476,7 @@ namespace crypto
 			uint8_t m[256];
 			CBCDecryption decryption;
 			decryption.SetKey (shared);
-			decryption.SetIV (iv);
-			decryption.Decrypt (encrypted + 258, 256, m);
+			decryption.Decrypt (encrypted + 258, 256, iv, m);
 			// verify and copy
 			uint8_t hash[32];
 			SHA256 (m + 33, 222, hash);
@@ -560,7 +558,6 @@ namespace crypto
 	CBCEncryption::CBCEncryption () 
 	{ 
 		m_Ctx = EVP_CIPHER_CTX_new ();
-		//memset ((uint8_t *)m_LastBlock, 0, 16); 
 	}
 	
 	CBCEncryption::~CBCEncryption ()
@@ -569,10 +566,10 @@ namespace crypto
 			EVP_CIPHER_CTX_free (m_Ctx);
 	}	
 	
-	void CBCEncryption::Encrypt (const uint8_t * in, std::size_t len, uint8_t * out)
+	void CBCEncryption::Encrypt (const uint8_t * in, size_t len, const uint8_t * iv, uint8_t * out)
 	{
 		// len/16
-		EVP_EncryptInit_ex (m_Ctx, EVP_aes_256_cbc(), NULL, m_Key, m_IV);
+		EVP_EncryptInit_ex (m_Ctx, EVP_aes_256_cbc(), NULL, m_Key, iv);
 		EVP_CIPHER_CTX_set_padding (m_Ctx, 0);
 		int l;
 		EVP_EncryptUpdate (m_Ctx, out, &l, in, len);
@@ -582,7 +579,6 @@ namespace crypto
 	CBCDecryption::CBCDecryption () 
 	{ 
 		m_Ctx = EVP_CIPHER_CTX_new ();
-		//memset ((uint8_t *)m_IV, 0, 16); 
 	}
 	
 	CBCDecryption::~CBCDecryption ()
@@ -591,10 +587,10 @@ namespace crypto
 			EVP_CIPHER_CTX_free (m_Ctx);
 	}	
 	
-	void CBCDecryption::Decrypt (const uint8_t * in, std::size_t len, uint8_t * out)
+	void CBCDecryption::Decrypt (const uint8_t * in, size_t len, const uint8_t * iv, uint8_t * out)
 	{
 		// len/16
-		EVP_DecryptInit_ex (m_Ctx, EVP_aes_256_cbc(), NULL, m_Key, m_IV);
+		EVP_DecryptInit_ex (m_Ctx, EVP_aes_256_cbc(), NULL, m_Key, iv);
 		EVP_CIPHER_CTX_set_padding (m_Ctx, 0);
 		int l;
 		EVP_DecryptUpdate (m_Ctx, out, &l, in, len);
@@ -603,18 +599,18 @@ namespace crypto
 
 	void TunnelEncryption::Encrypt (const uint8_t * in, uint8_t * out)
 	{
-		m_IVEncryption.Encrypt (in, out); // iv
-		m_LayerEncryption.SetIV (out);
-		m_LayerEncryption.Encrypt (in + 16, i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE, out + 16); // data
-		m_IVEncryption.Encrypt (out, out); // double iv
+		uint8_t iv[16];
+		m_IVEncryption.Encrypt (in, iv); // iv
+		m_LayerEncryption.Encrypt (in + 16, i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE, iv, out + 16); // data
+		m_IVEncryption.Encrypt (iv, out); // double iv
 	}
 
 	void TunnelDecryption::Decrypt (const uint8_t * in, uint8_t * out)
 	{
-		m_IVDecryption.Decrypt (in, out); // iv
-		m_LayerDecryption.SetIV (out);
-		m_LayerDecryption.Decrypt (in + 16, i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE, out + 16); // data
-		m_IVDecryption.Decrypt (out, out); // double iv
+		uint8_t iv[16];
+		m_IVDecryption.Decrypt (in, iv); // iv
+		m_LayerDecryption.Decrypt (in + 16, i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE, iv, out + 16); // data
+		m_IVDecryption.Decrypt (iv, out); // double iv
 	}
 
 // AEAD/ChaCha20/Poly1305

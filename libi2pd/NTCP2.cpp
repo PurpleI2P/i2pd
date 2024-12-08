@@ -120,8 +120,7 @@ namespace transport
 		// encrypt X
 		i2p::crypto::CBCEncryption encryption;
 		encryption.SetKey (m_RemoteIdentHash);
-		encryption.SetIV (m_IV);
-		encryption.Encrypt (GetPub (), 32, m_SessionRequestBuffer); // X
+		encryption.Encrypt (GetPub (), 32, m_IV, m_SessionRequestBuffer); // X
 		memcpy (m_IV, m_SessionRequestBuffer + 16, 16); // save last block as IV for SessionCreated
 		// encryption key for next block
 		if (!KDF1Alice ()) return false;
@@ -161,8 +160,7 @@ namespace transport
 		// encrypt Y
 		i2p::crypto::CBCEncryption encryption;
 		encryption.SetKey (i2p::context.GetIdentHash ());
-		encryption.SetIV (m_IV);
-		encryption.Encrypt (GetPub (), 32, m_SessionCreatedBuffer); // Y
+		encryption.Encrypt (GetPub (), 32, m_IV, m_SessionCreatedBuffer); // Y
 		// encryption key for next block (m_K)
 		if (!KDF2Bob ()) return false;
 		uint8_t options[16];
@@ -208,8 +206,7 @@ namespace transport
 		// decrypt X
 		i2p::crypto::CBCDecryption decryption;
 		decryption.SetKey (i2p::context.GetIdentHash ());
-		decryption.SetIV (i2p::context.GetNTCP2IV ());
-		decryption.Decrypt (m_SessionRequestBuffer, 32, GetRemotePub ());
+		decryption.Decrypt (m_SessionRequestBuffer, 32, i2p::context.GetNTCP2IV (), GetRemotePub ());
 		memcpy (m_IV, m_SessionRequestBuffer + 16, 16); // save last block as IV for SessionCreated
 		// decryption key for next block
 		if (!KDF1Bob ())
@@ -268,8 +265,7 @@ namespace transport
 		// decrypt Y
 		i2p::crypto::CBCDecryption decryption;
 		decryption.SetKey (m_RemoteIdentHash);
-		decryption.SetIV (m_IV);
-		decryption.Decrypt (m_SessionCreatedBuffer, 32, GetRemotePub ());
+		decryption.Decrypt (m_SessionCreatedBuffer, 32, m_IV, GetRemotePub ());
 		// decryption key for next block (m_K)
 		if (!KDF2Alice ())
 		{
