@@ -110,7 +110,6 @@ jobs:
   build-xp:
     name: XP
     runs-on: windows-latest
-    if: false
 
     strategy:
         fail-fast: false
@@ -231,8 +230,10 @@ jobs:
       run: |
         cd MINGW-packages/mingw-w64-boost
         MINGW_ARCH=mingw32 makepkg-mingw -sCLf --noconfirm --nocheck
+    - name: Remove boost packages
+      run: pacman --noconfirm -R mingw-w64-i686-boost mingw-w64-i686-boost-libs
     - name: Install boost package
-      run: pacman --noconfirm -U --overwrite MINGW-packages/mingw-w64-boost/mingw-w64-i686-*-any.pkg.tar.zst
+      run: pacman --noconfirm -U MINGW-packages/mingw-w64-boost/mingw-w64-i686-*-any.pkg.tar.zst
 
     # Building i2pd
     - name: Build application
