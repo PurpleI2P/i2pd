@@ -349,7 +349,7 @@ namespace transport
 
 	void SSU2Session::Done ()
 	{
-		m_Server.GetService ().post (std::bind (&SSU2Session::Terminate, shared_from_this ()));
+		boost::asio::post (m_Server.GetService (), std::bind (&SSU2Session::Terminate, shared_from_this ()));
 	}
 
 	void SSU2Session::SendLocalRouterInfo (bool update)
@@ -357,7 +357,7 @@ namespace transport
 		if (update || !IsOutgoing ())
 		{
 			auto s = shared_from_this ();
-			m_Server.GetService ().post ([s]()
+			boost::asio::post (m_Server.GetService (), [s]()
 				{
 					if (!s->IsEstablished ()) return;
 					uint8_t payload[SSU2_MAX_PACKET_SIZE];
@@ -389,7 +389,7 @@ namespace transport
 			m_IntermediateQueue.splice (m_IntermediateQueue.end (), msgs);
 		}
 		if (empty)
-			m_Server.GetService ().post (std::bind (&SSU2Session::PostI2NPMessages, shared_from_this ()));
+			boost::asio::post (m_Server.GetService (), std::bind (&SSU2Session::PostI2NPMessages, shared_from_this ()));
 	}
 
 	void SSU2Session::PostI2NPMessages ()
@@ -1455,7 +1455,7 @@ namespace transport
 		uint8_t nonce[12];
 		CreateNonce (m_SendPacketNum, nonce);
 		uint8_t payload[SSU2_MAX_PACKET_SIZE];
-		i2p::crypto::AEADChaCha20Poly1305 (buf, len, header.buf, 16, m_KeyDataSend, nonce, payload, SSU2_MAX_PACKET_SIZE, true);
+		m_Server.AEADChaCha20Poly1305Encrypt (buf, len, header.buf, 16, m_KeyDataSend, nonce, payload, SSU2_MAX_PACKET_SIZE);
 		header.ll[0] ^= CreateHeaderMask (m_Address->i, payload + (len - 8));
 		header.ll[1] ^= CreateHeaderMask (m_KeyDataSend + 32, payload + (len + 4));
 		m_Server.Send (header.buf, 16, payload, len + 16, m_RemoteEndpoint);
@@ -1495,8 +1495,8 @@ namespace transport
 		uint32_t packetNum = be32toh (header.h.packetNum);
 		uint8_t nonce[12];
 		CreateNonce (packetNum, nonce);
-		if (!i2p::crypto::AEADChaCha20Poly1305 (buf + 16, payloadSize, header.buf, 16,
-			m_KeyDataReceive, nonce, payload, payloadSize, false))
+		if (!m_Server.AEADChaCha20Poly1305Decrypt (buf + 16, payloadSize, header.buf, 16,
+			m_KeyDataReceive, nonce, payload, payloadSize))
 		{
 			LogPrint (eLogWarning, "SSU2: Data AEAD verification failed ");
 			return;
@@ -2052,7 +2052,7 @@ namespace transport
 			auto vec = std::make_shared<std::vector<uint8_t> >(len);
 			memcpy (vec->data (), buf, len);
 			auto s = shared_from_this ();
-			m_Server.GetService ().post ([s, vec, attempts]()
+			boost::asio::post (m_Server.GetService (), [s, vec, attempts]()
 				{
 					LogPrint (eLogDebug, "SSU2: RelayIntro attempt ", attempts + 1);
 					s->HandleRelayIntro (vec->data (), vec->size (), attempts + 1);

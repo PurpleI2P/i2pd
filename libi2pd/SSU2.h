@@ -82,6 +82,10 @@ namespace transport
 			bool IsConnectedRecently (const boost::asio::ip::udp::endpoint& ep, bool max = true);
 			void AddConnectedRecently (const boost::asio::ip::udp::endpoint& ep, uint64_t ts);
 			std::mt19937& GetRng () { return m_Rng; }
+			bool AEADChaCha20Poly1305Encrypt (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen,
+				const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len); 
+			bool AEADChaCha20Poly1305Decrypt (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen,
+				const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len); 
 			bool IsMaxNumIntroducers (bool v4) const { return (v4 ? m_Introducers.size () : m_IntroducersV6.size ()) >= SSU2_MAX_NUM_INTRODUCERS; }
 			bool IsSyncClockFromPeers () const { return m_IsSyncClockFromPeers; };
 			void AdjustTimeOffset (int64_t offset, std::shared_ptr<const i2p::data::IdentityEx> from);
@@ -200,6 +204,8 @@ namespace transport
 			std::unordered_map<uint32_t, std::pair <std::weak_ptr<SSU2PeerTestSession>, uint64_t > > m_RequestedPeerTests; // nonce->(Alice, timestamp) 
 			std::list<Packet *> m_ReceivedPacketsQueue;
 			mutable std::mutex m_ReceivedPacketsQueueMutex;
+			i2p::crypto::AEADChaCha20Poly1305Encryptor m_Encryptor;
+			i2p::crypto::AEADChaCha20Poly1305Decryptor m_Decryptor;
 		
 			// proxy
 			bool m_IsThroughProxy;

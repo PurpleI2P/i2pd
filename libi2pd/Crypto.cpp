@@ -615,13 +615,13 @@ namespace crypto
 
 // AEAD/ChaCha20/Poly1305
 
-	bool AEADChaCha20Poly1305 (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen, const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len, bool encrypt)
+	static bool AEADChaCha20Poly1305 (EVP_CIPHER_CTX * ctx, const uint8_t * msg, size_t msgLen, 
+		const uint8_t * ad, size_t adLen, const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len, bool encrypt)
 	{
-		if (len < msgLen) return false;
+		if (!ctx || len < msgLen) return false;
 		if (encrypt && len < msgLen + 16) return false;
 		bool ret = true;
 		int outlen = 0;
-		EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new ();
 		if (encrypt)
 		{
 			EVP_EncryptInit_ex(ctx, EVP_chacha20_poly1305(), 0, 0, 0);
@@ -651,26 +651,66 @@ namespace crypto
 			EVP_DecryptUpdate(ctx, buf, &outlen, msg, msgLen);
 			ret = EVP_DecryptFinal_ex(ctx, buf + outlen, &outlen) > 0;
 		}
+		return ret;
+	}
 
+	bool AEADChaCha20Poly1305 (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen, 
+		const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len, bool encrypt)
+	{
+		EVP_CIPHER_CTX * ctx = EVP_CIPHER_CTX_new ();
+		auto ret = AEADChaCha20Poly1305 (ctx, msg, msgLen, ad, adLen, key, nonce, buf, len, encrypt);
 		EVP_CIPHER_CTX_free (ctx);
 		return ret;
 	}
 
-	void AEADChaCha20Poly1305Encrypt (const std::vector<std::pair<uint8_t *, size_t> >& bufs, const uint8_t * key, const uint8_t * nonce, uint8_t * mac)
+	AEADChaCha20Poly1305Encryptor::AEADChaCha20Poly1305Encryptor ()
+	{
+		m_Ctx = EVP_CIPHER_CTX_new ();
+	}
+	
+	AEADChaCha20Poly1305Encryptor::~AEADChaCha20Poly1305Encryptor ()
+	{
+		if (m_Ctx)
+			EVP_CIPHER_CTX_free (m_Ctx);
+	}	
+
+	bool AEADChaCha20Poly1305Encryptor::Encrypt (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen,
+		const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len)
+	{
+		return AEADChaCha20Poly1305 (m_Ctx, msg, msgLen, ad, adLen, key, nonce, buf, len, true);
+	}	
+
+	void AEADChaCha20Poly1305Encryptor::Encrypt (const std::vector<std::pair<uint8_t *, size_t> >& bufs, 
+		const uint8_t * key, const uint8_t * nonce, uint8_t * mac)
 	{
 		if (bufs.empty ()) return;
 		int outlen = 0;
-		EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new ();
-		EVP_EncryptInit_ex(ctx, EVP_chacha20_poly1305(), 0, 0, 0);
-		EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, 12, 0);
-		EVP_EncryptInit_ex(ctx, NULL, NULL, key, nonce);
+		EVP_EncryptInit_ex(m_Ctx, EVP_chacha20_poly1305(), 0, 0, 0);
+		EVP_CIPHER_CTX_ctrl(m_Ctx, EVP_CTRL_AEAD_SET_IVLEN, 12, 0);
+		EVP_EncryptInit_ex(m_Ctx, NULL, NULL, key, nonce);
 		for (const auto& it: bufs)
-			EVP_EncryptUpdate(ctx, it.first, &outlen, it.first, it.second);
-		EVP_EncryptFinal_ex(ctx, NULL, &outlen);
-		EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, 16, mac);
-		EVP_CIPHER_CTX_free (ctx);
+			EVP_EncryptUpdate(m_Ctx, it.first, &outlen, it.first, it.second);
+		EVP_EncryptFinal_ex(m_Ctx, NULL, &outlen);
+		EVP_CIPHER_CTX_ctrl(m_Ctx, EVP_CTRL_AEAD_GET_TAG, 16, mac);
+	}	
+	
+	AEADChaCha20Poly1305Decryptor::AEADChaCha20Poly1305Decryptor ()
+	{
+		m_Ctx = EVP_CIPHER_CTX_new ();
 	}
+	
+	AEADChaCha20Poly1305Decryptor::~AEADChaCha20Poly1305Decryptor ()
+	{
+		if (m_Ctx)
+			EVP_CIPHER_CTX_free (m_Ctx);
+	}	
 
+	bool AEADChaCha20Poly1305Decryptor::Decrypt (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen,
+		const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len)
+	{
+		return AEADChaCha20Poly1305 (m_Ctx, msg, msgLen, ad, adLen, key, nonce, buf, len, false);
+	}
+	
 	void ChaCha20 (const uint8_t * msg, size_t msgLen, const uint8_t * key, const uint8_t * nonce, uint8_t * out)
 	{
 		EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new ();

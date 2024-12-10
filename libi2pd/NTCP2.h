@@ -272,6 +272,11 @@ namespace transport
 			auto& GetService () { return GetIOService (); };
 			auto& GetEstablisherService () { return m_EstablisherService.GetService (); };
 			std::mt19937& GetRng () { return m_Rng; };
+			void AEADChaCha20Poly1305Encrypt (const std::vector<std::pair<uint8_t *, size_t> >& bufs, 
+				const uint8_t * key, const uint8_t * nonce, uint8_t * mac);
+			bool AEADChaCha20Poly1305Decrypt (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen,
+				const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len); 
+			
 
 			bool AddNTCP2Session (std::shared_ptr<NTCP2Session> session, bool incoming = false);
 			void RemoveNTCP2Session (std::shared_ptr<NTCP2Session> session);
@@ -309,9 +314,12 @@ namespace transport
 			uint16_t m_ProxyPort;
 			boost::asio::ip::tcp::resolver m_Resolver;
 			std::unique_ptr<boost::asio::ip::tcp::endpoint> m_ProxyEndpoint;
+			
 			std::shared_ptr<boost::asio::ip::tcp::endpoint> m_Address4, m_Address6, m_YggdrasilAddress;
 			std::mt19937 m_Rng;
 			EstablisherService m_EstablisherService;
+			i2p::crypto::AEADChaCha20Poly1305Encryptor m_Encryptor;
+			i2p::crypto::AEADChaCha20Poly1305Decryptor m_Decryptor;
 			
 		public:
 

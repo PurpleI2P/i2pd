@@ -1516,6 +1516,18 @@ namespace transport
 		}
 	}
 
+	bool SSU2Server::AEADChaCha20Poly1305Encrypt (const uint8_t * msg, size_t msgLen,
+		const uint8_t * ad, size_t adLen, const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len)
+	{
+		return m_Encryptor.Encrypt (msg, msgLen, ad, adLen, key, nonce, buf, len);
+	}
+
+	bool SSU2Server::AEADChaCha20Poly1305Decrypt (const uint8_t * msg, size_t msgLen,
+		const uint8_t * ad, size_t adLen, const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len)
+	{
+		return m_Decryptor.Decrypt (msg, msgLen, ad, adLen, key, nonce, buf, len);
+	}
+		
 	void SSU2Server::SendThroughProxy (const uint8_t * header, size_t headerLen, const uint8_t * headerX, size_t headerXLen,
 		const uint8_t * payload, size_t payloadLen, const boost::asio::ip::udp::endpoint& to)
 	{

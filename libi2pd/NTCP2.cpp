@@ -991,7 +991,7 @@ namespace transport
 			i2p::transport::transports.UpdateReceivedBytes (bytes_transferred + 2);
 			uint8_t nonce[12];
 			CreateNonce (m_ReceiveSequenceNumber, nonce); m_ReceiveSequenceNumber++;
-			if (i2p::crypto::AEADChaCha20Poly1305 (m_NextReceivedBuffer, m_NextReceivedLen-16, nullptr, 0, m_ReceiveKey, nonce, m_NextReceivedBuffer, m_NextReceivedLen, false))
+			if (m_Server.AEADChaCha20Poly1305Decrypt (m_NextReceivedBuffer, m_NextReceivedLen-16, nullptr, 0, m_ReceiveKey, nonce, m_NextReceivedBuffer, m_NextReceivedLen))
 			{
 				LogPrint (eLogDebug, "NTCP2: Received message decrypted");
 				ProcessNextFrame (m_NextReceivedBuffer, m_NextReceivedLen-16);
@@ -1180,7 +1180,7 @@ namespace transport
 		}	
 		uint8_t nonce[12];
 		CreateNonce (m_SendSequenceNumber, nonce); m_SendSequenceNumber++;
-		i2p::crypto::AEADChaCha20Poly1305Encrypt (encryptBufs, m_SendKey, nonce, macBuf); // encrypt buffers
+		m_Server.AEADChaCha20Poly1305Encrypt (encryptBufs, m_SendKey, nonce, macBuf); // encrypt buffers
 		SetNextSentFrameLength (totalLen + 16, first->GetNTCP2Header () - 5); // frame length right before first block
 
 		// send buffers
@@ -1211,7 +1211,7 @@ namespace transport
 		// encrypt
 		uint8_t nonce[12];
 		CreateNonce (m_SendSequenceNumber, nonce); m_SendSequenceNumber++;
-		i2p::crypto::AEADChaCha20Poly1305Encrypt ({ {m_NextSendBuffer + 2, payloadLen} }, m_SendKey, nonce, m_NextSendBuffer + payloadLen + 2);
+		m_Server.AEADChaCha20Poly1305Encrypt ({ {m_NextSendBuffer + 2, payloadLen} }, m_SendKey, nonce, m_NextSendBuffer + payloadLen + 2);
 		SetNextSentFrameLength (payloadLen + 16, m_NextSendBuffer);
 		// send
 		m_IsSending = true;
@@ -1980,5 +1980,17 @@ namespace transport
 		else
 			m_Address4 = addr;
 	}
+
+	void NTCP2Server::AEADChaCha20Poly1305Encrypt (const std::vector<std::pair<uint8_t *, size_t> >& bufs, 
+		const uint8_t * key, const uint8_t * nonce, uint8_t * mac)
+	{
+		return m_Encryptor.Encrypt (bufs, key, nonce, mac);
+	}	
+		
+	bool NTCP2Server::AEADChaCha20Poly1305Decrypt (const uint8_t * msg, size_t msgLen,
+		const uint8_t * ad, size_t adLen, const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len)
+	{
+		return m_Decryptor.Decrypt (msg, msgLen, ad, adLen, key, nonce, buf, len);
+	}	
 }
 }
