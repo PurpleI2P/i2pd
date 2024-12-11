@@ -242,6 +242,11 @@ namespace garlic
 			void RemoveDeliveryStatusSession (uint32_t msgID);
 			std::shared_ptr<I2NPMessage> WrapMessageForRouter (std::shared_ptr<const i2p::data::RouterInfo> router,
 				std::shared_ptr<I2NPMessage> msg);
+			
+			bool AEADChaCha20Poly1305Encrypt (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen,
+				const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len); 
+			bool AEADChaCha20Poly1305Decrypt (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen,
+				const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len); 
 
 			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag
 			void AddECIESx25519Key (const uint8_t * key, uint64_t tag); // one tag
@@ -295,7 +300,10 @@ namespace garlic
 			// DeliveryStatus
 			std::mutex m_DeliveryStatusSessionsMutex;
 			std::unordered_map<uint32_t, GarlicRoutingSessionPtr> m_DeliveryStatusSessions; // msgID -> session
-
+			// encryption
+			i2p::crypto::AEADChaCha20Poly1305Encryptor m_Encryptor;
+			i2p::crypto::AEADChaCha20Poly1305Decryptor m_Decryptor;
+			
 		public:
 
 			// for HTTP only

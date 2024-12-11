@@ -1103,5 +1103,17 @@ namespace garlic
 			m_PayloadBuffer = new uint8_t[I2NP_MAX_MESSAGE_SIZE];
 		return m_PayloadBuffer;
 	}
+
+	bool GarlicDestination::AEADChaCha20Poly1305Encrypt (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen,
+		const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len)
+	{
+		return m_Encryptor.Encrypt (msg, msgLen, ad, adLen, key, nonce, buf, len);
+	}
+		
+	bool GarlicDestination::AEADChaCha20Poly1305Decrypt (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen,
+		const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len)
+	{
+		return m_Decryptor.Decrypt (msg, msgLen, ad, adLen, key, nonce, buf, len);
+	}	
 }
 }
