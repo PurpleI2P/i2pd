@@ -251,7 +251,7 @@ namespace stream
 
 			void UpdatePacingTime ();
 			void ProcessWindowDrop ();
-			void HalveWindowSize ();
+			void ResetWindowSize ();
 			void CancelRemoteLeaseChange ();
 			
 		private:
@@ -272,6 +272,7 @@ namespace stream
 			bool m_IsFirstRttSample;
 			bool m_IsSendTime;
 			bool m_IsWinDropped;
+			bool m_IsClientChoked;
 			bool m_IsTimeOutResend;
 			bool m_IsImmediateAckRequested;
 			bool m_IsRemoteLeaseChangeInProgress;
@@ -295,10 +296,10 @@ namespace stream
 			SendBufferQueue m_SendBuffer;
 			double m_RTT, m_SlowRTT, m_SlowRTT2;
 			float m_WindowSize, m_LastWindowDropSize, m_WindowDropTargetSize;
-			int m_WindowIncCounter, m_RTO, m_AckDelay, m_PrevRTTSample;
+			int m_WindowIncCounter, m_RTO, m_AckDelay, m_PrevRTTSample, m_WindowSizeTail;
 			double m_Jitter;
 			uint64_t m_MinPacingTime, m_PacingTime, m_PacingTimeRem, // microseconds
-				m_LastSendTime, m_RemoteLeaseChangeTime;	// milliseconds
+				m_LastSendTime, m_LastACKRecieveTime, m_ACKRecieveInterval, m_RemoteLeaseChangeTime;	// milliseconds
 			uint64_t m_LastACKSendTime, m_PacketACKInterval, m_PacketACKIntervalRem; // for limit inbound speed
 			int m_NumResendAttempts, m_NumPacketsToSend;
 			size_t m_MTU;
