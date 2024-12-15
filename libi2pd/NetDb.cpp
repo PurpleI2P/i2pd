@@ -502,7 +502,7 @@ namespace data
 		}
 
 		// send them off
-		i2p::transport::transports.SendMessages(ih, requests);
+		i2p::transport::transports.SendMessages(ih, std::move (requests));
 	}
 
 	bool NetDb::LoadRouterInfo (const std::string& path, uint64_t ts)

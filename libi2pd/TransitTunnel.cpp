@@ -62,7 +62,8 @@ namespace tunnel
 			auto num = m_TunnelDataMsgs.size ();
 			if (num > 1)
 				LogPrint (eLogDebug, "TransitTunnel: ", GetTunnelID (), "->", GetNextTunnelID (), " ", num);
-			i2p::transport::transports.SendMessages (GetNextIdentHash (), m_TunnelDataMsgs); // send and clear
+			if (!m_Sender) m_Sender = std::make_unique<TunnelTransportSender>();
+			m_Sender->SendMessagesTo (GetNextIdentHash (), m_TunnelDataMsgs); // send and clear
 		}
 	}
 

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -11,12 +11,19 @@
 
 #include <inttypes.h>
 #include <memory>
+#include <future>
+#include <list>
 #include "Timestamp.h"
 #include "I2NPProtocol.h"
 #include "Identity.h"
 
 namespace i2p
 {
+namespace transport
+{
+	class TransportSession;
+}	
+	
 namespace tunnel
 {
 	const size_t TUNNEL_DATA_MSG_SIZE = 1028;
@@ -76,6 +83,22 @@ namespace tunnel
 				return t1 < t2;
 		}
 	};
+
+	class TunnelTransportSender final
+	{
+		public: 
+
+			TunnelTransportSender () = default;
+			~TunnelTransportSender () = default;
+
+			void SendMessagesTo (const i2p::data::IdentHash& to, std::list<std::shared_ptr<I2NPMessage> >&& msgs);
+			void SendMessagesTo (const i2p::data::IdentHash& to, std::list<std::shared_ptr<I2NPMessage> >& msgs); // send and clear
+			
+		private:
+			
+			std::weak_ptr<i2p::transport::TransportSession> m_CurrentTransport;
+			std::future<std::shared_ptr<i2p::transport::TransportSession> > m_PendingTransport;
+	};	
 }
 }
 

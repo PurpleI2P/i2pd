@@ -63,6 +63,7 @@ namespace tunnel
 
 			size_t m_NumTransmittedBytes;
 			std::list<std::shared_ptr<i2p::I2NPMessage> > m_TunnelDataMsgs;
+			std::unique_ptr<TunnelTransportSender> m_Sender;
 	};
 
 	class TransitTunnelGateway: public TransitTunnel

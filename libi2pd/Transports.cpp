@@ -454,13 +454,6 @@ namespace transport
 		return {}; // invalid future
 	}
 
-	std::future<std::shared_ptr<TransportSession> > Transports::SendMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >& msgs)
-	{
-		std::list<std::shared_ptr<i2p::I2NPMessage> > msgs1;
-		msgs.swap (msgs1);
-		return SendMessages (ident, std::move (msgs1));
-	}
-
 	std::future<std::shared_ptr<TransportSession> > Transports::SendMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >&& msgs)
 	{
 		return boost::asio::post (*m_Service, boost::asio::use_future ([this, ident, msgs = std::move(msgs)] () mutable

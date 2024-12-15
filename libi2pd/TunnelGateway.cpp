@@ -235,40 +235,9 @@ namespace tunnel
 			m_NumSentBytes += TUNNEL_DATA_MSG_SIZE;
 		}
 		m_Buffer.ClearTunnelDataMsgs ();
-
 		// send 
-		auto currentTransport = m_CurrentTransport.lock ();
-		if (!currentTransport)
-		{
-			// try to obtain transport from pending request or send thought transport is not complete
-			if (m_PendingTransport.valid ()) // pending request?
-			{
-				if (m_PendingTransport.wait_for(std::chrono::seconds(0)) == std::future_status::ready) 
-				{	
-					// pending request complete
-					currentTransport = m_PendingTransport.get (); // take transports used in pending request
-					if (currentTransport)
-					{	
-						if (currentTransport->IsEstablished ()) 
-							m_CurrentTransport = currentTransport;
-						else
-							currentTransport = nullptr;
-					}
-				}	
-				else // still pending
-				{	
-					// send through transports, but don't update pending transport
-					i2p::transport::transports.SendMessages (m_Tunnel.GetNextIdentHash (), std::move (newTunnelMsgs));
-					return;
-				}	
-			}
-		}
-		if (currentTransport) // session is good
-			// send to session directly
-			currentTransport->SendI2NPMessages (newTunnelMsgs);
-		else // no session yet
-			// send through transports
-			m_PendingTransport = i2p::transport::transports.SendMessages (m_Tunnel.GetNextIdentHash (), std::move (newTunnelMsgs));
+		if (!m_Sender) m_Sender = std::make_unique<TunnelTransportSender>();
+		m_Sender->SendMessagesTo (m_Tunnel.GetNextIdentHash (), std::move (newTunnelMsgs));		
 	}
 }
 }
