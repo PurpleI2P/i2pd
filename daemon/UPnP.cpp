@@ -150,7 +150,7 @@ namespace transport
 
 		// UPnP discovered
 		LogPrint (eLogDebug, "UPnP: ExternalIPAddress is ", m_externalIPAddress);
-		i2p::context.UpdateAddress (boost::asio::ip::address::from_string (m_externalIPAddress));
+		i2p::context.UpdateAddress (boost::asio::ip::make_address (m_externalIPAddress));
 		// port mapping
 		PortMapping ();
 	}

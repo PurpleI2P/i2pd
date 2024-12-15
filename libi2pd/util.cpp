@@ -454,9 +454,9 @@ namespace net
 #ifdef _WIN32
 		LogPrint(eLogError, "NetIface: Cannot get address by interface name, not implemented on WIN32");
 		if (ipv6)
-			return boost::asio::ip::address::from_string("::1");
+			return boost::asio::ip::make_address("::1");
 		else
-			return boost::asio::ip::address::from_string("127.0.0.1");
+			return boost::asio::ip::make_address("127.0.0.1");
 #else
 		int af = (ipv6 ? AF_INET6 : AF_INET);
 		ifaddrs *addrs;
