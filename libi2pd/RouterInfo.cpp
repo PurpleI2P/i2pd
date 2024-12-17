@@ -1195,6 +1195,19 @@ namespace data
 				return false;
 		}
 	}
+
+	std::string RouterInfo::GetTransportName (SupportedTransports tr)
+	{
+		switch (tr)
+		{
+			case eNTCP2V4: return "NTCP2V4";
+			case eNTCP2V6: return "NTCP2V6";
+			case eSSU2V4: return "SSU2V4";
+			case eSSU2V6: return "SSU2V6";
+			case eNTCP2V6Mesh: return "Mesh";
+			default: return "";
+		}
+	}	
 		
 	void LocalRouterInfo::CreateBuffer (const PrivateKeys& privateKeys)
 	{

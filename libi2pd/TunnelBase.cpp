@@ -60,5 +60,11 @@ namespace tunnel
 		msgs.swap (msgs1);
 		SendMessagesTo (to, std::move (msgs1));
 	}	
+
+	void TunnelTransportSender::Reset ()
+	{
+		m_CurrentTransport.reset ();
+		m_PendingTransport = std::future<std::shared_ptr<i2p::transport::TransportSession> >();
+	}	
 }
 }

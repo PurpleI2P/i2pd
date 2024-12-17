@@ -33,11 +33,13 @@ namespace tunnel
 				const i2p::crypto::AESKey& layerKey, const i2p::crypto::AESKey& ivKey);
 
 			virtual size_t GetNumTransmittedBytes () const { return 0; };
+			virtual std::string GetNextPeerName () const;
 
 			// implements TunnelBase
 			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg) override;
 			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg) override;
 			void EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out) override;
+		
 		private:
 
 			i2p::crypto::AESKey m_LayerKey, m_IVKey;
@@ -56,6 +58,7 @@ namespace tunnel
 			~TransitTunnelParticipant ();
 
 			size_t GetNumTransmittedBytes () const override { return m_NumTransmittedBytes; };
+			std::string GetNextPeerName () const override;
 			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg) override;
 			void FlushTunnelDataMsgs () override;
 
@@ -79,7 +82,8 @@ namespace tunnel
 			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg) override;
 			void FlushTunnelDataMsgs () override;
 			size_t GetNumTransmittedBytes () const override { return m_Gateway.GetNumSentBytes (); };
-
+			std::string GetNextPeerName () const override;
+			
 		private:
 
 			std::mutex m_SendMutex;
@@ -97,10 +101,11 @@ namespace tunnel
 				m_Endpoint (false) {}; // transit endpoint is always outbound
 
 			void Cleanup () override { m_Endpoint.Cleanup (); }
-
+		
 			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg) override;
 			size_t GetNumTransmittedBytes () const override { return m_Endpoint.GetNumReceivedBytes (); }
-
+			std::string GetNextPeerName () const override { return ""; }
+			
 		private:
 
 			TunnelEndpoint m_Endpoint;

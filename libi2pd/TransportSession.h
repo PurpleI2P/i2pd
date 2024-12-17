@@ -151,6 +151,7 @@ namespace transport
 			};
 			virtual void SendI2NPMessages (std::list<std::shared_ptr<I2NPMessage> >& msgs) = 0;
 			virtual bool IsEstablished () const = 0;
+			virtual i2p::data::RouterInfo::SupportedTransports GetTransportType () const = 0;
 
 		private:
 

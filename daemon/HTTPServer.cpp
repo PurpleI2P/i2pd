@@ -826,7 +826,7 @@ namespace http {
 		if (i2p::tunnel::tunnels.CountTransitTunnels())
 		{
 			s << "<b>" << tr("Transit Tunnels") << ":</b><br>\r\n";
-			s << "<table><thead><th>&#8658;</th><th>ID</th><th>&#8658;</th><th>" << tr("Amount") << "</th></thead><tbody class=\"tableitem\">";
+			s << "<table><thead><th>&#8658;</th><th>ID</th><th>&#8658;</th><th>" << tr("Amount") << "</th><th>" << tr("Next") << "</th></thead><tbody class=\"tableitem\">";
 			for (const auto& it: i2p::tunnel::tunnels.GetTransitTunnels ())
 			{
 				if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelGateway>(it))
@@ -836,7 +836,7 @@ namespace http {
 				else
 					s << "<tr><td>&#8658;</td><td>" << it->GetTunnelID () << "</td><td>&#8658;</td><td>";
 				ShowTraffic(s, it->GetNumTransmittedBytes ());
-				s << "</td></tr>\r\n";
+				s << "</td><td>" << it->GetNextPeerName () << "</td></tr>\r\n";
 			}
 			s << "</tbody></table>\r\n";
 		}

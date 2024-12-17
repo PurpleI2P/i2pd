@@ -1435,6 +1435,12 @@ namespace transport
 			boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::SendRouterInfo, shared_from_this ()));
 	}
 
+	i2p::data::RouterInfo::SupportedTransports NTCP2Session::GetTransportType () const
+	{
+		if (m_RemoteEndpoint.address ().is_v4 ()) return i2p::data::RouterInfo::eNTCP2V4;
+		return i2p::util::net::IsYggdrasilAddress (m_RemoteEndpoint.address ()) ? i2p::data::RouterInfo::eNTCP2V6Mesh : i2p::data::RouterInfo::eNTCP2V6;
+	}	
+		
 	NTCP2Server::NTCP2Server ():
 		RunnableServiceWithWork ("NTCP2"), m_TerminationTimer (GetService ()),
 		m_ProxyType(eNoProxy), m_Resolver(GetService ()),

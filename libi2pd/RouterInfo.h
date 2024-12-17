@@ -363,6 +363,10 @@ namespace data
 			int m_Version;
 			Congestion m_Congestion;
 			mutable std::shared_ptr<RouterProfile> m_Profile;
+
+		public:
+
+			static std::string GetTransportName (SupportedTransports tr);
 	};
 
 	class LocalRouterInfo: public RouterInfo

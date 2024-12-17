@@ -10,6 +10,8 @@
 #include "I2PEndian.h"
 #include "Crypto.h"
 #include "Log.h"
+#include "Identity.h"
+#include "RouterInfo.h"
 #include "RouterContext.h"
 #include "I2NPProtocol.h"
 #include "Garlic.h"
@@ -41,6 +43,21 @@ namespace tunnel
 		i2p::transport::transports.UpdateTotalTransitTransmittedBytes (TUNNEL_DATA_MSG_SIZE);
 	}
 
+	std::string TransitTunnel::GetNextPeerName () const
+	{
+		return i2p::data::GetIdentHashAbbreviation (GetNextIdentHash ());
+	}	
+
+	void TransitTunnel::SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg)
+	{
+		LogPrint (eLogError, "TransitTunnel: We are not a gateway for ", GetTunnelID ());
+	}
+
+	void TransitTunnel::HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg)
+	{
+		LogPrint (eLogError, "TransitTunnel: Incoming tunnel message is not supported ", GetTunnelID ());
+	}
+		
 	TransitTunnelParticipant::~TransitTunnelParticipant ()
 	{
 	}
@@ -67,16 +84,18 @@ namespace tunnel
 		}
 	}
 
-	void TransitTunnel::SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg)
+	std::string TransitTunnelParticipant::GetNextPeerName () const
 	{
-		LogPrint (eLogError, "TransitTunnel: We are not a gateway for ", GetTunnelID ());
-	}
-
-	void TransitTunnel::HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg)
-	{
-		LogPrint (eLogError, "TransitTunnel: Incoming tunnel message is not supported ", GetTunnelID ());
-	}
-
+		if (m_Sender)
+		{
+			auto transport = m_Sender->GetCurrentTransport ();
+			if (transport)
+				return TransitTunnel::GetNextPeerName () + "-" + 
+					i2p::data::RouterInfo::GetTransportName (transport->GetTransportType ());
+		}	
+		return TransitTunnel::GetNextPeerName ();
+	}	
+		
 	void TransitTunnelGateway::SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg)
 	{
 		TunnelMessageBlock block;
@@ -92,6 +111,19 @@ namespace tunnel
 		m_Gateway.SendBuffer ();
 	}
 
+	std::string TransitTunnelGateway::GetNextPeerName () const
+	{
+		const auto& sender = m_Gateway.GetSender ();
+		if (sender)
+		{
+			auto transport = sender->GetCurrentTransport ();
+			if (transport)
+				return TransitTunnel::GetNextPeerName () + "-" + 
+					i2p::data::RouterInfo::GetTransportName (transport->GetTransportType ());
+		}	
+		return TransitTunnel::GetNextPeerName ();
+	}	
+		
 	void TransitTunnelEndpoint::HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg)
 	{
 		auto newMsg = CreateEmptyTunnelDataMsg (true);

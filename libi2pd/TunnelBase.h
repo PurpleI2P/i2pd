@@ -93,6 +93,9 @@ namespace tunnel
 
 			void SendMessagesTo (const i2p::data::IdentHash& to, std::list<std::shared_ptr<I2NPMessage> >&& msgs);
 			void SendMessagesTo (const i2p::data::IdentHash& to, std::list<std::shared_ptr<I2NPMessage> >& msgs); // send and clear
+
+			std::shared_ptr<const i2p::transport::TransportSession> GetCurrentTransport () const { return m_CurrentTransport.lock (); }
+			void Reset ();
 			
 		private:
 			

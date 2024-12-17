@@ -147,6 +147,7 @@ namespace transport
 			void SetRemoteEndpoint (const boost::asio::ip::tcp::endpoint& ep) { m_RemoteEndpoint = ep; };
 
 			bool IsEstablished () const override { return m_IsEstablished; };
+			i2p::data::RouterInfo::SupportedTransports GetTransportType () const override;
 			bool IsTerminated () const { return m_IsTerminated; };
 
 			void ClientLogin (); // Alice

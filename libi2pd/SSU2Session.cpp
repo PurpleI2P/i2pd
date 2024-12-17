@@ -3114,5 +3114,10 @@ namespace transport
 		else if (!sent && !m_SentPackets.empty ()) // if only acks received, nothing sent and we still have something to resend
 			Resend (i2p::util::GetMillisecondsSinceEpoch ()); // than right time to resend
 	}
+
+	i2p::data::RouterInfo::SupportedTransports SSU2Session::GetTransportType () const
+	{
+		return m_RemoteEndpoint.address ().is_v4 () ? i2p::data::RouterInfo::eSSU2V4 : i2p::data::RouterInfo::eSSU2V6;
+	}	
 }
 }

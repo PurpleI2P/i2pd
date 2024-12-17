@@ -51,6 +51,7 @@ namespace tunnel
 			void PutTunnelDataMsg (const TunnelMessageBlock& block);
 			void SendBuffer ();
 			size_t GetNumSentBytes () const { return m_NumSentBytes; };
+			const std::unique_ptr<TunnelTransportSender>& GetSender () const { return m_Sender; };
 
 		private:
 
