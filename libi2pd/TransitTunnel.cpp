@@ -133,6 +133,30 @@ namespace tunnel
 		m_Endpoint.HandleDecryptedTunnelDataMsg (newMsg);
 	}
 
+	void TransitTunnelEndpoint::FlushTunnelDataMsgs ()
+	{
+		m_Endpoint.FlushI2NPMsgs ();
+	}	
+
+	std::string TransitTunnelEndpoint::GetNextPeerName () const
+	{ 
+		auto hash = m_Endpoint.GetCurrentHash ();
+		if (hash)
+		{	
+			const auto& sender = m_Endpoint.GetSender ();
+			if (sender)
+			{
+				auto transport = sender->GetCurrentTransport ();
+				if (transport)
+					return i2p::data::GetIdentHashAbbreviation (*hash) + "-" + 
+						i2p::data::RouterInfo::GetTransportName (transport->GetTransportType ());
+				else
+					return i2p::data::GetIdentHashAbbreviation (*hash);
+			}	
+		}
+		return "";
+	}	
+		
 	std::shared_ptr<TransitTunnel> CreateTransitTunnel (uint32_t receiveTunnelID,
 		const i2p::data::IdentHash& nextIdent, uint32_t nextTunnelID,
 		const i2p::crypto::AESKey& layerKey, const i2p::crypto::AESKey& ivKey,

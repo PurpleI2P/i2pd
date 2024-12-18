@@ -64,7 +64,8 @@ namespace tunnel
 	void TunnelTransportSender::Reset ()
 	{
 		m_CurrentTransport.reset ();
-		m_PendingTransport = std::future<std::shared_ptr<i2p::transport::TransportSession> >();
+		if (m_PendingTransport.valid ())
+			m_PendingTransport = std::future<std::shared_ptr<i2p::transport::TransportSession> >();
 	}	
 }
 }

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -11,8 +11,10 @@
 
 #include <inttypes.h>
 #include <vector>
+#include <list>
 #include <string>
 #include <unordered_map>
+#include <memory>
 #include "I2NPProtocol.h"
 #include "TunnelBase.h"
 
@@ -20,7 +22,7 @@ namespace i2p
 {
 namespace tunnel
 {
-	class TunnelEndpoint
+	class TunnelEndpoint final
 	{
 		struct TunnelMessageBlockEx: public TunnelMessageBlock
 		{
@@ -39,18 +41,23 @@ namespace tunnel
 		public:
 
 			TunnelEndpoint (bool isInbound): m_IsInbound (isInbound), m_NumReceivedBytes (0), m_CurrentMsgID (0) {};
-			~TunnelEndpoint ();
+			~TunnelEndpoint () = default;
 			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
 			void Cleanup ();
 
 			void HandleDecryptedTunnelDataMsg (std::shared_ptr<I2NPMessage> msg);
+			void FlushI2NPMsgs (); 
 
+			const i2p::data::IdentHash * GetCurrentHash () const; // return null if not avaiable
+			const std::unique_ptr<TunnelTransportSender>& GetSender () const { return m_Sender; };
+		
 		private:
 
 			void HandleFollowOnFragment (uint32_t msgID, bool isLastFragment, uint8_t fragmentNum, const uint8_t * fragment, size_t size);
 			bool ConcatFollowOnFragment (TunnelMessageBlockEx& msg, const uint8_t * fragment, size_t size) const; // true if success
 			void HandleCurrenMessageFollowOnFragment (const uint8_t * fragment, size_t size, bool isLastFragment);
 			void HandleNextMessage (const TunnelMessageBlock& msg);
+			void SendMessageTo (const i2p::data::IdentHash& to, std::shared_ptr<i2p::I2NPMessage> msg);
 
 			void AddOutOfSequenceFragment (uint32_t msgID, uint8_t fragmentNum, bool isLastFragment, const uint8_t * fragment, size_t size);
 			bool ConcatNextOutOfSequenceFragment (uint32_t msgID, TunnelMessageBlockEx& msg); // true if something added
@@ -65,6 +72,10 @@ namespace tunnel
 			size_t m_NumReceivedBytes;
 			TunnelMessageBlockEx m_CurrentMessage;
 			uint32_t m_CurrentMsgID;
+			// I2NP messages to send
+			std::list<std::shared_ptr<i2p::I2NPMessage> > m_I2NPMsgs; // to send
+			i2p::data::IdentHash m_CurrentHash; // send msgs to
+			std::unique_ptr<TunnelTransportSender> m_Sender;
 	};
 }
 }
