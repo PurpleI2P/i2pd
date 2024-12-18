@@ -1550,6 +1550,7 @@ namespace transport
 
 	void NTCP2Server::Stop ()
 	{
+		m_EstablisherService.Stop ();
 		{
 			// we have to copy it because Terminate changes m_NTCP2Sessions
 			auto ntcpSessions = m_NTCP2Sessions;
@@ -1565,7 +1566,6 @@ namespace transport
 			m_TerminationTimer.cancel ();
 			m_ProxyEndpoint = nullptr;
 		}
-		m_EstablisherService.Stop ();
 		StopIOService ();
 	}
 

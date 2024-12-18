@@ -296,6 +296,8 @@ namespace tunnel
 
 			bool m_IsRunning;
 			std::thread * m_Thread;
+			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_ENPOINT_MESSAGE_SIZE> > m_I2NPTunnelEndpointMessagesMemoryPool;
+			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_MESSAGE_SIZE> > m_I2NPTunnelMessagesMemoryPool;
 			std::map<uint32_t, std::shared_ptr<InboundTunnel> > m_PendingInboundTunnels; // by replyMsgID
 			std::map<uint32_t, std::shared_ptr<OutboundTunnel> > m_PendingOutboundTunnels; // by replyMsgID
 			std::list<std::shared_ptr<InboundTunnel> > m_InboundTunnels;
@@ -306,8 +308,6 @@ namespace tunnel
 			std::list<std::shared_ptr<TunnelPool>> m_Pools;
 			std::shared_ptr<TunnelPool> m_ExploratoryPool;
 			i2p::util::Queue<std::shared_ptr<I2NPMessage> > m_Queue;
-			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_ENPOINT_MESSAGE_SIZE> > m_I2NPTunnelEndpointMessagesMemoryPool;
-			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_MESSAGE_SIZE> > m_I2NPTunnelMessagesMemoryPool;
 			uint32_t m_MaxNumTransitTunnels;
 			// count of tunnels for total TCSR algorithm
 			int m_TotalNumSuccesiveTunnelCreations, m_TotalNumFailedTunnelCreations;
