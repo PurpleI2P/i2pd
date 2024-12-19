@@ -55,6 +55,13 @@ namespace transport
 			m_Thread->join ();
 			m_Thread = nullptr;
 		}
+		if (!m_Queue.empty ())
+		{
+			// clean up queue
+			std::queue<std::shared_ptr<Keys> > tmp;
+	   		std::swap (m_Queue, tmp);
+		}
+		m_KeysPool.CleanUpMt ();
 	}
 
 	template<typename Keys>

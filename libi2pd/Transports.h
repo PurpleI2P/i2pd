@@ -54,8 +54,8 @@ namespace transport
 		private:
 
 			const int m_QueueSize;
-			std::queue<std::shared_ptr<Keys> > m_Queue;
 			i2p::util::MemoryPoolMt<Keys> m_KeysPool;
+			std::queue<std::shared_ptr<Keys> > m_Queue;
 
 			bool m_IsRunning;
 			std::unique_ptr<std::thread> m_Thread;
