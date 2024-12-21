@@ -377,7 +377,6 @@ namespace tunnel
 				m_CurrentHash = to; // set new target router
 			}	// otherwise add msg to the list for current target router
 			m_I2NPMsgs.push_back (msg);
-			i2p::transport::transports.SendMessage (to, msg);
 		}	
 	}
 	
