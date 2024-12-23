@@ -24,15 +24,16 @@ namespace i2p
 namespace data
 {
 	const int MAX_NUM_REQUEST_ATTEMPTS = 5;
-	const uint64_t MANAGE_REQUESTS_INTERVAL = 1; // in seconds
-	const uint64_t MIN_REQUEST_TIME = 5; // in seconds
-	const uint64_t MAX_REQUEST_TIME = MAX_NUM_REQUEST_ATTEMPTS * (MIN_REQUEST_TIME + MANAGE_REQUESTS_INTERVAL);
+	const uint64_t MANAGE_REQUESTS_INTERVAL = 400; // in milliseconds
+	const uint64_t MANAGE_REQUESTS_INTERVAL_VARIANCE = 300; // in milliseconds
+	const uint64_t MIN_REQUEST_TIME = 1200; // in milliseconds
+	const uint64_t MAX_REQUEST_TIME = MAX_NUM_REQUEST_ATTEMPTS * (MIN_REQUEST_TIME + MANAGE_REQUESTS_INTERVAL + MANAGE_REQUESTS_INTERVAL_VARIANCE);
 	const uint64_t EXPLORATORY_REQUEST_INTERVAL = 55; // in seconds
 	const uint64_t EXPLORATORY_REQUEST_INTERVAL_VARIANCE = 170; // in seconds 
 	const uint64_t DISCOVERED_REQUEST_INTERVAL = 360; // in milliseconds
 	const uint64_t DISCOVERED_REQUEST_INTERVAL_VARIANCE = 540; // in milliseconds
-	const uint64_t MAX_EXPLORATORY_REQUEST_TIME = 30; // in seconds
-	const uint64_t REQUEST_CACHE_TIME = MAX_REQUEST_TIME + 40; // in seconds
+	const uint64_t MAX_EXPLORATORY_REQUEST_TIME = 30000; // in milliseconds
+	const uint64_t REQUEST_CACHE_TIME = MAX_REQUEST_TIME + 40000; // in milliseconds
 	const uint64_t REQUESTED_DESTINATIONS_POOL_CLEANUP_INTERVAL = 191; // in seconds
 	
 	class RequestedDestination
@@ -71,7 +72,7 @@ namespace data
 			IdentHash m_Destination;
 			bool m_IsExploratory, m_IsDirect, m_IsActive;
 			std::unordered_set<IdentHash> m_ExcludedPeers;
-			uint64_t m_CreationTime, m_LastRequestTime; // in seconds
+			uint64_t m_CreationTime, m_LastRequestTime; // in milliseconds
 			std::list<RequestComplete> m_RequestComplete;
 			int m_NumAttempts;
 	};
@@ -115,9 +116,9 @@ namespace data
 			
 		private:
 
+			i2p::util::MemoryPoolMt<RequestedDestination> m_RequestedDestinationsPool;
 			std::unordered_map<IdentHash, std::shared_ptr<RequestedDestination> > m_RequestedDestinations;
 			std::list<IdentHash> m_DiscoveredRouterHashes;
-			i2p::util::MemoryPoolMt<RequestedDestination> m_RequestedDestinationsPool;
 			boost::asio::deadline_timer m_ManageRequestsTimer, m_ExploratoryTimer,
 				m_CleanupTimer, m_DiscoveredRoutersTimer;
 			std::mt19937 m_Rng;
