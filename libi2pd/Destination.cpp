@@ -833,7 +833,7 @@ namespace client
 			request->requestedBlindedKey = requestedBlindedKey; // for encrypted LeaseSet2
 			if (requestComplete)
 				request->requestComplete.push_back (requestComplete);
-			auto ts = i2p::util::GetSecondsSinceEpoch ();
+			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 			auto ret = m_LeaseSetRequests.insert (std::pair<i2p::data::IdentHash, std::shared_ptr<LeaseSetRequest> >(dest,request));
 			if (ret.second) // inserted
 			{
@@ -916,7 +916,7 @@ namespace client
 						nextFloodfill->GetIdentHash (), 0, msg
 					}
 				});
-			request->requestTimeoutTimer.expires_from_now (boost::posix_time::seconds(LEASESET_REQUEST_TIMEOUT));
+			request->requestTimeoutTimer.expires_from_now (boost::posix_time::milliseconds(LEASESET_REQUEST_TIMEOUT));
 			request->requestTimeoutTimer.async_wait (std::bind (&LeaseSetDestination::HandleRequestTimoutTimer,
 				shared_from_this (), std::placeholders::_1, dest));
 		}
@@ -933,7 +933,7 @@ namespace client
 			if (it != m_LeaseSetRequests.end ())
 			{
 				bool done = false;
-				uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
+				uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
 				if (ts < it->second->requestTime + MAX_LEASESET_REQUEST_TIMEOUT)
 				{
 					auto floodfill = i2p::data::netdb.GetClosestFloodfill (dest, it->second->excluded);
