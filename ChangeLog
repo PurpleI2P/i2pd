@@ -195,7 +195,7 @@
 - New SSU2 session gets teminated upon termination of old one
 - Peer test to non-supporting router
 - Streaming ackThrough off 1 if number of NACKs exceeds 255
-- Race condition in  tags table
+- Race condition in ECIESx25519 tags table
 - Good tunnel becomes failed
 - Crash when packet comes to terminated stream
 - Stream hangs during LeaseSet update
