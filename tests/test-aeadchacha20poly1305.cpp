@@ -54,7 +54,8 @@ int main ()
 	// test encryption of multiple buffers
 	memcpy (buf, text, 114);
 	std::vector<std::pair<uint8_t*, std::size_t> > bufs{ std::make_pair (buf, 20), std::make_pair (buf + 20, 10), std::make_pair (buf + 30, 70), std::make_pair (buf + 100, 14) };
-	i2p::crypto::AEADChaCha20Poly1305Encrypt (bufs, key, nonce, buf + 114);
+	i2p::crypto::AEADChaCha20Poly1305Encryptor encryptor;
+	encryptor.Encrypt (bufs, key, nonce, buf + 114);
 	i2p::crypto::AEADChaCha20Poly1305 (buf, 114, nullptr, 0, key, nonce, buf1, 114, false);
 	assert (memcmp (buf1, text, 114) == 0);
 }
