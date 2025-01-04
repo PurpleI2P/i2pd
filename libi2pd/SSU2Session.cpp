@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022-2024, The PurpleI2P Project
+* Copyright (c) 2022-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -92,7 +92,7 @@ namespace transport
 		m_RTO (SSU2_INITIAL_RTO), m_RelayTag (0),m_ConnectTimer (server.GetService ()), 
 		m_TerminationReason (eSSU2TerminationReasonNormalClose),
 		m_MaxPayloadSize (SSU2_MIN_PACKET_SIZE - IPV6_HEADER_SIZE - UDP_HEADER_SIZE - 32), // min size
-		m_LastResendTime (0), m_LastResendAttemptTime (0)
+		m_LastResendTime (0), m_LastResendAttemptTime (0), m_NumRanges (0)
 	{
 		if (noise)	
 			m_NoiseState.reset (new i2p::crypto::NoiseSymmetricState);
@@ -1744,6 +1744,7 @@ namespace transport
 		HandleAckRange (firstPacketNum, ackThrough, i2p::util::GetMillisecondsSinceEpoch ()); // acnt
 		// ranges
 		len -= 5;
+		if (!len || m_SentPackets.empty ()) return; // don't handle ranges if nothing to acknowledge
 		const uint8_t * ranges = buf + 5;
 		while (len > 0 && firstPacketNum && ackThrough - firstPacketNum < SSU2_MAX_NUM_ACK_PACKETS)
 		{
@@ -2624,17 +2625,17 @@ namespace transport
 	size_t SSU2Session::CreateAckBlock (uint8_t * buf, size_t len)
 	{
 		if (len < 8) return 0;
-		int maxNumRanges = (len - 8) >> 1;
-		if (maxNumRanges > SSU2_MAX_NUM_ACK_RANGES) maxNumRanges = SSU2_MAX_NUM_ACK_RANGES;
 		buf[0] = eSSU2BlkAck;
 		uint32_t ackThrough = m_OutOfSequencePackets.empty () ? m_ReceivePacketNum : *m_OutOfSequencePackets.rbegin ();
 		htobe32buf (buf + 3, ackThrough); // Ack Through
 		uint16_t acnt = 0;
-		int numRanges = 0;
 		if (ackThrough)
 		{
 			if (m_OutOfSequencePackets.empty ())
+			{	
 				acnt = std::min ((int)ackThrough, SSU2_MAX_NUM_ACNT); // no gaps
+				m_NumRanges = 0;
+			}	
 			else
 			{
 				auto it = m_OutOfSequencePackets.rbegin (); it++; // prev packet num
@@ -2647,87 +2648,96 @@ namespace transport
 						it++;
 				}
 				// ranges
-				uint32_t lastNum = ackThrough - acnt;
-				if (acnt > SSU2_MAX_NUM_ACNT)
-				{
-					auto d = std::div (acnt - SSU2_MAX_NUM_ACNT, SSU2_MAX_NUM_ACNT);
-					acnt = SSU2_MAX_NUM_ACNT;
-					if (d.quot > maxNumRanges)
+				if (!m_NumRanges)
+				{	
+					int maxNumRanges = (len - 8) >> 1;
+					if (maxNumRanges > SSU2_MAX_NUM_ACK_RANGES) maxNumRanges = SSU2_MAX_NUM_ACK_RANGES;
+					int numRanges = 0;
+					uint32_t lastNum = ackThrough - acnt;
+					if (acnt > SSU2_MAX_NUM_ACNT)
 					{
-						d.quot = maxNumRanges;
-						d.rem = 0;
-					}
-					// Acks only ranges for acnt
-					for (int i = 0; i < d.quot; i++)
-					{
-						buf[8 + numRanges*2] = 0; buf[8 + numRanges*2 + 1] = SSU2_MAX_NUM_ACNT; // NACKs 0, Acks 255
-						numRanges++;
-					}
-					if (d.rem > 0)
-					{
-						buf[8 + numRanges*2] = 0; buf[8 + numRanges*2 + 1] = d.rem;
-						numRanges++;
-					}
-				}
-				int numPackets = acnt + numRanges*SSU2_MAX_NUM_ACNT;
-				while (it != m_OutOfSequencePackets.rend () &&
-					numRanges < maxNumRanges && numPackets < SSU2_MAX_NUM_ACK_PACKETS)
-				{
-					if (lastNum - (*it) > SSU2_MAX_NUM_ACNT)
-					{
-						// NACKs only ranges
-						if (lastNum > (*it) + SSU2_MAX_NUM_ACNT*(maxNumRanges - numRanges)) break; // too many NACKs
-						while (lastNum - (*it) > SSU2_MAX_NUM_ACNT)
+						auto d = std::div (acnt - SSU2_MAX_NUM_ACNT, SSU2_MAX_NUM_ACNT);
+						acnt = SSU2_MAX_NUM_ACNT;
+						if (d.quot > maxNumRanges)
 						{
-							buf[8 + numRanges*2] = SSU2_MAX_NUM_ACNT; buf[8 + numRanges*2 + 1] = 0; // NACKs 255, Acks 0
-							lastNum -= SSU2_MAX_NUM_ACNT;
+							d.quot = maxNumRanges;
+							d.rem = 0;
+						}
+						// Acks only ranges for acnt
+						for (int i = 0; i < d.quot; i++)
+						{
+							m_Ranges[numRanges*2] = 0; m_Ranges[numRanges*2 + 1] = SSU2_MAX_NUM_ACNT; // NACKs 0, Acks 255
 							numRanges++;
-							numPackets += SSU2_MAX_NUM_ACNT;
+						}
+						if (d.rem > 0)
+						{
+							m_Ranges[numRanges*2] = 0; m_Ranges[numRanges*2 + 1] = d.rem;
+							numRanges++;
 						}
 					}
-					// NACKs and Acks ranges
-					buf[8 + numRanges*2] = lastNum - (*it) - 1; // NACKs
-					numPackets += buf[8 + numRanges*2];
-					lastNum = *it; it++;
-					int numAcks = 1;
-					while (it != m_OutOfSequencePackets.rend () && lastNum > 0 && *it == lastNum - 1)
+					int numPackets = acnt + numRanges*SSU2_MAX_NUM_ACNT;
+					while (it != m_OutOfSequencePackets.rend () &&
+						numRanges < maxNumRanges && numPackets < SSU2_MAX_NUM_ACK_PACKETS)
 					{
-						numAcks++; lastNum--;
-						it++;
-					}
-					while (numAcks > SSU2_MAX_NUM_ACNT)
-					{
-						// Acks only ranges
-						buf[8 + numRanges*2 + 1] = SSU2_MAX_NUM_ACNT; // Acks 255
-						numAcks -= SSU2_MAX_NUM_ACNT;
+						if (lastNum - (*it) > SSU2_MAX_NUM_ACNT)
+						{
+							// NACKs only ranges
+							if (lastNum > (*it) + SSU2_MAX_NUM_ACNT*(maxNumRanges - numRanges)) break; // too many NACKs
+							while (lastNum - (*it) > SSU2_MAX_NUM_ACNT)
+							{
+								m_Ranges[numRanges*2] = SSU2_MAX_NUM_ACNT; m_Ranges[numRanges*2 + 1] = 0; // NACKs 255, Acks 0
+								lastNum -= SSU2_MAX_NUM_ACNT;
+								numRanges++;
+								numPackets += SSU2_MAX_NUM_ACNT;
+							}
+						}
+						// NACKs and Acks ranges
+						m_Ranges[numRanges*2] = lastNum - (*it) - 1; // NACKs
+						numPackets += m_Ranges[numRanges*2];
+						lastNum = *it; it++;
+						int numAcks = 1;
+						while (it != m_OutOfSequencePackets.rend () && lastNum > 0 && *it == lastNum - 1)
+						{
+							numAcks++; lastNum--;
+							it++;
+						}
+						while (numAcks > SSU2_MAX_NUM_ACNT)
+						{
+							// Acks only ranges
+							m_Ranges[numRanges*2 + 1] = SSU2_MAX_NUM_ACNT; // Acks 255
+							numAcks -= SSU2_MAX_NUM_ACNT;
+							numRanges++;
+							numPackets += SSU2_MAX_NUM_ACNT;
+							m_Ranges[numRanges*2] = 0; // NACKs 0
+							if (numRanges >= maxNumRanges || numPackets >= SSU2_MAX_NUM_ACK_PACKETS) break;
+						}
+						if (numAcks > SSU2_MAX_NUM_ACNT) numAcks = SSU2_MAX_NUM_ACNT;
+						m_Ranges[numRanges*2 + 1] = (uint8_t)numAcks; // Acks
+						numPackets += numAcks;
 						numRanges++;
-						numPackets += SSU2_MAX_NUM_ACNT;
-						buf[8 + numRanges*2] = 0; // NACKs 0
-						if (numRanges >= maxNumRanges || numPackets >= SSU2_MAX_NUM_ACK_PACKETS) break;
 					}
-					if (numAcks > SSU2_MAX_NUM_ACNT) numAcks = SSU2_MAX_NUM_ACNT;
-					buf[8 + numRanges*2 + 1] = (uint8_t)numAcks; // Acks
-					numPackets += numAcks;
-					numRanges++;
-				}
-				if (it == m_OutOfSequencePackets.rend () &&
-					numRanges < maxNumRanges && numPackets < SSU2_MAX_NUM_ACK_PACKETS)
-				{
-					// add range between out-of-sequence and received
-					int nacks = *m_OutOfSequencePackets.begin () - m_ReceivePacketNum - 1;
-					if (nacks > 0)
+					if (it == m_OutOfSequencePackets.rend () &&
+						numRanges < maxNumRanges && numPackets < SSU2_MAX_NUM_ACK_PACKETS)
 					{
-						if (nacks > SSU2_MAX_NUM_ACNT) nacks = SSU2_MAX_NUM_ACNT;
-						buf[8 + numRanges*2] = nacks;
-						buf[8 + numRanges*2 + 1] = std::min ((int)m_ReceivePacketNum + 1, SSU2_MAX_NUM_ACNT);
-						numRanges++;
+						// add range between out-of-sequence and received
+						int nacks = *m_OutOfSequencePackets.begin () - m_ReceivePacketNum - 1;
+						if (nacks > 0)
+						{
+							if (nacks > SSU2_MAX_NUM_ACNT) nacks = SSU2_MAX_NUM_ACNT;
+							m_Ranges[numRanges*2] = nacks;
+							m_Ranges[numRanges*2 + 1] = std::min ((int)m_ReceivePacketNum + 1, SSU2_MAX_NUM_ACNT);
+							numRanges++;
+						}
 					}
-				}
+					m_NumRanges = numRanges;
+				}	
+				if (m_NumRanges)
+					memcpy (buf + 8, m_Ranges, m_NumRanges*2);
 			}
 		}
 		buf[7] = (uint8_t)acnt; // acnt
-		htobe16buf (buf + 1, 5 + numRanges*2);
-		return 8 + numRanges*2;
+		htobe16buf (buf + 1, 5 + m_NumRanges*2);
+		return 8 + m_NumRanges*2;
 	}
 
 	size_t SSU2Session::CreatePaddingBlock (uint8_t * buf, size_t len, size_t minSize)
@@ -2961,11 +2971,17 @@ namespace transport
 					}
 					m_OutOfSequencePackets.erase (m_OutOfSequencePackets.begin (), it);
 				}
+				m_NumRanges = 0; // recalculate ranges when create next Ack
 			}
 			m_ReceivePacketNum = packetNum;
 		}
 		else
+		{
+			if (m_NumRanges && (m_OutOfSequencePackets.empty () ||
+				packetNum != (*m_OutOfSequencePackets.rbegin ()) + 1))
+				m_NumRanges = 0; // reset ranges if received packet is not next
 			m_OutOfSequencePackets.insert (packetNum);
+		}	
 		return true;
 	}
 
