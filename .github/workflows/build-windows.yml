@@ -133,6 +133,8 @@ jobs:
         git clone https://github.com/msys2/MINGW-packages
         cd MINGW-packages
         git checkout 4cbb366edf2f268ac3146174b40ce38604646fc5 mingw-w64-boost
+        cd mingw-w64-boost
+        sed -i 's/boostorg.jfrog.io\/artifactory\/main/archives.boost.io/' PKGBUILD
 
     # headers
     - name: Get headers package version

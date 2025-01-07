@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -416,15 +416,10 @@ namespace client
 
 	void ClientContext::CreateNewSharedLocalDestination ()
 	{
-		std::map<std::string, std::string> params
-		{
-			{ I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, "3" },
-			{ I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, "3" },
-			{ I2CP_PARAM_LEASESET_TYPE, "3" },
-			{ I2CP_PARAM_LEASESET_ENCRYPTION_TYPE, "0,4" },
-			{ I2CP_PARAM_OUTBOUND_NICKNAME, "SharedDest" },
-			{ I2CP_PARAM_STREAMING_PROFILE, "2" }
-		};
+		std::map<std::string, std::string> params;
+		ReadI2CPOptionsFromConfig ("shareddest.", params);
+		params[I2CP_PARAM_OUTBOUND_NICKNAME] = "SharedDest";
+		
 		m_SharedLocalDestination = CreateNewLocalDestination (false, i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519,
 			i2p::data::CRYPTO_KEY_TYPE_ELGAMAL, &params); // non-public, EDDSA
 		m_SharedLocalDestination->Acquire ();

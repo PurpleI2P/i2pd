@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -154,6 +154,17 @@ namespace config {
 			("socksproxy.i2p.streaming.profile", value<std::string>()->default_value("1"), "SOCKS Proxy bandwidth usage profile. 1 - bulk(high), 2- interactive(low)")
 		;
 
+		options_description shareddest("Shared local destination options");
+		shareddest.add_options()
+			("shareddest.inbound.length", value<std::string>()->default_value("3"),    "Shared local destination inbound tunnel length")
+			("shareddest.outbound.length", value<std::string>()->default_value("3"),   "Shared local destination outbound tunnel length")
+			("shareddest.inbound.quantity", value<std::string>()->default_value("3"),  "Shared local destination inbound tunnels quantity")
+			("shareddest.outbound.quantity", value<std::string>()->default_value("3"), "Shared local destination outbound tunnels quantity")
+			("shareddest.i2cp.leaseSetType", value<std::string>()->default_value("3"), "Shared local destination's LeaseSet type")
+			("shareddest.i2cp.leaseSetEncType", value<std::string>()->default_value("0,4"), "Shared local destination's LeaseSet encryption type")
+			("shareddest.i2p.streaming.profile", value<std::string>()->default_value("2"), "Shared local destination bandwidth usage profile. 1 - bulk(high), 2- interactive(low)")
+		;	
+		
 		options_description sam("SAM bridge options");
 		sam.add_options()
 			("sam.enabled", value<bool>()->default_value(true),               "Enable or disable SAM Application bridge")
@@ -341,6 +352,7 @@ namespace config {
 			.add(httpserver)
 			.add(httpproxy)
 			.add(socksproxy)
+			.add(shareddest)
 			.add(sam)
 			.add(bob)
 			.add(i2cp)

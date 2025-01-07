@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -36,8 +36,9 @@ namespace client
 	const uint8_t PROTOCOL_TYPE_STREAMING = 6;
 	const uint8_t PROTOCOL_TYPE_DATAGRAM = 17;
 	const uint8_t PROTOCOL_TYPE_RAW = 18;
-	const int PUBLISH_CONFIRMATION_TIMEOUT = 5; // in seconds
-	const int PUBLISH_VERIFICATION_TIMEOUT = 10; // in seconds after successful publish
+	const int PUBLISH_CONFIRMATION_TIMEOUT = 1800; // in milliseconds
+	const int PUBLISH_VERIFICATION_TIMEOUT = 5; // in seconds after successful publish
+	const int PUBLISH_VERIFICATION_TIMEOUT_VARIANCE = 3; // in seconds
 	const int PUBLISH_MIN_INTERVAL = 20; // in seconds
 	const int PUBLISH_REGULAR_VERIFICATION_INTERNAL = 100; // in seconds periodically
 	const int LEASESET_REQUEST_TIMEOUT = 1600; // in milliseconds
