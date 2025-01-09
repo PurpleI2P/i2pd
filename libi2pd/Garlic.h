@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -116,7 +116,8 @@ namespace garlic
 			virtual bool IsReadyToSend () const { return true; };
 			virtual bool IsTerminated () const { return !GetOwner (); };
 			virtual uint64_t GetLastActivityTimestamp () const { return 0; }; // non-zero for rathets only
-
+			virtual void SetAckRequestInterval (int interval) {}; // in milliseconds, override in ECIESX25519AEADRatchetSession
+			
 			void SetLeaseSetUpdated ()
 			{
 				if (m_LeaseSetUpdateStatus != eLeaseSetDoNotSend) m_LeaseSetUpdateStatus = eLeaseSetUpdated;

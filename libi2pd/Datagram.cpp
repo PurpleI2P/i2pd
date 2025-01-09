@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -104,8 +104,7 @@ namespace datagram
 
 		if (verified)
 		{
-			auto h = identity.GetIdentHash();
-			auto session = ObtainSession(h);
+			auto session = ObtainSession (identity.GetIdentHash());
 			session->Ack();
 			auto r = FindReceiver(toPort);
 			if(r)
@@ -381,8 +380,12 @@ namespace datagram
 			if (!found)
 			{
 				m_RoutingSession = m_LocalDestination->GetRoutingSession(m_RemoteLeaseSet, true);
-				if (!m_RoutingSession->GetOwner () || !m_RoutingSession->IsReadyToSend ())
-					m_PendingRoutingSessions.push_back (m_RoutingSession);
+				if (m_RoutingSession)
+				{	
+					m_RoutingSession->SetAckRequestInterval (DATAGRAM_SESSION_ACK_REQUEST_INTERVAL);
+					if (!m_RoutingSession->GetOwner () || !m_RoutingSession->IsReadyToSend ())
+						m_PendingRoutingSessions.push_back (m_RoutingSession);
+				}	
 			}
 		}
 
