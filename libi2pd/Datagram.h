@@ -31,8 +31,6 @@ namespace datagram
 {
 	// milliseconds for max session idle time
 	const uint64_t DATAGRAM_SESSION_MAX_IDLE = 10 * 60 * 1000;
-	// milliseconds for how long we try sticking to a dead routing path before trying to switch
-	const uint64_t DATAGRAM_SESSION_PATH_TIMEOUT = 10 * 1000;
 	// milliseconds interval a routing path is used before switching
 	const uint64_t DATAGRAM_SESSION_PATH_SWITCH_INTERVAL = 20 * 60 * 1000;
 	// milliseconds before lease expire should we try switching leases
