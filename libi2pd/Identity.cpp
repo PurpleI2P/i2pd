@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -262,11 +262,11 @@ namespace data
 		return fullLen;
 	}
 
-	size_t IdentityEx::FromBase64(const std::string& s)
+	size_t IdentityEx::FromBase64(std::string_view s)
 	{
 		const size_t slen = s.length();
 		std::vector<uint8_t> buf(slen); // binary data can't exceed base64
-		const size_t len = Base64ToByteStream (s.c_str(), slen, buf.data(), slen);
+		const size_t len = Base64ToByteStream (s.data(), slen, buf.data(), slen);
 		return FromBuffer (buf.data(), len);
 	}
 
@@ -728,9 +728,7 @@ namespace data
 			case SIGNING_KEY_TYPE_RSA_SHA384_3072:
 			case SIGNING_KEY_TYPE_RSA_SHA512_4096:
 				LogPrint (eLogWarning, "Identity: RSA signature type is not supported. Creating EdDSA");
-#if (__cplusplus >= 201703L) // C++ 17 or higher
 				[[fallthrough]];
-#endif
 				// no break here
 			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 				i2p::crypto::CreateEDDSA25519RandomKeys (priv, pub);

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -152,11 +152,11 @@ namespace data
 			m_BlindedSigType = m_SigType;
 	}
 
-	BlindedPublicKey::BlindedPublicKey (const std::string& b33):
+	BlindedPublicKey::BlindedPublicKey (std::string_view b33):
 		m_SigType (0) // 0 means invalid, we can't blind DSA, set it later
 	{
 		uint8_t addr[40]; // TODO: define length from b33
-		size_t l = i2p::data::Base32ToByteStream (b33.c_str (), b33.length (), addr, 40);
+		size_t l = i2p::data::Base32ToByteStream (b33.data (), b33.length (), addr, 40);
 		if (l < 32)
 		{
 			LogPrint (eLogError, "Blinding: Malformed b33 ", b33);

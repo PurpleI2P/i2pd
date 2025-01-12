@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -49,22 +49,22 @@ namespace client
 				if (m_IsPersist)
 					i2p::config::GetOption("addressbook.hostsfile", m_HostsFile);
 			}
-			std::shared_ptr<const i2p::data::IdentityEx> GetAddress (const i2p::data::IdentHash& ident) const;
-			void AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address);
-			void RemoveAddress (const i2p::data::IdentHash& ident);
+			std::shared_ptr<const i2p::data::IdentityEx> GetAddress (const i2p::data::IdentHash& ident) const override;
+			void AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address) override;
+			void RemoveAddress (const i2p::data::IdentHash& ident) override;
 
-			bool Init ();
-			int Load (std::map<std::string, std::shared_ptr<Address> > & addresses);
-			int LoadLocal (std::map<std::string, std::shared_ptr<Address> >& addresses);
-			int Save (const std::map<std::string, std::shared_ptr<Address> >& addresses);
+			bool Init () override;
+			int Load (Addresses& addresses) override;
+			int LoadLocal (Addresses& addresses) override;
+			int Save (const Addresses& addresses) override;
 
-			void SaveEtag (const i2p::data::IdentHash& subsciption, const std::string& etag, const std::string& lastModified);
-			bool GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified);
-			void ResetEtags ();
+			void SaveEtag (const i2p::data::IdentHash& subsciption, const std::string& etag, const std::string& lastModified) override;
+			bool GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified) override;
+			void ResetEtags () override;
 
 		private:
 
-			int LoadFromFile (const std::string& filename, std::map<std::string, std::shared_ptr<Address> >& addresses); // returns -1 if can't open file, otherwise number of records
+			int LoadFromFile (const std::string& filename, Addresses& addresses); // returns -1 if can't open file, otherwise number of records
 
 		private:
 
@@ -142,7 +142,7 @@ namespace client
 		storage.Remove( ident.ToBase32() );
 	}
 
-	int AddressBookFilesystemStorage::LoadFromFile (const std::string& filename, std::map<std::string, std::shared_ptr<Address> >& addresses)
+	int AddressBookFilesystemStorage::LoadFromFile (const std::string& filename, Addresses& addresses)
 	{
 		int num = 0;
 		std::ifstream f (filename, std::ifstream::in); // in text mode
@@ -168,7 +168,7 @@ namespace client
 		return num;
 	}
 
-	int AddressBookFilesystemStorage::Load (std::map<std::string, std::shared_ptr<Address> >& addresses)
+	int AddressBookFilesystemStorage::Load (Addresses& addresses)
 	{
 		int num = LoadFromFile (indexPath, addresses);
 		if (num < 0)
@@ -182,7 +182,7 @@ namespace client
 		return num;
 	}
 
-	int AddressBookFilesystemStorage::LoadLocal (std::map<std::string, std::shared_ptr<Address> >& addresses)
+	int AddressBookFilesystemStorage::LoadLocal (Addresses& addresses)
 	{
 		int num = LoadFromFile (localPath, addresses);
 		if (num < 0) return 0;
@@ -190,7 +190,7 @@ namespace client
 		return num;
 	}
 
-	int AddressBookFilesystemStorage::Save (const std::map<std::string, std::shared_ptr<Address> >& addresses)
+	int AddressBookFilesystemStorage::Save (const Addresses& addresses)
 	{
 		if (addresses.empty())
 		{
@@ -283,7 +283,7 @@ namespace client
 
 //---------------------------------------------------------------------
 
-	Address::Address (const std::string& b32):
+	Address::Address (std::string_view b32):
 		addressType (eAddressInvalid)
 	{
 		if (b32.length () <= B33_ADDRESS_THRESHOLD)
@@ -377,7 +377,7 @@ namespace client
 		m_Subscriptions.clear ();
 	}
 
-	std::shared_ptr<const Address> AddressBook::GetAddress (const std::string& address)
+	std::shared_ptr<const Address> AddressBook::GetAddress (std::string_view address)
 	{
 		auto pos = address.find(".b32.i2p");
 		if (pos != std::string::npos)
@@ -404,7 +404,7 @@ namespace client
 		return std::make_shared<const Address>(dest.GetIdentHash ());
 	}
 
-	std::shared_ptr<const Address> AddressBook::FindAddress (const std::string& address)
+	std::shared_ptr<const Address> AddressBook::FindAddress (std::string_view address)
 	{
 		auto it = m_Addresses.find (address);
 		if (it != m_Addresses.end ())
@@ -609,7 +609,7 @@ namespace client
 	void AddressBook::LoadLocal ()
 	{
 		if (!m_Storage) return;
-		std::map<std::string, std::shared_ptr<Address>> localAddresses;
+		AddressBookStorage::Addresses localAddresses;
 		m_Storage->LoadLocal (localAddresses);
 		for (const auto& it: localAddresses)
 		{
@@ -766,7 +766,7 @@ namespace client
 		}
 	}
 
-	void AddressBook::LookupAddress (const std::string& address)
+	void AddressBook::LookupAddress (std::string_view address)
 	{
 		std::shared_ptr<const Address> addr;
 		auto dot = address.find ('.');
@@ -796,7 +796,7 @@ namespace client
 				memset (buf, 0, 4);
 				htobe32buf (buf + 4, nonce);
 				buf[8] = address.length ();
-				memcpy (buf + 9, address.c_str (), address.length ());
+				memcpy (buf + 9, address.data (), address.length ());
 				datagram->SendDatagramTo (buf, len, addr->identHash, ADDRESS_RESPONSE_DATAGRAM_PORT, ADDRESS_RESOLVER_DATAGRAM_PORT);
 				delete[] buf;
 			}

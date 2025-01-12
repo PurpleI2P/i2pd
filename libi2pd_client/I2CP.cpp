@@ -921,7 +921,7 @@ namespace client
 				case 1: // address
 				{
 					auto name = ExtractString (buf + 11, len - 11);
-					auto addr = i2p::client::context.GetAddressBook ().GetAddress (std::string (name)); // TODO: GetAddress should take string_view
+					auto addr = i2p::client::context.GetAddressBook ().GetAddress (name);
 					if (!addr || !addr->IsIdentHash ())
 					{
 						// TODO: handle blinded addresses

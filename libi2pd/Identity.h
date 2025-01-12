@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -12,6 +12,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include <string>
+#include <string_view>
 #include <memory>
 #include <vector>
 #include "Base.h"
@@ -99,7 +100,7 @@ namespace data
 
 			size_t FromBuffer (const uint8_t * buf, size_t len);
 			size_t ToBuffer (uint8_t * buf, size_t len) const;
-			size_t FromBase64(const std::string& s);
+			size_t FromBase64(std::string_view s);
 			std::string ToBase64 () const;
 			const Identity& GetStandardIdentity () const { return m_StandardIdentity; };
 
