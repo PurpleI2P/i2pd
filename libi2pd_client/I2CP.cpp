@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -555,20 +555,20 @@ namespace client
 			m_IsSending = false;
 	}
 
-	std::string I2CPSession::ExtractString (const uint8_t * buf, size_t len)
+	std::string_view I2CPSession::ExtractString (const uint8_t * buf, size_t len)
 	{
 		uint8_t l = buf[0];
 		if (l > len) l = len;
-		return std::string ((const char *)(buf + 1), l);
+		return { (const char *)(buf + 1), l };
 	}
 
-	size_t I2CPSession::PutString (uint8_t * buf, size_t len, const std::string& str)
+	size_t I2CPSession::PutString (uint8_t * buf, size_t len, std::string_view str)
 	{
 		auto l = str.length ();
 		if (l + 1 >= len) l = len - 1;
 		if (l > 255) l = 255; // 1 byte max
 		buf[0] = l;
-		memcpy (buf + 1, str.c_str (), l);
+		memcpy (buf + 1, str.data (), l);
 		return l + 1;
 	}
 
@@ -578,7 +578,7 @@ namespace client
 		size_t offset = 0;
 		while (offset < len)
 		{
-			std::string param = ExtractString (buf + offset, len - offset);
+			auto param = ExtractString (buf + offset, len - offset);
 			offset += param.length () + 1;
 			if (buf[offset] != '=')
 			{
@@ -587,7 +587,7 @@ namespace client
 			}
 			offset++;
 
-			std::string value = ExtractString (buf + offset, len - offset);
+			auto value = ExtractString (buf + offset, len - offset);
 			offset += value.length () + 1;
 			if (buf[offset] != ';')
 			{
@@ -595,7 +595,7 @@ namespace client
 				break;
 			}
 			offset++;
-			mapping.insert (std::make_pair (param, value));
+			mapping.emplace (param, value);
 		}
 	}
 
@@ -921,7 +921,7 @@ namespace client
 				case 1: // address
 				{
 					auto name = ExtractString (buf + 11, len - 11);
-					auto addr = i2p::client::context.GetAddressBook ().GetAddress (name);
+					auto addr = i2p::client::context.GetAddressBook ().GetAddress (std::string (name)); // TODO: GetAddress should take string_view
 					if (!addr || !addr->IsIdentHash ())
 					{
 						// TODO: handle blinded addresses
