@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -59,7 +59,7 @@ namespace client
 				if (dest) dest->Acquire ();
 				m_LocalDestination = dest;
 			}
-			void CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, uint16_t port = 0);
+			void CreateStream (StreamRequestComplete streamRequestComplete, std::string_view dest, uint16_t port = 0);
 			void CreateStream(StreamRequestComplete complete, std::shared_ptr<const Address> address, uint16_t port);
 			auto& GetService () { return m_LocalDestination->GetService (); }
 
