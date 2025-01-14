@@ -33,7 +33,7 @@ namespace tunnel
 		struct Fragment
 		{
 			Fragment (bool last, uint64_t t, const uint8_t * buf, size_t size): 
-				isLastFragment (last), receiveTime (t), data (buf, buf + size) {};
+				isLastFragment (last), receiveTime (t), data (size) { memcpy (data.data(), buf, size); };
 			bool isLastFragment;
 			uint64_t receiveTime; // milliseconds since epoch
 			std::vector<uint8_t> data;
