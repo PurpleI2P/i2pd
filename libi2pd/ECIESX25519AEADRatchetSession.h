@@ -193,7 +193,7 @@ namespace garlic
 			void SetNoiseState (const i2p::crypto::NoiseSymmetricState& state) { GetNoiseState () = state; };
 			void CreateNonce (uint64_t seqn, uint8_t * nonce);
 			void HandlePayload (const uint8_t * buf, size_t len, const std::shared_ptr<ReceiveRatchetTagSet>& receiveTagset, int index);
-			bool MessageConfirmed (uint32_t msgID);
+			bool MessageConfirmed (uint32_t msgID) override;
 			
 		private:
 
