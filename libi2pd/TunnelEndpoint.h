@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -32,7 +32,8 @@ namespace tunnel
 
 		struct Fragment
 		{
-			Fragment (bool last, uint64_t t, size_t size): isLastFragment (last), receiveTime (t), data (size) {};
+			Fragment (bool last, uint64_t t, const uint8_t * buf, size_t size): 
+				isLastFragment (last), receiveTime (t), data (buf, buf + size) {};
 			bool isLastFragment;
 			uint64_t receiveTime; // milliseconds since epoch
 			std::vector<uint8_t> data;
@@ -67,7 +68,7 @@ namespace tunnel
 		private:
 
 			std::unordered_map<uint32_t, TunnelMessageBlockEx> m_IncompleteMessages;
-			std::unordered_map<uint64_t, std::unique_ptr<Fragment> > m_OutOfSequenceFragments; // ((msgID << 8) + fragment#)->fragment
+			std::unordered_map<uint64_t, Fragment> m_OutOfSequenceFragments; // ((msgID << 8) + fragment#)->fragment
 			bool m_IsInbound;
 			size_t m_NumReceivedBytes;
 			TunnelMessageBlockEx m_CurrentMessage;

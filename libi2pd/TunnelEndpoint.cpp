@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -258,9 +258,8 @@ namespace tunnel
 	void TunnelEndpoint::AddOutOfSequenceFragment (uint32_t msgID, uint8_t fragmentNum,
 		bool isLastFragment, const uint8_t * fragment, size_t size)
 	{
-		std::unique_ptr<Fragment> f(new Fragment (isLastFragment, i2p::util::GetMillisecondsSinceEpoch (), size));
-		memcpy (f->data.data (), fragment, size);
-		if (!m_OutOfSequenceFragments.emplace ((uint64_t)msgID << 32 | fragmentNum, std::move (f)).second)
+		if (!m_OutOfSequenceFragments.try_emplace ((uint64_t)msgID << 32 | fragmentNum, 
+			isLastFragment, i2p::util::GetMillisecondsSinceEpoch (), fragment, size).second)
 			LogPrint (eLogInfo, "TunnelMessage: Duplicate out-of-sequence fragment ", fragmentNum, " of message ", msgID);
 	}
 
@@ -290,7 +289,7 @@ namespace tunnel
 		if (it != m_OutOfSequenceFragments.end ())
 		{
 			LogPrint (eLogDebug, "TunnelMessage: Out-of-sequence fragment ", (int)msg.nextFragmentNum, " of message ", msgID, " found");
-			size_t size = it->second->data.size ();
+			size_t size = it->second.data.size ();
 			if (msg.data->len + size > msg.data->maxLen)
 			{
 				LogPrint (eLogWarning, "TunnelMessage: Tunnel endpoint I2NP message size ", msg.data->maxLen, " is not enough");
@@ -298,9 +297,9 @@ namespace tunnel
 				*newMsg = *(msg.data);
 				msg.data = newMsg;
 			}
-			if (msg.data->Concat (it->second->data.data (), size) < size) // concatenate out-of-sync fragment	
+			if (msg.data->Concat (it->second.data.data (), size) < size) // concatenate out-of-sync fragment	
 				LogPrint (eLogError, "TunnelMessage: Tunnel endpoint I2NP buffer overflow ", msg.data->maxLen);
-			if (it->second->isLastFragment)
+			if (it->second.isLastFragment)
 				// message complete
 				msg.nextFragmentNum = 0;
 			else
@@ -349,7 +348,7 @@ namespace tunnel
 		// out-of-sequence fragments
 		for (auto it = m_OutOfSequenceFragments.begin (); it != m_OutOfSequenceFragments.end ();)
 		{
-			if (ts > it->second->receiveTime + i2p::I2NP_MESSAGE_EXPIRATION_TIMEOUT)
+			if (ts > it->second.receiveTime + i2p::I2NP_MESSAGE_EXPIRATION_TIMEOUT)
 				it = m_OutOfSequenceFragments.erase (it);
 			else
 				++it;
