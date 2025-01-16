@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022-2024, The PurpleI2P Project
+* Copyright (c) 2022-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -86,6 +86,7 @@ namespace transport
 				const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len); 
 			bool AEADChaCha20Poly1305Decrypt (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen,
 				const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len); 
+			void ChaCha20 (const uint8_t * msg, size_t msgLen, const uint8_t * key, const uint8_t * nonce, uint8_t * out);
 			bool IsMaxNumIntroducers (bool v4) const { return (v4 ? m_Introducers.size () : m_IntroducersV6.size ()) >= SSU2_MAX_NUM_INTRODUCERS; }
 			bool IsSyncClockFromPeers () const { return m_IsSyncClockFromPeers; };
 			void AdjustTimeOffset (int64_t offset, std::shared_ptr<const i2p::data::IdentityEx> from);
@@ -206,6 +207,7 @@ namespace transport
 			mutable std::mutex m_ReceivedPacketsQueueMutex;
 			i2p::crypto::AEADChaCha20Poly1305Encryptor m_Encryptor;
 			i2p::crypto::AEADChaCha20Poly1305Decryptor m_Decryptor;
+			i2p::crypto::ChaCha20Context m_ChaCha20;
 		
 			// proxy
 			bool m_IsThroughProxy;

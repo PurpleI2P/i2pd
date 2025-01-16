@@ -682,7 +682,7 @@ namespace transport
 				}
 				const uint8_t nonce[12] = {0};
 				uint64_t headerX[2];
-				i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
+				m_Server.ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
 				LogPrint (eLogWarning, "SSU2: Unexpected PeerTest message SourceConnID=", connID, " DestConnID=", headerX[0]);
 				break;
 			}
@@ -748,7 +748,7 @@ namespace transport
 		payloadSize += 16;
 		header.ll[0] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 24));
 		header.ll[1] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 12));
-		i2p::crypto::ChaCha20 (headerX, 48, m_Address->i, nonce, headerX);
+		m_Server.ChaCha20 (headerX, 48, m_Address->i, nonce, headerX);
 		m_NoiseState->MixHash (payload, payloadSize); // h = SHA256(h || encrypted payload from Session Request) for SessionCreated
 		m_SentHandshakePacket->payloadSize = payloadSize;
 		// send
@@ -775,7 +775,7 @@ namespace transport
 		}
 		const uint8_t nonce[12] = {0};
 		uint8_t headerX[48];
-		i2p::crypto::ChaCha20 (buf + 16, 48, i2p::context.GetSSU2IntroKey (), nonce, headerX);
+		m_Server.ChaCha20 (buf + 16, 48, i2p::context.GetSSU2IntroKey (), nonce, headerX);
 		memcpy (&m_DestConnID, headerX, 8);
 		uint64_t token;
 		memcpy (&token, headerX + 8, 8);
@@ -874,7 +874,7 @@ namespace transport
 		m_NoiseState->MixHash (payload, payloadSize); // h = SHA256(h || encrypted Noise payload from Session Created)
 		header.ll[0] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), payload + (payloadSize - 24));
 		header.ll[1] ^= CreateHeaderMask (kh2, payload + (payloadSize - 12));
-		i2p::crypto::ChaCha20 (headerX, 48, kh2, nonce, headerX);
+		m_Server.ChaCha20 (headerX, 48, kh2, nonce, headerX);
 		m_State = eSSU2SessionStateSessionCreatedSent;
 		m_SentHandshakePacket->payloadSize = payloadSize;
 		// send
@@ -902,7 +902,7 @@ namespace transport
 		m_HandshakeInterval = i2p::util::GetMillisecondsSinceEpoch () - m_HandshakeInterval;
 		const uint8_t nonce[12] = {0};
 		uint8_t headerX[48];
-		i2p::crypto::ChaCha20 (buf + 16, 48, kh2, nonce, headerX);
+		m_Server.ChaCha20 (buf + 16, 48, kh2, nonce, headerX);
 		// KDF for SessionCreated
 		m_NoiseState->MixHash ( { {header.buf, 16}, {headerX, 16} } ); // h = SHA256(h || header)
 		m_NoiseState->MixHash (headerX + 16, 32); // h = SHA256(h || bepk);
@@ -1264,7 +1264,7 @@ namespace transport
 		header.ll[0] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 24));
 		header.ll[1] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 12));
 		memset (nonce, 0, 12);
-		i2p::crypto::ChaCha20 (h + 16, 16, m_Address->i, nonce, h + 16);
+		m_Server.ChaCha20 (h + 16, 16, m_Address->i, nonce, h + 16);
 		// send
 		if (m_Server.AddPendingOutgoingSession (shared_from_this ()))
 			m_Server.Send (header.buf, 16, h + 16, 16, payload, payloadSize, m_RemoteEndpoint);
@@ -1286,7 +1286,7 @@ namespace transport
 		uint8_t nonce[12] = {0};
 		uint8_t h[32];
 		memcpy (h, header.buf, 16);
-		i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, h + 16);
+		m_Server.ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, h + 16);
 		memcpy (&m_DestConnID, h + 16, 8);
 		// decrypt
 		CreateNonce (be32toh (header.h.packetNum), nonce);
@@ -1338,7 +1338,7 @@ namespace transport
 		header.ll[0] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), payload + (payloadSize - 24));
 		header.ll[1] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), payload + (payloadSize - 12));
 		memset (nonce, 0, 12);
-		i2p::crypto::ChaCha20 (h + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, h + 16);
+		m_Server.ChaCha20 (h + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, h + 16);
 		// send
 		m_Server.Send (header.buf, 16, h + 16, 16, payload, payloadSize, m_RemoteEndpoint);
 	}
@@ -1362,7 +1362,7 @@ namespace transport
 		}
 		uint8_t nonce[12] = {0};
 		uint64_t headerX[2]; // sourceConnID, token
-		i2p::crypto::ChaCha20 (buf + 16, 16, m_Address->i, nonce, (uint8_t *)headerX);
+		m_Server.ChaCha20 (buf + 16, 16, m_Address->i, nonce, (uint8_t *)headerX);
 		uint64_t token = headerX[1];
 		if (token)
 			m_Server.UpdateOutgoingToken (m_RemoteEndpoint, token, i2p::util::GetSecondsSinceEpoch () + SSU2_TOKEN_EXPIRATION_TIMEOUT);
@@ -1411,7 +1411,7 @@ namespace transport
 		}
 		uint8_t nonce[12] = {0};
 		uint64_t headerX[2]; // sourceConnID, token
-		i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
+		m_Server.ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
 		m_DestConnID = headerX[0];
 		// decrypt and handle payload
 		uint8_t * payload = buf + 32;

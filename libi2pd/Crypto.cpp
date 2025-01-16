@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -710,19 +710,41 @@ namespace crypto
 	{
 		return AEADChaCha20Poly1305 (m_Ctx, msg, msgLen, ad, adLen, key, nonce, buf, len, false);
 	}
-	
-	void ChaCha20 (const uint8_t * msg, size_t msgLen, const uint8_t * key, const uint8_t * nonce, uint8_t * out)
+
+	static void ChaCha20 (EVP_CIPHER_CTX *ctx, const uint8_t * msg, size_t msgLen, const uint8_t * key, const uint8_t * nonce, uint8_t * out)
 	{
-		EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new ();
 		uint32_t iv[4];
 		iv[0] = htole32 (1); memcpy (iv + 1, nonce, 12); // counter | nonce
 		EVP_EncryptInit_ex(ctx, EVP_chacha20 (), NULL, key, (const uint8_t *)iv);
 		int outlen = 0;
 		EVP_EncryptUpdate(ctx, out, &outlen, msg, msgLen);
 		EVP_EncryptFinal_ex(ctx, NULL, &outlen);
+	}
+	
+	void ChaCha20 (const uint8_t * msg, size_t msgLen, const uint8_t * key, const uint8_t * nonce, uint8_t * out)
+	{
+		EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new ();
+		ChaCha20 (ctx, msg, msgLen, key, nonce, out);
 		EVP_CIPHER_CTX_free (ctx);
 	}
 
+	
+	ChaCha20Context::ChaCha20Context ()
+	{
+		m_Ctx = EVP_CIPHER_CTX_new ();
+	}
+	
+	ChaCha20Context::~ChaCha20Context ()
+	{
+		if (m_Ctx)
+			EVP_CIPHER_CTX_free (m_Ctx);
+	}
+	
+	void ChaCha20Context::operator ()(const uint8_t * msg, size_t msgLen, const uint8_t * key, const uint8_t * nonce, uint8_t * out)
+	{
+		ChaCha20 (m_Ctx, msg, msgLen, key, nonce, out);
+	}	
+	
 	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, const std::string& info,
 		uint8_t * out, size_t outLen)
 	{

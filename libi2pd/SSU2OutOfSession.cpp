@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2024, The PurpleI2P Project
+* Copyright (c) 2024-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -46,7 +46,7 @@ namespace transport
 		}
 		uint8_t nonce[12] = {0};
 		uint64_t headerX[2]; // sourceConnID, token
-		i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
+		GetServer ().ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
 		SetDestConnID (headerX[0]);
 		// decrypt and handle payload
 		uint8_t * payload = buf + 32;
@@ -183,7 +183,7 @@ namespace transport
 		header.ll[0] ^= CreateHeaderMask (addr->i, payload + (payloadSize - 24));
 		header.ll[1] ^= CreateHeaderMask (addr->i, payload + (payloadSize - 12));
 		memset (n, 0, 12);
-		i2p::crypto::ChaCha20 (h + 16, 16, addr->i, n, h + 16);
+		GetServer ().ChaCha20 (h + 16, 16, addr->i, n, h + 16);
 		// send
 		GetServer ().Send (header.buf, 16, h + 16, 16, payload, payloadSize, GetRemoteEndpoint ());
 		UpdateNumSentBytes (payloadSize + 32);
@@ -305,7 +305,7 @@ namespace transport
 		header.ll[0] ^= CreateHeaderMask (addr->i, payload + (payloadSize - 24));
 		header.ll[1] ^= CreateHeaderMask (addr->i, payload + (payloadSize - 12));
 		memset (n, 0, 12);
-		i2p::crypto::ChaCha20 (h + 16, 16, addr->i, n, h + 16);
+		GetServer ().ChaCha20 (h + 16, 16, addr->i, n, h + 16);
 		// send
 		GetServer ().Send (header.buf, 16, h + 16, 16, payload, payloadSize, ep);
 		UpdateNumSentBytes (payloadSize + 32);

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022-2024, The PurpleI2P Project
+* Copyright (c) 2022-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -1527,6 +1527,11 @@ namespace transport
 	{
 		return m_Decryptor.Decrypt (msg, msgLen, ad, adLen, key, nonce, buf, len);
 	}
+
+	void SSU2Server::ChaCha20 (const uint8_t * msg, size_t msgLen, const uint8_t * key, const uint8_t * nonce, uint8_t * out)
+	{
+		m_ChaCha20 (msg, msgLen, key, nonce, out);
+	}	
 		
 	void SSU2Server::SendThroughProxy (const uint8_t * header, size_t headerLen, const uint8_t * headerX, size_t headerXLen,
 		const uint8_t * payload, size_t payloadLen, const boost::asio::ip::udp::endpoint& to)

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -226,6 +226,19 @@ namespace crypto
 // ChaCha20
 	void ChaCha20 (const uint8_t * msg, size_t msgLen, const uint8_t * key, const uint8_t * nonce, uint8_t * out);
 
+	class ChaCha20Context
+	{
+		public:
+
+			ChaCha20Context ();
+			~ChaCha20Context ();
+			void operator ()(const uint8_t * msg, size_t msgLen, const uint8_t * key, const uint8_t * nonce, uint8_t * out);
+			
+		private:
+
+			EVP_CIPHER_CTX * m_Ctx;	
+	};
+	
 // HKDF
 
 	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, const std::string& info, uint8_t * out, size_t outLen = 64); // salt - 32, out - 32 or 64, info <= 32
