@@ -195,7 +195,7 @@ namespace client
 			m_IsPublic = itr->second != "true";
 		}
 
-		int inLen, outLen, inQuant, outQuant, numTags, minLatency, maxLatency;
+		int inLen = 0, outLen = 0, inQuant = 0, outQuant = 0, numTags = 0, minLatency = 0, maxLatency = 0;
 		std::map<std::string, int&> intOpts = {
 			{I2CP_PARAM_INBOUND_TUNNEL_LENGTH, inLen},
 			{I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH, outLen},
