@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -294,6 +294,7 @@ namespace data
 			std::shared_ptr<Buffer> GetSharedBuffer () const { return m_Buffer; };	
 			std::shared_ptr<Buffer> CopyBuffer () const;
 			void ScheduleBufferToDelete () { m_IsBufferScheduledToDelete = true; };
+			void CancelBufferToDelete () { m_IsBufferScheduledToDelete = false; };
 			bool IsBufferScheduledToDelete () const { return m_IsBufferScheduledToDelete; };
 
 			bool IsUpdated () const { return m_IsUpdated; };

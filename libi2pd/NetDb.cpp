@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -696,9 +696,12 @@ namespace data
 							r->SetUnreachable (true);
 				}	
 			}
-			// make router reachable back if connected now
-			if (r->IsUnreachable () && i2p::transport::transports.IsConnected (ident))
+			// make router reachable back and don't delete buffer if connected now
+			if ((r->IsUnreachable () || r->IsBufferScheduledToDelete ()) && i2p::transport::transports.IsConnected (ident))
+			{
 				r->SetUnreachable (false);
+				r->CancelBufferToDelete ();
+			}	
 			
 			if (r->IsUnreachable ())
 			{
