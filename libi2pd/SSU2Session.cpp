@@ -1206,7 +1206,16 @@ namespace transport
 			return false;
 		}
 		if (!m_Address->published)
-			ri->GetProfile ()->SetLastEndpoint (m_RemoteEndpoint);
+		{	
+			if (ri->HasProfile ())	
+				ri->GetProfile ()->SetLastEndpoint (m_RemoteEndpoint);
+			else
+				i2p::data::UpdateRouterProfile (ri->GetIdentHash (), 
+					[ep = m_RemoteEndpoint](std::shared_ptr<i2p::data::RouterProfile> profile)
+				    {
+						if (profile) profile->SetLastEndpoint (ep);
+					});	
+		}	
 		SetRemoteIdentity (ri->GetRouterIdentity ());
 		AdjustMaxPayloadSize ();
 		m_Server.AddSessionByRouterHash (shared_from_this ()); // we know remote router now

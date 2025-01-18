@@ -119,8 +119,9 @@ namespace data
 		i2p::util::SetThreadName("NetDB");
 
 		uint64_t lastManage = 0;
-		uint64_t lastProfilesCleanup = i2p::util::GetMonotonicMilliseconds (), lastObsoleteProfilesCleanup = lastProfilesCleanup;
-		int16_t profilesCleanupVariance = 0, obsoleteProfilesCleanVariance = 0;
+		uint64_t lastProfilesCleanup = i2p::util::GetMonotonicMilliseconds (), 
+			lastObsoleteProfilesCleanup = lastProfilesCleanup, lastApplingProfileUpdates = lastProfilesCleanup;
+		int16_t profilesCleanupVariance = 0, obsoleteProfilesCleanVariance = 0, applingProfileUpdatesVariance = 0;
 
 		std::list<std::shared_ptr<const I2NPMessage> > msgs;
 		while (m_IsRunning)
@@ -198,6 +199,19 @@ namespace data
 						LogPrint (eLogWarning, "NetDb: Can't delete profiles. Profiles are being deleted from disk");
 					lastObsoleteProfilesCleanup = mts;
 					obsoleteProfilesCleanVariance = rand () % i2p::data::PEER_PROFILE_OBSOLETE_PROFILES_CLEAN_VARIANCE;
+				}	
+				if (mts >= lastApplingProfileUpdates + i2p::data::PEER_PROFILE_APPLY_POSTPONED_TIMEOUT + applingProfileUpdatesVariance)
+				{
+					bool isAppling = m_ApplingProfileUpdates.valid ();
+					if (isAppling && m_ApplingProfileUpdates.wait_for(std::chrono::seconds(0)) == std::future_status::ready) // still active?
+					{
+						m_ApplingProfileUpdates.get ();
+						isAppling = false;
+					}	
+					if (!isAppling)
+						m_ApplingProfileUpdates = i2p::data::FlushPostponedRouterProfileUpdates ();
+					lastApplingProfileUpdates = mts;
+					applingProfileUpdatesVariance = rand () % i2p::data::PEER_PROFILE_APPLY_POSTPONED_TIMEOUT_VARIANCE;
 				}	
 			}
 			catch (std::exception& ex)

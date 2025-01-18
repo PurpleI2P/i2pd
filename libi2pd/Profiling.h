@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -11,6 +11,7 @@
 
 #include <memory>
 #include <future>
+#include <functional>
 #include <boost/asio.hpp>
 #include "Identity.h"
 
@@ -44,6 +45,8 @@ namespace data
 	const int PEER_PROFILE_UNREACHABLE_INTERVAL = 480; // in seconds (8 minutes)
 	const int PEER_PROFILE_USEFUL_THRESHOLD = 3;
 	const int PEER_PROFILE_ALWAYS_DECLINING_NUM = 5; // num declines in row to consider always declined
+	const int PEER_PROFILE_APPLY_POSTPONED_TIMEOUT = 2100; // in milliseconds	
+	const int PEER_PROFILE_APPLY_POSTPONED_TIMEOUT_VARIANCE = 500; // in milliseconds	
 	
 	class RouterProfile
 	{
@@ -108,6 +111,8 @@ namespace data
 	std::future<void> DeleteObsoleteProfiles ();
 	void SaveProfiles ();
 	std::future<void> PersistProfiles ();
+	bool UpdateRouterProfile (const IdentHash& identHash, std::function<void (std::shared_ptr<RouterProfile>)> update); // return true if updated immediately, and false if postponed
+	std::future<void> FlushPostponedRouterProfileUpdates ();
 }
 }
 

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -185,7 +185,7 @@ namespace data
 			std::shared_ptr<NetDbRequests> m_Requests;
 
 			bool m_PersistProfiles;
-			std::future<void> m_SavingProfiles, m_DeletingProfiles, m_PersistingRouters;
+			std::future<void> m_SavingProfiles, m_DeletingProfiles, m_ApplingProfileUpdates, m_PersistingRouters;
 
 			std::vector<std::shared_ptr<const RouterInfo> > m_ExploratorySelection;
 			uint64_t m_LastExploratorySelectionUpdateTime; // in monotonic seconds
