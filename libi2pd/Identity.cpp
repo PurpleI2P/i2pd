@@ -27,18 +27,15 @@ namespace data
 
 	size_t Identity::FromBuffer (const uint8_t * buf, size_t len)
 	{
-		if ( len < DEFAULT_IDENTITY_SIZE ) {
-			// buffer too small, don't overflow
-			return 0;
-		}
-		memcpy (publicKey, buf, DEFAULT_IDENTITY_SIZE);
+		if (len < DEFAULT_IDENTITY_SIZE) return 0; // buffer too small, don't overflow
+		memcpy (this, buf, DEFAULT_IDENTITY_SIZE);
 		return DEFAULT_IDENTITY_SIZE;
 	}
 
 	IdentHash Identity::Hash () const
 	{
 		IdentHash hash;
-		SHA256(publicKey, DEFAULT_IDENTITY_SIZE, hash);
+		SHA256((const uint8_t *)this, DEFAULT_IDENTITY_SIZE, hash);
 		return hash;
 	}
 
