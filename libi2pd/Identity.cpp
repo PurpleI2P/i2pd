@@ -18,20 +18,33 @@ namespace data
 {
 	Identity& Identity::operator=(const Keys& keys)
 	{
+		// Ensure the destination buffers are not accessed out of bounds
+		static_assert(sizeof(publicKey) >= sizeof(keys.publicKey), "publicKey buffer too small");
+		static_assert(sizeof(signingKey) >= sizeof(keys.signingKey), "signingKey buffer too small");
+
 		// copy public and signing keys together
-		memcpy (publicKey, keys.publicKey, sizeof (publicKey));
-		memcpy (signingKey, keys.signingKey, sizeof (signingKey));
-		memset (certificate, 0, sizeof (certificate));
+		memcpy(publicKey, keys.publicKey, sizeof(keys.publicKey));
+		memcpy(signingKey, keys.signingKey, sizeof(keys.signingKey));
+		memset(certificate, 0, sizeof(certificate)); // Clear certificate safely
 		return *this;
 	}
 
-	size_t Identity::FromBuffer (const uint8_t * buf, size_t len)
+	size_t Identity::FromBuffer(const uint8_t* buf, size_t len)
 	{
-		if ( len < DEFAULT_IDENTITY_SIZE ) {
-			// buffer too small, don't overflow
+		if (len < DEFAULT_IDENTITY_SIZE) {
+			// buffer too small, avoid overflow
+			LogPrint(eLogError, "Identity::FromBuffer: Buffer too small, expected at least ", DEFAULT_IDENTITY_SIZE, " bytes");
 			return 0;
 		}
-		memcpy (publicKey, buf, DEFAULT_IDENTITY_SIZE);
+
+		// Copy only up to the size of publicKey and ensure no overflow occurs
+		memcpy(publicKey, buf, sizeof(publicKey));
+
+		// Log or handle unexpected large buffers
+		if (len > DEFAULT_IDENTITY_SIZE) {
+			LogPrint(eLogWarning, "Identity::FromBuffer: Extra data in buffer ignored");
+		}
+
 		return DEFAULT_IDENTITY_SIZE;
 	}
 
