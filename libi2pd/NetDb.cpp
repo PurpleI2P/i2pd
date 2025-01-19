@@ -120,8 +120,8 @@ namespace data
 
 		uint64_t lastManage = 0;
 		uint64_t lastProfilesCleanup = i2p::util::GetMonotonicMilliseconds (), 
-			lastObsoleteProfilesCleanup = lastProfilesCleanup, lastApplingProfileUpdates = lastProfilesCleanup;
-		int16_t profilesCleanupVariance = 0, obsoleteProfilesCleanVariance = 0, applingProfileUpdatesVariance = 0;
+			lastObsoleteProfilesCleanup = lastProfilesCleanup, lastApplyingProfileUpdates = lastProfilesCleanup;
+		int16_t profilesCleanupVariance = 0, obsoleteProfilesCleanVariance = 0, applyingProfileUpdatesVariance = 0;
 
 		std::list<std::shared_ptr<const I2NPMessage> > msgs;
 		while (m_IsRunning)
@@ -200,18 +200,18 @@ namespace data
 					lastObsoleteProfilesCleanup = mts;
 					obsoleteProfilesCleanVariance = rand () % i2p::data::PEER_PROFILE_OBSOLETE_PROFILES_CLEAN_VARIANCE;
 				}	
-				if (mts >= lastApplingProfileUpdates + i2p::data::PEER_PROFILE_APPLY_POSTPONED_TIMEOUT + applingProfileUpdatesVariance)
+				if (mts >= lastApplyingProfileUpdates + i2p::data::PEER_PROFILE_APPLY_POSTPONED_TIMEOUT + applyingProfileUpdatesVariance)
 				{
-					bool isAppling = m_ApplingProfileUpdates.valid ();
-					if (isAppling && m_ApplingProfileUpdates.wait_for(std::chrono::seconds(0)) == std::future_status::ready) // still active?
+					bool isApplying = m_ApplyingProfileUpdates.valid ();
+					if (isApplying && m_ApplyingProfileUpdates.wait_for(std::chrono::seconds(0)) == std::future_status::ready) // still active?
 					{
-						m_ApplingProfileUpdates.get ();
-						isAppling = false;
+						m_ApplyingProfileUpdates.get ();
+						isApplying = false;
 					}	
-					if (!isAppling)
-						m_ApplingProfileUpdates = i2p::data::FlushPostponedRouterProfileUpdates ();
-					lastApplingProfileUpdates = mts;
-					applingProfileUpdatesVariance = rand () % i2p::data::PEER_PROFILE_APPLY_POSTPONED_TIMEOUT_VARIANCE;
+					if (!isApplying)
+						m_ApplyingProfileUpdates = i2p::data::FlushPostponedRouterProfileUpdates ();
+					lastApplyingProfileUpdates = mts;
+					applyingProfileUpdatesVariance = rand () % i2p::data::PEER_PROFILE_APPLY_POSTPONED_TIMEOUT_VARIANCE;
 				}	
 			}
 			catch (std::exception& ex)
@@ -674,10 +674,11 @@ namespace data
 					{
 						std::lock_guard<std::mutex> l(m_RouterInfosMutex); // possible collision between DeleteBuffer and Update
 						buffer = r->CopyBuffer ();
-						r->ScheduleBufferToDelete ();
 					}
+					if (!i2p::transport::transports.IsConnected (ident))
+						r->ScheduleBufferToDelete ();
 					if (buffer)
-						saveToDisk.push_back(std::make_pair(ident.ToBase64 (), buffer));
+						saveToDisk.emplace_back(ident.ToBase64 (), buffer);
 				}
 				r->SetUpdated (false);
 				updatedCount++;
@@ -710,18 +711,15 @@ namespace data
 							r->SetUnreachable (true);
 				}	
 			}
-			// make router reachable back and don't delete buffer if connected now
-			if ((r->IsUnreachable () || r->IsBufferScheduledToDelete ()) && i2p::transport::transports.IsConnected (ident))
-			{
+			// make router reachable back if connected now
+			if (r->IsUnreachable () && i2p::transport::transports.IsConnected (ident))
 				r->SetUnreachable (false);
-				r->CancelBufferToDelete ();
-			}	
 			
 			if (r->IsUnreachable ())
 			{
 				if (r->IsFloodfill ()) deletedFloodfillsCount++;
 				// delete RI file
-				removeFromDisk.push_back (ident.ToBase64());
+				removeFromDisk.emplace_back (ident.ToBase64());
 				deletedCount++;
 				if (total - deletedCount < NETDB_MIN_ROUTERS) checkForExpiration = false;
 			}

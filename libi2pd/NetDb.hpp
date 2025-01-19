@@ -185,7 +185,7 @@ namespace data
 			std::shared_ptr<NetDbRequests> m_Requests;
 
 			bool m_PersistProfiles;
-			std::future<void> m_SavingProfiles, m_DeletingProfiles, m_ApplingProfileUpdates, m_PersistingRouters;
+			std::future<void> m_SavingProfiles, m_DeletingProfiles, m_ApplyingProfileUpdates, m_PersistingRouters;
 
 			std::vector<std::shared_ptr<const RouterInfo> > m_ExploratorySelection;
 			uint64_t m_LastExploratorySelectionUpdateTime; // in monotonic seconds

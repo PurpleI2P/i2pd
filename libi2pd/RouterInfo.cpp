@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -1136,12 +1136,12 @@ namespace data
 		
 	void RouterInfo::UpdateBuffer (const uint8_t * buf, size_t len)
 	{
+		m_IsBufferScheduledToDelete = false;
 		if (!m_Buffer)
 			m_Buffer = NewBuffer ();
 		if (len > m_Buffer->size ()) len = m_Buffer->size ();
 		memcpy (m_Buffer->data (), buf, len);
 		m_Buffer->SetBufferLen (len);
-		m_IsBufferScheduledToDelete = false;
 	}
 
 	std::shared_ptr<RouterInfo::Buffer> RouterInfo::CopyBuffer () const
