@@ -683,6 +683,10 @@ namespace data
 				updatedCount++;
 				continue;
 			}
+			else if (r->GetBuffer () && ts > r->GetTimestamp () + NETDB_MIN_EXPIRATION_TIMEOUT*1000LL)
+				// since update was long time ago we assume that router is not connected anymore
+				r->ScheduleBufferToDelete ();
+			
 			if (r->GetProfile ()->IsUnreachable ())
 				r->SetUnreachable (true);
 			// make router reachable back if too few routers or floodfills
