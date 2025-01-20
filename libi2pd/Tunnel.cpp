@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -179,9 +179,12 @@ namespace tunnel
 		{
 			uint8_t ret = hop->GetRetCode (msg + 1);
 			LogPrint (eLogDebug, "Tunnel: Build response ret code=", (int)ret);
-			auto profile = i2p::data::netdb.FindRouterProfile (hop->ident->GetIdentHash ());
-			if (profile)
-				profile->TunnelBuildResponse (ret);
+			if (hop->ident)
+				i2p::data::UpdateRouterProfile (hop->ident->GetIdentHash (),
+					[ret](std::shared_ptr<i2p::data::RouterProfile> profile)
+					{
+						if (profile) profile->TunnelBuildResponse (ret);
+					});
 			if (ret)
 				// if any of participants declined the tunnel is not established
 				established = false;
@@ -743,11 +746,11 @@ namespace tunnel
 							while (hop)
 							{
 								if (hop->ident)
-								{
-									auto profile = i2p::data::netdb.FindRouterProfile (hop->ident->GetIdentHash ());
-									if (profile)
-										profile->TunnelNonReplied ();
-								}
+									i2p::data::UpdateRouterProfile (hop->ident->GetIdentHash (),
+										[](std::shared_ptr<i2p::data::RouterProfile> profile)
+				    					{
+											if (profile) profile->TunnelNonReplied ();
+										});
 								hop = hop->next;
 							}
 						}
