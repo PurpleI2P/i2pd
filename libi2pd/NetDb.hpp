@@ -16,6 +16,7 @@
 #include <thread>
 #include <mutex>
 #include <future>
+#include <random>
 
 #include "Base.h"
 #include "Gzip.h"
@@ -189,6 +190,7 @@ namespace data
 
 			std::vector<std::shared_ptr<const RouterInfo> > m_ExploratorySelection;
 			uint64_t m_LastExploratorySelectionUpdateTime; // in monotonic seconds
+			std::mt19937 m_Rng;
 
 			i2p::util::MemoryPoolMt<RouterInfo::Buffer> m_RouterInfoBuffersPool;
 			i2p::util::MemoryPoolMt<RouterInfo::Address> m_RouterInfoAddressesPool;

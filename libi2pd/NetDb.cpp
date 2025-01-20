@@ -10,7 +10,6 @@
 #include <fstream>
 #include <vector>
 #include <map>
-#include <random>
 #include <boost/asio.hpp>
 #include <stdexcept>
 
@@ -40,7 +39,7 @@ namespace data
 
 	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr), 
 		m_Storage("netDb", "r", "routerInfo-", "dat"), m_PersistProfiles (true),
-		m_LastExploratorySelectionUpdateTime (0)
+		m_LastExploratorySelectionUpdateTime (0), m_Rng(i2p::util::GetMonotonicMicroseconds () % 1000000LL)
 	{
 	}
 
@@ -182,7 +181,7 @@ namespace data
 							LogPrint (eLogWarning, "NetDb: Can't persist profiles. Profiles are being saved to disk");
 					}	
 					lastProfilesCleanup = mts;
-					profilesCleanupVariance = rand () % i2p::data::PEER_PROFILE_AUTOCLEAN_VARIANCE;
+					profilesCleanupVariance = m_Rng () % i2p::data::PEER_PROFILE_AUTOCLEAN_VARIANCE;
 				}
 
 				if (mts >= lastObsoleteProfilesCleanup + (uint64_t)(i2p::data::PEER_PROFILE_OBSOLETE_PROFILES_CLEAN_TIMEOUT + obsoleteProfilesCleanVariance)*1000)
@@ -198,7 +197,7 @@ namespace data
 					else
 						LogPrint (eLogWarning, "NetDb: Can't delete profiles. Profiles are being deleted from disk");
 					lastObsoleteProfilesCleanup = mts;
-					obsoleteProfilesCleanVariance = rand () % i2p::data::PEER_PROFILE_OBSOLETE_PROFILES_CLEAN_VARIANCE;
+					obsoleteProfilesCleanVariance = m_Rng () % i2p::data::PEER_PROFILE_OBSOLETE_PROFILES_CLEAN_VARIANCE;
 				}	
 				if (mts >= lastApplyingProfileUpdates + i2p::data::PEER_PROFILE_APPLY_POSTPONED_TIMEOUT + applyingProfileUpdatesVariance)
 				{
@@ -211,7 +210,7 @@ namespace data
 					if (!isApplying)
 						m_ApplyingProfileUpdates = i2p::data::FlushPostponedRouterProfileUpdates ();
 					lastApplyingProfileUpdates = mts;
-					applyingProfileUpdatesVariance = rand () % i2p::data::PEER_PROFILE_APPLY_POSTPONED_TIMEOUT_VARIANCE;
+					applyingProfileUpdatesVariance = m_Rng () % i2p::data::PEER_PROFILE_APPLY_POSTPONED_TIMEOUT_VARIANCE;
 				}	
 			}
 			catch (std::exception& ex)
@@ -571,7 +570,7 @@ namespace data
 		while(n > 0)
 		{
 			std::lock_guard<std::mutex> lock(m_RouterInfosMutex);
-			uint32_t idx = rand () % m_RouterInfos.size ();
+			uint32_t idx = m_Rng () % m_RouterInfos.size ();
 			uint32_t i = 0;
 			for (const auto & it : m_RouterInfos) {
 				if(i >= idx) // are we at the random start point?
@@ -1346,7 +1345,7 @@ namespace data
 			if (eligible.size () > NETDB_MAX_EXPLORATORY_SELECTION_SIZE)
 			{
 				 std::sample (eligible.begin(), eligible.end(), std::back_inserter(m_ExploratorySelection),
-				 	NETDB_MAX_EXPLORATORY_SELECTION_SIZE, std::mt19937(ts));
+				 	NETDB_MAX_EXPLORATORY_SELECTION_SIZE, m_Rng);
 			}	
 			else
 				std::swap (m_ExploratorySelection, eligible);	
