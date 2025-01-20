@@ -1178,13 +1178,18 @@ namespace transport
 			LogPrint (eLogError, "SSU2: Couldn't update RouterInfo from SessionConfirmed in netdb");
 			return false;
 		}
-		std::shared_ptr<i2p::data::RouterProfile> profile; // not null if older 
+		
+		bool isOlder = false;
 		if (ri->GetTimestamp () + i2p::data::NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < ri1->GetTimestamp ())
 		{	
 			// received RouterInfo is older than one in netdb
-			profile = i2p::data::GetRouterProfile (ri->GetIdentHash ()); // retrieve profile	
-			if (profile && profile->IsDuplicated ())
-				return false;
+			isOlder = true;
+			if (ri->HasProfile ())
+			{	
+				auto profile = i2p::data::GetRouterProfile (ri->GetIdentHash ()); // retrieve profile	
+				if (profile && profile->IsDuplicated ())
+					return false;
+			}	
 		}	
 		ri = ri1;
 		
@@ -1198,8 +1203,12 @@ namespace transport
 		    (!m_RemoteEndpoint.address ().is_v6 () ||
 			 memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), m_Address->host.to_v6 ().to_bytes ().data (), 8))) // temporary address
 		{
-			if (profile) // older router?
-				profile->Duplicated (); // mark router as duplicated in profile
+			if (isOlder) // older router?
+				i2p::data::UpdateRouterProfile (ri->GetIdentHash (),
+					[](std::shared_ptr<i2p::data::RouterProfile> profile)
+					{
+						if (profile) profile->Duplicated (); // mark router as duplicated in profile
+					});
 			else	
 				LogPrint (eLogInfo, "SSU2: Host mismatch between published address ", m_Address->host,
 					" and actual endpoint ", m_RemoteEndpoint.address (), " from ", i2p::data::GetIdentHashAbbreviation (ri->GetIdentHash ()));

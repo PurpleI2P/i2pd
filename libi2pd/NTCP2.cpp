@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -819,15 +819,20 @@ namespace transport
 			Terminate ();
 			return;
 		}
-		std::shared_ptr<i2p::data::RouterProfile> profile; // not null if older 
+		
+		bool isOlder = false;
 		if (ri.GetTimestamp () + i2p::data::NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < ri1->GetTimestamp ())
 		{	
 			// received RouterInfo is older than one in netdb
-			profile = i2p::data::GetRouterProfile (ri1->GetIdentHash ()); // retrieve profile	
-			if (profile && profile->IsDuplicated ())
+			isOlder = true;
+			if (ri1->HasProfile ())
 			{	
-				SendTerminationAndTerminate (eNTCP2Banned);
-				return;
+				auto profile = i2p::data::GetRouterProfile (ri1->GetIdentHash ()); // retrieve profile	
+				if (profile && profile->IsDuplicated ())
+				{	
+					SendTerminationAndTerminate (eNTCP2Banned);
+					return;
+				}	
 			}	
 		}
 		
@@ -844,8 +849,12 @@ namespace transport
 		     memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data () + 1, addr->host.to_v6 ().to_bytes ().data () + 1, 7) : // from the same yggdrasil subnet
 		     memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), addr->host.to_v6 ().to_bytes ().data (), 8)))) // temporary address
 		{
-			if (profile) // older router?
-				profile->Duplicated (); // mark router as duplicated in profile
+			if (isOlder) // older router?
+				i2p::data::UpdateRouterProfile (ri1->GetIdentHash (),
+					[](std::shared_ptr<i2p::data::RouterProfile> profile)
+					{
+						if (profile) profile->Duplicated (); // mark router as duplicated in profile
+					});
 			else
 				LogPrint (eLogInfo, "NTCP2: Host mismatch between published address ", addr->host, " and actual endpoint ", m_RemoteEndpoint.address ());
 			SendTerminationAndTerminate (eNTCP2Banned);
