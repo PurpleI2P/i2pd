@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -701,7 +701,8 @@ namespace transport
 			// try recently connected SSU2 if any
 			auto supportedTransports = context.GetRouterInfo ().GetCompatibleTransports (false) &
 				peer->router->GetCompatibleTransports (false);
-			if (supportedTransports & (i2p::data::RouterInfo::eSSU2V4 | i2p::data::RouterInfo::eSSU2V6))
+			if ((supportedTransports & (i2p::data::RouterInfo::eSSU2V4 | i2p::data::RouterInfo::eSSU2V6)) &&
+			    peer->router->HasProfile ())
 			{
 				auto ep = peer->router->GetProfile ()->GetLastEndpoint ();
 				if (!ep.address ().is_unspecified () && ep.port ())
@@ -886,7 +887,11 @@ namespace transport
 					auto transport = peer->priority[peer->numAttempts-1];
 					if (transport == i2p::data::RouterInfo::eNTCP2V4 || 
 						transport == i2p::data::RouterInfo::eNTCP2V6 || transport == i2p::data::RouterInfo::eNTCP2V6Mesh)
-						peer->router->GetProfile ()->Connected (); // outgoing NTCP2 connection if always real
+							i2p::data::UpdateRouterProfile (ident,
+								[](std::shared_ptr<i2p::data::RouterProfile> profile)
+								{
+									if (profile) profile->Connected (); // outgoing NTCP2 connection if always real
+								});
 					i2p::data::netdb.SetUnreachable (ident, false); // clear unreachable 
 				}		
 				peer->numAttempts = 0;
@@ -921,7 +926,11 @@ namespace transport
 					session->SendI2NPMessages (msgs); // send DatabaseStore
 				}	
 				auto r = i2p::data::netdb.FindRouter (ident); // router should be in netdb after SessionConfirmed
-				if (r) r->GetProfile ()->Connected ();
+				i2p::data::UpdateRouterProfile (ident,
+					[](std::shared_ptr<i2p::data::RouterProfile> profile)
+					{
+						if (profile) profile->Connected ();
+					});
 				auto ts = i2p::util::GetSecondsSinceEpoch ();
 				auto peer = std::make_shared<Peer>(r, ts);
 				peer->sessions.push_back (session);

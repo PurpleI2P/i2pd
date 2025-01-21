@@ -890,7 +890,7 @@ namespace transport
 			}
 
 			auto session = std::make_shared<SSU2Session> (*this, router, address);
-			if (!isValidEndpoint && router->GetProfile ()->HasLastEndpoint (address->IsV4 ()))
+			if (!isValidEndpoint && router->HasProfile () && router->GetProfile ()->HasLastEndpoint (address->IsV4 ()))
 			{
 				// router doesn't publish endpoint, but we connected before and hole punch might be alive
 				auto ep = router->GetProfile ()->GetLastEndpoint ();
