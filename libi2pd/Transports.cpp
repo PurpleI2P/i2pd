@@ -964,8 +964,13 @@ namespace transport
 					}
 					else
 					{
-						std::lock_guard<std::mutex> l(m_PeersMutex);
-						m_Peers.erase (it);
+						{
+							std::lock_guard<std::mutex> l(m_PeersMutex);
+							m_Peers.erase (it);
+						}
+						// delete buffer of just disconnected router 
+						auto r = i2p::data::netdb.FindRouter (ident);
+						if (r && !r->IsUpdated ()) r->ScheduleBufferToDelete ();
 					}
 				}
 			}
