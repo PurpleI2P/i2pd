@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -101,13 +101,13 @@ namespace tunnel
 		TunnelMessageBlock block;
 		block.deliveryType = eDeliveryTypeLocal;
 		block.data = msg;
-		std::unique_lock<std::mutex> l(m_SendMutex);
+		std::lock_guard<std::mutex> l(m_SendMutex);
 		m_Gateway.PutTunnelDataMsg (block);
 	}
 
 	void TransitTunnelGateway::FlushTunnelDataMsgs ()
 	{
-		std::unique_lock<std::mutex> l(m_SendMutex);
+		std::lock_guard<std::mutex> l(m_SendMutex);
 		m_Gateway.SendBuffer ();
 	}
 
@@ -130,14 +130,22 @@ namespace tunnel
 		EncryptTunnelMsg (tunnelMsg, newMsg);
 
 		LogPrint (eLogDebug, "TransitTunnel: handle msg for endpoint ", GetTunnelID ());
+		std::lock_guard<std::mutex> l(m_HandleMutex);
 		m_Endpoint.HandleDecryptedTunnelDataMsg (newMsg);
 	}
 
 	void TransitTunnelEndpoint::FlushTunnelDataMsgs ()
 	{
+		std::lock_guard<std::mutex> l(m_HandleMutex);
 		m_Endpoint.FlushI2NPMsgs ();
 	}	
 
+	void TransitTunnelEndpoint::Cleanup ()
+	{ 
+		std::lock_guard<std::mutex> l(m_HandleMutex);
+		m_Endpoint.Cleanup ();
+	}	
+		
 	std::string TransitTunnelEndpoint::GetNextPeerName () const
 	{ 
 		auto hash = m_Endpoint.GetCurrentHash ();

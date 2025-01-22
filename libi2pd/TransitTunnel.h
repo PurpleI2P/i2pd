@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -100,7 +100,7 @@ namespace tunnel
 				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey),
 				m_Endpoint (false) {}; // transit endpoint is always outbound
 
-			void Cleanup () override { m_Endpoint.Cleanup (); }
+			void Cleanup () override;
 		
 			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg) override;
 			void FlushTunnelDataMsgs () override;
@@ -109,6 +109,7 @@ namespace tunnel
 			
 		private:
 
+			std::mutex m_HandleMutex;
 			TunnelEndpoint m_Endpoint;
 	};
 
