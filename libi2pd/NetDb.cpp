@@ -294,6 +294,7 @@ namespace data
 			}
 			else
 			{
+				r->CancelBufferToDelete (); // since an update received
 				if (CheckLogLevel (eLogDebug))
 					LogPrint (eLogDebug, "NetDb: RouterInfo is older: ", ident.ToBase64());
 				updated = false;

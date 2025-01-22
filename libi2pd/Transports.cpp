@@ -560,7 +560,14 @@ namespace transport
 	bool Transports::ConnectToPeer (const i2p::data::IdentHash& ident, std::shared_ptr<Peer> peer)
 	{
 		if (!peer->router) // reconnect
-			peer->SetRouter (netdb.FindRouter (ident)); // try to get new one from netdb
+		{	
+			auto r = netdb.FindRouter (ident); // try to get new one from netdb
+			if (r)
+			{	
+				peer->SetRouter (r); 
+				r->CancelBufferToDelete ();
+			}	
+		}	
 		if (peer->router) // we have RI already
 		{
 			if (peer->priority.empty ())
