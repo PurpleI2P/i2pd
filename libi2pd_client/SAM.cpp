@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -1350,12 +1350,14 @@ namespace client
 			LogPrint (eLogError, "SAM: Runtime exception: ", ex.what ());
 		}
 
+		decltype(m_Sessions) sessions;
 		{
 			std::unique_lock<std::mutex> l(m_SessionsMutex);
-			for (auto& it: m_Sessions)
-				it.second->Close ();
-			m_Sessions.clear ();
-		}
+			m_Sessions.swap (sessions);
+		}	
+		for (auto& it: sessions)
+			it.second->Close ();
+		
 		StopIOService ();
 	}
 
