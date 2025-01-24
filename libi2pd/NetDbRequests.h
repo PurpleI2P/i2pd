@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -28,6 +28,7 @@ namespace data
 	const uint64_t MANAGE_REQUESTS_INTERVAL_VARIANCE = 300; // in milliseconds
 	const uint64_t MIN_REQUEST_TIME = 1200; // in milliseconds
 	const uint64_t MAX_REQUEST_TIME = MAX_NUM_REQUEST_ATTEMPTS * (MIN_REQUEST_TIME + MANAGE_REQUESTS_INTERVAL + MANAGE_REQUESTS_INTERVAL_VARIANCE);
+	const uint64_t MIN_DIRECT_REQUEST_TIME = 600; // in milliseconds
 	const uint64_t EXPLORATORY_REQUEST_INTERVAL = 55; // in seconds
 	const uint64_t EXPLORATORY_REQUEST_INTERVAL_VARIANCE = 170; // in seconds 
 	const uint64_t DISCOVERED_REQUEST_INTERVAL = 360; // in milliseconds
@@ -52,6 +53,7 @@ namespace data
 			bool IsExploratory () const { return m_IsExploratory; };
 			bool IsDirect () const { return m_IsDirect; };
 			bool IsActive () const { return m_IsActive; };
+			bool IsSentDirectly () const { return m_IsSentDirectly; };
 			bool IsExcluded (const IdentHash& ident) const;
 			uint64_t GetCreationTime () const { return m_CreationTime; };
 			uint64_t GetLastRequestTime () const { return m_LastRequestTime; };
@@ -70,7 +72,7 @@ namespace data
 		private:
 
 			IdentHash m_Destination;
-			bool m_IsExploratory, m_IsDirect, m_IsActive;
+			bool m_IsExploratory, m_IsDirect, m_IsActive, m_IsSentDirectly;
 			std::unordered_set<IdentHash> m_ExcludedPeers;
 			uint64_t m_CreationTime, m_LastRequestTime; // in milliseconds
 			std::list<RequestComplete> m_RequestComplete;
