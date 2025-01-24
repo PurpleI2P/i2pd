@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -20,6 +20,7 @@
 #include <string>
 #include <memory>
 #include <atomic>
+#include <random>
 #include <boost/asio.hpp>
 #include "TransportSession.h"
 #include "SSU2.h"
@@ -106,7 +107,8 @@ namespace transport
 	};
 
 	const uint64_t SESSION_CREATION_TIMEOUT = 15; // in seconds
-	const int PEER_TEST_INTERVAL = 71; // in minutes
+	const int PEER_TEST_INTERVAL = 68*60; // in seconds
+	const int PEER_TEST_INTERVAL_VARIANCE = 3*60; // in seconds
 	const int PEER_TEST_DELAY_INTERVAL = 20; // in milliseconds
 	const int PEER_TEST_DELAY_INTERVAL_VARIANCE = 30; // in milliseconds
 	const int MAX_NUM_DELAYED_MESSAGES = 150;
@@ -168,7 +170,7 @@ namespace transport
 			std::shared_ptr<const i2p::data::RouterInfo> GetRandomPeer (bool isHighBandwidth) const;
 
 			/** get a trusted first hop for restricted routes */
-			std::shared_ptr<const i2p::data::RouterInfo> GetRestrictedPeer() const;
+			std::shared_ptr<const i2p::data::RouterInfo> GetRestrictedPeer();
 			/** do we want to use restricted routes? */
 			bool RoutesRestricted() const;
 			/** restrict routes to use only these router families for first hops */
@@ -191,7 +193,7 @@ namespace transport
 			void HandleRequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, i2p::data::IdentHash ident);
 			std::shared_ptr<TransportSession> PostMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >& msgs);
 			bool ConnectToPeer (const i2p::data::IdentHash& ident, std::shared_ptr<Peer> peer);
-			void SetPriority (std::shared_ptr<Peer> peer) const;
+			void SetPriority (std::shared_ptr<Peer> peer);
 			void HandlePeerCleanupTimer (const boost::system::error_code& ecode);
 			void HandlePeerTestTimer (const boost::system::error_code& ecode);
 			void HandleUpdateBandwidthTimer (const boost::system::error_code& ecode);
@@ -239,6 +241,7 @@ namespace transport
 			mutable std::mutex m_TrustedRoutersMutex;
 
 			i2p::I2NPMessagesHandler m_LoopbackHandler;
+			std::mt19937 m_Rng;
 
 		public:
 

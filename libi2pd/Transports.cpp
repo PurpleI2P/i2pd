@@ -160,7 +160,8 @@ namespace transport
 		m_TotalSentBytes (0), m_TotalReceivedBytes (0), m_TotalTransitTransmittedBytes (0),
 		m_InBandwidth (0), m_OutBandwidth (0), m_TransitBandwidth (0),
 		m_InBandwidth15s (0), m_OutBandwidth15s (0), m_TransitBandwidth15s (0),
-		m_InBandwidth5m (0), m_OutBandwidth5m (0), m_TransitBandwidth5m (0)
+		m_InBandwidth5m (0), m_OutBandwidth5m (0), m_TransitBandwidth5m (0),
+		m_Rng(i2p::util::GetMonotonicMicroseconds () % 1000000LL)
 	{
 	}
 
@@ -338,7 +339,7 @@ namespace transport
 
 		if (m_IsNAT)
 		{
-			m_PeerTestTimer->expires_from_now (boost::posix_time::minutes(PEER_TEST_INTERVAL));
+			m_PeerTestTimer->expires_from_now (boost::posix_time::seconds(PEER_TEST_INTERVAL + m_Rng() % PEER_TEST_INTERVAL_VARIANCE));
 			m_PeerTestTimer->async_wait (std::bind (&Transports::HandlePeerTestTimer, this, std::placeholders::_1));
 		}
 	}
@@ -654,7 +655,7 @@ namespace transport
 		return true;
 	}
 
-	void Transports::SetPriority (std::shared_ptr<Peer> peer) const
+	void Transports::SetPriority (std::shared_ptr<Peer> peer)
 	{
 		static const std::vector<i2p::data::RouterInfo::SupportedTransports>
 			ntcp2Priority =
@@ -680,7 +681,7 @@ namespace transport
 		peer->numAttempts = 0;
 		peer->priority.clear ();
 		bool isReal = peer->router->GetProfile ()->IsReal (); 
-		bool ssu2 = isReal ? (rand () & 1) : false; // try NTCP2 if router is not confirmed real
+		bool ssu2 = isReal ? (m_Rng () & 1) : false; // try NTCP2 if router is not confirmed real
 		const auto& priority = ssu2 ? ssu2Priority : ntcp2Priority;
 		if (directTransports)
 		{	
@@ -799,7 +800,7 @@ namespace transport
 					}	
 					else
 					{
-						testDelay += PEER_TEST_DELAY_INTERVAL + rand() % PEER_TEST_DELAY_INTERVAL_VARIANCE;
+						testDelay += PEER_TEST_DELAY_INTERVAL + m_Rng() % PEER_TEST_DELAY_INTERVAL_VARIANCE;
 						if (m_Service)
 						{	
 							auto delayTimer = std::make_shared<boost::asio::deadline_timer>(*m_Service);
@@ -837,7 +838,7 @@ namespace transport
 					}	
 					else
 					{
-						testDelay += PEER_TEST_DELAY_INTERVAL + rand() % PEER_TEST_DELAY_INTERVAL_VARIANCE;
+						testDelay += PEER_TEST_DELAY_INTERVAL + m_Rng() % PEER_TEST_DELAY_INTERVAL_VARIANCE;
 						if (m_Service)
 						{	
 							auto delayTimer = std::make_shared<boost::asio::deadline_timer>(*m_Service);
@@ -1027,7 +1028,7 @@ namespace transport
 						if (session)
 							session->SendLocalRouterInfo (true);
 						it->second->nextRouterInfoUpdateTime = ts + PEER_ROUTER_INFO_UPDATE_INTERVAL +
-							rand () % PEER_ROUTER_INFO_UPDATE_INTERVAL_VARIANCE;
+							m_Rng() % PEER_ROUTER_INFO_UPDATE_INTERVAL_VARIANCE;
 					}
 					++it;
 				}
@@ -1051,7 +1052,7 @@ namespace transport
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			PeerTest ();
-			m_PeerTestTimer->expires_from_now (boost::posix_time::minutes(PEER_TEST_INTERVAL));
+			m_PeerTestTimer->expires_from_now (boost::posix_time::seconds(PEER_TEST_INTERVAL + m_Rng() % PEER_TEST_INTERVAL_VARIANCE));
 			m_PeerTestTimer->async_wait (std::bind (&Transports::HandlePeerTestTimer, this, std::placeholders::_1));
 		}
 	}
@@ -1198,7 +1199,7 @@ namespace transport
 	}
 
 	/** XXX: if routes are not restricted this dies */
-	std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRestrictedPeer() const
+	std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRestrictedPeer()
 	{
 		{
 			std::lock_guard<std::mutex> l(m_FamilyMutex);
@@ -1207,7 +1208,7 @@ namespace transport
 			if(sz > 1)
 			{
 				auto it = m_TrustedFamilies.begin ();
-				std::advance(it, rand() % sz);
+				std::advance(it, m_Rng() % sz);
 				fam = *it;
 			}
 			else if (sz == 1)
@@ -1225,7 +1226,7 @@ namespace transport
 				if(sz == 1)
 					return i2p::data::netdb.FindRouter(m_TrustedRouters[0]);
 				auto it = m_TrustedRouters.begin();
-				std::advance(it, rand() % sz);
+				std::advance(it, m_Rng() % sz);
 				return i2p::data::netdb.FindRouter(*it);
 			}
 		}
