@@ -764,6 +764,7 @@ namespace client
 	void I2CPSession::AddRoutingSession (const i2p::data::IdentHash& signingKey, std::shared_ptr<i2p::garlic::GarlicRoutingSession> remoteSession)
 	{
 		if (!remoteSession) return;
+		remoteSession->SetAckRequestInterval (I2CP_SESSION_ACK_REQUEST_INTERVAL);
 		std::lock_guard<std::mutex> l(m_RoutingSessionsMutex);
 		m_RoutingSessions[signingKey] = remoteSession;
 	}
@@ -1110,12 +1111,12 @@ namespace client
 	void I2CPServer::Stop ()
 	{
 		m_Acceptor.cancel ();
-		{
-			auto sessions = m_Sessions;
-			for (auto& it: sessions)
-				it.second->Stop ();
-		}
-		m_Sessions.clear ();
+		
+		decltype(m_Sessions) sessions;
+		m_Sessions.swap (sessions);
+		for (auto& it: sessions)
+			it.second->Stop ();
+		
 		StopIOService ();
 	}
 

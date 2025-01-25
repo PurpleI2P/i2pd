@@ -31,6 +31,7 @@ namespace client
 	const size_t I2CP_MAX_MESSAGE_LENGTH = 65535;
 	const size_t I2CP_MAX_SEND_QUEUE_SIZE = 1024*1024; // in bytes, 1M
 	const int I2CP_LEASESET_CREATION_TIMEOUT = 10; // in seconds
+	const int I2CP_SESSION_ACK_REQUEST_INTERVAL = 12100; // in milliseconds
 
 	const size_t I2CP_HEADER_LENGTH_OFFSET = 0;
 	const size_t I2CP_HEADER_TYPE_OFFSET = I2CP_HEADER_LENGTH_OFFSET + 4;
