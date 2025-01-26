@@ -486,6 +486,15 @@ namespace data
 					}
 					ch++;
 				}
+				if (m_Version < NETDB_MIN_PEER_TEST_VERSION && (m_SupportedTransports & (eSSU2V4 | eSSU2V6)))
+				{
+					auto addresses = GetAddresses ();
+					if (addresses)
+					{
+						if ((*addresses)[eSSU2V4Idx]) (*addresses)[eSSU2V4Idx]->caps &= ~eSSUTesting;
+						if ((*addresses)[eSSU2V6Idx]) (*addresses)[eSSU2V6Idx]->caps &= ~eSSUTesting;
+					}	
+				}	
 			}
 			// check netId
 			else if (!strcmp (key, ROUTER_INFO_PROPERTY_NETID))
