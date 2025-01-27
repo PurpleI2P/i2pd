@@ -9,7 +9,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include <string>
-#include <map>
+#include <unordered_map>
 #include <fstream>
 #include <chrono>
 #include <condition_variable>
@@ -49,7 +49,7 @@ namespace client
 				if (m_IsPersist)
 					i2p::config::GetOption("addressbook.hostsfile", m_HostsFile);
 			}
-			std::shared_ptr<const i2p::data::IdentityEx> GetAddress (const i2p::data::IdentHash& ident) const override;
+			std::shared_ptr<const i2p::data::IdentityEx> GetAddress (const i2p::data::IdentHash& ident) override;
 			void AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address) override;
 			void RemoveAddress (const i2p::data::IdentHash& ident) override;
 
@@ -72,6 +72,7 @@ namespace client
 			std::string etagsPath, indexPath, localPath;
 			bool m_IsPersist;
 			std::string m_HostsFile; // file to dump hosts.txt, empty if not used
+			std::unordered_map<i2p::data::IdentHash, std::vector<uint8_t> > m_FullAddressesCache; // ident hash -> full ident buffer 
 	};
 
 	bool AddressBookFilesystemStorage::Init()
@@ -92,8 +93,12 @@ namespace client
 		return false;
 	}
 
-	std::shared_ptr<const i2p::data::IdentityEx> AddressBookFilesystemStorage::GetAddress (const i2p::data::IdentHash& ident) const
+	std::shared_ptr<const i2p::data::IdentityEx> AddressBookFilesystemStorage::GetAddress (const i2p::data::IdentHash& ident)
 	{
+		auto it = m_FullAddressesCache.find (ident);
+		if (it != m_FullAddressesCache.end ())
+			return std::make_shared<i2p::data::IdentityEx>(it->second.data (), it->second.size ());
+	
 		if (!m_IsPersist)
 		{
 			LogPrint(eLogDebug, "Addressbook: Persistence is disabled");
@@ -101,43 +106,55 @@ namespace client
 		}
 		std::string filename = storage.Path(ident.ToBase32());
 		std::ifstream f(filename, std::ifstream::binary);
-		if (!f.is_open ()) {
+		if (!f.is_open ()) 
+		{
 			LogPrint(eLogDebug, "Addressbook: Requested, but not found: ", filename);
 			return nullptr;
 		}
 
 		f.seekg (0,std::ios::end);
 		size_t len = f.tellg ();
-		if (len < i2p::data::DEFAULT_IDENTITY_SIZE) {
+		if (len < i2p::data::DEFAULT_IDENTITY_SIZE) 
+		{
 			LogPrint (eLogError, "Addressbook: File ", filename, " is too short: ", len);
 			return nullptr;
 		}
 		f.seekg(0, std::ios::beg);
-		uint8_t * buf = new uint8_t[len];
-		f.read((char *)buf, len);
-		auto address = std::make_shared<i2p::data::IdentityEx>(buf, len);
-		delete[] buf;
-		return address;
+		std::vector<uint8_t> buf(len);
+		f.read((char *)buf.data (), len);
+		if (!f)
+		{
+			LogPrint (eLogError, "Addressbook: Couldn't read ", filename);
+			return nullptr;
+		}	
+		m_FullAddressesCache.try_emplace (ident, buf);
+		return std::make_shared<i2p::data::IdentityEx>(buf.data (), len);
 	}
 
 	void AddressBookFilesystemStorage::AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address)
 	{
-		if (!m_IsPersist) return;
-		std::string path = storage.Path( address->GetIdentHash().ToBase32() );
-		std::ofstream f (path, std::ofstream::binary | std::ofstream::out);
-		if (!f.is_open ())	{
-			LogPrint (eLogError, "Addressbook: Can't open file ", path);
-			return;
-		}
+		if (!address) return;
 		size_t len = address->GetFullLen ();
-		uint8_t * buf = new uint8_t[len];
-		address->ToBuffer (buf, len);
-		f.write ((char *)buf, len);
-		delete[] buf;
+		if (!len) return; // invalid address
+		auto [it, inserted] = m_FullAddressesCache.try_emplace (address->GetIdentHash(), len);
+		if (inserted)
+		{	
+			address->ToBuffer (it->second.data (), len);	
+			if (!m_IsPersist) return;
+			std::string path = storage.Path( address->GetIdentHash().ToBase32() );
+			std::ofstream f (path, std::ofstream::binary | std::ofstream::out);
+			if (!f.is_open ())	
+			{
+				LogPrint (eLogError, "Addressbook: Can't open file ", path);
+				return;
+			}
+			f.write ((const char *)it->second.data (), len);
+		}	
 	}
 
 	void AddressBookFilesystemStorage::RemoveAddress (const i2p::data::IdentHash& ident)
 	{
+		m_FullAddressesCache.erase (ident);
 		if (!m_IsPersist) return;
 		storage.Remove( ident.ToBase32() );
 	}
@@ -341,7 +358,7 @@ namespace client
 		StopSubscriptions ();
 		if (m_SubscriptionsUpdateTimer)
 		{
-			delete m_SubscriptionsUpdateTimer;
+			m_SubscriptionsUpdateTimer->cancel ();
 			m_SubscriptionsUpdateTimer = nullptr;
 		}
 		bool isDownloading = m_Downloading.valid ();
@@ -682,7 +699,7 @@ namespace client
 		auto dest = i2p::client::context.GetSharedLocalDestination ();
 		if (dest)
 		{
-			m_SubscriptionsUpdateTimer = new boost::asio::deadline_timer (dest->GetService ());
+			m_SubscriptionsUpdateTimer = std::make_unique<boost::asio::deadline_timer>(dest->GetService ());
 			m_SubscriptionsUpdateTimer->expires_from_now (boost::posix_time::minutes(INITIAL_SUBSCRIPTION_UPDATE_TIMEOUT));
 			m_SubscriptionsUpdateTimer->async_wait (std::bind (&AddressBook::HandleSubscriptionsUpdateTimer,
 				this, std::placeholders::_1));

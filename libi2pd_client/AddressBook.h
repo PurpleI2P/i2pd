@@ -62,7 +62,7 @@ namespace client
 			typedef std::map<std::string, std::shared_ptr<Address>, std::less<> > Addresses;
 			
 			virtual ~AddressBookStorage () {};
-			virtual std::shared_ptr<const i2p::data::IdentityEx> GetAddress (const i2p::data::IdentHash& ident) const = 0;
+			virtual std::shared_ptr<const i2p::data::IdentityEx> GetAddress (const i2p::data::IdentHash& ident) = 0;
 			virtual void AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address) = 0;
 			virtual void RemoveAddress (const i2p::data::IdentHash& ident) = 0;
 
@@ -133,7 +133,7 @@ namespace client
 			int m_NumRetries;
 			std::vector<std::shared_ptr<AddressBookSubscription> > m_Subscriptions;
 			std::shared_ptr<AddressBookSubscription> m_DefaultSubscription; // in case if we don't know any addresses yet
-			boost::asio::deadline_timer * m_SubscriptionsUpdateTimer;
+			std::unique_ptr<boost::asio::deadline_timer> m_SubscriptionsUpdateTimer;
 			bool m_IsEnabled;
 	};
 
