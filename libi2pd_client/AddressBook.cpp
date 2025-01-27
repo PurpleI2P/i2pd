@@ -17,6 +17,7 @@
 #include <boost/algorithm/string.hpp>
 #include "Base.h"
 #include "util.h"
+#include "Timestamp.h"
 #include "Identity.h"
 #include "FS.h"
 #include "Log.h"
@@ -52,6 +53,7 @@ namespace client
 			std::shared_ptr<const i2p::data::IdentityEx> GetAddress (const i2p::data::IdentHash& ident) override;
 			void AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address) override;
 			void RemoveAddress (const i2p::data::IdentHash& ident) override;
+			void CleanUpCache () override;
 
 			bool Init () override;
 			int Load (Addresses& addresses) override;
@@ -61,7 +63,7 @@ namespace client
 			void SaveEtag (const i2p::data::IdentHash& subsciption, const std::string& etag, const std::string& lastModified) override;
 			bool GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified) override;
 			void ResetEtags () override;
-
+		
 		private:
 
 			int LoadFromFile (const std::string& filename, Addresses& addresses); // returns -1 if can't open file, otherwise number of records
@@ -72,7 +74,8 @@ namespace client
 			std::string etagsPath, indexPath, localPath;
 			bool m_IsPersist;
 			std::string m_HostsFile; // file to dump hosts.txt, empty if not used
-			std::unordered_map<i2p::data::IdentHash, std::vector<uint8_t> > m_FullAddressesCache; // ident hash -> full ident buffer 
+			std::unordered_map<i2p::data::IdentHash, std::pair<std::vector<uint8_t>, uint64_t> > m_FullAddressCache; // ident hash -> (full ident buffer, last access timestamp) 
+			std::mutex m_FullAddressCacheMutex;
 	};
 
 	bool AddressBookFilesystemStorage::Init()
@@ -95,9 +98,16 @@ namespace client
 
 	std::shared_ptr<const i2p::data::IdentityEx> AddressBookFilesystemStorage::GetAddress (const i2p::data::IdentHash& ident)
 	{
-		auto it = m_FullAddressesCache.find (ident);
-		if (it != m_FullAddressesCache.end ())
-			return std::make_shared<i2p::data::IdentityEx>(it->second.data (), it->second.size ());
+		auto ts = i2p::util::GetMonotonicSeconds ();
+		{
+			std::lock_guard<std::mutex> l(m_FullAddressCacheMutex);
+			auto it = m_FullAddressCache.find (ident);
+			if (it != m_FullAddressCache.end ())
+			{
+				it->second.second = ts;
+				return std::make_shared<i2p::data::IdentityEx>(it->second.first.data (), it->second.first.size ());
+			}	
+		}
 	
 		if (!m_IsPersist)
 		{
@@ -127,7 +137,10 @@ namespace client
 			LogPrint (eLogError, "Addressbook: Couldn't read ", filename);
 			return nullptr;
 		}	
-		m_FullAddressesCache.try_emplace (ident, buf);
+		{
+			std::lock_guard<std::mutex> l(m_FullAddressCacheMutex);
+			m_FullAddressCache.try_emplace (ident, buf, ts);
+		}	
 		return std::make_shared<i2p::data::IdentityEx>(buf.data (), len);
 	}
 
@@ -135,26 +148,35 @@ namespace client
 	{
 		if (!address) return;
 		size_t len = address->GetFullLen ();
+		std::vector<uint8_t> buf;
 		if (!len) return; // invalid address
-		auto [it, inserted] = m_FullAddressesCache.try_emplace (address->GetIdentHash(), len);
-		if (inserted)
-		{	
-			address->ToBuffer (it->second.data (), len);	
-			if (!m_IsPersist) return;
-			std::string path = storage.Path( address->GetIdentHash().ToBase32() );
+		{
+			std::lock_guard<std::mutex> l(m_FullAddressCacheMutex);
+			auto [it, inserted] = m_FullAddressCache.try_emplace (address->GetIdentHash(), len, i2p::util::GetMonotonicSeconds ());
+			if (inserted)
+				address->ToBuffer (it->second.first.data (), len);
+			if (m_IsPersist)
+				buf = it->second.first;
+		}
+		if (m_IsPersist && !buf.empty ())
+		{
+			std::string path = storage.Path(address->GetIdentHash().ToBase32());
 			std::ofstream f (path, std::ofstream::binary | std::ofstream::out);
 			if (!f.is_open ())	
 			{
 				LogPrint (eLogError, "Addressbook: Can't open file ", path);
 				return;
 			}
-			f.write ((const char *)it->second.data (), len);
+			f.write ((const char *)buf.data (), len);
 		}	
 	}
 
 	void AddressBookFilesystemStorage::RemoveAddress (const i2p::data::IdentHash& ident)
 	{
-		m_FullAddressesCache.erase (ident);
+		{
+			std::lock_guard<std::mutex> l(m_FullAddressCacheMutex);
+			m_FullAddressCache.erase (ident);
+		}
 		if (!m_IsPersist) return;
 		storage.Remove( ident.ToBase32() );
 	}
@@ -298,6 +320,19 @@ namespace client
 		}
 	}
 
+	void AddressBookFilesystemStorage::CleanUpCache ()
+	{
+		auto ts = i2p::util::GetMonotonicSeconds ();
+		std::lock_guard<std::mutex> l(m_FullAddressCacheMutex);
+		for (auto it = m_FullAddressCache.begin (); it != m_FullAddressCache.end ();)
+		{
+			if (ts > it->second.second + ADDRESS_CACHE_EXPIRATION_TIMEOUT)
+				it = m_FullAddressCache.erase (it);
+			else
+				it++;
+		}	
+	}	
+	
 //---------------------------------------------------------------------
 
 	Address::Address (std::string_view b32):
@@ -344,6 +379,7 @@ namespace client
 			LoadHosts (); /* try storage, then hosts.txt, then download */
 			StartSubscriptions ();
 			StartLookups ();
+			ScheduleCacheUpdate ();
 		}
 	}
 
@@ -361,6 +397,11 @@ namespace client
 			m_SubscriptionsUpdateTimer->cancel ();
 			m_SubscriptionsUpdateTimer = nullptr;
 		}
+		if (m_AddressCacheUpdateTimer)
+		{
+			m_AddressCacheUpdateTimer->cancel ();
+			m_AddressCacheUpdateTimer = nullptr;
+		}	
 		bool isDownloading = m_Downloading.valid ();
 		if (isDownloading)
 		{
@@ -850,6 +891,29 @@ namespace client
 		}
 	}
 
+	void AddressBook::ScheduleCacheUpdate ()
+	{
+		if (!m_AddressCacheUpdateTimer)
+		{
+			auto dest = i2p::client::context.GetSharedLocalDestination ();
+			if(dest)
+				m_AddressCacheUpdateTimer = std::make_unique<boost::asio::deadline_timer>(dest->GetService ());
+		}	
+		if (m_AddressCacheUpdateTimer)
+		{	
+			m_AddressCacheUpdateTimer->expires_from_now (boost::posix_time::seconds(ADDRESS_CACHE_UPDATE_INTERVAL ));
+			m_SubscriptionsUpdateTimer->async_wait (
+				[this](const boost::system::error_code& ecode) 
+				{
+					if (ecode != boost::asio::error::operation_aborted)
+					{
+						if (m_Storage) m_Storage->CleanUpCache ();
+						ScheduleCacheUpdate ();
+					}	
+				});
+		}	
+	}	
+		
 	AddressBookSubscription::AddressBookSubscription (AddressBook& book, std::string_view link):
 		m_Book (book), m_Link (link)
 	{

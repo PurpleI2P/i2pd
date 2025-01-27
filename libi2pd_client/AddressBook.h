@@ -34,7 +34,9 @@ namespace client
 	const int CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT = 720; // in minutes (12 hours)
 	const int CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT = 5; // in minutes
 	const int CONTINIOUS_SUBSCRIPTION_MAX_NUM_RETRIES = 10; // then update timeout
-	const int SUBSCRIPTION_REQUEST_TIMEOUT = 120; //in second
+	const int SUBSCRIPTION_REQUEST_TIMEOUT = 120; //in seconds
+	const int ADDRESS_CACHE_EXPIRATION_TIMEOUT = 710; // in seconds
+	const int ADDRESS_CACHE_UPDATE_INTERVAL = 76; // in seconds
 
 	const uint16_t ADDRESS_RESOLVER_DATAGRAM_PORT = 53;
 	const uint16_t ADDRESS_RESPONSE_DATAGRAM_PORT = 54;
@@ -65,6 +67,7 @@ namespace client
 			virtual std::shared_ptr<const i2p::data::IdentityEx> GetAddress (const i2p::data::IdentHash& ident) = 0;
 			virtual void AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address) = 0;
 			virtual void RemoveAddress (const i2p::data::IdentHash& ident) = 0;
+			virtual void CleanUpCache () = 0;
 
 			virtual bool Init () = 0;
 			virtual int Load (Addresses& addresses) = 0;
@@ -120,6 +123,8 @@ namespace client
 			void StopLookups ();
 			void HandleLookupResponse (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 
+			void ScheduleCacheUpdate ();
+			
 		private:
 
 			std::mutex m_AddressBookMutex;
@@ -133,7 +138,7 @@ namespace client
 			int m_NumRetries;
 			std::vector<std::shared_ptr<AddressBookSubscription> > m_Subscriptions;
 			std::shared_ptr<AddressBookSubscription> m_DefaultSubscription; // in case if we don't know any addresses yet
-			std::unique_ptr<boost::asio::deadline_timer> m_SubscriptionsUpdateTimer;
+			std::unique_ptr<boost::asio::deadline_timer> m_SubscriptionsUpdateTimer, m_AddressCacheUpdateTimer;
 			bool m_IsEnabled;
 	};
 
