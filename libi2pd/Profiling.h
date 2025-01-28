@@ -70,6 +70,11 @@ namespace data
 
 			uint64_t GetLastUpdateTime () const { return m_LastUpdateTime; };
 			bool IsUpdated () const { return m_IsUpdated; };
+			void SetUpdated (bool updated) { m_IsUpdated = updated; }
+			uint64_t GetLastAccessTime () const { return m_LastAccessTime; };
+			void SetLastAccessTime (uint64_t ts) { m_LastAccessTime = ts; };
+			uint64_t GetLastPersistTime () const { return m_LastPersistTime; };
+			void SetLastPersistTime (uint64_t ts) { m_LastPersistTime = ts; };
 			
 			bool IsUseful() const;
 			bool IsDuplicated () const { return m_IsDuplicated; };
@@ -91,7 +96,8 @@ namespace data
 		private:
 
 			bool m_IsUpdated;
-			uint64_t m_LastDeclineTime, m_LastUnreachableTime, m_LastUpdateTime; // in seconds
+			uint64_t m_LastDeclineTime, m_LastUnreachableTime, m_LastUpdateTime, 
+				m_LastAccessTime, m_LastPersistTime; // in seconds
 			// participation
 			uint32_t m_NumTunnelsAgreed;
 			uint32_t m_NumTunnelsDeclined;

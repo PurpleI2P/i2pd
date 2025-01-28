@@ -32,10 +32,10 @@ namespace data
 	
 	RouterProfile::RouterProfile ():
 		m_IsUpdated (false), m_LastDeclineTime (0), m_LastUnreachableTime (0),
-		m_LastUpdateTime (i2p::util::GetSecondsSinceEpoch ()), 
-		m_NumTunnelsAgreed (0), m_NumTunnelsDeclined (0), m_NumTunnelsNonReplied (0),
-		m_NumTimesTaken (0), m_NumTimesRejected (0), m_HasConnected (false),
-		m_IsDuplicated (false)
+		m_LastUpdateTime (i2p::util::GetSecondsSinceEpoch ()), m_LastAccessTime (0),
+		m_LastPersistTime (0), m_NumTunnelsAgreed (0), m_NumTunnelsDeclined (0),
+		m_NumTunnelsNonReplied (0),m_NumTimesTaken (0), m_NumTimesRejected (0),
+		m_HasConnected (false), m_IsDuplicated (false)
 	{
 	}
 
@@ -80,6 +80,7 @@ namespace data
 
 	void RouterProfile::Load (const IdentHash& identHash)
 	{
+		m_IsUpdated = false;
 		std::string ident = identHash.ToBase64 ();
 		std::string path = g_ProfilesStorage.Path(ident);
 		boost::property_tree::ptree pt;
@@ -257,7 +258,10 @@ namespace data
 			std::unique_lock<std::mutex> l(g_ProfilesMutex);
 			auto it = g_Profiles.find (identHash);
 			if (it != g_Profiles.end ())
+			{
+				it->second->SetLastAccessTime (i2p::util::GetSecondsSinceEpoch ());
 				return it->second;
+			}	
 		}
 		auto profile = netdb.NewRouterProfile ();
 		profile->Load (identHash); // if possible
@@ -295,12 +299,14 @@ namespace data
 			std::lock_guard<std::mutex> l(g_ProfilesMutex);
 			for (auto it = g_Profiles.begin (); it != g_Profiles.end ();)
 			{
-				if (ts - it->second->GetLastUpdateTime () > PEER_PROFILE_PERSIST_INTERVAL)
+				if (it->second->IsUpdated () && ts > it->second->GetLastPersistTime () + PEER_PROFILE_PERSIST_INTERVAL)
 				{
-					if (it->second->IsUpdated ())
-						tmp.push_back (std::make_pair (it->first, it->second));
+					tmp.push_back (std::make_pair (it->first, it->second));
+					it->second->SetLastPersistTime (ts);
+					it->second->SetUpdated (false);
+				}	
+				if (!it->second->IsUpdated () && ts > std::max (it->second->GetLastUpdateTime (), it->second->GetLastAccessTime ()) + PEER_PROFILE_PERSIST_INTERVAL)
 					it = g_Profiles.erase (it);
-				}
 				else
 					it++;
 			}
