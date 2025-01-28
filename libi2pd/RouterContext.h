@@ -12,6 +12,7 @@
 #include <inttypes.h>
 #include <string>
 #include <memory>
+#include <random>
 #include <unordered_set>
 #include <boost/asio.hpp>
 #include "Identity.h"
@@ -36,7 +37,8 @@ namespace garlic
 	const int ROUTER_INFO_PUBLISH_INTERVAL_VARIANCE = 105;// in seconds
 	const int ROUTER_INFO_CONFIRMATION_TIMEOUT = 1600; // in milliseconds
 	const int ROUTER_INFO_MAX_PUBLISH_EXCLUDED_FLOODFILLS = 15;
-	const int ROUTER_INFO_CONGESTION_UPDATE_INTERVAL = 12*60; // in seconds
+	const int ROUTER_INFO_CONGESTION_UPDATE_INTERVAL = 11*60; // in seconds
+	const int ROUTER_INFO_CONGESTION_UPDATE_INTERVAL_VARIANCE = 130; // in seconds 
 	const int ROUTER_INFO_CLEANUP_INTERVAL = 102; // in seconds
 
 	enum RouterStatus
@@ -263,6 +265,7 @@ namespace garlic
 			uint32_t m_PublishReplyToken;
 			bool m_IsHiddenMode; // not publish
 			mutable std::mutex m_RouterInfoMutex;
+			std::mt19937 m_Rng;
 	};
 
 	extern RouterContext context;

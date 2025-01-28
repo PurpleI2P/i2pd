@@ -33,13 +33,14 @@ namespace i2p
 		m_ShareRatio (100), m_Status (eRouterStatusUnknown), m_StatusV6 (eRouterStatusUnknown),
 		m_Error (eRouterErrorNone), m_ErrorV6 (eRouterErrorNone),
 		m_Testing (false), m_TestingV6 (false), m_NetID (I2PD_NET_ID),
-		m_PublishReplyToken (0), m_IsHiddenMode (false)
+		m_PublishReplyToken (0), m_IsHiddenMode (false), 
+		m_Rng(i2p::util::GetMonotonicMicroseconds () % 1000000LL)
 	{
 	}
 
 	void RouterContext::Init ()
 	{
-		srand (i2p::util::GetMillisecondsSinceEpoch () % 1000);
+		srand (m_Rng () % 1000);
 		m_StartupTime = i2p::util::GetMonotonicSeconds ();
 
 		if (!Load ())
@@ -1359,7 +1360,7 @@ namespace i2p
 		{	
 			m_PublishTimer->cancel ();
 			m_PublishTimer->expires_from_now (boost::posix_time::seconds(ROUTER_INFO_PUBLISH_INTERVAL + 
-				rand () % ROUTER_INFO_PUBLISH_INTERVAL_VARIANCE));
+				m_Rng () % ROUTER_INFO_PUBLISH_INTERVAL_VARIANCE));
 			m_PublishTimer->async_wait (std::bind (&RouterContext::HandlePublishTimer,
 				this, std::placeholders::_1));
 		}	
@@ -1471,7 +1472,8 @@ namespace i2p
 		if (m_CongestionUpdateTimer)
 		{	
 			m_CongestionUpdateTimer->cancel ();
-			m_CongestionUpdateTimer->expires_from_now (boost::posix_time::seconds(ROUTER_INFO_CONGESTION_UPDATE_INTERVAL));
+			m_CongestionUpdateTimer->expires_from_now (boost::posix_time::seconds(
+				ROUTER_INFO_CONGESTION_UPDATE_INTERVAL + m_Rng () % ROUTER_INFO_CONGESTION_UPDATE_INTERVAL_VARIANCE));
 			m_CongestionUpdateTimer->async_wait (std::bind (&RouterContext::HandleCongestionUpdateTimer,
 				this, std::placeholders::_1));
 		}	
