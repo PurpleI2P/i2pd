@@ -13,6 +13,7 @@
 #include <string>
 #include <memory>
 #include <random>
+#include <future>
 #include <unordered_set>
 #include <boost/asio.hpp>
 #include "Identity.h"
@@ -266,6 +267,7 @@ namespace garlic
 			bool m_IsHiddenMode; // not publish
 			mutable std::mutex m_RouterInfoMutex;
 			std::mt19937 m_Rng;
+			std::future<void> m_SavingRouterInfo;
 	};
 
 	extern RouterContext context;

@@ -77,7 +77,9 @@ namespace i2p
 				m_CongestionUpdateTimer->cancel ();
 			m_Service->Stop ();
 			CleanUp (); // GarlicDestination
-		}	
+		}
+		if (m_SavingRouterInfo.valid ())
+			m_SavingRouterInfo.wait ();
 	}	
 
 	std::shared_ptr<i2p::data::RouterInfo::Buffer> RouterContext::CopyRouterInfoBuffer () const
@@ -254,12 +256,25 @@ namespace i2p
 
 	void RouterContext::UpdateRouterInfo ()
 	{
+		std::shared_ptr<i2p::data::RouterInfo::Buffer> buffer;
 		{
 			std::lock_guard<std::mutex> l(m_RouterInfoMutex);
 			m_RouterInfo.CreateBuffer (m_Keys);
+			buffer = m_RouterInfo.CopyBuffer ();
 		}
-		m_RouterInfo.SaveToFile (i2p::fs::DataDirPath (ROUTER_INFO));
 		m_LastUpdateTime = i2p::util::GetSecondsSinceEpoch ();
+		// defer saving buffer to disk
+		if (m_SavingRouterInfo.valid ())
+		{
+			// wait until previous update complete
+			m_SavingRouterInfo.wait ();
+			m_SavingRouterInfo.get ();
+		}	
+		m_SavingRouterInfo = std::async (std::launch::async, 
+			[buffer = std::move(buffer)]() 
+		    {
+				i2p::data::RouterInfo::SaveToFile (i2p::fs::DataDirPath (ROUTER_INFO), buffer);
+			});
 	}
 
 	void RouterContext::NewNTCP2Keys ()
