@@ -34,7 +34,7 @@ namespace i2p
 		m_Error (eRouterErrorNone), m_ErrorV6 (eRouterErrorNone),
 		m_Testing (false), m_TestingV6 (false), m_NetID (I2PD_NET_ID),
 		m_PublishReplyToken (0), m_IsHiddenMode (false), 
-		m_Rng(i2p::util::GetMonotonicMicroseconds () % 1000000LL)
+		m_Rng(i2p::util::GetMonotonicMicroseconds () % 1000000LL), m_IsSaving (false)
 	{
 	}
 
@@ -78,12 +78,6 @@ namespace i2p
 			m_Service->Stop ();
 			CleanUp (); // GarlicDestination
 		}
-		if (m_SavingRouterInfo.valid ())
-		{	
-			m_SaveBuffer = nullptr;
-			m_SavingRouterInfo.get ();
-		}	
-		
 	}	
 
 	std::shared_ptr<i2p::data::RouterInfo::Buffer> RouterContext::CopyRouterInfoBuffer () const
@@ -271,14 +265,10 @@ namespace i2p
 			std::lock_guard<std::mutex> l(m_SaveBufferMutex);
 			m_SaveBuffer = buffer;
 		}
-		bool isSaving = m_SavingRouterInfo.valid (); 
-		if (isSaving && m_SavingRouterInfo.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
-		{
-			m_SavingRouterInfo.get ();
-			isSaving = false;
-		}	
-		if (!isSaving) // try to save only if not being saved
-			m_SavingRouterInfo = std::async (std::launch::async, [this]() 
+		bool isSaving = false;
+		if (m_IsSaving.compare_exchange_strong (isSaving, true)) // try to save only if not being saved
+		{	
+			auto savingRouterInfo = std::async (std::launch::async, [this]() 
 				{
 					std::shared_ptr<i2p::data::RouterInfo::Buffer> buffer;
 					while (m_SaveBuffer)
@@ -291,7 +281,9 @@ namespace i2p
 						if (buffer)
 							i2p::data::RouterInfo::SaveToFile (i2p::fs::DataDirPath (ROUTER_INFO), buffer);
 					}	
+					m_IsSaving = false;
 				});
+		}	
 		m_LastUpdateTime = i2p::util::GetSecondsSinceEpoch ();
 	}
 
