@@ -78,7 +78,7 @@ namespace i2p
 			m_Service->Stop ();
 			CleanUp (); // GarlicDestination
 		}
-		if (m_SavingRouterInfo.valid ())
+		if (m_SavingRouterInfo.valid () && m_SavingRouterInfo.wait_for(std::chrono::seconds(0)) != std::future_status::ready)		
 			m_SavingRouterInfo.wait ();
 	}	
 
@@ -266,8 +266,9 @@ namespace i2p
 		// defer saving buffer to disk
 		if (m_SavingRouterInfo.valid ())
 		{
-			// wait until previous update complete
-			m_SavingRouterInfo.wait ();
+			if (m_SavingRouterInfo.wait_for(std::chrono::seconds(0)) != std::future_status::ready)		
+				// wait until previous update complete
+				m_SavingRouterInfo.wait ();
 			m_SavingRouterInfo.get ();
 		}	
 		m_SavingRouterInfo = std::async (std::launch::async, 
