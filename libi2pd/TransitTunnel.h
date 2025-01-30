@@ -152,6 +152,7 @@ namespace tunnel
 			std::unique_ptr<std::thread> m_Thread;
 			std::list<std::shared_ptr<TransitTunnel> > m_TransitTunnels;
 			i2p::util::Queue<std::shared_ptr<I2NPMessage> > m_TunnelBuildMsgQueue;
+			std::mt19937 m_Rng;
 			
 		public:
 

@@ -188,7 +188,7 @@ namespace tunnel
 	}
 
 	TransitTunnels::TransitTunnels ():
-		m_IsRunning (false)
+		m_IsRunning (false), m_Rng(i2p::util::GetMonotonicMicroseconds ()%1000000LL)
 	{
 	}
 		
@@ -328,8 +328,25 @@ namespace tunnel
 				// check if we accept this tunnel
 				std::shared_ptr<i2p::tunnel::TransitTunnel> transitTunnel;
 				uint8_t retCode = 0;
-				if (!i2p::context.AcceptsTunnels () || i2p::context.GetCongestionLevel (false) >= CONGESTION_LEVEL_FULL)
+				if (i2p::context.AcceptsTunnels ())
+				{
+					auto congestionLevel = i2p::context.GetCongestionLevel (false);
+					if (congestionLevel < CONGESTION_LEVEL_FULL)
+					{	
+						if (congestionLevel >= CONGESTION_LEVEL_MEDIUM)
+						{	
+							// random reject depending on congestion level
+							int level = m_Rng () % (CONGESTION_LEVEL_FULL - CONGESTION_LEVEL_MEDIUM) + CONGESTION_LEVEL_MEDIUM;
+							if (congestionLevel > level)
+								retCode = 30;
+						}	
+					}	
+					else
+						retCode = 30;
+				}	
+				else	
 					retCode = 30;
+				
 				if (!retCode)
 				{
 					// create new transit tunnel
@@ -452,7 +469,7 @@ namespace tunnel
 						if (congestionLevel < CONGESTION_LEVEL_FULL)
 						{
 							// random reject depending on congestion level
-							int level = i2p::tunnel::tunnels.GetRng ()() % (CONGESTION_LEVEL_FULL - CONGESTION_LEVEL_MEDIUM) + CONGESTION_LEVEL_MEDIUM;
+							int level = m_Rng () % (CONGESTION_LEVEL_FULL - CONGESTION_LEVEL_MEDIUM) + CONGESTION_LEVEL_MEDIUM;
 							if (congestionLevel > level)
 								accept = false;
 						}	
