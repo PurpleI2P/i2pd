@@ -49,7 +49,7 @@ namespace tunnel
 			void HandleDecryptedTunnelDataMsg (std::shared_ptr<I2NPMessage> msg);
 			void FlushI2NPMsgs (); 
 
-			const i2p::data::IdentHash * GetCurrentHash () const; // return null if not avaiable
+			const i2p::data::IdentHash * GetCurrentHash () const; // return null if not available
 			const std::unique_ptr<TunnelTransportSender>& GetSender () const { return m_Sender; };
 		
 		private:
