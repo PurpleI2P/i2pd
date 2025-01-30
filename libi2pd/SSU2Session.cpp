@@ -623,7 +623,8 @@ namespace transport
 				}
 				else
 				{
-					uint32_t packetNum = SendData (it->second->payload, it->second->payloadSize);
+					uint32_t packetNum = SendData (it->second->payload, it->second->payloadSize, 
+						it->second->numResends > 1 ? SSU2_FLAG_IMMEDIATE_ACK_REQUESTED : 0);
 					it->second->numResends++;
 					it->second->sendTime = ts;
 					resentPackets.emplace (packetNum, it->second);
