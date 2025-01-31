@@ -902,7 +902,7 @@ namespace client
 		if (m_AddressCacheUpdateTimer)
 		{	
 			m_AddressCacheUpdateTimer->expires_from_now (boost::posix_time::seconds(ADDRESS_CACHE_UPDATE_INTERVAL ));
-			m_SubscriptionsUpdateTimer->async_wait (
+			m_AddressCacheUpdateTimer->async_wait (
 				[this](const boost::system::error_code& ecode) 
 				{
 					if (ecode != boost::asio::error::operation_aborted)
