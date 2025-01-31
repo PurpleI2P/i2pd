@@ -349,15 +349,23 @@ namespace tunnel
 				
 				if (!retCode)
 				{
-					// create new transit tunnel
-					transitTunnel = i2p::tunnel::CreateTransitTunnel (
-						bufbe32toh (clearText + SHORT_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
-						clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET,
-						bufbe32toh (clearText + SHORT_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
-						layerKey, ivKey,
-						clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_GATEWAY_FLAG,
-						clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_ENDPOINT_FLAG);
-					if (!AddTransitTunnel (transitTunnel))
+					i2p::data::IdentHash nextIdent(clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET);
+					bool isEndpoint = clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_ENDPOINT_FLAG;
+					if (isEndpoint || !i2p::data::IsRouterDuplicated (nextIdent))
+					{	
+						// create new transit tunnel
+						transitTunnel = CreateTransitTunnel (
+							bufbe32toh (clearText + SHORT_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
+							nextIdent,
+							bufbe32toh (clearText + SHORT_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
+							layerKey, ivKey,
+							clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_GATEWAY_FLAG,
+							isEndpoint);
+						if (!AddTransitTunnel (transitTunnel))
+							retCode = 30;
+					}
+					else
+						// decline tunnel going to duplicated router 
 						retCode = 30;
 				}
 
@@ -477,23 +485,32 @@ namespace tunnel
 							accept = false;
 					}	
 				}	
-				// replace record to reply
+					
 				if (accept)
 				{
-					auto transitTunnel = i2p::tunnel::CreateTransitTunnel (
-							bufbe32toh (clearText + ECIES_BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
-							clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
-							bufbe32toh (clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
-							clearText + ECIES_BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET,
-							clearText + ECIES_BUILD_REQUEST_RECORD_IV_KEY_OFFSET,
-							clearText[ECIES_BUILD_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_GATEWAY_FLAG,
-							clearText[ECIES_BUILD_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_ENDPOINT_FLAG);
-					if (!AddTransitTunnel (transitTunnel))
+					i2p::data::IdentHash nextIdent(clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET);
+					bool isEndpoint = clearText[ECIES_BUILD_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_ENDPOINT_FLAG;
+					if (isEndpoint || !i2p::data::IsRouterDuplicated (nextIdent))
+					{	
+						auto transitTunnel = CreateTransitTunnel (
+								bufbe32toh (clearText + ECIES_BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
+								nextIdent,
+								bufbe32toh (clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
+								clearText + ECIES_BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET,
+								clearText + ECIES_BUILD_REQUEST_RECORD_IV_KEY_OFFSET,
+								clearText[ECIES_BUILD_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_GATEWAY_FLAG,
+								isEndpoint);
+						if (!AddTransitTunnel (transitTunnel))
+							retCode = 30;
+					}	
+					else
+						// decline tunnel going to duplicated router 
 						retCode = 30;
 				}
 				else
 					retCode = 30; // always reject with bandwidth reason (30)
 
+				// replace record to reply
 				memset (record + ECIES_BUILD_RESPONSE_RECORD_OPTIONS_OFFSET, 0, 2); // no options
 				record[ECIES_BUILD_RESPONSE_RECORD_RET_OFFSET] = retCode;
 				// encrypt reply

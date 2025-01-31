@@ -278,6 +278,15 @@ namespace data
 			return it->second->IsUnreachable ();
 		return false;
 	}	
+
+	bool IsRouterDuplicated (const IdentHash& identHash)
+	{
+		std::lock_guard<std::mutex> l(g_ProfilesMutex);
+		auto it = g_Profiles.find (identHash);
+		if (it != g_Profiles.end ())
+			return it->second->IsDuplicated ();
+		return false;
+	}	
 		
 	void InitProfilesStorage ()
 	{
