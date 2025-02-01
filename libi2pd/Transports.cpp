@@ -1042,7 +1042,7 @@ namespace transport
 			// if still testing or unknown, repeat peer test
 			if (ipv4Testing || ipv6Testing)
 				PeerTest (ipv4Testing, ipv6Testing);
-			m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(3 * SESSION_CREATION_TIMEOUT));
+			m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(2 * SESSION_CREATION_TIMEOUT + m_Rng() % SESSION_CREATION_TIMEOUT));
 			m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
 		}
 	}
