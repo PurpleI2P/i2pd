@@ -99,6 +99,7 @@ namespace tunnel
 			void SetRecreated (bool recreated) { m_IsRecreated = recreated; };
 			int GetNumHops () const { return m_Hops.size (); };
 			virtual bool IsInbound() const = 0;
+			virtual bool Recreate () = 0;
 
 			std::shared_ptr<TunnelPool> GetTunnelPool () const { return m_Pool; };
 			void SetTunnelPool (std::shared_ptr<TunnelPool> pool) { m_Pool = pool; };
@@ -150,6 +151,7 @@ namespace tunnel
 			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg) override;
 
 			bool IsInbound() const override { return false; }
+			bool Recreate () override;
 
 		private:
 
@@ -166,6 +168,7 @@ namespace tunnel
 			void HandleTunnelDataMsg (std::shared_ptr<I2NPMessage>&& msg) override;
 			virtual size_t GetNumReceivedBytes () const { return m_Endpoint.GetNumReceivedBytes (); };
 			bool IsInbound() const override { return true; }
+			bool Recreate () override;
 
 			// override TunnelBase
 			void Cleanup () override { m_Endpoint.Cleanup (); };
@@ -262,8 +265,8 @@ namespace tunnel
 			
 			void Run ();
 			void ManageTunnels (uint64_t ts);
-			void ManageOutboundTunnels (uint64_t ts);
-			void ManageInboundTunnels (uint64_t ts);
+			void ManageOutboundTunnels (uint64_t ts, std::vector<std::shared_ptr<Tunnel> >& toRecreate);
+			void ManageInboundTunnels (uint64_t ts, std::vector<std::shared_ptr<Tunnel> >& toRecreate);
 			void ManagePendingTunnels (uint64_t ts);
 			template<class PendingTunnels>
 			void ManagePendingTunnels (PendingTunnels& pendingTunnels, uint64_t ts);
