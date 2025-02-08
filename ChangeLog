@@ -1,6 +1,29 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.56.0] - 2025-02-10
+### Added
+- Config params for shared local destination
+- AddressBook full addresses cache
+- Decline transit tunnel to duplicated router
+- Recreate tunnels in random order
+### Changed
+- Exclude disk operations from SSU2 and NTCP2 threads
+- Set minimal version for peer test to 0.9.62
+- Send ack requested flag after second SSU2 resend attempt
+- Shorter ECIESx25519 ack request interval for datagram and I2CP sessions
+- Don't change datagram routing path too often if unidirectional data stream 
+- Reduce LeaseSet and local RouterInfo publishing confimation intervals
+- Don't delete buffer of connected routers or if an update received
+- Smaller RouterInfo request timeout if sent directly
+- Persist local RouterInfo in separate thread
+- Don't recalculate and process ranges for every SSU2 Ack block
+- Reseeds list
+### Fixed
+- Termination deadlock if SAM session is active
+- Race condition at tunnel endpoint
+- Inbound tunnel build encryption
+
 ## [2.55.0] - 2024-12-30
 ### Added
 - Support boost 1.87
