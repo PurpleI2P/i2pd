@@ -23,8 +23,8 @@ endif
 LDLIBS += \
 	$(MINGW_PREFIX)/lib/libboost_filesystem-mt.a \
 	$(MINGW_PREFIX)/lib/libboost_program_options-mt.a \
-	$(MINGW_PREFIX)/lib/libcrypto.a \
 	$(MINGW_PREFIX)/lib/libssl.a \
+	$(MINGW_PREFIX)/lib/libcrypto.a \
 	$(MINGW_PREFIX)/lib/libz.a \
 	-lwsock32 \
 	-lws2_32 \

@@ -18,7 +18,7 @@ endif
 	LDLIBS +=  -lpthread -ldl
 else
 	LDFLAGS += -L${SSLROOT}/lib -L${BOOSTROOT}/lib
-	LDLIBS = -lz -lcrypto -lssl -lboost_system -lboost_filesystem -lboost_program_options -lpthread
+	LDLIBS = -lz -lssl -lcrypto -lboost_system -lboost_filesystem -lboost_program_options -lpthread
 ifeq ($(USE_UPNP),yes)
 	LDFLAGS += -L${UPNPROOT}/lib
 	LDLIBS += -lminiupnpc
