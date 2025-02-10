@@ -40,7 +40,7 @@ ifeq ($(USE_UPNP),yes)
 endif
 	LDLIBS += -lpthread -ldl
 else
-	LDLIBS += -lcrypto -lssl -lz -lboost_program_options -lpthread -latomic
+	LDLIBS += -lssl -lcrypto -lz -lboost_program_options -lpthread -latomic
 ifeq ($(USE_UPNP),yes)
 	LDLIBS += -lminiupnpc
 endif
