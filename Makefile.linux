@@ -32,8 +32,8 @@ ifeq ($(USE_STATIC),yes)
 #   the shared libraries from the glibc version used for linking
 	LIBDIR := /usr/lib/$(SYS)
 	LDLIBS += $(LIBDIR)/libboost_program_options.a
-	LDLIBS += $(LIBDIR)/libssl.a
 	LDLIBS += $(LIBDIR)/libcrypto.a
+	LDLIBS += $(LIBDIR)/libssl.a
 	LDLIBS += $(LIBDIR)/libz.a
 ifeq ($(USE_UPNP),yes)
 	LDLIBS += $(LIBDIR)/libminiupnpc.a
