@@ -1,7 +1,7 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
-## [2.56.0] - 2025-02-10
+## [2.56.0] - 2025-02-11
 ### Added
 - Config params for shared local destination
 - AddressBook full addresses cache
@@ -12,8 +12,8 @@
 - Set minimal version for peer test to 0.9.62
 - Send ack requested flag after second SSU2 resend attempt
 - Shorter ECIESx25519 ack request interval for datagram and I2CP sessions
-- Don't change datagram routing path too often if unidirectional data stream 
-- Reduce LeaseSet and local RouterInfo publishing confimation intervals
+- Don't change datagram routing path too often if unidirectional data stream
+- Reduce LeaseSet and local RouterInfo publishing confirmation intervals
 - Don't delete buffer of connected routers or if an update received
 - Smaller RouterInfo request timeout if sent directly
 - Persist local RouterInfo in separate thread
@@ -85,12 +85,12 @@
 - Handle i2cp.inboundlimit and i2cp.outboundlimit params in I2CP
 - Publish LeaseSet with new timestamp update if tunnel was replaced in the same second
 - Increase max number of generated tags to 800 per tagset
-- Routing path expiration by time instead num attempts 
+- Routing path expiration by time instead num attempts
 - Save timestamp from epoch instead local time to profiles
 - Update introducer's iTag if session to introducer was replaced to new one
 - RTT, window size and number of NACKs calculation for streaming
 - Don't select same peer for tunnel too often
-- Use WinApi for data path UTF-8 conversion for Windows 
+- Use WinApi for data path UTF-8 conversion for Windows
 ### Fixed
 - Jump link crash if address book is disabled
 - Race condition if connect through an introducer
