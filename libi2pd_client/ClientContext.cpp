@@ -297,7 +297,7 @@ namespace client
 		}
 		else
 		{
-			LogPrint (eLogCritical, "Clients: Can't open file ", fullPath, " Creating new one with signature type ", sigType, " crypto type ", cryptoType);
+			LogPrint (eLogInfo, "Clients: Can't open file ", fullPath, " Creating new one with signature type ", sigType, " crypto type ", cryptoType);
 			keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType, true);
 			std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
 			size_t len = keys.GetFullLen ();
@@ -871,7 +871,7 @@ namespace client
 
 				}
 				else
-					LogPrint (eLogWarning, "Clients: Unknown section type = ", type, " of ", name, " in ", tunConf);
+					LogPrint (eLogError, "Clients: Unknown section type = ", type, " of ", name, " in ", tunConf);
 			}
 			catch (std::exception& ex)
 			{
