@@ -1251,18 +1251,21 @@ namespace transport
 		}
 		uint64_t token;
 		RAND_bytes ((uint8_t *)&token, 8);
-		m_IncomingTokens.emplace (ep, std::make_pair (token, uint32_t(ts + SSU2_TOKEN_EXPIRATION_TIMEOUT)));
+		if (!token) token = 1; // token can't be zero
+		m_IncomingTokens.try_emplace (ep, token, uint32_t(ts + SSU2_TOKEN_EXPIRATION_TIMEOUT));
 		return token;
 	}
 
 	std::pair<uint64_t, uint32_t> SSU2Server::NewIncomingToken (const boost::asio::ip::udp::endpoint& ep)
 	{
-		m_IncomingTokens.erase (ep); // drop previous
 		uint64_t token;
 		RAND_bytes ((uint8_t *)&token, 8);
-		auto ret = std::make_pair (token, uint32_t(i2p::util::GetSecondsSinceEpoch () + SSU2_NEXT_TOKEN_EXPIRATION_TIMEOUT));
-		m_IncomingTokens.emplace (ep, ret);
-		return ret;
+		if (!token) token = 1; // token can't be zero
+		uint32_t expires = i2p::util::GetSecondsSinceEpoch () + SSU2_NEXT_TOKEN_EXPIRATION_TIMEOUT;
+		auto [it, inserted] = m_IncomingTokens.try_emplace (ep, token, expires);
+		if (!inserted)
+			it->second = { token, expires }; // override
+		return it->second;
 	}
 
 	std::vector<std::shared_ptr<SSU2Session> > SSU2Server::FindIntroducers (int maxNumIntroducers,
