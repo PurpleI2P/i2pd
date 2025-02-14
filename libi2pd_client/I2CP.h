@@ -31,6 +31,7 @@ namespace client
 	const size_t I2CP_MAX_MESSAGE_LENGTH = 65535;
 	const size_t I2CP_MAX_SEND_QUEUE_SIZE = 1024*1024; // in bytes, 1M
 	const int I2CP_LEASESET_CREATION_TIMEOUT = 10; // in seconds
+	const int I2CP_DESTINATION_READINESS_CHECK_INTERVAL = 5; // in seconds
 	const int I2CP_SESSION_ACK_REQUEST_INTERVAL = 12100; // in milliseconds
 
 	const size_t I2CP_HEADER_LENGTH_OFFSET = 0;
@@ -131,7 +132,7 @@ namespace client
 			uint8_t m_ECIESx25519PrivateKey[32];
 			uint64_t m_LeaseSetExpirationTime;
 			bool m_IsCreatingLeaseSet, m_IsSameThread;
-			boost::asio::deadline_timer m_LeaseSetCreationTimer;
+			boost::asio::deadline_timer m_LeaseSetCreationTimer, m_ReadinessCheckTimer;
 			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_MAX_MESSAGE_SIZE> > m_I2NPMsgsPool;
 	};
 

@@ -29,13 +29,15 @@ namespace client
 	    const std::map<std::string, std::string>& params):
 		LeaseSetDestination (service, isPublic, &params),
 		m_Owner (owner), m_Identity (identity), m_EncryptionKeyType (m_Identity->GetCryptoKeyType ()),
-		m_IsCreatingLeaseSet (false), m_IsSameThread (isSameThread), m_LeaseSetCreationTimer (service)
+		m_IsCreatingLeaseSet (false), m_IsSameThread (isSameThread), 
+		m_LeaseSetCreationTimer (service), m_ReadinessCheckTimer (service)
 	{
 	}
 
 	void I2CPDestination::Stop ()
 	{
 		m_LeaseSetCreationTimer.cancel ();
+		m_ReadinessCheckTimer.cancel ();
 		LeaseSetDestination::Stop ();
 		m_Owner = nullptr;
 	}
@@ -88,7 +90,7 @@ namespace client
 
 	void I2CPDestination::CreateNewLeaseSet (const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels)
 	{
-		boost::asio::post (GetService (), std::bind (&I2CPDestination::PostCreateNewLeaseSet, this, tunnels));
+		boost::asio::post (GetService (), std::bind (&I2CPDestination::PostCreateNewLeaseSet, GetSharedFromThis (), tunnels));
 	}
 
 	void I2CPDestination::PostCreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels)
@@ -98,6 +100,18 @@ namespace client
 			LogPrint (eLogInfo, "I2CP: LeaseSet is being created");
 			return;
 		}
+		m_ReadinessCheckTimer.cancel ();
+		if (!IsReady ())
+		{
+			// try again later
+			m_ReadinessCheckTimer.expires_from_now (boost::posix_time::seconds(I2CP_DESTINATION_READINESS_CHECK_INTERVAL));
+			m_ReadinessCheckTimer.async_wait(
+				[s=GetSharedFromThis (), tunnels=std::move(tunnels)](const boost::system::error_code& ecode)
+			    {
+					if (ecode != boost::asio::error::operation_aborted)
+						s->PostCreateNewLeaseSet (tunnels);
+				});	
+		}	
 		uint8_t priv[256] = {0};
 		i2p::data::LocalLeaseSet ls (m_Identity, priv, tunnels); // we don't care about encryption key, we need leases only
 		m_LeaseSetExpirationTime = ls.GetExpirationTime ();
