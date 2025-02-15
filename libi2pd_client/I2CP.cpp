@@ -101,7 +101,8 @@ namespace client
 			return;
 		}
 		m_ReadinessCheckTimer.cancel ();
-		if (!IsReady ())
+		auto pool = GetTunnelPool ();
+		if (!pool || pool->GetOutboundTunnels ().empty ())
 		{
 			// try again later
 			m_ReadinessCheckTimer.expires_from_now (boost::posix_time::seconds(I2CP_DESTINATION_READINESS_CHECK_INTERVAL));
@@ -111,6 +112,7 @@ namespace client
 					if (ecode != boost::asio::error::operation_aborted)
 						s->PostCreateNewLeaseSet (tunnels);
 				});	
+			return;
 		}	
 		uint8_t priv[256] = {0};
 		i2p::data::LocalLeaseSet ls (m_Identity, priv, tunnels); // we don't care about encryption key, we need leases only
