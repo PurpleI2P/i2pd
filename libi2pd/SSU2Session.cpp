@@ -2762,7 +2762,7 @@ namespace transport
 	size_t SSU2Session::CreatePaddingBlock (uint8_t * buf, size_t len, size_t minSize)
 	{
 		if (len < 3 || len < minSize) return 0;
-		size_t paddingSize = m_Server.GetRng ()() & 0x0F; // 0 - 15
+		size_t paddingSize = m_Server.GetRng ()() & 0x1F; // 0 - 31
 		if (paddingSize + 3 > len) paddingSize = len - 3;
 		else if (paddingSize + 3 < minSize) paddingSize = minSize - 3;
 		buf[0] = eSSU2BlkPadding;
