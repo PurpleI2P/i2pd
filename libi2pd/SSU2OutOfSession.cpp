@@ -257,7 +257,7 @@ namespace transport
 	{
 		// we are Charlie
 		uint64_t destConnID = htobe64 (((uint64_t)nonce << 32) | nonce); // dest id
-		uint32_t sourceConnID = ~destConnID;
+		uint64_t sourceConnID = ~destConnID;
 		SetSourceConnID (sourceConnID);
 		SetDestConnID (destConnID);	
 		SetState (eSSU2SessionStateHolePunch);
