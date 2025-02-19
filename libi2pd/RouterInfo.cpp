@@ -1498,7 +1498,9 @@ namespace data
 
 	void LocalRouterInfo::SetProperty (std::string_view key, std::string_view value)
 	{
-		m_Properties.emplace (key, value);
+		auto [it, inserted] = m_Properties.emplace (key, value);
+		if (!inserted)
+			it->second = value;
 	}
 
 	void LocalRouterInfo::DeleteProperty (const std::string& key)
