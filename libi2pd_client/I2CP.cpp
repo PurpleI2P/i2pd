@@ -571,7 +571,7 @@ namespace client
 			m_IsSending = false;
 	}
 
-	std::string_view I2CPSession::ExtractString (const uint8_t * buf, size_t len)
+	std::string_view I2CPSession::ExtractString (const uint8_t * buf, size_t len) const
 	{
 		uint8_t l = buf[0];
 		if (l > len) l = len;
@@ -588,7 +588,7 @@ namespace client
 		return l + 1;
 	}
 
-	void I2CPSession::ExtractMapping (const uint8_t * buf, size_t len, std::map<std::string, std::string>& mapping)
+	void I2CPSession::ExtractMapping (const uint8_t * buf, size_t len, std::map<std::string, std::string>& mapping) const
 	// TODO: move to Base.cpp
 	{
 		size_t offset = 0;
