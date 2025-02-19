@@ -339,9 +339,7 @@ namespace data
 			void ReadFromBuffer (bool verifySignature);
 			std::string_view ExtractString (const uint8_t * buf, size_t len) const;
 			std::tuple<std::string_view, std::string_view, size_t> ExtractParam (const uint8_t * buf, size_t len) const;
-			void ExtractCaps (const char * value);
 			void ExtractCaps (std::string_view value);
-			uint8_t ExtractAddressCaps (const char * value) const;
 			uint8_t ExtractAddressCaps (std::string_view value) const;
 			void UpdateIntroducers (std::shared_ptr<Address> address, uint64_t ts); 
 			template<typename Filter>

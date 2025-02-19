@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -11,6 +11,7 @@
 
 #include <map>
 #include <string>
+#include <string_view>
 #include <memory>
 #include <openssl/evp.h>
 #include "Identity.h"
@@ -28,7 +29,7 @@ namespace data
 			~Families ();
 			void LoadCertificates ();
 			bool VerifyFamily (const std::string& family, const IdentHash& ident,
-				const char * signature, const char * key = nullptr) const;
+				std::string_view signature, const char * key = nullptr) const;
 			FamilyID GetFamilyID (const std::string& family) const;
 
 		private:

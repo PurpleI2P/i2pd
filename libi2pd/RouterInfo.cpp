@@ -213,6 +213,7 @@ namespace data
 		uint8_t numAddresses = buf[offset]; offset++;
 		for (int i = 0; i < numAddresses; i++)
 		{
+			if (offset + 9 > len) return false; // 1 byte cost + 8 bytes date
 			uint8_t supportedTransports = 0;
 			auto address = NewAddress ();
 			offset++; // cost, ignore
@@ -231,6 +232,7 @@ namespace data
 				address->transportStyle = eTransportUnknown;
 			address->caps = 0;
 			address->port = 0;
+			if (offset + 2 > len) return false;
 			uint16_t size = bufbe16toh (buf + offset); offset += 2; // size
 			if (offset + size >= len) return false;
 			if (address->transportStyle == eTransportUnknown)
@@ -434,10 +436,11 @@ namespace data
 		boost::atomic_store (&m_Addresses, addresses);
 #endif
 		// read peers
+		if (offset + 1 > len) return false;
 		uint8_t numPeers = buf[offset]; offset++; // num peers
 		offset += numPeers*32; // TODO: read peers
-		if (offset >= len) return false;
 		// read properties
+		if (offset + 2 > len) return false;
 		m_Version = 0;
 		bool isNetId = false;
 		std::string family;
@@ -499,7 +502,7 @@ namespace data
 			}
 			else if (key == ROUTER_INFO_PROPERTY_FAMILY_SIG)
 			{
-				if (netdb.GetFamilies ().VerifyFamily (family, GetIdentHash (), std::string(value).c_str ())) // TODO
+				if (netdb.GetFamilies ().VerifyFamily (family, GetIdentHash (), value)) // TODO
 					m_FamilyID = netdb.GetFamilies ().GetFamilyID (family);
 				else
 				{	
@@ -520,12 +523,11 @@ namespace data
 		return m_FamilyID == famid;
 	}
 
-	void RouterInfo::ExtractCaps (const char * value)
+	void RouterInfo::ExtractCaps (std::string_view value)
 	{
-		const char * cap = value;
-		while (*cap)
+		for (auto cap: value)
 		{
-			switch (*cap)
+			switch (cap)
 			{
 				case CAPS_FLAG_FLOODFILL:
 					m_Caps |= Caps::eFloodfill;
@@ -534,16 +536,16 @@ namespace data
 				case CAPS_FLAG_LOW_BANDWIDTH2:
 				case CAPS_FLAG_LOW_BANDWIDTH3:
 				case CAPS_FLAG_LOW_BANDWIDTH4:
-					m_BandwidthCap = *cap;
+					m_BandwidthCap = cap;
 				break;
 				case CAPS_FLAG_HIGH_BANDWIDTH:
 					m_Caps |= Caps::eHighBandwidth;
-					m_BandwidthCap = *cap;
+					m_BandwidthCap = cap;
 				break;
 				case CAPS_FLAG_EXTRA_BANDWIDTH1:
 				case CAPS_FLAG_EXTRA_BANDWIDTH2:
 					m_Caps |= Caps::eExtraBandwidth | Caps::eHighBandwidth;
-					m_BandwidthCap = *cap;
+					m_BandwidthCap = cap;
 				break;
 				case CAPS_FLAG_HIDDEN:
 					m_Caps |= Caps::eHidden;
@@ -565,22 +567,15 @@ namespace data
 				break;	
 				default: ;
 			}
-			cap++;
 		}
-	}
-
-	void RouterInfo::ExtractCaps (std::string_view value)
-	{
-		ExtractCaps (std::string (value).c_str ()); // TODO
 	}	
 	
-	uint8_t RouterInfo::ExtractAddressCaps (const char * value) const
+	uint8_t RouterInfo::ExtractAddressCaps (std::string_view value) const
 	{
 		uint8_t caps = 0;
-		const char * cap = value;
-		while (*cap)
+		for (auto cap: value)
 		{
-			switch (*cap)
+			switch (cap)
 			{
 				case CAPS_FLAG_V4:
 					caps |= AddressCaps::eV4;
@@ -596,14 +591,8 @@ namespace data
 				break;
 				default: ;
 			}
-			cap++;
 		}
 		return caps;
-	}
-
-	uint8_t RouterInfo::ExtractAddressCaps (std::string_view value) const
-	{
-		return ExtractAddressCaps (std::string (value).c_str ()); // TODO:
 	}	
 		
 	void RouterInfo::UpdateIntroducers (std::shared_ptr<Address> address, uint64_t ts)
