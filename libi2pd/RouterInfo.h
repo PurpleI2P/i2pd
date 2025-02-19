@@ -11,6 +11,8 @@
 
 #include <inttypes.h>
 #include <string>
+#include <string_view>
+#include <tuple>
 #include <map>
 #include <vector>
 #include <array>
@@ -219,7 +221,7 @@ namespace data
 			std::string GetIdentHashBase64 () const { return GetIdentHash ().ToBase64 (); };
 			uint64_t GetTimestamp () const { return m_Timestamp; };
 			int GetVersion () const { return m_Version; };
-			virtual void SetProperty (const std::string& key, const std::string& value) {};
+			virtual void SetProperty (std::string_view key, std::string_view value) {};
 			virtual void ClearProperties () {};
 			AddressesPtr GetAddresses () const; // should be called for local RI only, otherwise must return shared_ptr
 			std::shared_ptr<const Address> GetNTCP2V4Address () const;
@@ -333,11 +335,14 @@ namespace data
 
 			bool LoadFile (const std::string& fullPath);
 			void ReadFromFile (const std::string& fullPath);
-			void ReadFromStream (std::istream& s);
+			bool ReadFromBuffer (const uint8_t * buf, size_t len); // return false if malformed
 			void ReadFromBuffer (bool verifySignature);
-			size_t ReadString (char* str, size_t len, std::istream& s) const;
+			std::string_view ExtractString (const uint8_t * buf, size_t len) const;
+			std::tuple<std::string_view, std::string_view, size_t> ExtractParam (const uint8_t * buf, size_t len) const;
 			void ExtractCaps (const char * value);
+			void ExtractCaps (std::string_view value);
 			uint8_t ExtractAddressCaps (const char * value) const;
+			uint8_t ExtractAddressCaps (std::string_view value) const;
 			void UpdateIntroducers (std::shared_ptr<Address> address, uint64_t ts); 
 			template<typename Filter>
 			std::shared_ptr<const Address> GetAddress (Filter filter) const;
@@ -379,7 +384,7 @@ namespace data
 			void UpdateCaps (uint8_t caps);
 			bool UpdateCongestion (Congestion c); // returns true if updated
 
-			void SetProperty (const std::string& key, const std::string& value) override;
+			void SetProperty (std::string_view key, std::string_view value) override;
 			void DeleteProperty (const std::string& key);
 			std::string GetProperty (const std::string& key) const;
 			void ClearProperties () override { m_Properties.clear (); };
