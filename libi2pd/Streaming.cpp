@@ -1297,7 +1297,7 @@ namespace stream
 					m_NumPacketsToSend = 1; m_PacingTimeRem = 0;
 				}	
 				m_IsSendTime = true;
-				if (m_WindowIncCounter && (m_WindowSize < MAX_WINDOW_SIZE || m_WindowDropTargetSize) && !m_SendBuffer.IsEmpty () && m_PacingTime > m_MinPacingTime)
+				if (m_WindowIncCounter && (m_WindowSize < MAX_WINDOW_SIZE || m_WindowDropTargetSize) && !m_SendBuffer.IsEmpty () && m_PacingTime > m_MinPacingTime && m_RTT <= m_SlowRTT)
 				{
 					for (int i = 0; i < m_NumPacketsToSend; i++)
 					{
@@ -1307,7 +1307,7 @@ namespace stream
 							{
 								if (m_LastWindowDropSize && (m_LastWindowDropSize >= m_WindowDropTargetSize))
 									m_WindowDropTargetSize += 1 - (1 / ((m_LastWindowDropSize + PREV_SPEED_KEEP_TIME_COEFF) / m_WindowDropTargetSize)); // some magic here
-								else if (m_LastWindowDropSize && (m_LastWindowDropSize < m_WindowSize))
+								else if (m_LastWindowDropSize && (m_LastWindowDropSize < m_WindowDropTargetSize))
 									m_WindowDropTargetSize += (m_WindowDropTargetSize - (m_LastWindowDropSize - PREV_SPEED_KEEP_TIME_COEFF)) / m_WindowDropTargetSize; // some magic here
 								else
 									m_WindowDropTargetSize += (m_WindowDropTargetSize - (1 - PREV_SPEED_KEEP_TIME_COEFF)) / m_WindowDropTargetSize;
@@ -1646,14 +1646,22 @@ namespace stream
 
 	void Stream::ProcessWindowDrop ()
 	{
-		if (m_WindowSize > m_LastWindowDropSize)
-		{
-			m_LastWindowDropSize = (m_LastWindowDropSize + m_WindowSize + m_WindowSizeTail) / 2;
-			if (m_LastWindowDropSize > MAX_WINDOW_SIZE) m_LastWindowDropSize = MAX_WINDOW_SIZE;
-		}
+		if (m_WindowDropTargetSize)
+			m_WindowDropTargetSize = (m_WindowDropTargetSize / 2) * 0.75; // congestion window size and -25% to drain queue
 		else
-			m_LastWindowDropSize = m_WindowSize;
-		m_WindowDropTargetSize = m_LastWindowDropSize - (m_LastWindowDropSize / 4); // -25%;
+		{
+			if (m_WindowSize < m_LastWindowDropSize)
+			{
+				m_LastWindowDropSize = m_WindowSize - (m_LastWindowDropSize - m_WindowSize);
+				if (m_LastWindowDropSize < MIN_WINDOW_SIZE) m_LastWindowDropSize = MIN_WINDOW_SIZE;
+			}
+			else
+			{
+				m_LastWindowDropSize = (m_LastWindowDropSize + m_WindowSize + m_WindowSizeTail) / 2;
+				if (m_LastWindowDropSize > MAX_WINDOW_SIZE) m_LastWindowDropSize = MAX_WINDOW_SIZE;
+			}
+			m_WindowDropTargetSize = m_LastWindowDropSize * 0.75; // -25% to drain queue
+		}
 		if (m_WindowDropTargetSize < MIN_WINDOW_SIZE)
 			m_WindowDropTargetSize = MIN_WINDOW_SIZE;
 		m_WindowIncCounter = 0; // disable window growth
