@@ -191,12 +191,7 @@ namespace transport
 
 	void SSU2PeerTestSession::SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, bool delayed)
 	{
-#if __cplusplus >= 202002L // C++20
 		m_SignedData.assign (signedData, signedData + signedDataLen);
-#else		
-		m_SignedData.resize (signedDataLen);
-		memcpy (m_SignedData.data (), signedData, signedDataLen);
-#endif		
 		if (!delayed)
 			SendPeerTest (msg);
 		// schedule resend for msgs 5 or 6
@@ -313,12 +308,7 @@ namespace transport
 
 	void SSU2HolePunchSession::SendHolePunch (const uint8_t * relayResponseBlock, size_t relayResponseBlockLen)
 	{
-#if __cplusplus >= 202002L // C++20
 		m_RelayResponseBlock.assign (relayResponseBlock, relayResponseBlock + relayResponseBlockLen);
-#else		
-		m_RelayResponseBlock.resize (relayResponseBlockLen);
-		memcpy (m_RelayResponseBlock.data (), relayResponseBlock, relayResponseBlockLen);
-#endif		
 		SendHolePunch ();
 		ScheduleResend ();
 	}	

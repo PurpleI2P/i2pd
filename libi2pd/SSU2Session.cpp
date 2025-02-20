@@ -1965,6 +1965,7 @@ namespace transport
 	void SSU2Session::HandleRelayRequest (const uint8_t * buf, size_t len)
 	{
 		// we are Bob
+		if (len < 9) return;
 		auto mts = i2p::util::GetMillisecondsSinceEpoch ();
 		uint32_t nonce = bufbe32toh (buf + 1); // nonce
 		uint32_t relayTag = bufbe32toh (buf + 5); // relay tag
@@ -1998,7 +1999,7 @@ namespace transport
 			packet->payloadSize = r ? CreateRouterInfoBlock (packet->payload, m_MaxPayloadSize - len - 32, r) : 0;
 			if (!packet->payloadSize && r)
 				session->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
-			packet->payloadSize += CreateRelayIntroBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize, buf + 1, len -1);
+			packet->payloadSize += CreateRelayIntroBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize, buf + 1, len - 1);
 			if (packet->payloadSize < m_MaxPayloadSize)
 				packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
 			uint32_t packetNum = session->SendData (packet->payload, packet->payloadSize);
@@ -2013,6 +2014,7 @@ namespace transport
 	void SSU2Session::HandleRelayIntro (const uint8_t * buf, size_t len, int attempts)
 	{
 		// we are Charlie
+		if (len < 47) return;
 		SSU2RelayResponseCode code = eSSU2RelayResponseCodeAccept;
 		boost::asio::ip::udp::endpoint ep;
 		std::shared_ptr<const i2p::data::RouterInfo::Address> addr;
@@ -2025,6 +2027,11 @@ namespace transport
 			s.Insert (i2p::context.GetIdentHash (), 32); // chash
 			s.Insert (buf + 33, 14); // nonce, relay tag, timestamp, ver, asz
 			uint8_t asz = buf[46];
+			if (asz + 47 + r->GetIdentity ()->GetSignatureLen () > len) 
+			{	
+				LogPrint (eLogWarning, "SSU2: Malformed RelayIntro len=", len);
+				return; 
+			}	
 			s.Insert (buf + 47, asz); // Alice Port, Alice IP
 			if (s.Verify (r->GetIdentity (), buf + 47 + asz))
 			{
@@ -2113,6 +2120,7 @@ namespace transport
 
 	void SSU2Session::HandleRelayResponse (const uint8_t * buf, size_t len)
 	{
+		if (len < 6) return;
 		uint32_t nonce = bufbe32toh (buf + 2);
 		if (m_State == eSSU2SessionStateIntroduced)
 		{
@@ -2133,7 +2141,9 @@ namespace transport
 		auto it = m_RelaySessions.find (nonce);
 		if (it != m_RelaySessions.end ())
 		{
-			if (it->second.first && it->second.first->IsEstablished ())
+			auto relaySession = it->second.first;
+			m_RelaySessions.erase (it);
+			if (relaySession && relaySession->IsEstablished ())
 			{
 				// we are Bob, message from Charlie
 				auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
@@ -2143,12 +2153,12 @@ namespace transport
 				memcpy (payload + 3, buf, len); // forward to Alice as is
 				packet->payloadSize = len + 3;
 				packet->payloadSize += CreatePaddingBlock (payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
-				uint32_t packetNum = it->second.first->SendData (packet->payload, packet->payloadSize);
+				uint32_t packetNum = relaySession->SendData (packet->payload, packet->payloadSize);
 				if (m_RemoteVersion >= SSU2_MIN_RELAY_RESPONSE_RESEND_VERSION)
 				{	
 					// sometimes Alice doesn't ack this RelayResponse in older versions
 					packet->sendTime = i2p::util::GetMillisecondsSinceEpoch ();
-					it->second.first->m_SentPackets.emplace (packetNum, packet);
+					relaySession->m_SentPackets.emplace (packetNum, packet);
 				}	
 			}
 			else
@@ -2157,25 +2167,31 @@ namespace transport
 				if (!buf[1]) // status code accepted?
 				{
 					// verify signature
-					uint8_t csz = buf[11];
+					uint8_t csz = (len >= 12) ? buf[11] : 0;
+					if (csz + 12 + relaySession->GetRemoteIdentity ()->GetSignatureLen () > len)
+					{
+						LogPrint (eLogWarning, "SSU2: Malformed RelayResponse len=", len);
+						relaySession->Done ();
+						return;
+					}	
 					SignedData s;
 					s.Insert ((const uint8_t *)"RelayAgreementOK", 16); // prologue
 					s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
 					s.Insert (buf + 2, 10 + csz); // nonce, timestamp, ver, csz and Charlie's endpoint
-					if (s.Verify (it->second.first->GetRemoteIdentity (), buf + 12 + csz))
+					if (s.Verify (relaySession->GetRemoteIdentity (), buf + 12 + csz))
 					{
-						if (it->second.first->m_State == eSSU2SessionStateIntroduced) // HolePunch not received yet
+						if (relaySession->m_State == eSSU2SessionStateIntroduced) // HolePunch not received yet
 						{
 							// update Charlie's endpoint
-							if (ExtractEndpoint (buf + 12, csz, it->second.first->m_RemoteEndpoint))
+							if (ExtractEndpoint (buf + 12, csz, relaySession->m_RemoteEndpoint))
 							{
 								// update token
 								uint64_t token;
 								memcpy (&token, buf + len - 8, 8);
-								m_Server.UpdateOutgoingToken (it->second.first->m_RemoteEndpoint,
+								m_Server.UpdateOutgoingToken (relaySession->m_RemoteEndpoint,
 									token, i2p::util::GetSecondsSinceEpoch () + SSU2_TOKEN_EXPIRATION_TIMEOUT);
 								// connect to Charlie, HolePunch will be ignored
-								it->second.first->ConnectAfterIntroduction ();
+								relaySession->ConnectAfterIntroduction ();
 							}
 							else
 								LogPrint (eLogWarning, "SSU2: RelayResponse can't extract endpoint");
@@ -2184,16 +2200,15 @@ namespace transport
 					else
 					{
 						LogPrint (eLogWarning, "SSU2: RelayResponse signature verification failed");
-						it->second.first->Done ();
+						relaySession->Done ();
 					}
 				}
 				else
 				{
 					LogPrint (eLogInfo, "SSU2: RelayResponse status code=", (int)buf[1], " nonce=", bufbe32toh (buf + 2));
-					it->second.first->Done ();
+					relaySession->Done ();
 				}
 			}
-			m_RelaySessions.erase (it);
 		}
 		else
 			LogPrint (eLogDebug, "SSU2: RelayResponse unknown nonce ", bufbe32toh (buf + 2));
