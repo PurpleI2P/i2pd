@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -10,7 +10,7 @@
 #define TRANSPORT_SESSION_H__
 
 #include <inttypes.h>
-#include <iostream>
+#include <string.h>
 #include <memory>
 #include <vector>
 #include <mutex>
@@ -28,45 +28,51 @@ namespace transport
 	const size_t IPV6_HEADER_SIZE = 40;
 	const size_t UDP_HEADER_SIZE = 8;
 
+	template<size_t sz>
 	class SignedData
 	{
 		public:
 
-			SignedData () {}
+			SignedData (): m_Size(0) {}
 			SignedData (const SignedData& other)
 			{
-				m_Stream << other.m_Stream.rdbuf ();
+				m_Size = other.Size;
+				memcpy (m_Buf, other.m_Buf, m_Size);
 			}
 
 			void Reset ()
 			{
-				m_Stream.str("");
+				m_Size = 0;
 			}
 
-			void Insert (const uint8_t * buf, size_t len)
+			size_t Insert (const uint8_t * buf, size_t len)
 			{
-				m_Stream.write ((char *)buf, len);
+				if (m_Size + len > sz) len = sz - m_Size;
+				memcpy (m_Buf + m_Size, buf, len); 
+				m_Size += len;
+				return len;
 			}
 
 			template<typename T>
 			void Insert (T t)
 			{
-				m_Stream.write ((char *)&t, sizeof (T));
+				Insert ((const uint8_t *)&t, sizeof (T));
 			}
 
 			bool Verify (std::shared_ptr<const i2p::data::IdentityEx> ident, const uint8_t * signature) const
 			{
-				return ident->Verify ((const uint8_t *)m_Stream.str ().c_str (), m_Stream.str ().size (), signature);
+				return ident->Verify (m_Buf, m_Size, signature);
 			}
 
 			void Sign (const i2p::data::PrivateKeys& keys, uint8_t * signature) const
 			{
-				keys.Sign ((const uint8_t *)m_Stream.str ().c_str (), m_Stream.str ().size (), signature);
+				keys.Sign (m_Buf, m_Size, signature);
 			}
 
 		private:
 
-			std::stringstream m_Stream;
+			uint8_t m_Buf[sz];
+			size_t m_Size;
 	};
 
 	const int64_t TRANSPORT_SESSION_SLOWNESS_THRESHOLD = 500; // in milliseconds

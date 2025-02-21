@@ -189,7 +189,7 @@ namespace transport
 		if (!asz) return false;
 		payload[17] = asz;
 		packet->payloadSize = asz + 18;
-		SignedData s;
+		SignedData<128> s;
 		s.Insert ((const uint8_t *)"RelayRequestData", 16); // prologue
 		s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
 		s.Insert (session->GetRemoteIdentity ()->GetIdentHash (), 32); // chash
@@ -2021,7 +2021,7 @@ namespace transport
 		auto r = i2p::data::netdb.FindRouter (buf + 1); // Alice
 		if (r)
 		{
-			SignedData s;
+			SignedData<128> s;
 			s.Insert ((const uint8_t *)"RelayRequestData", 16); // prologue
 			s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
 			s.Insert (i2p::context.GetIdentHash (), 32); // chash
@@ -2174,7 +2174,7 @@ namespace transport
 						relaySession->Done ();
 						return;
 					}	
-					SignedData s;
+					SignedData<128> s;
 					s.Insert ((const uint8_t *)"RelayAgreementOK", 16); // prologue
 					s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
 					s.Insert (buf + 2, 10 + csz); // nonce, timestamp, ver, csz and Charlie's endpoint
@@ -2280,7 +2280,7 @@ namespace transport
 				uint8_t asz = buf[offset + 9];
 				std::vector<uint8_t> newSignedData (asz + 10 + i2p::context.GetIdentity ()->GetSignatureLen ());
 				memcpy (newSignedData.data (), buf + offset, asz + 10);
-				SignedData s;
+				SignedData<128> s;
 				s.Insert ((const uint8_t *)"PeerTestValidate", 16); // prologue
 				s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
 				s.Insert (buf + 3, 32); // ahash
@@ -2391,7 +2391,7 @@ namespace transport
 						if (r)
 						{
 							uint8_t asz = buf[offset + 9];
-							SignedData s;
+							SignedData<128> s;
 							s.Insert ((const uint8_t *)"PeerTestValidate", 16); // prologue
 							s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
 							s.Insert (i2p::context.GetIdentity ()->GetIdentHash (), 32); // ahash
@@ -2879,7 +2879,7 @@ namespace transport
 			LogPrint (eLogError, "SSU2: Buffer for RelayResponse signature is too small ", len);
 			return 0;
 		}
-		SignedData s;
+		SignedData<128> s;
 		s.Insert ((const uint8_t *)"RelayAgreementOK", 16); // prologue
 		if (code == eSSU2RelayResponseCodeAccept || code >= 64) // Charlie
 			s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
@@ -2941,7 +2941,7 @@ namespace transport
 		size_t asz = CreateEndpoint (signedData + 10, 86, boost::asio::ip::udp::endpoint (localAddress->host, localAddress->port));
 		signedData[9] = asz;
 		// signature
-		SignedData s;
+		SignedData<128> s;
 		s.Insert ((const uint8_t *)"PeerTestValidate", 16); // prologue
 		s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
 		s.Insert (signedData, 10 + asz); // ver, nonce, ts, asz, Alice's endpoint
