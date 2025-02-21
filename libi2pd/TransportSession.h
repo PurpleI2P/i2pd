@@ -36,7 +36,7 @@ namespace transport
 			SignedData (): m_Size(0) {}
 			SignedData (const SignedData& other)
 			{
-				m_Size = other.Size;
+				m_Size = other.m_Size;
 				memcpy (m_Buf, other.m_Buf, m_Size);
 			}
 
