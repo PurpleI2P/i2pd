@@ -12,7 +12,6 @@
 #include <fstream>
 #include <memory>
 #include <charconv>
-#include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp> // for boost::to_lower
 #ifndef __cpp_lib_atomic_shared_ptr
 #include <boost/atomic.hpp>
@@ -263,27 +262,17 @@ namespace data
 				}
 				else if (key == "port")
 				{
-					try
-					{
-						address->port = boost::lexical_cast<int>(value);
-					}
-					catch (std::exception& ex)
-					{
-						LogPrint (eLogWarning, "RouterInfo: 'port' exception ", ex.what ());
-					}
+					auto res = std::from_chars(value.data(), value.data() + value.size(), address->port);
+					if (res.ec != std::errc())
+						LogPrint (eLogWarning, "RouterInfo: 'port' conversion error: ", std::make_error_code (res.ec).message ());
 				}
 				else if (key == "mtu")
 				{
 					if (address->ssu)
 					{
-						try
-						{
-							address->ssu->mtu = boost::lexical_cast<int>(value);
-						}
-						catch (std::exception& ex)
-						{
-							LogPrint (eLogWarning, "RouterInfo: 'mtu' exception ", ex.what ());
-						}
+						auto res = std::from_chars(value.data(), value.data() + value.size(), address->ssu->mtu);
+						if (res.ec != std::errc())
+							LogPrint (eLogWarning, "RouterInfo: 'mtu' conversion error: ", std::make_error_code (res.ec).message ());
 					}
 					else
 						LogPrint (eLogWarning, "RouterInfo: Unexpected field 'mtu' for NTCP2");
@@ -349,27 +338,17 @@ namespace data
 					auto key1 = key.substr(0, key.length () - 1);
 					if (key1 == "itag")
 					{
-						try
-						{
-							introducer.iTag = boost::lexical_cast<uint32_t>(value);
-						}
-						catch (std::exception& ex)
-						{
-							LogPrint (eLogWarning, "RouterInfo: 'itag' exception ", ex.what ());
-						}
+						auto res = std::from_chars(value.data(), value.data() + value.size(), introducer.iTag);
+						if (res.ec != std::errc())
+							LogPrint (eLogWarning, "RouterInfo: 'itag' conversion error: ", std::make_error_code (res.ec).message ());
 					}
 					else if (key1 == "ih")
 						Base64ToByteStream (value.data (), value.length (), introducer.iH, 32);
 					else if (key1 == "iexp")
 					{
-						try
-						{
-							introducer.iExp = boost::lexical_cast<uint32_t>(value);
-						}
-						catch (std::exception& ex)
-						{
-							LogPrint (eLogWarning, "RouterInfo: 'iexp' exception ", ex.what ());
-						}
+						auto res = std::from_chars(value.data(), value.data() + value.size(), introducer.iExp);
+						if (res.ec != std::errc())
+							LogPrint (eLogWarning, "RouterInfo: 'iexp' conversion error: ", std::make_error_code (res.ec).message ());
 					}
 				}
 			}	
@@ -1402,9 +1381,9 @@ namespace data
 						if (!introducer.iTag) continue;
 						if (introducer.iExp) // expiration is specified
 						{
-							WriteString ("iexp" + boost::lexical_cast<std::string>(i), properties);
+							WriteString ("iexp" + std::to_string(i), properties);
 							properties << '=';
-							WriteString (boost::lexical_cast<std::string>(introducer.iExp), properties);
+							WriteString (std::to_string(introducer.iExp), properties);
 							properties << ';';
 						}
 						i++;
@@ -1413,7 +1392,7 @@ namespace data
 					for (const auto& introducer: address.ssu->introducers)
 					{
 						if (!introducer.iTag) continue;
-						WriteString ("ih" + boost::lexical_cast<std::string>(i), properties);
+						WriteString ("ih" + std::to_string(i), properties);
 						properties << '=';
 						char value[64];
 						size_t l = ByteStreamToBase64 (introducer.iH, 32, value, 64);
@@ -1426,9 +1405,9 @@ namespace data
 					for (const auto& introducer: address.ssu->introducers)
 					{
 						if (!introducer.iTag) continue;
-						WriteString ("itag" + boost::lexical_cast<std::string>(i), properties);
+						WriteString ("itag" + std::to_string(i), properties);
 						properties << '=';
-						WriteString (boost::lexical_cast<std::string>(introducer.iTag), properties);
+						WriteString (std::to_string(introducer.iTag), properties);
 						properties << ';';
 						i++;
 					}
@@ -1442,7 +1421,7 @@ namespace data
 				{
 					WriteString ("mtu", properties);
 					properties << '=';
-					WriteString (boost::lexical_cast<std::string>(address.ssu->mtu), properties);
+					WriteString (std::to_string(address.ssu->mtu), properties);
 					properties << ';';
 				}
 			}
@@ -1450,7 +1429,7 @@ namespace data
 			{
 				WriteString ("port", properties);
 				properties << '=';
-				WriteString (boost::lexical_cast<std::string>(address.port), properties);
+				WriteString (std::to_string(address.port), properties);
 				properties << ';';
 			}
 			if (address.IsNTCP2 () || address.IsSSU2 ())
