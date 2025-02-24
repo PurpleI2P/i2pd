@@ -2277,8 +2277,11 @@ namespace transport
 			case 2: // Charlie from Bob
 			{
 				// sign with Charlie's key
+				if (len < offset + 9) return;
 				uint8_t asz = buf[offset + 9];
-				std::vector<uint8_t> newSignedData (asz + 10 + i2p::context.GetIdentity ()->GetSignatureLen ());
+				size_t l = asz + 10 + i2p::context.GetIdentity ()->GetSignatureLen ();
+				if (len < offset + l) return;
+				std::vector<uint8_t> newSignedData (l);
 				memcpy (newSignedData.data (), buf + offset, asz + 10);
 				SignedData<128> s;
 				s.Insert ((const uint8_t *)"PeerTestValidate", 16); // prologue
@@ -2388,9 +2391,15 @@ namespace transport
 						if (GetRouterStatus () == eRouterStatusUnknown)
 							SetTestingState (true);
 						auto r = i2p::data::netdb.FindRouter (buf + 3); // find Charlie
-						if (r)
+						if (r && len >= offset + 9)
 						{
 							uint8_t asz = buf[offset + 9];
+							if (len < offset + asz + 10 + r->GetIdentity ()->GetSignatureLen ())
+							{
+								LogPrint (eLogWarning, "Malformed PeerTest 4 len=", len);
+								session->Done ();
+								return;
+							}	
 							SignedData<128> s;
 							s.Insert ((const uint8_t *)"PeerTestValidate", 16); // prologue
 							s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
