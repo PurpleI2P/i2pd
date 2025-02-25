@@ -675,12 +675,12 @@ namespace i2p
 
 	void RouterContext::SetBandwidth (int limit)
 	{
-		if      (limit > 2000) { SetBandwidth('X'); }
-		else if (limit >  256) { SetBandwidth('P'); }
-		else if (limit >  128) { SetBandwidth('O'); }
-		else if (limit >   64) { SetBandwidth('N'); }
-		else if (limit >   48) { SetBandwidth('M'); }
-		else if (limit >   12) { SetBandwidth('L'); }
+		if      (limit > (int)i2p::data::EXTRA_BANDWIDTH_LIMIT) { SetBandwidth('X'); }
+		else if (limit > (int)i2p::data::HIGH_BANDWIDTH_LIMIT) { SetBandwidth('P'); }
+		else if (limit > 128) { SetBandwidth('O'); }
+		else if (limit > 64) { SetBandwidth('N'); }
+		else if (limit > (int)i2p::data::LOW_BANDWIDTH_LIMIT) { SetBandwidth('M'); }
+		else if (limit > 12) { SetBandwidth('L'); }
 		else                   { SetBandwidth('K'); }
 		m_BandwidthLimit = limit; // set precise limit
 	}
