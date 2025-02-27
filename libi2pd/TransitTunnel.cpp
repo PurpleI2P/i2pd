@@ -131,27 +131,35 @@ namespace tunnel
 
 		LogPrint (eLogDebug, "TransitTunnel: handle msg for endpoint ", GetTunnelID ());
 		std::lock_guard<std::mutex> l(m_HandleMutex);
-		m_Endpoint.HandleDecryptedTunnelDataMsg (newMsg);
+		if (!m_Endpoint) m_Endpoint = std::make_unique<TunnelEndpoint>(false); // transit endpoint is always outbound
+		m_Endpoint->HandleDecryptedTunnelDataMsg (newMsg);
 	}
 
 	void TransitTunnelEndpoint::FlushTunnelDataMsgs ()
 	{
-		std::lock_guard<std::mutex> l(m_HandleMutex);
-		m_Endpoint.FlushI2NPMsgs ();
+		if (m_Endpoint)
+		{
+			std::lock_guard<std::mutex> l(m_HandleMutex);
+			m_Endpoint->FlushI2NPMsgs ();
+		}	
 	}	
 
 	void TransitTunnelEndpoint::Cleanup ()
 	{ 
-		std::lock_guard<std::mutex> l(m_HandleMutex);
-		m_Endpoint.Cleanup ();
+		if (m_Endpoint)
+		{	
+			std::lock_guard<std::mutex> l(m_HandleMutex);
+			m_Endpoint->Cleanup ();
+		}	
 	}	
 		
 	std::string TransitTunnelEndpoint::GetNextPeerName () const
 	{ 
-		auto hash = m_Endpoint.GetCurrentHash ();
+		if (!m_Endpoint) return "";
+		auto hash = m_Endpoint->GetCurrentHash ();
 		if (hash)
 		{	
-			const auto& sender = m_Endpoint.GetSender ();
+			const auto& sender = m_Endpoint->GetSender ();
 			if (sender)
 			{
 				auto transport = sender->GetCurrentTransport ();

@@ -97,20 +97,19 @@ namespace tunnel
 			TransitTunnelEndpoint (uint32_t receiveTunnelID,
 				const i2p::data::IdentHash& nextIdent, uint32_t nextTunnelID,
 				const i2p::crypto::AESKey& layerKey, const i2p::crypto::AESKey& ivKey):
-				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey),
-				m_Endpoint (false) {}; // transit endpoint is always outbound
+				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey) {}; 
 
 			void Cleanup () override;
 		
 			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg) override;
 			void FlushTunnelDataMsgs () override;
-			size_t GetNumTransmittedBytes () const override { return m_Endpoint.GetNumReceivedBytes (); }
+			size_t GetNumTransmittedBytes () const override { return m_Endpoint ? m_Endpoint->GetNumReceivedBytes () : 0; }
 			std::string GetNextPeerName () const override;
 			
 		private:
 
 			std::mutex m_HandleMutex;
-			TunnelEndpoint m_Endpoint;
+			std::unique_ptr<TunnelEndpoint> m_Endpoint;
 	};
 
 	std::shared_ptr<TransitTunnel> CreateTransitTunnel (uint32_t receiveTunnelID,
