@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -27,7 +27,7 @@ namespace i2p
 {
 namespace client
 {
-	const size_t I2P_TUNNEL_CONNECTION_BUFFER_SIZE = 65536;
+	const size_t I2P_TUNNEL_CONNECTION_BUFFER_SIZE = 16384;
 	const int I2P_TUNNEL_CONNECTION_MAX_IDLE = 3600; // in seconds
 	const int I2P_TUNNEL_DESTINATION_REQUEST_TIMEOUT = 10; // in seconds
 	// for HTTP tunnels
