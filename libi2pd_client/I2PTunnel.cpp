@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -32,8 +32,7 @@ namespace client
 
 	I2PTunnelConnection::I2PTunnelConnection (I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
 		std::shared_ptr<const i2p::data::LeaseSet> leaseSet, uint16_t port):
-		I2PServiceHandler(owner), m_Socket (socket), m_RemoteEndpoint (socket->remote_endpoint ()),
-		m_IsQuiet (true)
+		I2PServiceHandler(owner), m_Socket (socket), m_RemoteEndpoint (socket->remote_endpoint ())
 	{
 		m_Stream = GetOwner()->GetLocalDestination ()->CreateStream (leaseSet, port);
 	}
@@ -41,14 +40,13 @@ namespace client
 	I2PTunnelConnection::I2PTunnelConnection (I2PService * owner,
 		std::shared_ptr<boost::asio::ip::tcp::socket> socket, std::shared_ptr<i2p::stream::Stream> stream):
 		I2PServiceHandler(owner), m_Socket (socket), m_Stream (stream),
-		m_RemoteEndpoint (socket->remote_endpoint ()), m_IsQuiet (true)
+		m_RemoteEndpoint (socket->remote_endpoint ())
 	{
 	}
 
 	I2PTunnelConnection::I2PTunnelConnection (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
-		const boost::asio::ip::tcp::endpoint& target, bool quiet,
-	    std::shared_ptr<boost::asio::ssl::context> sslCtx):
-		I2PServiceHandler(owner), m_Stream (stream), m_RemoteEndpoint (target), m_IsQuiet (quiet)
+		const boost::asio::ip::tcp::endpoint& target,std::shared_ptr<boost::asio::ssl::context> sslCtx):
+		I2PServiceHandler(owner), m_Stream (stream), m_RemoteEndpoint (target)
 	{
 		m_Socket = std::make_shared<boost::asio::ip::tcp::socket> (owner->GetService ());
 		if (sslCtx)
@@ -292,18 +290,7 @@ namespace client
 
 	void I2PTunnelConnection::Established ()
 	{
-		if (m_IsQuiet)
-			StreamReceive ();
-		else
-		{
-			// send destination first like received from I2P
-			std::string dest = m_Stream->GetRemoteIdentity ()->ToBase64 ();
-			dest += "\n";
-			if(sizeof(m_StreamBuffer) >= dest.size()) {
-				memcpy (m_StreamBuffer, dest.c_str (), dest.size ());
-			}
-			HandleStreamReceive (boost::system::error_code (), dest.size ());
-		}
+		StreamReceive ();
 		Receive ();
 	}
 
@@ -377,7 +364,7 @@ namespace client
 	I2PServerTunnelConnectionHTTP::I2PServerTunnelConnectionHTTP (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
 		const boost::asio::ip::tcp::endpoint& target, const std::string& host, const std::string& XI2P,
 	    std::shared_ptr<boost::asio::ssl::context> sslCtx):
-		I2PTunnelConnection (owner, stream, target, true, sslCtx), m_Host (host), m_XI2P (XI2P),
+		I2PTunnelConnection (owner, stream, target, sslCtx), m_Host (host), m_XI2P (XI2P),
 		m_HeaderSent (false), m_ResponseHeaderSent (false)
 	{
 		if (sslCtx)
@@ -528,7 +515,7 @@ namespace client
 	I2PTunnelConnectionIRC::I2PTunnelConnectionIRC (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
 		const boost::asio::ip::tcp::endpoint& target, const std::string& webircpass,
 	    std::shared_ptr<boost::asio::ssl::context> sslCtx):
-		I2PTunnelConnection (owner, stream, target, true, sslCtx), m_From (stream->GetRemoteIdentity ()),
+		I2PTunnelConnection (owner, stream, target, sslCtx), m_From (stream->GetRemoteIdentity ()),
 		m_NeedsWebIrc (webircpass.length() ? true : false), m_WebircPass (webircpass)
 	{
 	}
@@ -857,7 +844,7 @@ namespace client
 
 	std::shared_ptr<I2PTunnelConnection> I2PServerTunnel::CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream)
 	{
-		return std::make_shared<I2PTunnelConnection> (this, stream, GetEndpoint (), true, m_SSLCtx);
+		return std::make_shared<I2PTunnelConnection> (this, stream, GetEndpoint (), m_SSLCtx);
 
 	}
 

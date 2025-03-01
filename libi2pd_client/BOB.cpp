@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -16,6 +16,24 @@ namespace i2p
 {
 namespace client
 {
+	void BOBI2PTunnelIncomingConnection::Established ()
+	{
+		if (m_IsQuiet)
+			StreamReceive ();
+		else
+		{
+			// send destination first like received from I2P
+			std::string dest = GetStream ()->GetRemoteIdentity ()->ToBase64 ();
+			dest += "\n";
+			if (dest.size() <= I2P_TUNNEL_CONNECTION_BUFFER_SIZE)
+				memcpy (GetStreamBuffer (), dest.c_str (), dest.size ());
+			else
+				memset (GetStreamBuffer (), 0, I2P_TUNNEL_CONNECTION_BUFFER_SIZE);
+			HandleStreamReceive (boost::system::error_code (), dest.size ());
+		}
+		Receive ();
+	}	
+	
 	BOBI2PInboundTunnel::BOBI2PInboundTunnel (const boost::asio::ip::tcp::endpoint& ep, std::shared_ptr<ClientDestination> localDestination):
 		BOBI2PTunnel (localDestination), m_Acceptor (localDestination->GetService (), ep)
 	{
@@ -156,7 +174,7 @@ namespace client
 	{
 		if (stream)
 		{
-			auto conn = std::make_shared<I2PTunnelConnection> (this, stream, m_Endpoint, m_IsQuiet);
+			auto conn = std::make_shared<BOBI2PTunnelIncomingConnection> (this, stream, m_Endpoint, m_IsQuiet);
 			AddHandler (conn);
 			conn->Connect ();
 		}

@@ -45,7 +45,7 @@ namespace client
 			I2PTunnelConnection (I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
 				std::shared_ptr<i2p::stream::Stream> stream); // to I2P using simplified API
 			I2PTunnelConnection (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
-				const boost::asio::ip::tcp::endpoint& target, bool quiet = true,
+				const boost::asio::ip::tcp::endpoint& target,
 			    std::shared_ptr<boost::asio::ssl::context> sslCtx = nullptr); // from I2P
 			~I2PTunnelConnection ();
 			void I2PConnect (const uint8_t * msg = nullptr, size_t len = 0);
@@ -54,25 +54,27 @@ namespace client
 
 		protected:
 
+			virtual void Established ();
 			void Terminate ();
 
 			void Receive ();
 			void StreamReceive ();
+			void HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			virtual void Write (const uint8_t * buf, size_t len); // can be overloaded
 			virtual void WriteToStream (const uint8_t * buf, size_t len); // can be overloaded
 
 			std::shared_ptr<boost::asio::ip::tcp::socket> GetSocket () const { return m_Socket; };
+			std::shared_ptr<i2p::stream::Stream> GetStream () const { return m_Stream; };
 			std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket&> > GetSSL () const { return m_SSL; };
-
+			uint8_t * GetStreamBuffer () { return m_StreamBuffer; };
+		
 		private:
 
 			void HandleConnect (const boost::system::error_code& ecode);
 			void HandleHandshake (const boost::system::error_code& ecode);
-			void Established ();
 			void HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleWrite (const boost::system::error_code& ecode);
-			void HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-
+			
 		private:
 
 			uint8_t m_Buffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE], m_StreamBuffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE];
@@ -80,7 +82,6 @@ namespace client
 			std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket&> > m_SSL;
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
 			boost::asio::ip::tcp::endpoint m_RemoteEndpoint;
-			bool m_IsQuiet; // don't send destination
 	};
 
 	class I2PClientTunnelConnectionHTTP: public I2PTunnelConnection
@@ -94,7 +95,7 @@ namespace client
 
 		protected:
 
-			void Write (const uint8_t * buf, size_t len);
+			void Write (const uint8_t * buf, size_t len) override;
 
 		private:
 
@@ -112,8 +113,8 @@ namespace client
 
 		protected:
 
-			void Write (const uint8_t * buf, size_t len);
-			void WriteToStream (const uint8_t * buf, size_t len);
+			void Write (const uint8_t * buf, size_t len) override;
+			void WriteToStream (const uint8_t * buf, size_t len) override;
 
 		private:
 
@@ -132,7 +133,7 @@ namespace client
 
 		protected:
 
-			void Write (const uint8_t * buf, size_t len);
+			void Write (const uint8_t * buf, size_t len) override;
 
 		private:
 
