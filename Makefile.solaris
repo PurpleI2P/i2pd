@@ -1,0 +1,9 @@
+CXX = g++
+INCFLAGS = -I/usr/openssl/3/include
+CXXFLAGS := -Wall -std=c++20
+LDLIBS = -L/usr/openssl/3/lib/64 -lssl -lcrypto -lboost_program_options -lz -lpthread -lsocket
+
+ifeq ($(USE_UPNP),yes)
+	DEFINES += -DUSE_UPNP
+	LDLIBS += -lminiupnpc
+endif
