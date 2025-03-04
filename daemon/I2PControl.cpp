@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -15,7 +15,6 @@
 // Use global placeholders from boost introduced when local_time.hpp is loaded
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/property_tree/json_parser.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include "FS.h"
 #include "Log.h"
@@ -30,7 +29,7 @@ namespace i2p
 namespace client
 {
 	I2PControlService::I2PControlService (const std::string& address, int port):
-		m_IsRunning (false), m_Thread (nullptr),
+		m_IsRunning (false),
 		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::make_address(address), port)),
 		m_SSLContext (boost::asio::ssl::context::sslv23),
 		m_ShutdownTimer (m_Service)
@@ -98,7 +97,7 @@ namespace client
 		{
 			Accept ();
 			m_IsRunning = true;
-			m_Thread = new std::thread (std::bind (&I2PControlService::Run, this));
+			m_Thread = std::make_unique<std::thread>(std::bind (&I2PControlService::Run, this));
 		}
 	}
 
@@ -112,7 +111,6 @@ namespace client
 			if (m_Thread)
 			{
 				m_Thread->join ();
-				delete m_Thread;
 				m_Thread = nullptr;
 			}
 		}
@@ -267,7 +265,7 @@ namespace client
 			std::ostringstream header;
 			header << "HTTP/1.1 200 OK\r\n";
 			header << "Connection: close\r\n";
-			header << "Content-Length: " << boost::lexical_cast<std::string>(len) << "\r\n";
+			header << "Content-Length: " << std::to_string(len) << "\r\n";
 			header << "Content-Type: application/json\r\n";
 			header << "Date: ";
 			std::time_t t = std::time (nullptr);

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -86,7 +86,7 @@ namespace client
 
 			std::string m_Password;
 			bool m_IsRunning;
-			std::thread * m_Thread;
+			std::unique_ptr<std::thread> m_Thread;
 
 			boost::asio::io_context m_Service;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
