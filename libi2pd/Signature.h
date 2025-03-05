@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -303,14 +303,28 @@ namespace crypto
 
 		private:
 
-#if OPENSSL_EDDSA
+#if OPENSSL_EDDSA	
+			
 			EVP_PKEY * m_Pkey;
+			
+		protected:
+
+			EVP_PKEY * GetPkey () const { return m_Pkey; };
 #else
 			EDDSAPoint m_PublicKey;
 			uint8_t m_PublicKeyEncoded[EDDSA25519_PUBLIC_KEY_LENGTH];
 #endif
 	};
 
+#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+	class EDDSA25519phVerifier: public EDDSA25519Verifier
+	{
+		public:
+
+			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
+	};
+#endif	
+	
 	class EDDSA25519SignerCompat: public Signer
 	{
 		public:
@@ -339,6 +353,10 @@ namespace crypto
 
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
 
+		protected:
+
+			EVP_PKEY * GetPkey () const { return m_Pkey; };
+			
 		private:
 
 			EVP_PKEY * m_Pkey;
@@ -350,6 +368,18 @@ namespace crypto
 
 #endif
 
+#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+	class EDDSA25519phSigner: public EDDSA25519Signer
+	{
+		public:
+
+			EDDSA25519phSigner (const uint8_t * signingPrivateKey);
+		
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
+	};
+	
+#endif	
+	
 	inline void CreateEDDSA25519RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
 	{
 #if OPENSSL_EDDSA

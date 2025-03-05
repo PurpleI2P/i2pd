@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -149,5 +149,56 @@ namespace crypto
 			LogPrint (eLogError, "EdDSA signing key is not set");
 	}
 #endif
+
+#if (OPENSSL_VERSION_NUMBER >= 0x030000000)
+	static const OSSL_PARAM EDDSA25519phParams[] =
+	{
+		OSSL_PARAM_utf8_string ("instance", (char *)"Ed25519ph", 9),
+		OSSL_PARAM_END
+	};
+		
+	bool EDDSA25519phVerifier::Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
+	{
+		auto pkey = GetPkey ();
+		if (pkey)
+		{	
+			uint8_t digest[64];
+			SHA512 (buf, len, digest);
+			EVP_MD_CTX * ctx = EVP_MD_CTX_create ();
+			EVP_DigestVerifyInit_ex (ctx, NULL, NULL, NULL, NULL, pkey, EDDSA25519phParams);
+			auto ret = EVP_DigestVerify (ctx, signature, 64, digest, 64);
+			EVP_MD_CTX_destroy (ctx);	
+			return ret;	
+		}	
+		else
+			LogPrint (eLogError, "EdDSA verification key is not set");
+		return false;
+	}
+
+	EDDSA25519phSigner::EDDSA25519phSigner (const uint8_t * signingPrivateKey): 
+		EDDSA25519Signer (signingPrivateKey)
+	{		
+	}
+		
+	void EDDSA25519phSigner::Sign (const uint8_t * buf, int len, uint8_t * signature) const
+	{
+		auto pkey = GetPkey ();
+		if (pkey)
+		{	
+			uint8_t digest[64];
+			SHA512 (buf, len, digest);
+			EVP_MD_CTX * ctx = EVP_MD_CTX_create ();
+			size_t l = 64;
+			uint8_t sig[64];
+			EVP_DigestSignInit_ex (ctx, NULL, NULL, NULL, NULL, pkey, EDDSA25519phParams);
+			if (!EVP_DigestSign (ctx, sig, &l, digest, 64))
+				LogPrint (eLogError, "EdDSA signing failed");
+			memcpy (signature, sig, 64);
+			EVP_MD_CTX_destroy (ctx);
+		}
+		else
+			LogPrint (eLogError, "EdDSA signing key is not set");
+	}		
+#endif		
 }
 }
