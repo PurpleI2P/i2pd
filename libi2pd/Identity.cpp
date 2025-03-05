@@ -399,11 +399,7 @@ namespace data
 				return std::make_shared<i2p::crypto::ECIESX25519AEADRatchetEncryptor>(key);
 			break;
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
-			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC_TEST:
 				return std::make_shared<i2p::crypto::ECIESP256Encryptor>(key);
-			break;
-			case CRYPTO_KEY_TYPE_ECIES_GOSTR3410_CRYPTO_PRO_A_SHA256_AES256CBC:
-				return std::make_shared<i2p::crypto::ECIESGOSTR3410Encryptor>(key);
 			break;
 			default:
 				LogPrint (eLogError, "Identity: Unknown crypto key type ", (int)keyType);
@@ -673,11 +669,7 @@ namespace data
 				return std::make_shared<i2p::crypto::ECIESX25519AEADRatchetDecryptor>(key);
 			break;
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
-			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC_TEST:
 				return std::make_shared<i2p::crypto::ECIESP256Decryptor>(key);
-			break;
-			case CRYPTO_KEY_TYPE_ECIES_GOSTR3410_CRYPTO_PRO_A_SHA256_AES256CBC:
-				return std::make_shared<i2p::crypto::ECIESGOSTR3410Decryptor>(key);
 			break;
 			default:
 				LogPrint (eLogError, "Identity: Unknown crypto key type ", (int)cryptoType);
@@ -753,11 +745,7 @@ namespace data
 				i2p::crypto::GenerateElGamalKeyPair(priv, pub);
 			break;
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
-			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC_TEST:
 				i2p::crypto::CreateECIESP256RandomKeys (priv, pub);
-			break;
-			case CRYPTO_KEY_TYPE_ECIES_GOSTR3410_CRYPTO_PRO_A_SHA256_AES256CBC:
-				i2p::crypto::CreateECIESGOSTR3410RandomKeys (priv, pub);
 			break;
 			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD:
 				i2p::crypto::CreateECIESX25519AEADRatchetRandomKeys (priv, pub);
