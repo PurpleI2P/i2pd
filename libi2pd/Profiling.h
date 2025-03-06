@@ -41,7 +41,7 @@ namespace data
 	const int PEER_PROFILE_OBSOLETE_PROFILES_CLEAN_VARIANCE = 2400; // in seconds (40 minutes)
 	const int PEER_PROFILE_DECLINED_RECENTLY_INTERVAL = 330; // in seconds (5.5 minutes)
 	const int PEER_PROFILE_MAX_DECLINED_INTERVAL = 4400; // in second (1.5 hours)
-	const int PEER_PROFILE_PERSIST_INTERVAL = 3300; // in seconds (55 minutes)
+	const int PEER_PROFILE_PERSIST_INTERVAL = 1320; // in seconds (22 minutes)
 	const int PEER_PROFILE_UNREACHABLE_INTERVAL = 480; // in seconds (8 minutes)
 	const int PEER_PROFILE_USEFUL_THRESHOLD = 3;
 	const int PEER_PROFILE_ALWAYS_DECLINING_NUM = 5; // num declines in row to consider always declined

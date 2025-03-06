@@ -310,7 +310,7 @@ namespace data
 			{
 				if (it->second->IsUpdated () && ts > it->second->GetLastPersistTime () + PEER_PROFILE_PERSIST_INTERVAL)
 				{
-					tmp.push_back (std::make_pair (it->first, it->second));
+					tmp.push_back (*it);
 					it->second->SetLastPersistTime (ts);
 					it->second->SetUpdated (false);
 				}	
