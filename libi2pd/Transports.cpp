@@ -680,8 +680,21 @@ namespace transport
 		auto directTransports = compatibleTransports & peer->router->GetPublishedTransports ();
 		peer->numAttempts = 0;
 		peer->priority.clear ();
-		bool isReal = peer->router->GetProfile ()->IsReal (); 
-		bool ssu2 = isReal ? (m_Rng () & 1) : false; // try NTCP2 if router is not confirmed real
+		
+		std::shared_ptr<RouterProfile> profile;
+		if (peer->router->HasProfile ()) profile = peer->router->GetProfile (); // only if in memory
+		bool ssu2 = false; // NTCP2 by default
+		bool isReal = profile ? profile->IsReal () : true;
+		if (isReal) 
+		{	
+			ssu2 = m_Rng () & 1; // 1/2
+			if (ssu2 && !profile)
+			{	
+				profile = peer->router->GetProfile (); // load profile if necessary
+				isReal = profile->IsReal ();  
+				if (!isReal) ssu2 = false; // try NTCP2 if router is not confirmed real
+			}
+		}	
 		const auto& priority = ssu2 ? ssu2Priority : ntcp2Priority;
 		if (directTransports)
 		{	
