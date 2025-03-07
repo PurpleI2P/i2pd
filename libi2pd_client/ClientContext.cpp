@@ -265,11 +265,15 @@ namespace client
 		}
 	}
 
-	bool ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename,
+	bool ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, std::string_view filename,
 		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType)
 	{
-		static const std::string transient("transient");
+#if __cplusplus >= 202002L // C++20
+		if (filename.starts_with ("transient"))
+#else		
+		std::string_view transient("transient");
 		if (!filename.compare (0, transient.length (), transient)) // starts with transient
+#endif			
 		{
 			keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType, true);
 			LogPrint (eLogInfo, "Clients: New transient keys address ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " created");
@@ -599,7 +603,9 @@ namespace client
 						options[I2CP_PARAM_OUTBOUND_NICKNAME] = name;
 
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
-					if (keys.length () > 0)
+					if (keys == "shareddest")
+						localDestination = m_SharedLocalDestination;
+					else if (keys.length () > 0)
 					{
 						auto it = destinations.find (keys);
 						if (it != destinations.end ())
@@ -758,26 +764,31 @@ namespace client
 						options[I2CP_PARAM_INBOUND_NICKNAME] = name;
 
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
-					auto it = destinations.find (keys);
-					if (it != destinations.end ())
-					{
-						localDestination = it->second;
-						localDestination->SetPublic (true);
-					}
+					if (keys == "shareddest")
+						localDestination = m_SharedLocalDestination;
 					else
-					{
-						i2p::data::PrivateKeys k;
-						if(!LoadPrivateKeys (k, keys, sigType, cryptoType))
-							continue;
-						localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
-						if (!localDestination)
+					{	
+						auto it = destinations.find (keys);
+						if (it != destinations.end ())
 						{
-							localDestination = CreateNewLocalDestination (k, true, &options);
-							destinations[keys] = localDestination;
+							localDestination = it->second;
+							localDestination->SetPublic (true);
 						}
 						else
-							localDestination->SetPublic (true);
-					}
+						{
+							i2p::data::PrivateKeys k;
+							if(!LoadPrivateKeys (k, keys, sigType, cryptoType))
+								continue;
+							localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
+							if (!localDestination)
+							{
+								localDestination = CreateNewLocalDestination (k, true, &options);
+								destinations[keys] = localDestination;
+							}
+							else
+								localDestination->SetPublic (true);
+						}
+					}	
 					if (type == I2P_TUNNELS_SECTION_TYPE_UDPSERVER)
 					{
 						// udp server tunnel
@@ -897,7 +908,12 @@ namespace client
 				i2p::config::GetOption("addressbook.enabled", httpAddresshelper); // addresshelper is not supported without address book
 			i2p::data::SigningKeyType sigType; i2p::config::GetOption("httpproxy.signaturetype", sigType);
 			LogPrint(eLogInfo, "Clients: Starting HTTP Proxy at ", httpProxyAddr, ":", httpProxyPort);
-			if (httpProxyKeys.length () > 0)
+			if (httpProxyKeys == "shareddest")
+			{
+				localDestination = m_SharedLocalDestination;
+				localDestination->Acquire ();
+			}
+			else if (httpProxyKeys.length () > 0)
 			{
 				i2p::data::PrivateKeys keys;
 				if(LoadPrivateKeys (keys, httpProxyKeys, sigType))
@@ -941,7 +957,12 @@ namespace client
 			uint16_t    socksOutProxyPort;     i2p::config::GetOption("socksproxy.outproxyport",     socksOutProxyPort);
 			i2p::data::SigningKeyType sigType; i2p::config::GetOption("socksproxy.signaturetype",    sigType);
 			LogPrint(eLogInfo, "Clients: Starting SOCKS Proxy at ", socksProxyAddr, ":", socksProxyPort);
-			if (httpProxyKeys == socksProxyKeys && m_HttpProxy)
+			if (socksProxyKeys == "shareddest")
+			{
+				localDestination = m_SharedLocalDestination;
+				localDestination->Acquire ();
+			}
+			else if (httpProxyKeys == socksProxyKeys && m_HttpProxy)
 			{
 				localDestination = m_HttpProxy->GetLocalDestination ();
 				localDestination->Acquire ();
