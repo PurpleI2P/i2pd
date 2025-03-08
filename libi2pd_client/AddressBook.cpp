@@ -443,17 +443,18 @@ namespace client
 			auto addr = std::make_shared<const Address>(address.substr (0, pos));
 			return addr->IsValid () ? addr : nullptr;
 		}
-		else
+		else 
+#if __cplusplus >= 202002L // C++20
+		if (address.ends_with (".i2p"))
+#else
+		if (address.find (".i2p") != std::string::npos)
+#endif			
 		{
-			pos = address.find (".i2p");
-			if (pos != std::string::npos)
-			{
-				if (!m_IsEnabled) return nullptr;
-				auto addr = FindAddress (address);
-				if (!addr)
-					LookupAddress (address); // TODO:
-				return addr;
-			}
+			if (!m_IsEnabled) return nullptr;
+			auto addr = FindAddress (address);
+			if (!addr)
+				LookupAddress (address); // TODO:
+			return addr;
 		}
 		// if not .b32 we assume full base64 address
 		i2p::data::IdentityEx dest;
@@ -566,29 +567,35 @@ namespace client
 
 			if (pos != std::string::npos)
 			{
-				std::string name = s.substr(0, pos++);
-				std::string addr = s.substr(pos);
+				std::string_view name = std::string_view(s).substr(0, pos++);
+				std::string_view addr = std::string_view(s).substr(pos);
 
 				size_t pos = addr.find('#');
-				if (pos != std::string::npos)
+				if (pos != addr.npos)
 					addr = addr.substr(0, pos); // remove comments
-
-				pos = name.find(".b32.i2p");
-				if (pos != std::string::npos)
+#if __cplusplus >= 202002L // C++20
+				if (name.ends_with (".b32.i2p"))
+#else					
+				if (name.find(".b32.i2p") != name.npos)
+#endif					
 				{
 					LogPrint (eLogError, "Addressbook: Skipped adding of b32 address: ", name);
 					continue;
 				}
 
-				pos = name.find(".i2p");
-				if (pos == std::string::npos)
+#if __cplusplus >= 202002L // C++20
+				if (name.ends_with (".i2p"))
+#else	
+				if (name.find(".i2p") == name.npos)
+#endif					
 				{
 					LogPrint (eLogError, "Addressbook: Malformed domain: ", name);
 					continue;
 				}
 
 				auto ident = std::make_shared<i2p::data::IdentityEx> ();
-				if (!ident->FromBase64(addr)) {
+				if (!ident->FromBase64(addr)) 
+				{
 					LogPrint (eLogError, "Addressbook: Malformed address ", addr, " for ", name);
 					incomplete = f.eof ();
 					continue;

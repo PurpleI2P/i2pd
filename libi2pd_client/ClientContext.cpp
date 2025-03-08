@@ -547,7 +547,11 @@ namespace client
 			{
 				for (auto& it: files)
 				{
+#if __cplusplus >= 202002L // C++20
+					if (!it.ends_with (".conf")) continue;
+#else					
 					if (it.substr(it.size() - 5) != ".conf") continue; // skip files which not ends with ".conf"
+#endif					
 					LogPrint(eLogDebug, "Clients: Tunnels extra config file: ", it);
 					ReadTunnels (it, numClientTunnels, numServerTunnels);
 				}
