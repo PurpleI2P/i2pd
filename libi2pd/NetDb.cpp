@@ -688,7 +688,7 @@ namespace data
 				// since update was long time ago we assume that router is not connected anymore
 				r->ScheduleBufferToDelete ();
 			
-			if (r->GetProfile ()->IsUnreachable ())
+			if (r->HasProfile () && r->GetProfile ()->IsUnreachable ())
 				r->SetUnreachable (true);
 			// make router reachable back if too few routers or floodfills
 			if (r->IsUnreachable () && (total - deletedCount < NETDB_MIN_ROUTERS || isLowRate || isOffline ||
