@@ -80,7 +80,7 @@ namespace stream
 		m_WindowDropTargetSize (0), m_WindowIncCounter (0), m_RTO (INITIAL_RTO),
 		m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()), m_PrevRTTSample (INITIAL_RTT), m_WindowSizeTail (0), 
 		m_Jitter (0), m_MinPacingTime (0),
-		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_LastSendTime (0), m_LastACKRecieveTime (0), m_ACKRecieveInterval (local.GetOwner ()->GetStreamingAckDelay ()), m_RemoteLeaseChangeTime (0),
+		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_LastSendTime (0), m_LastACKRecieveTime (0), m_ACKRecieveInterval (local.GetOwner ()->GetStreamingAckDelay ()), m_RemoteLeaseChangeTime (0), m_LastWindowIncTime (0),
 		m_LastACKSendTime (0), m_PacketACKInterval (1), m_PacketACKIntervalRem (0), // for limit inbound speed
 		m_NumResendAttempts (0), m_NumPacketsToSend (0), m_MTU (STREAMING_MTU)
 	{
@@ -107,7 +107,7 @@ namespace stream
 		m_WindowSize (INITIAL_WINDOW_SIZE), m_LastWindowDropSize  (0), m_WindowDropTargetSize (0), m_WindowIncCounter (0), 
 		m_RTO (INITIAL_RTO), m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
 		m_PrevRTTSample (INITIAL_RTT), m_WindowSizeTail (0), m_Jitter (0), m_MinPacingTime (0),
-		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_LastSendTime (0), m_LastACKRecieveTime (0), m_ACKRecieveInterval (local.GetOwner ()->GetStreamingAckDelay ()), m_RemoteLeaseChangeTime (0),
+		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_LastSendTime (0), m_LastACKRecieveTime (0), m_ACKRecieveInterval (local.GetOwner ()->GetStreamingAckDelay ()), m_RemoteLeaseChangeTime (0), m_LastWindowIncTime (0),
 		m_LastACKSendTime (0), m_PacketACKInterval (1), m_PacketACKIntervalRem (0), // for limit inbound speed
 		m_NumResendAttempts (0), m_NumPacketsToSend (0), m_MTU (STREAMING_MTU)
 	{
@@ -1297,6 +1297,12 @@ namespace stream
 				m_IsSendTime = true;
 				if (m_WindowIncCounter && (m_WindowSize < MAX_WINDOW_SIZE || m_WindowDropTargetSize) && !m_SendBuffer.IsEmpty () && m_PacingTime > m_MinPacingTime && m_RTT <= m_SlowRTT)
 				{
+					float winSize = m_WindowSize;
+					if (m_WindowDropTargetSize)
+						winSize = m_WindowDropTargetSize;
+					float maxWinSize = MAX_WINDOW_SIZE;
+					if (m_LastWindowIncTime)
+						maxWinSize = (ts - m_LastWindowIncTime) / (m_RTT / MAX_WINDOW_SIZE_INC_PER_RTT) + winSize;
 					for (int i = 0; i < m_NumPacketsToSend; i++)
 					{
 						if (m_WindowIncCounter)
@@ -1311,6 +1317,11 @@ namespace stream
 									m_WindowDropTargetSize += (m_WindowDropTargetSize - (1 - PREV_SPEED_KEEP_TIME_COEFF)) / m_WindowDropTargetSize;
 								if (m_WindowDropTargetSize > MAX_WINDOW_SIZE) m_WindowDropTargetSize = MAX_WINDOW_SIZE;
 								m_WindowIncCounter--;
+								if (m_WindowDropTargetSize >= maxWinSize)
+								{
+									m_WindowDropTargetSize = maxWinSize;
+									break;
+								}
 							}
 							else
 							{
@@ -1322,11 +1333,17 @@ namespace stream
 									m_WindowSize += (m_WindowSize - (1 - PREV_SPEED_KEEP_TIME_COEFF)) / m_WindowSize;
 								if (m_WindowSize > MAX_WINDOW_SIZE) m_WindowSize = MAX_WINDOW_SIZE;
 								m_WindowIncCounter--;
+								if (m_WindowSize >= maxWinSize)
+								{
+									m_WindowSize = maxWinSize;
+									break;
+								}
 							}
 						}
 						else
 							break;
 					}
+					m_LastWindowIncTime = ts;
 					UpdatePacingTime ();
 				}
 				else if (m_WindowIncCounter && m_WindowSize == MAX_WINDOW_SIZE && !m_SendBuffer.IsEmpty () && m_PacingTime > m_MinPacingTime)
@@ -1650,12 +1667,12 @@ namespace stream
 		{
 			if (m_WindowSize < m_LastWindowDropSize)
 			{
-				m_LastWindowDropSize = m_WindowSize - (m_LastWindowDropSize - m_WindowSize);
+				m_LastWindowDropSize = std::max ((m_WindowSize - MAX_WINDOW_SIZE_INC_PER_RTT), (m_WindowSize - (m_LastWindowDropSize - m_WindowSize)));
 				if (m_LastWindowDropSize < MIN_WINDOW_SIZE) m_LastWindowDropSize = MIN_WINDOW_SIZE;
 			}
 			else
 			{
-				m_LastWindowDropSize = (m_LastWindowDropSize + m_WindowSize + m_WindowSizeTail) / 2;
+				m_LastWindowDropSize = std::max ((m_WindowSize - MAX_WINDOW_SIZE_INC_PER_RTT), ((m_LastWindowDropSize + m_WindowSize + m_WindowSizeTail) / 2));
 				if (m_LastWindowDropSize > MAX_WINDOW_SIZE) m_LastWindowDropSize = MAX_WINDOW_SIZE;
 			}
 			m_WindowDropTargetSize = m_LastWindowDropSize * 0.75; // -25% to drain queue
