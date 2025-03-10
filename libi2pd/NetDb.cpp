@@ -715,8 +715,9 @@ namespace data
 							r->SetUnreachable (true);
 				}	
 			}
-			// make router reachable back if connected now
-			if (r->IsUnreachable () && i2p::transport::transports.IsConnected (ident))
+			// make router reachable back if connected now or trusted router
+			if (r->IsUnreachable () && (i2p::transport::transports.IsConnected (ident) ||
+				i2p::transport::transports.IsTrustedRouter (ident)))
 				r->SetUnreachable (false);
 			
 			if (r->IsUnreachable ())

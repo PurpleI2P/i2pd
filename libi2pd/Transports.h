@@ -15,6 +15,7 @@
 #include <condition_variable>
 #include <functional>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <queue>
 #include <string>
@@ -178,7 +179,8 @@ namespace transport
 			/** restrict routes to use only these routers for first hops */
 			void RestrictRoutesToRouters(const std::set<i2p::data::IdentHash>& routers);
 
-			bool IsRestrictedPeer(const i2p::data::IdentHash & ident) const;
+			bool IsTrustedRouter (const i2p::data::IdentHash& ih) const;
+			bool IsRestrictedPeer(const i2p::data::IdentHash& ih) const;
 
 			void PeerTest (bool ipv4 = true, bool ipv6 = true);
 
@@ -237,7 +239,7 @@ namespace transport
 			mutable std::mutex m_FamilyMutex;
 
 			/** which routers for first hop to trust */
-			std::vector<i2p::data::IdentHash> m_TrustedRouters;
+			std::unordered_set<i2p::data::IdentHash> m_TrustedRouters;
 			mutable std::mutex m_TrustedRoutersMutex;
 
 			i2p::I2NPMessagesHandler m_LoopbackHandler;

@@ -1195,7 +1195,7 @@ namespace transport
 		std::lock_guard<std::mutex> lock(m_TrustedRoutersMutex);
 		m_TrustedRouters.clear();
 		for (const auto & ri : routers )
-			m_TrustedRouters.push_back(ri);
+			m_TrustedRouters.insert(ri);
 	}
 
 	bool Transports::RoutesRestricted() const 
@@ -1236,23 +1236,32 @@ namespace transport
 			auto sz = m_TrustedRouters.size();
 			if (sz)
 			{
-				if(sz == 1)
-					return i2p::data::netdb.FindRouter(m_TrustedRouters[0]);
 				auto it = m_TrustedRouters.begin();
-				std::advance(it, m_Rng() % sz);
+				if(sz > 1)
+					std::advance(it, m_Rng() % sz);
 				return i2p::data::netdb.FindRouter(*it);
 			}
 		}
 		return nullptr;
 	}
 
-	bool Transports::IsRestrictedPeer(const i2p::data::IdentHash & ih) const
+	bool Transports::IsTrustedRouter (const i2p::data::IdentHash& ih) const
 	{
-		{
-			std::lock_guard<std::mutex> l(m_TrustedRoutersMutex);
-			for (const auto & r : m_TrustedRouters )
-				if ( r == ih ) return true;
-		}
+		if (m_TrustedRouters.empty ()) return false;
+		std::lock_guard<std::mutex> l(m_TrustedRoutersMutex);
+#if __cplusplus >= 202002L // C++20
+		if (m_TrustedRouters.contains (ih))
+#else
+		if (m_TrustedRouters.count (ih) > 0)
+#endif		
+			return true;
+		return false;
+	}	
+		
+	bool Transports::IsRestrictedPeer(const i2p::data::IdentHash& ih) const
+	{
+		if (IsTrustedRouter (ih)) return true;
+		
 		{
 			std::lock_guard<std::mutex> l(m_FamilyMutex);
 			auto ri = i2p::data::netdb.FindRouter(ih);
