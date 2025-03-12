@@ -55,6 +55,8 @@ namespace data
 		Identity& operator=(const Keys& keys);
 		size_t FromBuffer (const uint8_t * buf, size_t len);
 		IdentHash Hash () const;
+		operator uint8_t * () { return reinterpret_cast<uint8_t *>(this); }
+		operator const uint8_t * () const { return reinterpret_cast<const uint8_t *>(this); }
 	};
 
 	Keys CreateRandomKeys ();
@@ -77,7 +79,8 @@ namespace data
 	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256 = 9;
 	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512 = 10; // approved by FSB
 	const uint16_t SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519 = 11; // for LeaseSet2 only
-
+	const uint16_t SIGNING_KEY_TYPE_MLDSA44 = 15;
+	
 	typedef uint16_t SigningKeyType;
 	typedef uint16_t CryptoKeyType;
 
@@ -132,7 +135,7 @@ namespace data
 			IdentHash m_IdentHash;
 			std::unique_ptr<i2p::crypto::Verifier> m_Verifier;
 			size_t m_ExtendedLen;
-			uint8_t m_ExtendedBuffer[MAX_EXTENDED_BUFFER_SIZE];
+			uint8_t m_ExtendedBuffer[MAX_EXTENDED_BUFFER_SIZE]; // TODO: support PQ keys
 	};
 
 	size_t GetIdentityBufferLen (const uint8_t * buf, size_t len); // return actual identity length in buffer

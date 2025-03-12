@@ -119,6 +119,16 @@ namespace data
 					memcpy (m_StandardIdentity.signingKey, signingKey, i2p::crypto::GOSTR3410_512_PUBLIC_KEY_LENGTH);
 					break;
 				}
+#if OPENSSL_PQ
+				case SIGNING_KEY_TYPE_MLDSA44:
+				{
+					memcpy (m_StandardIdentity, signingKey, 384);
+					excessLen = i2p::crypto::MLDSA44_PUBLIC_KEY_LENGTH - 384;
+					excessBuf = new uint8_t[excessLen];
+					memcpy (excessBuf, signingKey + 384, excessLen);
+					break;
+				}	
+#endif					
 				default:
 					LogPrint (eLogError, "Identity: Signing key type ", (int)type, " is not supported");
 			}
@@ -352,6 +362,10 @@ namespace data
 				return new i2p::crypto::GOSTR3410_512_Verifier (i2p::crypto::eGOSTR3410TC26A512);
 			case SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
 				return new i2p::crypto::RedDSA25519Verifier ();
+#if OPENSSL_PQ				
+			case SIGNING_KEY_TYPE_MLDSA44:
+				return new i2p::crypto::MLDSA44Verifier ();
+#endif				
 			case SIGNING_KEY_TYPE_RSA_SHA256_2048:
 			case SIGNING_KEY_TYPE_RSA_SHA384_3072:
 			case SIGNING_KEY_TYPE_RSA_SHA512_4096:
@@ -373,6 +387,18 @@ namespace data
 				auto keyLen = verifier->GetPublicKeyLen ();
 				if (keyLen <= 128)
 					verifier->SetPublicKey (m_StandardIdentity.signingKey + 128 - keyLen);
+#if OPENSSL_PQ
+				else if (keyLen > 384)
+				{
+					// for post-quantum
+					uint8_t * signingKey = new uint8_t[keyLen];
+					memcpy (signingKey, m_StandardIdentity.signingKey, 384);
+					size_t excessLen = keyLen - 384;
+					memcpy (signingKey + 384, m_ExtendedBuffer + 4, excessLen); // right after signing and crypto key types
+					verifier->SetPublicKey (signingKey);
+					delete[] signingKey;
+				}	
+#endif				
 				else
 				{
 					// for P521

@@ -560,6 +560,30 @@ namespace crypto
 		RedDSA25519Signer signer (signingPrivateKey);
 		memcpy (signingPublicKey, signer.GetPublicKey (), EDDSA25519_PUBLIC_KEY_LENGTH);
 	}
+	
+#if OPENSSL_PQ
+	
+	// Post-Quantum
+	const size_t MLDSA44_PUBLIC_KEY_LENGTH = 1312;
+	const size_t MLDSA44_SIGNATURE_LENGTH = 2420;
+	class MLDSA44Verifier: public Verifier
+	{
+		public:
+
+			MLDSA44Verifier ();
+			void SetPublicKey (const uint8_t * signingKey);
+			~MLDSA44Verifier ();
+
+			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
+
+			size_t GetPublicKeyLen () const { return MLDSA44_PUBLIC_KEY_LENGTH; };
+			size_t GetSignatureLen () const { return MLDSA44_SIGNATURE_LENGTH; };
+
+		private:
+			
+			EVP_PKEY * m_Pkey;
+	};
+#endif	
 }
 }
 

@@ -199,6 +199,40 @@ namespace crypto
 		else
 			LogPrint (eLogError, "EdDSA signing key is not set");
 	}		
+#endif	
+		
+#if OPENSSL_PQ
+	MLDSA44Verifier::MLDSA44Verifier ():
+		m_Pkey (nullptr)
+	{
+	}
+
+	MLDSA44Verifier::~MLDSA44Verifier ()
+	{
+		EVP_PKEY_free (m_Pkey);
+	}
+
+	void MLDSA44Verifier::SetPublicKey (const uint8_t * signingKey)
+	{
+		if (m_Pkey) EVP_PKEY_free (m_Pkey);
+		m_Pkey = EVP_PKEY_new_raw_public_key (EVP_PKEY_ML_DSA_44, NULL, signingKey, GetPublicKeyLen ());
+	}
+
+	bool MLDSA44Verifier::Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
+	{
+		if (m_Pkey)
+		{	
+			EVP_MD_CTX * ctx = EVP_MD_CTX_create ();
+			EVP_DigestVerifyInit (ctx, NULL, NULL, NULL, m_Pkey);
+			auto ret = EVP_DigestVerify (ctx, signature, GetSignatureLen (), buf, len);
+			EVP_MD_CTX_destroy (ctx);	
+			return ret;	
+		}	
+		else
+			LogPrint (eLogError, "MLDSA44 verification key is not set");
+		return false;
+	}
+		
 #endif		
 }
 }
