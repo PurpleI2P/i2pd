@@ -202,6 +202,14 @@ namespace crypto
 #endif	
 		
 #if OPENSSL_PQ
+#include <openssl/core_names.h>
+
+	static const OSSL_PARAM MLDSAParams[] = 
+    {
+        OSSL_PARAM_octet_string("context-string", (unsigned char *)"A context string", 16),
+        OSSL_PARAM_END
+    };
+		
 	MLDSA44Verifier::MLDSA44Verifier ():
 		m_Pkey (nullptr)
 	{
@@ -214,24 +222,99 @@ namespace crypto
 
 	void MLDSA44Verifier::SetPublicKey (const uint8_t * signingKey)
 	{
-		if (m_Pkey) EVP_PKEY_free (m_Pkey);
-		m_Pkey = EVP_PKEY_new_raw_public_key (EVP_PKEY_ML_DSA_44, NULL, signingKey, GetPublicKeyLen ());
+		if (m_Pkey) 
+		{ 
+			EVP_PKEY_free (m_Pkey);
+			m_Pkey = nullptr;
+		}	
+		OSSL_PARAM params[] =
+		{
+			OSSL_PARAM_octet_string (OSSL_PKEY_PARAM_PUB_KEY, (uint8_t *)signingKey, GetPublicKeyLen ()),
+			OSSL_PARAM_END
+		};		
+		EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_from_name (NULL, "ML-DSA-44", NULL);
+		if (ctx)
+		{
+			EVP_PKEY_fromdata_init (ctx);
+			EVP_PKEY_fromdata (ctx, &m_Pkey, OSSL_KEYMGMT_SELECT_PUBLIC_KEY, params);
+			EVP_PKEY_CTX_free (ctx);
+		}
+		else
+			LogPrint (eLogError, "MLDSA44 can't create PKEY context");
 	}
 
 	bool MLDSA44Verifier::Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
 	{
+		bool ret = false;
 		if (m_Pkey)
 		{	
-			EVP_MD_CTX * ctx = EVP_MD_CTX_create ();
-			EVP_DigestVerifyInit (ctx, NULL, NULL, NULL, m_Pkey);
-			auto ret = EVP_DigestVerify (ctx, signature, GetSignatureLen (), buf, len);
-			EVP_MD_CTX_destroy (ctx);	
-			return ret;	
+			EVP_PKEY_CTX * vctx = EVP_PKEY_CTX_new_from_pkey (NULL, m_Pkey, NULL);
+			if (vctx)
+			{
+				EVP_SIGNATURE * sig = EVP_SIGNATURE_fetch (NULL, "ML-DSA-44", NULL);
+				if (sig)
+				{
+					EVP_PKEY_verify_message_init (vctx, sig, MLDSAParams);
+					ret = EVP_PKEY_verify (vctx, signature, GetSignatureLen (), buf, len);
+					EVP_SIGNATURE_free (sig);
+				}	
+				EVP_PKEY_CTX_free (vctx);
+			}	
+			else
+				LogPrint (eLogError, "MLDSA44 can't obtain context from PKEY");
 		}	
 		else
 			LogPrint (eLogError, "MLDSA44 verification key is not set");
-		return false;
+		return ret;
 	}
+
+	MLDSA44Signer::MLDSA44Signer (const uint8_t * signingPrivateKey):
+		m_Pkey (nullptr)
+	{
+		OSSL_PARAM params[] =
+		{
+			OSSL_PARAM_octet_string (OSSL_PKEY_PARAM_PRIV_KEY, (uint8_t *)signingPrivateKey, MLDSA44_PRIVATE_KEY_LENGTH),
+			OSSL_PARAM_END
+		};		
+		EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_from_name (NULL, "ML-DSA-44", NULL);
+		if (ctx)
+		{
+			EVP_PKEY_fromdata_init (ctx);
+			EVP_PKEY_fromdata (ctx, &m_Pkey, OSSL_KEYMGMT_SELECT_PRIVATE_KEY, params);
+			EVP_PKEY_CTX_free (ctx);
+		}
+		else
+			LogPrint (eLogError, "MLDSA44 can't create PKEY context");
+	}
+
+	MLDSA44Signer::~MLDSA44Signer ()
+	{
+		if (m_Pkey) EVP_PKEY_free (m_Pkey);
+	}
+
+	void MLDSA44Signer::Sign (const uint8_t * buf, int len, uint8_t * signature) const
+	{
+		if (m_Pkey)
+		{	
+			EVP_PKEY_CTX * sctx = EVP_PKEY_CTX_new_from_pkey (NULL, m_Pkey, NULL);
+			if (sctx)
+			{
+				EVP_SIGNATURE * sig = EVP_SIGNATURE_fetch (NULL, "ML-DSA-44", NULL);
+				if (sig)
+				{
+					EVP_PKEY_sign_message_init (sctx, sig, MLDSAParams);
+					size_t siglen = MLDSA44_SIGNATURE_LENGTH;
+					EVP_PKEY_sign (sctx, signature, &siglen, buf, len);
+					EVP_SIGNATURE_free (sig);
+				}	
+				EVP_PKEY_CTX_free (sctx);
+			}	
+			else
+				LogPrint (eLogError, "MLDSA44 can't obtain context from PKEY");
+		}	
+		else
+			LogPrint (eLogError, "MLDSA44 signing key is not set");
+	}	
 		
 #endif		
 }

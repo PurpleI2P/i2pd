@@ -562,10 +562,12 @@ namespace crypto
 	}
 	
 #if OPENSSL_PQ
+#include <openssl/core_names.h>
 	
 	// Post-Quantum
 	const size_t MLDSA44_PUBLIC_KEY_LENGTH = 1312;
 	const size_t MLDSA44_SIGNATURE_LENGTH = 2420;
+	const size_t MLDSA44_PRIVATE_KEY_LENGTH = 2560;
 	class MLDSA44Verifier: public Verifier
 	{
 		public:
@@ -578,11 +580,36 @@ namespace crypto
 
 			size_t GetPublicKeyLen () const { return MLDSA44_PUBLIC_KEY_LENGTH; };
 			size_t GetSignatureLen () const { return MLDSA44_SIGNATURE_LENGTH; };
+			size_t GetPrivateKeyLen () const { return MLDSA44_PRIVATE_KEY_LENGTH; };
 
 		private:
 			
 			EVP_PKEY * m_Pkey;
 	};
+
+	class MLDSA44Signer: public Signer
+	{
+		public:
+
+			MLDSA44Signer (const uint8_t * signingPrivateKey);
+			~MLDSA44Signer ();
+
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
+			
+		private:
+
+			EVP_PKEY * m_Pkey;
+	};
+	
+	inline void CreateMLDSA44RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
+	{
+		EVP_PKEY * pkey = EVP_PKEY_Q_keygen (NULL, NULL, "ML-DSA-44");
+		size_t len = MLDSA44_PUBLIC_KEY_LENGTH;
+        EVP_PKEY_get_octet_string_param (pkey, OSSL_PKEY_PARAM_PUB_KEY, signingPublicKey, MLDSA44_PUBLIC_KEY_LENGTH, &len);
+		len = MLDSA44_PRIVATE_KEY_LENGTH;
+		EVP_PKEY_get_octet_string_param (pkey, OSSL_PKEY_PARAM_PRIV_KEY, signingPrivateKey, MLDSA44_PRIVATE_KEY_LENGTH, &len);
+		EVP_PKEY_free (pkey);
+	}	
 #endif	
 }
 }

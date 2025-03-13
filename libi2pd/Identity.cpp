@@ -652,6 +652,11 @@ namespace data
 			case SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
 				return new i2p::crypto::RedDSA25519Signer (priv);
 			break;
+#if OPENSSL_PQ
+			case SIGNING_KEY_TYPE_MLDSA44:
+				return new i2p::crypto::MLDSA44Signer (priv);
+			break;	
+#endif				
 			default:
 				LogPrint (eLogError, "Identity: Signing key type ", (int)keyType, " is not supported");
 		}
@@ -757,6 +762,11 @@ namespace data
 			case SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
 				i2p::crypto::CreateRedDSA25519RandomKeys (priv, pub);
 			break;
+#if OPENSSL_PQ				
+			case SIGNING_KEY_TYPE_MLDSA44:
+				i2p::crypto::CreateMLDSA44RandomKeys (priv, pub);
+			break;	
+#endif				
 			default:
 				LogPrint (eLogWarning, "Identity: Signing key type ", (int)type, " is not supported. Create DSA-SHA1");
 				i2p::crypto::CreateDSARandomKeys (priv, pub); // DSA-SHA1
