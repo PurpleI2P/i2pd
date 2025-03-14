@@ -203,13 +203,7 @@ namespace crypto
 		
 #if OPENSSL_PQ
 #include <openssl/core_names.h>
-
-	static const OSSL_PARAM MLDSAParams[] = 
-    {
-        OSSL_PARAM_octet_string("context-string", (unsigned char *)"A context string", 16),
-        OSSL_PARAM_END
-    };
-		
+	
 	MLDSA44Verifier::MLDSA44Verifier ():
 		m_Pkey (nullptr)
 	{
@@ -254,11 +248,11 @@ namespace crypto
 				EVP_SIGNATURE * sig = EVP_SIGNATURE_fetch (NULL, "ML-DSA-44", NULL);
 				if (sig)
 				{
-					int encode = 0;
+					int encode = 1;
 					OSSL_PARAM params[] =
 					{
-						OSSL_PARAM_construct_int(OSSL_SIGNATURE_PARAM_MESSAGE_ENCODING, &encode),
-						OSSL_PARAM_construct_end()
+						OSSL_PARAM_int(OSSL_SIGNATURE_PARAM_MESSAGE_ENCODING, &encode),
+						OSSL_PARAM_END
 					};		
 					EVP_PKEY_verify_message_init (vctx, sig, params);
 					ret = EVP_PKEY_verify (vctx, signature, GetSignatureLen (), buf, len);
@@ -308,7 +302,13 @@ namespace crypto
 				EVP_SIGNATURE * sig = EVP_SIGNATURE_fetch (NULL, "ML-DSA-44", NULL);
 				if (sig)
 				{
-					EVP_PKEY_sign_message_init (sctx, sig, MLDSAParams);
+					int encode = 1;
+					OSSL_PARAM params[] =
+					{
+						OSSL_PARAM_int(OSSL_SIGNATURE_PARAM_MESSAGE_ENCODING, &encode),
+						OSSL_PARAM_END
+					};		
+					EVP_PKEY_sign_message_init (sctx, sig, params);
 					size_t siglen = MLDSA44_SIGNATURE_LENGTH;
 					EVP_PKEY_sign (sctx, signature, &siglen, buf, len);
 					EVP_SIGNATURE_free (sig);
