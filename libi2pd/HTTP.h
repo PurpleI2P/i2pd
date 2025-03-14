@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -23,8 +23,6 @@ namespace http
 {
 	const char CRLF[] = "\r\n";         /**< HTTP line terminator */
 	const char HTTP_EOH[] = "\r\n\r\n"; /**< HTTP end-of-headers mark */
-	extern const std::vector<std::string> HTTP_METHODS;  /**< list of valid HTTP methods */
-	extern const std::vector<std::string> HTTP_VERSIONS; /**< list of valid HTTP versions */
 
 	struct URL
 	{

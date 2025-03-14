@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -10,6 +10,7 @@
 #include <utility>
 #include <stdio.h>
 #include <ctime>
+#include <string_view>
 #include "util.h"
 #include "Base.h"
 #include "HTTP.h"
@@ -18,26 +19,36 @@ namespace i2p
 {
 namespace http
 {
-	const std::vector<std::string> HTTP_METHODS = {
+	// list of valid HTTP methods
+	static constexpr std::array<std::string_view, 16> HTTP_METHODS = {
 		"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "CONNECT", // HTTP basic methods
 		"COPY", "LOCK", "MKCOL", "MOVE", "PROPFIND", "PROPPATCH", "UNLOCK", "SEARCH" // WebDAV methods, for SEARCH see rfc5323
 	};
-	const std::vector<std::string> HTTP_VERSIONS = {
+
+	// list of valid HTTP versions
+	static constexpr std::array<std::string_view, 2> HTTP_VERSIONS = 
+	{
 		"HTTP/1.0", "HTTP/1.1"
 	};
-	const std::vector<const char *> weekdays = {
+	
+	static constexpr std::array<const char *, 7> weekdays = 
+	{
 		"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
 	};
-	const std::vector<const char *> months = {
+	
+	static constexpr std::array<const char *, 12> months = 
+	{
 		"Jan", "Feb", "Mar", "Apr", "May", "Jun",
 		"Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 	};
 
-	inline bool is_http_version(const std::string & str) {
+	static inline bool is_http_version(std::string_view str) 
+	{
 		return std::find(HTTP_VERSIONS.begin(), HTTP_VERSIONS.end(), str) != std::end(HTTP_VERSIONS);
 	}
 
-	inline bool is_http_method(const std::string & str) {
+	static inline bool is_http_method(std::string_view str) 
+	{
 		return std::find(HTTP_METHODS.begin(), HTTP_METHODS.end(), str) != std::end(HTTP_METHODS);
 	}
 	
