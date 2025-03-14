@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2023-2024, The PurpleI2P Project
+* Copyright (c) 2023-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -29,7 +29,7 @@ namespace polish // language namespace
 		return (n == 1 ? 0 : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 1 : 2);
 	}
 
-	static std::map<std::string, std::string> strings
+	static const LocaleStrings strings
 	{
 		{"%.2f KiB", "%.2f KiB"},
 		{"%.2f MiB", "%.2f MiB"},

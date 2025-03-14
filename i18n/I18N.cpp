@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2021-2023, The PurpleI2P Project
+* Copyright (c) 2021-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -30,7 +30,7 @@ namespace i18n
 		}
 	}
 
-	std::string translate (const std::string& arg)
+	std::string_view translate (std::string_view arg)
 	{
 		return i2p::client::context.GetLanguage ()->GetString (arg);
 	}

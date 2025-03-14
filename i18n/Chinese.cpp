@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022-2024, The PurpleI2P Project
+* Copyright (c) 2022-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -29,7 +29,7 @@ namespace chinese // language namespace
 		return 0;
 	}
 
-	static std::map<std::string, std::string> strings
+	static const LocaleStrings strings
 	{
 		{"%.2f KiB", "%.2f KiB"},
 		{"%.2f MiB", "%.2f MiB"},

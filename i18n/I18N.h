@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2021-2023, The PurpleI2P Project
+* Copyright (c) 2021-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -10,6 +10,7 @@
 #define __I18N_H__
 
 #include <string>
+#include <string_view>
 #include <map>
 #include <utility>
 #include <functional>
@@ -18,12 +19,13 @@ namespace i2p
 {
 namespace i18n
 {
+	typedef std::map<std::string_view, std::string_view> LocaleStrings; 
 	class Locale
 	{
 		public:
 			Locale (
 				const std::string& language,
-				const std::map<std::string, std::string>& strings,
+				const LocaleStrings& strings,
 				const std::map<std::string, std::vector<std::string>>& plurals,
 				std::function<int(int)> formula
 			): m_Language (language), m_Strings (strings), m_Plurals (plurals), m_Formula (formula) { };
@@ -34,7 +36,7 @@ namespace i18n
 				return m_Language;
 			}
 
-			std::string GetString (const std::string& arg) const
+			std::string_view GetString (std::string_view arg) const
 			{
 				const auto it = m_Strings.find(arg);
 				if (it == m_Strings.end())
@@ -63,13 +65,13 @@ namespace i18n
 
 		private:
 			const std::string m_Language;
-			const std::map<std::string, std::string> m_Strings;
+			const LocaleStrings m_Strings;
 			const std::map<std::string, std::vector<std::string>> m_Plurals;
 			std::function<int(int)> m_Formula;
 	};
 
 	void SetLanguage(const std::string &lang);
-	std::string translate (const std::string& arg);
+	std::string_view translate (std::string_view arg);
 	std::string translate (const std::string& arg, const std::string& arg2, const int& n);
 } // i18n
 } // i2p
@@ -79,7 +81,7 @@ namespace i18n
  * @param arg String with message
  */
 template<typename TValue>
-std::string tr (TValue&& arg)
+std::string_view tr (TValue&& arg)
 {
 	return i2p::i18n::translate(std::forward<TValue>(arg));
 }
@@ -92,7 +94,7 @@ std::string tr (TValue&& arg)
 template<typename TValue, typename... TArgs>
 std::string tr (TValue&& arg, TArgs&&... args)
 {
-	std::string tr_str = i2p::i18n::translate(std::forward<TValue>(arg));
+	std::string tr_str = std::string (i2p::i18n::translate(std::forward<TValue>(arg))); // TODO:
 
 	size_t size = std::snprintf(NULL, 0, tr_str.c_str(), std::forward<TArgs>(args)...);
 	std::string str(size, 0);
