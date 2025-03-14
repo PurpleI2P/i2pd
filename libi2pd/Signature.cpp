@@ -254,7 +254,13 @@ namespace crypto
 				EVP_SIGNATURE * sig = EVP_SIGNATURE_fetch (NULL, "ML-DSA-44", NULL);
 				if (sig)
 				{
-					EVP_PKEY_verify_message_init (vctx, sig, MLDSAParams);
+					int encode = 0;
+					OSSL_PARAM params[] =
+					{
+						OSSL_PARAM_construct_int(OSSL_SIGNATURE_PARAM_MESSAGE_ENCODING, &encode),
+						OSSL_PARAM_construct_end()
+					};		
+					EVP_PKEY_verify_message_init (vctx, sig, params);
 					ret = EVP_PKEY_verify (vctx, signature, GetSignatureLen (), buf, len);
 					EVP_SIGNATURE_free (sig);
 				}	
