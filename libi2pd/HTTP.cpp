@@ -10,7 +10,6 @@
 #include <utility>
 #include <stdio.h>
 #include <ctime>
-#include <string_view>
 #include <charconv>
 #include "util.h"
 #include "Base.h"
@@ -334,11 +333,11 @@ namespace http
 				else
 					return -1;
 			}
-			pos = eol + strlen(CRLF);
+			pos = eol + CRLF.length();
 			if (pos >= eoh)
 				break;
 		}
-		return eoh + strlen(HTTP_EOH);
+		return eoh + HTTP_EOH.length();
 	}
 
 	void HTTPReq::write(std::ostream & o)
@@ -382,7 +381,7 @@ namespace http
 		}
 	}
 
-	std::string HTTPReq::GetHeader (const std::string& name) const
+	std::string HTTPReq::GetHeader (std::string_view name) const
 	{
 		for (auto& it : headers)
 			if (it.first == name)
@@ -390,7 +389,7 @@ namespace http
 		return "";
 	}
 
-	size_t HTTPReq::GetNumHeaders (const std::string& name) const
+	size_t HTTPReq::GetNumHeaders (std::string_view name) const
 	{
 		size_t num = 0;
 		for (auto& it : headers)
@@ -477,11 +476,11 @@ namespace http
 				else
 					return -1;
 			}
-			pos = eol + strlen(CRLF);
+			pos = eol + CRLF.length();
 			if (pos >= eoh)
 				break;
 		}
-		return eoh + strlen(HTTP_EOH);
+		return eoh + HTTP_EOH.length();
 	}
 
 	std::string HTTPRes::to_string() {
@@ -506,9 +505,11 @@ namespace http
 		return ss.str();
 	}
 
-	const char * HTTPCodeToStatus(int code) {
-		const char *ptr;
-		switch (code) {
+	std::string_view HTTPCodeToStatus(int code) 
+	{
+		std::string_view ptr;
+		switch (code) 
+		{
 			case 105: ptr = "Name Not Resolved"; break;
 			/* success */
 			case 200: ptr = "OK"; break;
