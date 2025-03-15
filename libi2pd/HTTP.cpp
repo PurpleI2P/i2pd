@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <ctime>
 #include <string_view>
+#include <charconv>
 #include "util.h"
 #include "Base.h"
 #include "HTTP.h"
@@ -20,7 +21,8 @@ namespace i2p
 namespace http
 {
 	// list of valid HTTP methods
-	static constexpr std::array<std::string_view, 16> HTTP_METHODS = {
+	static constexpr std::array<std::string_view, 16> HTTP_METHODS = 
+	{
 		"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "CONNECT", // HTTP basic methods
 		"COPY", "LOCK", "MKCOL", "MOVE", "PROPFIND", "PROPPATCH", "UNLOCK", "SEARCH" // WebDAV methods, for SEARCH see rfc5323
 	};
@@ -52,31 +54,17 @@ namespace http
 		return std::find(HTTP_METHODS.begin(), HTTP_METHODS.end(), str) != std::end(HTTP_METHODS);
 	}
 	
-	static void strsplit(std::stringstream& ss, std::vector<std::string> &tokens, char delim, std::size_t limit = 0) 	
-	{
-		std::size_t count = 0;
-		std::string token;
-		while (1) 
+	static void strsplit(std::string_view line, std::vector<std::string_view> &tokens, char delim, std::size_t limit = 0) 
+	{	
+		size_t count = 0, pos;
+		while ((pos = line.find (delim)) != line.npos)
 		{
 			count++;
-			if (limit > 0 && count >= limit)
-				delim = '\n'; /* reset delimiter */
-			if (!std::getline(ss, token, delim))
-				break;
-			tokens.push_back(token);
+			if (limit > 0 && count >= limit) delim = '\n'; // reset delimiter
+			tokens.push_back (line.substr (0, pos));
+			line = line.substr (pos + 1);	
 		}
-	}
-
-	static void strsplit(const std::string & line, std::vector<std::string> &tokens, char delim, std::size_t limit = 0) 
-	{
-		std::stringstream ss{line};
-		strsplit (ss, tokens, delim, limit);
-	}
-
-	static void strsplit(std::string_view line, std::vector<std::string> &tokens, char delim, std::size_t limit = 0) 
-	{	
-		std::stringstream ss{std::string(line)};
-		strsplit (ss, tokens, delim, limit);
+		if (!line.empty ()) tokens.push_back (line);
 	}
 	
 	static std::pair<std::string, std::string> parse_header_line(std::string_view line)
@@ -222,8 +210,9 @@ namespace http
 		return true;
 	}
 
-	bool URL::parse_query(std::map<std::string, std::string> & params) {
-		std::vector<std::string> tokens;
+	bool URL::parse_query(std::map<std::string, std::string> & params) 
+	{
+		std::vector<std::string_view> tokens;
 		strsplit(query, tokens, '&');
 
 		params.clear();
@@ -319,8 +308,9 @@ namespace http
 			if (expect == REQ_LINE) 
 			{
 				std::string_view line = str.substr(pos, eol - pos);
-				std::vector<std::string> tokens;
+				std::vector<std::string_view> tokens;
 				strsplit(line, tokens, ' ');
+				
 				if (tokens.size() != 3)
 					return -1;
 				if (!is_http_method(tokens[0]))
@@ -462,13 +452,15 @@ namespace http
 			if (expect == RES_LINE) 
 			{
 				std::string_view line = str.substr(pos, eol - pos);
-				std::vector<std::string> tokens;
+				std::vector<std::string_view> tokens;
 				strsplit(line, tokens, ' ', 3);
 				if (tokens.size() != 3)
 					return -1;
 				if (!is_http_version(tokens[0]))
 					return -1;
-				code = atoi(tokens[1].c_str());
+				auto res = std::from_chars(tokens[1].data (), tokens[1].data() + tokens[1].size(), code);
+				if (res.ec != std::errc())
+					return -1;
 				if (code < 100 || code >= 600)
 					return -1;
 				/* all ok */
