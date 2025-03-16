@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -27,11 +27,6 @@ namespace data
 	{
 		return T32;
 	}
-
-	bool IsBase32 (char ch)
-	{
-		return (ch >= 'a' && ch <= 'z') || (ch >= '2' && ch <= '7');
-	}	
 	
 	static void iT64Build(void);
 
@@ -59,11 +54,6 @@ namespace data
 	{
 		return T64;
 	}
-
-	bool IsBase64 (char ch)
-	{
-		return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '-' || ch == '~';
-	}	
 	
 	/*
 	* Reverse Substitution Table (built in run time)
@@ -234,21 +224,12 @@ namespace data
 
 		return outCount;
 	}
-
-	size_t Base64EncodingBufferSize (const size_t input_size)
-	{
-		auto d = div (input_size, 3);
-		if (d.rem)
-			d.quot++;
-
-		return 4 * d.quot;
-	}
-
-	std::string ToBase64Standard (const std::string& in)
+	
+	std::string ToBase64Standard (std::string_view in)
 	{
 		auto len = Base64EncodingBufferSize (in.length ());
 		char * str = new char[len + 1];
-		auto l = ByteStreamToBase64 ((const uint8_t *)in.c_str (), in.length (), str, len);
+		auto l = ByteStreamToBase64 ((const uint8_t *)in.data (), in.length (), str, len);
 		str[l] = 0;
 		// replace '-' by '+' and '~' by '/'
 		for (size_t i = 0; i < l; i++)
