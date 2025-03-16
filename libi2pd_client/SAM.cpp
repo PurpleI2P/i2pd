@@ -415,7 +415,7 @@ namespace client
 			{
 				session->UDPEndpoint = forward;
 				auto dest = session->GetLocalDestination ()->CreateDatagramDestination ();
-				auto port = std::stoi(params[SAM_PARAM_PORT]);
+				auto port = forward ? std::stoi(params[SAM_PARAM_PORT]) : 0;
 				if (type == eSAMSessionTypeDatagram)
 					dest->SetReceiver (std::bind (&SAMSocket::HandleI2PDatagramReceive, shared_from_this (),
 						std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
