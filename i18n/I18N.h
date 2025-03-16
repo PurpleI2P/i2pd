@@ -49,7 +49,7 @@ namespace i18n
 				}
 			}
 
-			std::string GetPlural (const std::string& arg, const std::string& arg2, const int& n) const
+			std::string GetPlural (const std::string& arg, const std::string& arg2, int n) const
 			{
 				const auto it = m_Plurals.find(arg2);
 				if (it == m_Plurals.end()) // not found, fallback to english
@@ -72,7 +72,7 @@ namespace i18n
 
 	void SetLanguage(const std::string &lang);
 	std::string_view translate (std::string_view arg);
-	std::string translate (const std::string& arg, const std::string& arg2, const int& n);
+	std::string translate (const std::string& arg, const std::string& arg2, int n);
 } // i18n
 } // i2p
 
@@ -110,7 +110,7 @@ std::string tr (TValue&& arg, TArgs&&... args)
  * @param n Integer, used for selection of form
  */
 template<typename TValue, typename TValue2>
-std::string ntr (TValue&& arg, TValue2&& arg2, int& n)
+std::string ntr (TValue&& arg, TValue2&& arg2, int n)
 {
 	return i2p::i18n::translate(std::forward<TValue>(arg), std::forward<TValue2>(arg2), std::forward<int>(n));
 }
@@ -123,7 +123,7 @@ std::string ntr (TValue&& arg, TValue2&& arg2, int& n)
  * @param args Array of arguments for string formatting
  */
 template<typename TValue, typename TValue2, typename... TArgs>
-std::string ntr (TValue&& arg, TValue2&& arg2, int& n, TArgs&&... args)
+std::string ntr (TValue&& arg, TValue2&& arg2, int n, TArgs&&... args)
 {
 	std::string tr_str = i2p::i18n::translate(std::forward<TValue>(arg), std::forward<TValue2>(arg2), std::forward<int>(n));
 

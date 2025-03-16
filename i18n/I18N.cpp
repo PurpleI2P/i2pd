@@ -35,7 +35,7 @@ namespace i18n
 		return i2p::client::context.GetLanguage ()->GetString (arg);
 	}
 
-	std::string translate (const std::string& arg, const std::string& arg2, const int& n)
+	std::string translate (const std::string& arg, const std::string& arg2, const int n)
 	{
 		return i2p::client::context.GetLanguage ()->GetPlural (arg, arg2, n);
 	}
