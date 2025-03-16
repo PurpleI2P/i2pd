@@ -470,15 +470,11 @@ namespace client
 		auto session = m_Owner.FindSession(m_ID);
 		if (session)
 		{
-			uint8_t buf[1024];
-			char priv[1024];
-			size_t l = session->GetLocalDestination ()->GetPrivateKeys ().ToBuffer (buf, 1024);
-			size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, priv, 1024);
-			priv[l1] = 0;
+			std::string priv = session->GetLocalDestination ()->GetPrivateKeys ().ToBase64 ();
 #ifdef _MSC_VER
-			size_t l2 = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_CREATE_REPLY_OK, priv);
+			size_t l2 = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_CREATE_REPLY_OK, priv.c_str ());
 #else
-			size_t l2 = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_CREATE_REPLY_OK, priv);
+			size_t l2 = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_CREATE_REPLY_OK, priv.c_str ());
 #endif
 			SendMessageReply (m_Buffer, l2, false);
 		}
