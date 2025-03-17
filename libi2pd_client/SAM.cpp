@@ -1112,18 +1112,19 @@ namespace client
 				}
 			}
 			if (!m_IsSilent)
-			{
-				// get remote peer address
-				auto ident_ptr = stream->GetRemoteIdentity();
-				const size_t ident_len = ident_ptr->GetFullLen();
-				uint8_t* ident = new uint8_t[ident_len];
-
-				// send remote peer address as base64
-				const size_t l = ident_ptr->ToBuffer (ident, ident_len);
-				const size_t l1 = i2p::data::ByteStreamToBase64 (ident, l, (char *)m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE);
-				delete[] ident;
-				m_StreamBuffer[l1] = '\n';
-				HandleI2PReceive (boost::system::error_code (), l1 +1); // we send identity like it has been received from stream
+			{			
+				if (m_SocketType != eSAMSocketTypeTerminated)
+				{
+					// get remote peer address
+					auto ident = std::make_shared<std::string>(stream->GetRemoteIdentity()->ToBase64 ()); // we need to keep it until sent
+					ident->push_back ('\n');
+					// send remote peer address back to client like received from stream
+					boost::asio::async_write (m_Socket, boost::asio::buffer (ident->data (), ident->size ()), boost::asio::transfer_all(),
+						[ident, s = shared_from_this ()](const boost::system::error_code& ecode, size_t bytes_transferred)
+						{
+							s->HandleWriteI2PData (ecode, bytes_transferred);
+						});
+				}	
 			}
 			else
 				I2PReceive ();
