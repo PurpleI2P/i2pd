@@ -1,6 +1,70 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.56.0] - 2025-02-11
+### Added
+- Config params for shared local destination
+- AddressBook full addresses cache
+- Decline transit tunnel to duplicated router
+- Recreate tunnels in random order
+### Changed
+- Exclude disk operations from SSU2 and NTCP2 threads
+- Set minimal version for peer test to 0.9.62
+- Send ack requested flag after second SSU2 resend attempt
+- Shorter ECIESx25519 ack request interval for datagram and I2CP sessions
+- Don't change datagram routing path too often if unidirectional data stream
+- Reduce LeaseSet and local RouterInfo publishing confirmation intervals
+- Don't delete buffer of connected routers or if an update received
+- Smaller RouterInfo request timeout if sent directly
+- Persist local RouterInfo in separate thread
+- Don't recalculate and process ranges for every SSU2 Ack block
+- Reseeds list
+### Fixed
+- Termination deadlock if SAM session is active
+- Race condition at tunnel endpoint
+- Inbound tunnel build encryption
+
+## [2.55.0] - 2024-12-30
+### Added
+- Support boost 1.87
+- "i2p.streaming.maxConcurrentStreams" tunnel's param to limit number of simultaneous streams
+- Separate thread for tunnel build requests
+- Show next peer and connectivity on "Transit tunnels" page
+- Tunnel name for local destination thread
+- Throttle incoming ECIESx25519 sessions
+- Send tunnel data to transport session directly if possible
+- Publish 'R' cap for yggdrasil-only routers, and 'U' cap for routers through proxy
+- Random tunnel rejection when medium congestion
+- Save unreachable router's endpoint to use it next time without introducers
+- Recognize symmetric NAT from peer test message 7
+- Resend HolePunch and RelayResponse messages
+### Changed
+- Removed own implementation of AESNI and always use one from openssl
+- Renamed main thread to i2pd-daemon
+- Set i2p.streaming.profile=2 for shared local destination
+- Reduced LeaseSet and RouterInfo lookup timeouts
+- Cleanup ECIES sessions and tags more often
+- Check LeaseSet expiration time
+- Handle NTCP2 session handshakes in separate thread
+- Limit last decline time by 1.5 hours in router's profile
+- Don't handle RelayRequest and RelayIntro with same nonce twice
+- Increased hole punch expiration interval
+- Send peer test message 6 with delay if message 4 was received before message 5
+- Pre-calculate more x25519 keys for transports in runtime
+- Don't request LeaseSet for incoming stream
+- Terminate incoming stream right away if no remote LeaseSet
+- Handle choked, new RTO and window size calculation and resetting algorithm for streams
+### Fixed
+- Empty string in addressbook subscriptions
+- ECIESx25519 sessions without destination
+- Missing RouterInfo buffer in NetDb
+- Invalid I2PControl certificate
+- Routers disappear from NetDb when offline
+- Peer test message 6 sent to unknown endpoint
+- Race condition with LeaseSet update
+- Excessive CPU usage by streams
+- Crash on shutdown
+
 ## [2.54.0] - 2024-10-06
 ### Added
 - Maintain recently connected routers list to avoid false-positive peer test
@@ -21,12 +85,12 @@
 - Handle i2cp.inboundlimit and i2cp.outboundlimit params in I2CP
 - Publish LeaseSet with new timestamp update if tunnel was replaced in the same second
 - Increase max number of generated tags to 800 per tagset
-- Routing path expiration by time instead num attempts 
+- Routing path expiration by time instead num attempts
 - Save timestamp from epoch instead local time to profiles
 - Update introducer's iTag if session to introducer was replaced to new one
 - RTT, window size and number of NACKs calculation for streaming
 - Don't select same peer for tunnel too often
-- Use WinApi for data path UTF-8 conversion for Windows 
+- Use WinApi for data path UTF-8 conversion for Windows
 ### Fixed
 - Jump link crash if address book is disabled
 - Race condition if connect through an introducer

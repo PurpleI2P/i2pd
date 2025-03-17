@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2021, The PurpleI2P Project
+* Copyright (c) 2021-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -29,7 +29,7 @@ namespace afrikaans // language namespace
 		return n != 1 ? 1 : 0;
 	}
 
-	static std::map<std::string, std::string> strings
+	static const LocaleStrings strings
 	{
 		{"failed", "Het misluk"},
 		{"unknown", "onbekend"},

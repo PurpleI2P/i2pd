@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022-2024, The PurpleI2P Project
+* Copyright (c) 2022-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -890,7 +890,7 @@ namespace transport
 			}
 
 			auto session = std::make_shared<SSU2Session> (*this, router, address);
-			if (!isValidEndpoint && router->GetProfile ()->HasLastEndpoint (address->IsV4 ()))
+			if (!isValidEndpoint && router->HasProfile () && router->GetProfile ()->HasLastEndpoint (address->IsV4 ()))
 			{
 				// router doesn't publish endpoint, but we connected before and hole punch might be alive
 				auto ep = router->GetProfile ()->GetLastEndpoint ();
@@ -1251,18 +1251,21 @@ namespace transport
 		}
 		uint64_t token;
 		RAND_bytes ((uint8_t *)&token, 8);
-		m_IncomingTokens.emplace (ep, std::make_pair (token, uint32_t(ts + SSU2_TOKEN_EXPIRATION_TIMEOUT)));
+		if (!token) token = 1; // token can't be zero
+		m_IncomingTokens.try_emplace (ep, token, uint32_t(ts + SSU2_TOKEN_EXPIRATION_TIMEOUT));
 		return token;
 	}
 
 	std::pair<uint64_t, uint32_t> SSU2Server::NewIncomingToken (const boost::asio::ip::udp::endpoint& ep)
 	{
-		m_IncomingTokens.erase (ep); // drop previous
 		uint64_t token;
 		RAND_bytes ((uint8_t *)&token, 8);
-		auto ret = std::make_pair (token, uint32_t(i2p::util::GetSecondsSinceEpoch () + SSU2_NEXT_TOKEN_EXPIRATION_TIMEOUT));
-		m_IncomingTokens.emplace (ep, ret);
-		return ret;
+		if (!token) token = 1; // token can't be zero
+		uint32_t expires = i2p::util::GetSecondsSinceEpoch () + SSU2_NEXT_TOKEN_EXPIRATION_TIMEOUT;
+		auto [it, inserted] = m_IncomingTokens.try_emplace (ep, token, expires);
+		if (!inserted)
+			it->second = { token, expires }; // override
+		return it->second;
 	}
 
 	std::vector<std::shared_ptr<SSU2Session> > SSU2Server::FindIntroducers (int maxNumIntroducers,
@@ -1389,7 +1392,7 @@ namespace transport
 					excluded.insert (ident);
 			}	
 
-			// sesssion about to expire are not counted
+			// session about to expire are not counted
 			for (auto i = introducers.size (); i < SSU2_MAX_NUM_INTRODUCERS + numOldSessions; i++)
 			{
 				auto introducer = i2p::data::netdb.GetRandomSSU2Introducer (v4, excluded);
@@ -1516,6 +1519,23 @@ namespace transport
 		}
 	}
 
+	bool SSU2Server::AEADChaCha20Poly1305Encrypt (const uint8_t * msg, size_t msgLen,
+		const uint8_t * ad, size_t adLen, const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len)
+	{
+		return m_Encryptor.Encrypt (msg, msgLen, ad, adLen, key, nonce, buf, len);
+	}
+
+	bool SSU2Server::AEADChaCha20Poly1305Decrypt (const uint8_t * msg, size_t msgLen,
+		const uint8_t * ad, size_t adLen, const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len)
+	{
+		return m_Decryptor.Decrypt (msg, msgLen, ad, adLen, key, nonce, buf, len);
+	}
+
+	void SSU2Server::ChaCha20 (const uint8_t * msg, size_t msgLen, const uint8_t * key, const uint8_t * nonce, uint8_t * out)
+	{
+		m_ChaCha20 (msg, msgLen, key, nonce, out);
+	}	
+		
 	void SSU2Server::SendThroughProxy (const uint8_t * header, size_t headerLen, const uint8_t * headerX, size_t headerXLen,
 		const uint8_t * payload, size_t payloadLen, const boost::asio::ip::udp::endpoint& to)
 	{

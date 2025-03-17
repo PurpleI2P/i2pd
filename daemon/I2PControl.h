@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -35,8 +35,6 @@ namespace client
 
 	class I2PControlService: public I2PControlHandlers
 	{
-		typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_socket;
-
 		public:
 
 			I2PControlService (const std::string& address, int port);
@@ -49,16 +47,18 @@ namespace client
 
 			void Run ();
 			void Accept ();
-			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<ssl_socket> socket);
+			template<typename ssl_socket> 
+			void HandleAccepted (const boost::system::error_code& ecode, std::shared_ptr<ssl_socket> newSocket);
+			template<typename ssl_socket>
 			void Handshake (std::shared_ptr<ssl_socket> socket);
-			void HandleHandshake (const boost::system::error_code& ecode, std::shared_ptr<ssl_socket> socket);
+			template<typename ssl_socket>
 			void ReadRequest (std::shared_ptr<ssl_socket> socket);
+			template<typename ssl_socket>
 			void HandleRequestReceived (const boost::system::error_code& ecode, size_t bytes_transferred,
 				std::shared_ptr<ssl_socket> socket, std::shared_ptr<I2PControlBuffer> buf);
+			template<typename ssl_socket>
 			void SendResponse (std::shared_ptr<ssl_socket> socket,
 				std::shared_ptr<I2PControlBuffer> buf, std::ostringstream& response, bool isHtml);
-			void HandleResponseSent (const boost::system::error_code& ecode, std::size_t bytes_transferred,
-				std::shared_ptr<ssl_socket> socket, std::shared_ptr<I2PControlBuffer> buf);
 
 			void CreateCertificate (const char *crt_path, const char *key_path);
 
@@ -86,10 +86,13 @@ namespace client
 
 			std::string m_Password;
 			bool m_IsRunning;
-			std::thread * m_Thread;
+			std::unique_ptr<std::thread> m_Thread;
 
 			boost::asio::io_context m_Service;
-			boost::asio::ip::tcp::acceptor m_Acceptor;
+			std::unique_ptr<boost::asio::ip::tcp::acceptor> m_Acceptor;
+#if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
+			std::unique_ptr<boost::asio::local::stream_protocol::acceptor> m_LocalAcceptor;
+#endif		
 			boost::asio::ssl::context m_SSLContext;
 			boost::asio::deadline_timer m_ShutdownTimer;
 			std::set<std::string> m_Tokens;

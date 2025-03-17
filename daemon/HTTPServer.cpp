@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -132,7 +132,8 @@ namespace http {
 
 	static void ShowTunnelDetails (std::stringstream& s, enum i2p::tunnel::TunnelState eState, bool explr, int bytes)
 	{
-		std::string state, stateText;
+		std::string state;
+		std::string_view stateText;
 		switch (eState) 
 		{
 			case i2p::tunnel::eTunnelStateBuildReplyReceived :
@@ -146,7 +147,7 @@ namespace http {
 		}
 		if (stateText.empty ()) stateText = tr(state);
 		
-		s << "<span class=\"tunnel " << state << "\"> " << stateText << ((explr) ? " (" + tr("exploratory") + ")" : "") << "</span>, ";
+		s << "<span class=\"tunnel " << state << "\"> " << stateText << ((explr) ? " (" + std::string(tr("exploratory")) + ")" : "") << "</span>, "; // TODO:
 		ShowTraffic(s, bytes);
 		s << "\r\n";
 	}
@@ -213,7 +214,7 @@ namespace http {
 			"</html>\r\n";
 	}
 
-	static void ShowError(std::stringstream& s, const std::string& string)
+	static void ShowError(std::stringstream& s, std::string_view string)
 	{
 		s << "<b>" << tr("ERROR") << ":</b>&nbsp;" << string << "<br>\r\n";
 	}
@@ -826,7 +827,7 @@ namespace http {
 		if (i2p::tunnel::tunnels.CountTransitTunnels())
 		{
 			s << "<b>" << tr("Transit Tunnels") << ":</b><br>\r\n";
-			s << "<table><thead><th>&#8658;</th><th>ID</th><th>&#8658;</th><th>" << tr("Amount") << "</th></thead><tbody class=\"tableitem\">";
+			s << "<table><thead><th>&#8658;</th><th>ID</th><th>&#8658;</th><th>" << tr("Amount") << "</th><th>" << tr("Next") << "</th></thead><tbody class=\"tableitem\">";
 			for (const auto& it: i2p::tunnel::tunnels.GetTransitTunnels ())
 			{
 				if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelGateway>(it))
@@ -836,7 +837,7 @@ namespace http {
 				else
 					s << "<tr><td>&#8658;</td><td>" << it->GetTunnelID () << "</td><td>&#8658;</td><td>";
 				ShowTraffic(s, it->GetNumTransmittedBytes ());
-				s << "</td></tr>\r\n";
+				s << "</td><td>" << it->GetNextPeerName () << "</td></tr>\r\n";
 			}
 			s << "</tbody></table>\r\n";
 		}
@@ -1262,7 +1263,7 @@ namespace http {
 			ShowLeasesSets(s);
 		else {
 			res.code = 400;
-			ShowError(s, tr("Unknown page") + ": " + page);
+			ShowError(s, std::string (tr("Unknown page")) + ": " + page); // TODO
 			return;
 		}
 	}
@@ -1462,7 +1463,7 @@ namespace http {
 		else
 		{
 			res.code = 400;
-			ShowError(s, tr("Unknown command") + ": " + cmd);
+			ShowError(s, std::string (tr("Unknown command")) + ": " + cmd); // TODO
 			return;
 		}
 

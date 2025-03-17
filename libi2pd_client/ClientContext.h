@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -92,7 +92,7 @@ namespace client
 				const std::string & name, const std::map<std::string, std::string> * params = nullptr);
 			void DeleteLocalDestination (std::shared_ptr<ClientDestination> destination);
 			std::shared_ptr<ClientDestination> FindLocalDestination (const i2p::data::IdentHash& destination) const;
-			bool LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename,
+			bool LoadPrivateKeys (i2p::data::PrivateKeys& keys, std::string_view filename,
 				i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519,
 				i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL);
 

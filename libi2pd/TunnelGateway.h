@@ -12,9 +12,7 @@
 #include <inttypes.h>
 #include <vector>
 #include <memory>
-#include <future>
 #include "I2NPProtocol.h"
-#include "TransportSession.h"
 #include "TunnelBase.h"
 
 namespace i2p
@@ -53,14 +51,14 @@ namespace tunnel
 			void PutTunnelDataMsg (const TunnelMessageBlock& block);
 			void SendBuffer ();
 			size_t GetNumSentBytes () const { return m_NumSentBytes; };
+			const std::unique_ptr<TunnelTransportSender>& GetSender () const { return m_Sender; };
 
 		private:
 
 			TunnelBase& m_Tunnel;
 			TunnelGatewayBuffer m_Buffer;
 			size_t m_NumSentBytes;
-			std::weak_ptr<i2p::transport::TransportSession> m_CurrentTransport;
-			std::future<std::shared_ptr<i2p::transport::TransportSession> > m_PendingTransport;
+			std::unique_ptr<TunnelTransportSender> m_Sender;
 	};
 }
 }

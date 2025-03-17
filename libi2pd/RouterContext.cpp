@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -33,13 +33,14 @@ namespace i2p
 		m_ShareRatio (100), m_Status (eRouterStatusUnknown), m_StatusV6 (eRouterStatusUnknown),
 		m_Error (eRouterErrorNone), m_ErrorV6 (eRouterErrorNone),
 		m_Testing (false), m_TestingV6 (false), m_NetID (I2PD_NET_ID),
-		m_PublishReplyToken (0), m_IsHiddenMode (false)
+		m_PublishReplyToken (0), m_IsHiddenMode (false), 
+		m_Rng(i2p::util::GetMonotonicMicroseconds () % 1000000LL), m_IsSaving (false)
 	{
 	}
 
 	void RouterContext::Init ()
 	{
-		srand (i2p::util::GetMillisecondsSinceEpoch () % 1000);
+		srand (m_Rng () % 1000);
 		m_StartupTime = i2p::util::GetMonotonicSeconds ();
 
 		if (!Load ())
@@ -76,7 +77,7 @@ namespace i2p
 				m_CongestionUpdateTimer->cancel ();
 			m_Service->Stop ();
 			CleanUp (); // GarlicDestination
-		}	
+		}
 	}	
 
 	std::shared_ptr<i2p::data::RouterInfo::Buffer> RouterContext::CopyRouterInfoBuffer () const
@@ -253,11 +254,36 @@ namespace i2p
 
 	void RouterContext::UpdateRouterInfo ()
 	{
+		std::shared_ptr<i2p::data::RouterInfo::Buffer> buffer;
 		{
 			std::lock_guard<std::mutex> l(m_RouterInfoMutex);
 			m_RouterInfo.CreateBuffer (m_Keys);
+			buffer = m_RouterInfo.CopyBuffer ();
 		}
-		m_RouterInfo.SaveToFile (i2p::fs::DataDirPath (ROUTER_INFO));
+		{
+			// update save buffer to latest
+			std::lock_guard<std::mutex> l(m_SaveBufferMutex);
+			m_SaveBuffer = buffer;
+		}
+		bool isSaving = false;
+		if (m_IsSaving.compare_exchange_strong (isSaving, true)) // try to save only if not being saved
+		{	
+			auto savingRouterInfo = std::async (std::launch::async, [this]() 
+				{
+					std::shared_ptr<i2p::data::RouterInfo::Buffer> buffer;
+					while (m_SaveBuffer)
+					{
+						{
+							std::lock_guard<std::mutex> l(m_SaveBufferMutex);
+							buffer = m_SaveBuffer;
+							m_SaveBuffer = nullptr;
+						}
+						if (buffer)
+							i2p::data::RouterInfo::SaveToFile (i2p::fs::DataDirPath (ROUTER_INFO), buffer);
+					}	
+					m_IsSaving = false;
+				});
+		}	
 		m_LastUpdateTime = i2p::util::GetSecondsSinceEpoch ();
 	}
 
@@ -649,12 +675,12 @@ namespace i2p
 
 	void RouterContext::SetBandwidth (int limit)
 	{
-		if      (limit > 2000) { SetBandwidth('X'); }
-		else if (limit >  256) { SetBandwidth('P'); }
-		else if (limit >  128) { SetBandwidth('O'); }
-		else if (limit >   64) { SetBandwidth('N'); }
-		else if (limit >   48) { SetBandwidth('M'); }
-		else if (limit >   12) { SetBandwidth('L'); }
+		if      (limit > (int)i2p::data::EXTRA_BANDWIDTH_LIMIT) { SetBandwidth('X'); }
+		else if (limit > (int)i2p::data::HIGH_BANDWIDTH_LIMIT) { SetBandwidth('P'); }
+		else if (limit > 128) { SetBandwidth('O'); }
+		else if (limit > 64) { SetBandwidth('N'); }
+		else if (limit > (int)i2p::data::LOW_BANDWIDTH_LIMIT) { SetBandwidth('M'); }
+		else if (limit > 12) { SetBandwidth('L'); }
 		else                   { SetBandwidth('K'); }
 		m_BandwidthLimit = limit; // set precise limit
 	}
@@ -1359,7 +1385,7 @@ namespace i2p
 		{	
 			m_PublishTimer->cancel ();
 			m_PublishTimer->expires_from_now (boost::posix_time::seconds(ROUTER_INFO_PUBLISH_INTERVAL + 
-				rand () % ROUTER_INFO_PUBLISH_INTERVAL_VARIANCE));
+				m_Rng () % ROUTER_INFO_PUBLISH_INTERVAL_VARIANCE));
 			m_PublishTimer->async_wait (std::bind (&RouterContext::HandlePublishTimer,
 				this, std::placeholders::_1));
 		}	
@@ -1434,7 +1460,7 @@ namespace i2p
 						i2p::garlic::WrapECIESX25519MessageForRouter (msg, floodfill->GetIdentity ()->GetEncryptionPublicKey ()));
 				}	
 				else
-					LogPrint (eLogInfo, "Router: Can't publish our RouterInfo. No tunnles. Try again in ", ROUTER_INFO_CONFIRMATION_TIMEOUT, " seconds");
+					LogPrint (eLogInfo, "Router: Can't publish our RouterInfo. No tunnels. Try again in ", ROUTER_INFO_CONFIRMATION_TIMEOUT, " milliseconds");
 			}
 			m_PublishExcluded.insert (floodfill->GetIdentHash ());
 			m_PublishReplyToken = replyToken;
@@ -1448,7 +1474,7 @@ namespace i2p
 		if (m_PublishTimer)
 		{
 			m_PublishTimer->cancel ();
-			m_PublishTimer->expires_from_now (boost::posix_time::seconds(ROUTER_INFO_CONFIRMATION_TIMEOUT));
+			m_PublishTimer->expires_from_now (boost::posix_time::milliseconds(ROUTER_INFO_CONFIRMATION_TIMEOUT));
 			m_PublishTimer->async_wait (std::bind (&RouterContext::HandlePublishResendTimer,
 				this, std::placeholders::_1));
 		}	
@@ -1471,7 +1497,8 @@ namespace i2p
 		if (m_CongestionUpdateTimer)
 		{	
 			m_CongestionUpdateTimer->cancel ();
-			m_CongestionUpdateTimer->expires_from_now (boost::posix_time::seconds(ROUTER_INFO_CONGESTION_UPDATE_INTERVAL));
+			m_CongestionUpdateTimer->expires_from_now (boost::posix_time::seconds(
+				ROUTER_INFO_CONGESTION_UPDATE_INTERVAL + m_Rng () % ROUTER_INFO_CONGESTION_UPDATE_INTERVAL_VARIANCE));
 			m_CongestionUpdateTimer->async_wait (std::bind (&RouterContext::HandleCongestionUpdateTimer,
 				this, std::placeholders::_1));
 		}	

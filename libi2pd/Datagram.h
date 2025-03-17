@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -31,8 +31,6 @@ namespace datagram
 {
 	// milliseconds for max session idle time
 	const uint64_t DATAGRAM_SESSION_MAX_IDLE = 10 * 60 * 1000;
-	// milliseconds for how long we try sticking to a dead routing path before trying to switch
-	const uint64_t DATAGRAM_SESSION_PATH_TIMEOUT = 10 * 1000;
 	// milliseconds interval a routing path is used before switching
 	const uint64_t DATAGRAM_SESSION_PATH_SWITCH_INTERVAL = 20 * 60 * 1000;
 	// milliseconds before lease expire should we try switching leases
@@ -44,6 +42,7 @@ namespace datagram
 	// max 64 messages buffered in send queue for each datagram session
 	const size_t DATAGRAM_SEND_QUEUE_MAX_SIZE = 64;
 	const uint64_t DATAGRAM_MAX_FLUSH_INTERVAL = 5; // in milliseconds
+	const int DATAGRAM_SESSION_ACK_REQUEST_INTERVAL = 5500; // in milliseconds
 
 	class DatagramSession : public std::enable_shared_from_this<DatagramSession>
 	{

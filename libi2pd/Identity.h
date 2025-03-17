@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -12,6 +12,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include <string>
+#include <string_view>
 #include <memory>
 #include <vector>
 #include "Base.h"
@@ -54,6 +55,8 @@ namespace data
 		Identity& operator=(const Keys& keys);
 		size_t FromBuffer (const uint8_t * buf, size_t len);
 		IdentHash Hash () const;
+		operator uint8_t * () { return reinterpret_cast<uint8_t *>(this); }
+		operator const uint8_t * () const { return reinterpret_cast<const uint8_t *>(this); }
 	};
 
 	Keys CreateRandomKeys ();
@@ -63,9 +66,7 @@ namespace data
 	const uint16_t CRYPTO_KEY_TYPE_ELGAMAL = 0;
 	const uint16_t CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC = 1;
 	const uint16_t CRYPTO_KEY_TYPE_ECIES_X25519_AEAD = 4;
-	const uint16_t CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC_TEST = 65280; // TODO: remove later
-	const uint16_t CRYPTO_KEY_TYPE_ECIES_GOSTR3410_CRYPTO_PRO_A_SHA256_AES256CBC = 65281; // TODO: use GOST R 34.11 instead SHA256 and GOST 28147-89 instead AES
-
+	
 	const uint16_t SIGNING_KEY_TYPE_DSA_SHA1 = 0;
 	const uint16_t SIGNING_KEY_TYPE_ECDSA_SHA256_P256 = 1;
 	const uint16_t SIGNING_KEY_TYPE_ECDSA_SHA384_P384 = 2;
@@ -74,11 +75,12 @@ namespace data
 	const uint16_t SIGNING_KEY_TYPE_RSA_SHA384_3072 = 5;
 	const uint16_t SIGNING_KEY_TYPE_RSA_SHA512_4096 = 6;
 	const uint16_t SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519 = 7;
-	const uint16_t SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519ph = 8; // not implemented
+	const uint16_t SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519ph = 8; // since openssl 3.0.0
 	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256 = 9;
 	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512 = 10; // approved by FSB
 	const uint16_t SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519 = 11; // for LeaseSet2 only
-
+	const uint16_t SIGNING_KEY_TYPE_MLDSA44 = 15;
+	
 	typedef uint16_t SigningKeyType;
 	typedef uint16_t CryptoKeyType;
 
@@ -99,7 +101,7 @@ namespace data
 
 			size_t FromBuffer (const uint8_t * buf, size_t len);
 			size_t ToBuffer (uint8_t * buf, size_t len) const;
-			size_t FromBase64(const std::string& s);
+			size_t FromBase64(std::string_view s);
 			std::string ToBase64 () const;
 			const Identity& GetStandardIdentity () const { return m_StandardIdentity; };
 
@@ -133,7 +135,7 @@ namespace data
 			IdentHash m_IdentHash;
 			std::unique_ptr<i2p::crypto::Verifier> m_Verifier;
 			size_t m_ExtendedLen;
-			uint8_t m_ExtendedBuffer[MAX_EXTENDED_BUFFER_SIZE];
+			uint8_t m_ExtendedBuffer[MAX_EXTENDED_BUFFER_SIZE]; // TODO: support PQ keys
 	};
 
 	size_t GetIdentityBufferLen (const uint8_t * buf, size_t len); // return actual identity length in buffer

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -27,18 +27,15 @@ namespace data
 
 	size_t Identity::FromBuffer (const uint8_t * buf, size_t len)
 	{
-		if ( len < DEFAULT_IDENTITY_SIZE ) {
-			// buffer too small, don't overflow
-			return 0;
-		}
-		memcpy (publicKey, buf, DEFAULT_IDENTITY_SIZE);
+		if (len < DEFAULT_IDENTITY_SIZE) return 0; // buffer too small, don't overflow
+		memcpy (this, buf, DEFAULT_IDENTITY_SIZE);
 		return DEFAULT_IDENTITY_SIZE;
 	}
 
 	IdentHash Identity::Hash () const
 	{
 		IdentHash hash;
-		SHA256(publicKey, DEFAULT_IDENTITY_SIZE, hash);
+		SHA256((const uint8_t *)this, DEFAULT_IDENTITY_SIZE, hash);
 		return hash;
 	}
 
@@ -122,6 +119,16 @@ namespace data
 					memcpy (m_StandardIdentity.signingKey, signingKey, i2p::crypto::GOSTR3410_512_PUBLIC_KEY_LENGTH);
 					break;
 				}
+#if OPENSSL_PQ
+				case SIGNING_KEY_TYPE_MLDSA44:
+				{
+					memcpy (m_StandardIdentity, signingKey, 384);
+					excessLen = i2p::crypto::MLDSA44_PUBLIC_KEY_LENGTH - 384;
+					excessBuf = new uint8_t[excessLen];
+					memcpy (excessBuf, signingKey + 384, excessLen);
+					break;
+				}	
+#endif					
 				default:
 					LogPrint (eLogError, "Identity: Signing key type ", (int)type, " is not supported");
 			}
@@ -262,11 +269,11 @@ namespace data
 		return fullLen;
 	}
 
-	size_t IdentityEx::FromBase64(const std::string& s)
+	size_t IdentityEx::FromBase64(std::string_view s)
 	{
 		const size_t slen = s.length();
 		std::vector<uint8_t> buf(slen); // binary data can't exceed base64
-		const size_t len = Base64ToByteStream (s.c_str(), slen, buf.data(), slen);
+		const size_t len = Base64ToByteStream (s.data(), slen, buf.data(), slen);
 		return FromBuffer (buf.data(), len);
 	}
 
@@ -355,6 +362,10 @@ namespace data
 				return new i2p::crypto::GOSTR3410_512_Verifier (i2p::crypto::eGOSTR3410TC26A512);
 			case SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
 				return new i2p::crypto::RedDSA25519Verifier ();
+#if OPENSSL_PQ				
+			case SIGNING_KEY_TYPE_MLDSA44:
+				return new i2p::crypto::MLDSA44Verifier ();
+#endif				
 			case SIGNING_KEY_TYPE_RSA_SHA256_2048:
 			case SIGNING_KEY_TYPE_RSA_SHA384_3072:
 			case SIGNING_KEY_TYPE_RSA_SHA512_4096:
@@ -376,6 +387,18 @@ namespace data
 				auto keyLen = verifier->GetPublicKeyLen ();
 				if (keyLen <= 128)
 					verifier->SetPublicKey (m_StandardIdentity.signingKey + 128 - keyLen);
+#if OPENSSL_PQ
+				else if (keyLen > 384)
+				{
+					// for post-quantum
+					uint8_t * signingKey = new uint8_t[keyLen];
+					memcpy (signingKey, m_StandardIdentity.signingKey, 384);
+					size_t excessLen = keyLen - 384;
+					memcpy (signingKey + 384, m_ExtendedBuffer + 4, excessLen); // right after signing and crypto key types
+					verifier->SetPublicKey (signingKey);
+					delete[] signingKey;
+				}	
+#endif				
 				else
 				{
 					// for P521
@@ -402,11 +425,7 @@ namespace data
 				return std::make_shared<i2p::crypto::ECIESX25519AEADRatchetEncryptor>(key);
 			break;
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
-			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC_TEST:
 				return std::make_shared<i2p::crypto::ECIESP256Encryptor>(key);
-			break;
-			case CRYPTO_KEY_TYPE_ECIES_GOSTR3410_CRYPTO_PRO_A_SHA256_AES256CBC:
-				return std::make_shared<i2p::crypto::ECIESGOSTR3410Encryptor>(key);
 			break;
 			default:
 				LogPrint (eLogError, "Identity: Unknown crypto key type ", (int)keyType);
@@ -633,6 +652,11 @@ namespace data
 			case SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
 				return new i2p::crypto::RedDSA25519Signer (priv);
 			break;
+#if OPENSSL_PQ
+			case SIGNING_KEY_TYPE_MLDSA44:
+				return new i2p::crypto::MLDSA44Signer (priv);
+			break;	
+#endif				
 			default:
 				LogPrint (eLogError, "Identity: Signing key type ", (int)keyType, " is not supported");
 		}
@@ -676,11 +700,7 @@ namespace data
 				return std::make_shared<i2p::crypto::ECIESX25519AEADRatchetDecryptor>(key);
 			break;
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
-			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC_TEST:
 				return std::make_shared<i2p::crypto::ECIESP256Decryptor>(key);
-			break;
-			case CRYPTO_KEY_TYPE_ECIES_GOSTR3410_CRYPTO_PRO_A_SHA256_AES256CBC:
-				return std::make_shared<i2p::crypto::ECIESGOSTR3410Decryptor>(key);
 			break;
 			default:
 				LogPrint (eLogError, "Identity: Unknown crypto key type ", (int)cryptoType);
@@ -728,9 +748,7 @@ namespace data
 			case SIGNING_KEY_TYPE_RSA_SHA384_3072:
 			case SIGNING_KEY_TYPE_RSA_SHA512_4096:
 				LogPrint (eLogWarning, "Identity: RSA signature type is not supported. Creating EdDSA");
-#if (__cplusplus >= 201703L) // C++ 17 or higher
 				[[fallthrough]];
-#endif
 				// no break here
 			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 				i2p::crypto::CreateEDDSA25519RandomKeys (priv, pub);
@@ -744,6 +762,11 @@ namespace data
 			case SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
 				i2p::crypto::CreateRedDSA25519RandomKeys (priv, pub);
 			break;
+#if OPENSSL_PQ				
+			case SIGNING_KEY_TYPE_MLDSA44:
+				i2p::crypto::CreateMLDSA44RandomKeys (priv, pub);
+			break;	
+#endif				
 			default:
 				LogPrint (eLogWarning, "Identity: Signing key type ", (int)type, " is not supported. Create DSA-SHA1");
 				i2p::crypto::CreateDSARandomKeys (priv, pub); // DSA-SHA1
@@ -758,11 +781,7 @@ namespace data
 				i2p::crypto::GenerateElGamalKeyPair(priv, pub);
 			break;
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
-			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC_TEST:
 				i2p::crypto::CreateECIESP256RandomKeys (priv, pub);
-			break;
-			case CRYPTO_KEY_TYPE_ECIES_GOSTR3410_CRYPTO_PRO_A_SHA256_AES256CBC:
-				i2p::crypto::CreateECIESGOSTR3410RandomKeys (priv, pub);
 			break;
 			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD:
 				i2p::crypto::CreateECIESX25519AEADRatchetRandomKeys (priv, pub);

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -265,11 +265,15 @@ namespace client
 		}
 	}
 
-	bool ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename,
+	bool ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, std::string_view filename,
 		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType)
 	{
-		static const std::string transient("transient");
+#if __cplusplus >= 202002L // C++20
+		if (filename.starts_with ("transient"))
+#else		
+		std::string_view transient("transient");
 		if (!filename.compare (0, transient.length (), transient)) // starts with transient
+#endif			
 		{
 			keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType, true);
 			LogPrint (eLogInfo, "Clients: New transient keys address ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " created");
@@ -297,7 +301,7 @@ namespace client
 		}
 		else
 		{
-			LogPrint (eLogCritical, "Clients: Can't open file ", fullPath, " Creating new one with signature type ", sigType, " crypto type ", cryptoType);
+			LogPrint (eLogInfo, "Clients: Can't open file ", fullPath, " Creating new one with signature type ", sigType, " crypto type ", cryptoType);
 			keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType, true);
 			std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
 			size_t len = keys.GetFullLen ();
@@ -416,15 +420,10 @@ namespace client
 
 	void ClientContext::CreateNewSharedLocalDestination ()
 	{
-		std::map<std::string, std::string> params
-		{
-			{ I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, "3" },
-			{ I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, "3" },
-			{ I2CP_PARAM_LEASESET_TYPE, "3" },
-			{ I2CP_PARAM_LEASESET_ENCRYPTION_TYPE, "0,4" },
-			{ I2CP_PARAM_OUTBOUND_NICKNAME, "SharedDest" },
-			{ I2CP_PARAM_STREAMING_PROFILE, "2" }
-		};
+		std::map<std::string, std::string> params;
+		ReadI2CPOptionsFromConfig ("shareddest.", params);
+		params[I2CP_PARAM_OUTBOUND_NICKNAME] = "SharedDest";
+		
 		m_SharedLocalDestination = CreateNewLocalDestination (false, i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519,
 			i2p::data::CRYPTO_KEY_TYPE_ELGAMAL, &params); // non-public, EDDSA
 		m_SharedLocalDestination->Acquire ();
@@ -548,7 +547,11 @@ namespace client
 			{
 				for (auto& it: files)
 				{
+#if __cplusplus >= 202002L // C++20
+					if (!it.ends_with (".conf")) continue;
+#else					
 					if (it.substr(it.size() - 5) != ".conf") continue; // skip files which not ends with ".conf"
+#endif					
 					LogPrint(eLogDebug, "Clients: Tunnels extra config file: ", it);
 					ReadTunnels (it, numClientTunnels, numServerTunnels);
 				}
@@ -604,7 +607,9 @@ namespace client
 						options[I2CP_PARAM_OUTBOUND_NICKNAME] = name;
 
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
-					if (keys.length () > 0)
+					if (keys == "shareddest")
+						localDestination = m_SharedLocalDestination;
+					else if (keys.length () > 0)
 					{
 						auto it = destinations.find (keys);
 						if (it != destinations.end ())
@@ -763,26 +768,31 @@ namespace client
 						options[I2CP_PARAM_INBOUND_NICKNAME] = name;
 
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
-					auto it = destinations.find (keys);
-					if (it != destinations.end ())
-					{
-						localDestination = it->second;
-						localDestination->SetPublic (true);
-					}
+					if (keys == "shareddest")
+						localDestination = m_SharedLocalDestination;
 					else
-					{
-						i2p::data::PrivateKeys k;
-						if(!LoadPrivateKeys (k, keys, sigType, cryptoType))
-							continue;
-						localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
-						if (!localDestination)
+					{	
+						auto it = destinations.find (keys);
+						if (it != destinations.end ())
 						{
-							localDestination = CreateNewLocalDestination (k, true, &options);
-							destinations[keys] = localDestination;
+							localDestination = it->second;
+							localDestination->SetPublic (true);
 						}
 						else
-							localDestination->SetPublic (true);
-					}
+						{
+							i2p::data::PrivateKeys k;
+							if(!LoadPrivateKeys (k, keys, sigType, cryptoType))
+								continue;
+							localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
+							if (!localDestination)
+							{
+								localDestination = CreateNewLocalDestination (k, true, &options);
+								destinations[keys] = localDestination;
+							}
+							else
+								localDestination->SetPublic (true);
+						}
+					}	
 					if (type == I2P_TUNNELS_SECTION_TYPE_UDPSERVER)
 					{
 						// udp server tunnel
@@ -876,7 +886,7 @@ namespace client
 
 				}
 				else
-					LogPrint (eLogWarning, "Clients: Unknown section type = ", type, " of ", name, " in ", tunConf);
+					LogPrint (eLogError, "Clients: Unknown section type = ", type, " of ", name, " in ", tunConf);
 			}
 			catch (std::exception& ex)
 			{
@@ -902,7 +912,12 @@ namespace client
 				i2p::config::GetOption("addressbook.enabled", httpAddresshelper); // addresshelper is not supported without address book
 			i2p::data::SigningKeyType sigType; i2p::config::GetOption("httpproxy.signaturetype", sigType);
 			LogPrint(eLogInfo, "Clients: Starting HTTP Proxy at ", httpProxyAddr, ":", httpProxyPort);
-			if (httpProxyKeys.length () > 0)
+			if (httpProxyKeys == "shareddest")
+			{
+				localDestination = m_SharedLocalDestination;
+				localDestination->Acquire ();
+			}
+			else if (httpProxyKeys.length () > 0)
 			{
 				i2p::data::PrivateKeys keys;
 				if(LoadPrivateKeys (keys, httpProxyKeys, sigType))
@@ -946,7 +961,12 @@ namespace client
 			uint16_t    socksOutProxyPort;     i2p::config::GetOption("socksproxy.outproxyport",     socksOutProxyPort);
 			i2p::data::SigningKeyType sigType; i2p::config::GetOption("socksproxy.signaturetype",    sigType);
 			LogPrint(eLogInfo, "Clients: Starting SOCKS Proxy at ", socksProxyAddr, ":", socksProxyPort);
-			if (httpProxyKeys == socksProxyKeys && m_HttpProxy)
+			if (socksProxyKeys == "shareddest")
+			{
+				localDestination = m_SharedLocalDestination;
+				localDestination->Acquire ();
+			}
+			else if (httpProxyKeys == socksProxyKeys && m_HttpProxy)
 			{
 				localDestination = m_HttpProxy->GetLocalDestination ();
 				localDestination->Acquire ();

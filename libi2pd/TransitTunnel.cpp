@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -10,6 +10,8 @@
 #include "I2PEndian.h"
 #include "Crypto.h"
 #include "Log.h"
+#include "Identity.h"
+#include "RouterInfo.h"
 #include "RouterContext.h"
 #include "I2NPProtocol.h"
 #include "Garlic.h"
@@ -41,6 +43,21 @@ namespace tunnel
 		i2p::transport::transports.UpdateTotalTransitTransmittedBytes (TUNNEL_DATA_MSG_SIZE);
 	}
 
+	std::string TransitTunnel::GetNextPeerName () const
+	{
+		return i2p::data::GetIdentHashAbbreviation (GetNextIdentHash ());
+	}	
+
+	void TransitTunnel::SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg)
+	{
+		LogPrint (eLogError, "TransitTunnel: We are not a gateway for ", GetTunnelID ());
+	}
+
+	void TransitTunnel::HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg)
+	{
+		LogPrint (eLogError, "TransitTunnel: Incoming tunnel message is not supported ", GetTunnelID ());
+	}
+		
 	TransitTunnelParticipant::~TransitTunnelParticipant ()
 	{
 	}
@@ -62,44 +79,100 @@ namespace tunnel
 			auto num = m_TunnelDataMsgs.size ();
 			if (num > 1)
 				LogPrint (eLogDebug, "TransitTunnel: ", GetTunnelID (), "->", GetNextTunnelID (), " ", num);
-			i2p::transport::transports.SendMessages (GetNextIdentHash (), m_TunnelDataMsgs); // send and clear
+			if (!m_Sender) m_Sender = std::make_unique<TunnelTransportSender>();
+			m_Sender->SendMessagesTo (GetNextIdentHash (), m_TunnelDataMsgs); // send and clear
 		}
 	}
 
-	void TransitTunnel::SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg)
+	std::string TransitTunnelParticipant::GetNextPeerName () const
 	{
-		LogPrint (eLogError, "TransitTunnel: We are not a gateway for ", GetTunnelID ());
-	}
-
-	void TransitTunnel::HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg)
-	{
-		LogPrint (eLogError, "TransitTunnel: Incoming tunnel message is not supported ", GetTunnelID ());
-	}
-
+		if (m_Sender)
+		{
+			auto transport = m_Sender->GetCurrentTransport ();
+			if (transport)
+				return TransitTunnel::GetNextPeerName () + "-" + 
+					i2p::data::RouterInfo::GetTransportName (transport->GetTransportType ());
+		}	
+		return TransitTunnel::GetNextPeerName ();
+	}	
+		
 	void TransitTunnelGateway::SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg)
 	{
 		TunnelMessageBlock block;
 		block.deliveryType = eDeliveryTypeLocal;
 		block.data = msg;
-		std::unique_lock<std::mutex> l(m_SendMutex);
+		std::lock_guard<std::mutex> l(m_SendMutex);
 		m_Gateway.PutTunnelDataMsg (block);
 	}
 
 	void TransitTunnelGateway::FlushTunnelDataMsgs ()
 	{
-		std::unique_lock<std::mutex> l(m_SendMutex);
+		std::lock_guard<std::mutex> l(m_SendMutex);
 		m_Gateway.SendBuffer ();
 	}
 
+	std::string TransitTunnelGateway::GetNextPeerName () const
+	{
+		const auto& sender = m_Gateway.GetSender ();
+		if (sender)
+		{
+			auto transport = sender->GetCurrentTransport ();
+			if (transport)
+				return TransitTunnel::GetNextPeerName () + "-" + 
+					i2p::data::RouterInfo::GetTransportName (transport->GetTransportType ());
+		}	
+		return TransitTunnel::GetNextPeerName ();
+	}	
+		
 	void TransitTunnelEndpoint::HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg)
 	{
 		auto newMsg = CreateEmptyTunnelDataMsg (true);
 		EncryptTunnelMsg (tunnelMsg, newMsg);
 
 		LogPrint (eLogDebug, "TransitTunnel: handle msg for endpoint ", GetTunnelID ());
-		m_Endpoint.HandleDecryptedTunnelDataMsg (newMsg);
+		std::lock_guard<std::mutex> l(m_HandleMutex);
+		if (!m_Endpoint) m_Endpoint = std::make_unique<TunnelEndpoint>(false); // transit endpoint is always outbound
+		m_Endpoint->HandleDecryptedTunnelDataMsg (newMsg);
 	}
 
+	void TransitTunnelEndpoint::FlushTunnelDataMsgs ()
+	{
+		if (m_Endpoint)
+		{
+			std::lock_guard<std::mutex> l(m_HandleMutex);
+			m_Endpoint->FlushI2NPMsgs ();
+		}	
+	}	
+
+	void TransitTunnelEndpoint::Cleanup ()
+	{ 
+		if (m_Endpoint)
+		{	
+			std::lock_guard<std::mutex> l(m_HandleMutex);
+			m_Endpoint->Cleanup ();
+		}	
+	}	
+		
+	std::string TransitTunnelEndpoint::GetNextPeerName () const
+	{ 
+		if (!m_Endpoint) return "";
+		auto hash = m_Endpoint->GetCurrentHash ();
+		if (hash)
+		{	
+			const auto& sender = m_Endpoint->GetSender ();
+			if (sender)
+			{
+				auto transport = sender->GetCurrentTransport ();
+				if (transport)
+					return i2p::data::GetIdentHashAbbreviation (*hash) + "-" + 
+						i2p::data::RouterInfo::GetTransportName (transport->GetTransportType ());
+				else
+					return i2p::data::GetIdentHashAbbreviation (*hash);
+			}	
+		}
+		return "";
+	}	
+		
 	std::shared_ptr<TransitTunnel> CreateTransitTunnel (uint32_t receiveTunnelID,
 		const i2p::data::IdentHash& nextIdent, uint32_t nextTunnelID,
 		const i2p::crypto::AESKey& layerKey, const i2p::crypto::AESKey& ivKey,
@@ -123,7 +196,7 @@ namespace tunnel
 	}
 
 	TransitTunnels::TransitTunnels ():
-		m_IsRunning (false)
+		m_IsRunning (false), m_Rng(i2p::util::GetMonotonicMicroseconds ()%1000000LL)
 	{
 	}
 		
@@ -263,19 +336,44 @@ namespace tunnel
 				// check if we accept this tunnel
 				std::shared_ptr<i2p::tunnel::TransitTunnel> transitTunnel;
 				uint8_t retCode = 0;
-				if (!i2p::context.AcceptsTunnels () || i2p::context.GetCongestionLevel (false) >= CONGESTION_LEVEL_FULL)
+				if (i2p::context.AcceptsTunnels ())
+				{
+					auto congestionLevel = i2p::context.GetCongestionLevel (false);
+					if (congestionLevel < CONGESTION_LEVEL_FULL)
+					{	
+						if (congestionLevel >= CONGESTION_LEVEL_MEDIUM)
+						{	
+							// random reject depending on congestion level
+							int level = m_Rng () % (CONGESTION_LEVEL_FULL - CONGESTION_LEVEL_MEDIUM) + CONGESTION_LEVEL_MEDIUM;
+							if (congestionLevel > level)
+								retCode = 30;
+						}	
+					}	
+					else
+						retCode = 30;
+				}	
+				else	
 					retCode = 30;
+				
 				if (!retCode)
 				{
-					// create new transit tunnel
-					transitTunnel = i2p::tunnel::CreateTransitTunnel (
-						bufbe32toh (clearText + SHORT_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
-						clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET,
-						bufbe32toh (clearText + SHORT_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
-						layerKey, ivKey,
-						clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_GATEWAY_FLAG,
-						clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_ENDPOINT_FLAG);
-					if (!AddTransitTunnel (transitTunnel))
+					i2p::data::IdentHash nextIdent(clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET);
+					bool isEndpoint = clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_ENDPOINT_FLAG;
+					if (isEndpoint || !i2p::data::IsRouterDuplicated (nextIdent))
+					{	
+						// create new transit tunnel
+						transitTunnel = CreateTransitTunnel (
+							bufbe32toh (clearText + SHORT_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
+							nextIdent,
+							bufbe32toh (clearText + SHORT_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
+							layerKey, ivKey,
+							clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_GATEWAY_FLAG,
+							isEndpoint);
+						if (!AddTransitTunnel (transitTunnel))
+							retCode = 30;
+					}
+					else
+						// decline tunnel going to duplicated router 
 						retCode = 30;
 				}
 
@@ -387,7 +485,7 @@ namespace tunnel
 						if (congestionLevel < CONGESTION_LEVEL_FULL)
 						{
 							// random reject depending on congestion level
-							int level = i2p::tunnel::tunnels.GetRng ()() % (CONGESTION_LEVEL_FULL - CONGESTION_LEVEL_MEDIUM) + CONGESTION_LEVEL_MEDIUM;
+							int level = m_Rng () % (CONGESTION_LEVEL_FULL - CONGESTION_LEVEL_MEDIUM) + CONGESTION_LEVEL_MEDIUM;
 							if (congestionLevel > level)
 								accept = false;
 						}	
@@ -395,23 +493,32 @@ namespace tunnel
 							accept = false;
 					}	
 				}	
-				// replace record to reply
+					
 				if (accept)
 				{
-					auto transitTunnel = i2p::tunnel::CreateTransitTunnel (
-							bufbe32toh (clearText + ECIES_BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
-							clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
-							bufbe32toh (clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
-							clearText + ECIES_BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET,
-							clearText + ECIES_BUILD_REQUEST_RECORD_IV_KEY_OFFSET,
-							clearText[ECIES_BUILD_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_GATEWAY_FLAG,
-							clearText[ECIES_BUILD_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_ENDPOINT_FLAG);
-					if (!AddTransitTunnel (transitTunnel))
+					i2p::data::IdentHash nextIdent(clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET);
+					bool isEndpoint = clearText[ECIES_BUILD_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_ENDPOINT_FLAG;
+					if (isEndpoint || !i2p::data::IsRouterDuplicated (nextIdent))
+					{	
+						auto transitTunnel = CreateTransitTunnel (
+								bufbe32toh (clearText + ECIES_BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
+								nextIdent,
+								bufbe32toh (clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
+								clearText + ECIES_BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET,
+								clearText + ECIES_BUILD_REQUEST_RECORD_IV_KEY_OFFSET,
+								clearText[ECIES_BUILD_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_GATEWAY_FLAG,
+								isEndpoint);
+						if (!AddTransitTunnel (transitTunnel))
+							retCode = 30;
+					}	
+					else
+						// decline tunnel going to duplicated router 
 						retCode = 30;
 				}
 				else
 					retCode = 30; // always reject with bandwidth reason (30)
 
+				// replace record to reply
 				memset (record + ECIES_BUILD_RESPONSE_RECORD_OPTIONS_OFFSET, 0, 2); // no options
 				record[ECIES_BUILD_RESPONSE_RECORD_RET_OFFSET] = retCode;
 				// encrypt reply
@@ -434,8 +541,7 @@ namespace tunnel
 					else
 					{
 						encryption.SetKey (clearText + ECIES_BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET);
-						encryption.SetIV (clearText + ECIES_BUILD_REQUEST_RECORD_REPLY_IV_OFFSET);
-						encryption.Encrypt(reply, TUNNEL_BUILD_RECORD_SIZE, reply);
+						encryption.Encrypt(reply, TUNNEL_BUILD_RECORD_SIZE, clearText + ECIES_BUILD_REQUEST_RECORD_REPLY_IV_OFFSET, reply);
 					}
 				}
 				return true;

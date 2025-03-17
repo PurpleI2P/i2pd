@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022-2024, The PurpleI2P Project
+* Copyright (c) 2022-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -267,6 +267,7 @@ namespace transport
 			size_t Resend (uint64_t ts); // return number of resent packets
 			uint64_t GetLastResendTime () const { return m_LastResendTime; };
 			bool IsEstablished () const override { return m_State == eSSU2SessionStateEstablished; };
+			i2p::data::RouterInfo::SupportedTransports GetTransportType () const override;
 			uint64_t GetConnID () const { return m_SourceConnID; };
 			SSU2SessionState GetState () const { return m_State; };
 			void SetState (SSU2SessionState state) { m_State = state; };
@@ -396,6 +397,8 @@ namespace transport
 			std::unique_ptr<i2p::data::IdentHash> m_PathChallenge;
 			std::unordered_map<uint32_t, uint32_t> m_ReceivedI2NPMsgIDs; // msgID -> timestamp in seconds
 			uint64_t m_LastResendTime, m_LastResendAttemptTime; // in milliseconds
+			int m_NumRanges;
+			uint8_t m_Ranges[SSU2_MAX_NUM_ACK_RANGES*2]; // ranges sent with previous Ack if any
 	};
 	
 	inline uint64_t CreateHeaderMask (const uint8_t * kh, const uint8_t * nonce)

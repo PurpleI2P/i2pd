@@ -29,7 +29,6 @@ DAEMON_SRC_DIR := daemon
 # import source files lists
 include filelist.mk
 
-USE_AESNI       := $(or $(USE_AESNI),yes)
 USE_STATIC      := $(or $(USE_STATIC),no)
 USE_UPNP        := $(or $(USE_UPNP),no)
 DEBUG           := $(or $(DEBUG),yes)
@@ -70,6 +69,9 @@ else ifneq (, $(findstring freebsd, $(SYS))$(findstring openbsd, $(SYS)))
 else ifneq (, $(findstring haiku, $(SYS)))
 	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
 	include Makefile.haiku
+else ifneq (, $(findstring solaris, $(SYS)))
+	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
+	include Makefile.solaris
 else # not supported
 	$(error Not supported platform)
 endif

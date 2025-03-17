@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -103,7 +103,7 @@ namespace tunnel
 			if (m_Config->IsShort ())
 			{
 				auto ident = m_Config->GetFirstHop () ? m_Config->GetFirstHop ()->ident : nullptr;
-				if (ident && ident->GetIdentHash () != outboundTunnel->GetNextIdentHash ()) // don't encrypt if IBGW = OBEP
+				if (ident && ident->GetIdentHash () != outboundTunnel->GetEndpointIdentHash ()) // don't encrypt if IBGW = OBEP
 				{
 					auto msg1 = i2p::garlic::WrapECIESX25519MessageForRouter (msg, ident->GetEncryptionPublicKey ());
 					if (msg1) msg = msg1;
@@ -179,9 +179,12 @@ namespace tunnel
 		{
 			uint8_t ret = hop->GetRetCode (msg + 1);
 			LogPrint (eLogDebug, "Tunnel: Build response ret code=", (int)ret);
-			auto profile = i2p::data::netdb.FindRouterProfile (hop->ident->GetIdentHash ());
-			if (profile)
-				profile->TunnelBuildResponse (ret);
+			if (hop->ident)
+				i2p::data::UpdateRouterProfile (hop->ident->GetIdentHash (),
+					[ret](std::shared_ptr<i2p::data::RouterProfile> profile)
+					{
+						if (profile) profile->TunnelBuildResponse (ret);
+					});
 			if (ret)
 				// if any of participants declined the tunnel is not established
 				established = false;
@@ -278,6 +281,21 @@ namespace tunnel
 		m_Endpoint.HandleDecryptedTunnelDataMsg (msg);
 	}
 
+	bool InboundTunnel::Recreate ()
+	{
+		if (!IsRecreated ())
+		{
+			auto pool = GetTunnelPool ();
+			if (pool)
+			{
+				SetRecreated (true);
+				pool->RecreateInboundTunnel (std::static_pointer_cast<InboundTunnel>(shared_from_this ()));
+				return true;
+			}	
+		}
+		return false;
+	}	
+		
 	ZeroHopsInboundTunnel::ZeroHopsInboundTunnel ():
 		InboundTunnel (std::make_shared<ZeroHopsTunnelConfig> ()),
 		m_NumReceivedBytes (0)
@@ -297,22 +315,28 @@ namespace tunnel
 	void OutboundTunnel::SendTunnelDataMsgTo (const uint8_t * gwHash, uint32_t gwTunnel, std::shared_ptr<i2p::I2NPMessage> msg)
 	{
 		TunnelMessageBlock block;
+		block.tunnelID = 0; // Initialize tunnelID to a default value
+	
 		if (gwHash)
 		{
 			block.hash = gwHash;
 			if (gwTunnel)
 			{
 				block.deliveryType = eDeliveryTypeTunnel;
-				block.tunnelID = gwTunnel;
+				block.tunnelID = gwTunnel; // Set tunnelID only if gwTunnel is non-zero
 			}
 			else
+			{
 				block.deliveryType = eDeliveryTypeRouter;
+			}
 		}
 		else
+		{
 			block.deliveryType = eDeliveryTypeLocal;
+		}
+	
 		block.data = msg;
-
-		SendTunnelDataMsgs ({block});
+		SendTunnelDataMsgs({block});
 	}
 
 	void OutboundTunnel::SendTunnelDataMsgs (const std::vector<TunnelMessageBlock>& msgs)
@@ -328,6 +352,21 @@ namespace tunnel
 		LogPrint (eLogError, "Tunnel: Incoming message for outbound tunnel ", GetTunnelID ());
 	}
 
+	bool OutboundTunnel::Recreate ()
+	{
+		if (!IsRecreated ())
+		{
+			auto pool = GetTunnelPool ();
+			if (pool)
+			{
+				SetRecreated (true);
+				pool->RecreateOutboundTunnel (std::static_pointer_cast<OutboundTunnel>(shared_from_this ()));
+				return true;
+			}	
+		}
+		return false;
+	}
+		
 	ZeroHopsOutboundTunnel::ZeroHopsOutboundTunnel ():
 		OutboundTunnel (std::make_shared<ZeroHopsTunnelConfig> ()),
 		m_NumSentBytes (0)
@@ -434,7 +473,7 @@ namespace tunnel
 	std::shared_ptr<OutboundTunnel> Tunnels::GetNextOutboundTunnel ()
 	{
 		if (m_OutboundTunnels.empty ()) return nullptr;
-		uint32_t ind = rand () % m_OutboundTunnels.size (), i = 0;
+		uint32_t ind = m_Rng () % m_OutboundTunnels.size (), i = 0;
 		std::shared_ptr<OutboundTunnel> tunnel;
 		for (const auto& it: m_OutboundTunnels)
 		{
@@ -711,8 +750,17 @@ namespace tunnel
 	void Tunnels::ManageTunnels (uint64_t ts)
 	{
 		ManagePendingTunnels (ts);
-		ManageInboundTunnels (ts);
-		ManageOutboundTunnels (ts);
+		std::vector<std::shared_ptr<Tunnel> > tunnelsToRecreate;
+		ManageInboundTunnels (ts, tunnelsToRecreate);
+		ManageOutboundTunnels (ts, tunnelsToRecreate);
+		// rec-create in random order
+		if (!tunnelsToRecreate.empty ())
+		{	
+			if (tunnelsToRecreate.size () > 1)
+				std::shuffle (tunnelsToRecreate.begin(), tunnelsToRecreate.end(), m_Rng);
+			for (auto& it: tunnelsToRecreate)
+				it->Recreate ();
+		}	
 	}
 
 	void Tunnels::ManagePendingTunnels (uint64_t ts)
@@ -743,11 +791,11 @@ namespace tunnel
 							while (hop)
 							{
 								if (hop->ident)
-								{
-									auto profile = i2p::data::netdb.FindRouterProfile (hop->ident->GetIdentHash ());
-									if (profile)
-										profile->TunnelNonReplied ();
-								}
+									i2p::data::UpdateRouterProfile (hop->ident->GetIdentHash (),
+										[](std::shared_ptr<i2p::data::RouterProfile> profile)
+				    					{
+											if (profile) profile->TunnelNonReplied ();
+										});
 								hop = hop->next;
 							}
 						}
@@ -775,7 +823,7 @@ namespace tunnel
 		}
 	}
 
-	void Tunnels::ManageOutboundTunnels (uint64_t ts)
+	void Tunnels::ManageOutboundTunnels (uint64_t ts, std::vector<std::shared_ptr<Tunnel> >& toRecreate)
 	{
 		for (auto it = m_OutboundTunnels.begin (); it != m_OutboundTunnels.end ();)
 		{
@@ -799,10 +847,7 @@ namespace tunnel
 						auto pool = tunnel->GetTunnelPool ();
 						// let it die if the tunnel pool has been reconfigured and this is old
 						if (pool && tunnel->GetNumHops() == pool->GetNumOutboundHops())
-						{
-							tunnel->SetRecreated (true);
-							pool->RecreateOutboundTunnel (tunnel);
-						}
+							toRecreate.push_back (tunnel);
 					}
 					if (ts + TUNNEL_EXPIRATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 						tunnel->SetState (eTunnelStateExpiring);
@@ -827,7 +872,7 @@ namespace tunnel
 		}
 	}
 
-	void Tunnels::ManageInboundTunnels (uint64_t ts)
+	void Tunnels::ManageInboundTunnels (uint64_t ts, std::vector<std::shared_ptr<Tunnel> >& toRecreate)
 	{
 		for (auto it = m_InboundTunnels.begin (); it != m_InboundTunnels.end ();)
 		{
@@ -851,10 +896,7 @@ namespace tunnel
 						auto pool = tunnel->GetTunnelPool ();
 						// let it die if the tunnel pool was reconfigured and has different number of hops
 						if (pool && tunnel->GetNumHops() == pool->GetNumInboundHops())
-						{
-							tunnel->SetRecreated (true);
-							pool->RecreateInboundTunnel (tunnel);
-						}
+							toRecreate.push_back (tunnel);
 					}
 
 					if (ts + TUNNEL_EXPIRATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)

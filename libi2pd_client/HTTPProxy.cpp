@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -60,7 +60,7 @@ namespace proxy {
 		"</head>\r\n"
 	;
 
-	static bool str_rmatch(std::string & str, const char *suffix) 
+	static bool str_rmatch(std::string_view str, const char *suffix) 
 	{
 		auto pos = str.rfind (suffix);
 		if (pos == std::string::npos)
@@ -84,16 +84,16 @@ namespace proxy {
 			void SentHTTPFailed(const boost::system::error_code & ecode);
 			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
 			/* error helpers */
-			void GenericProxyError(const std::string& title, const std::string& description);
-			void GenericProxyInfo(const std::string& title, const std::string& description);
-			void HostNotFound(const std::string& host);
-			void SendProxyError(const std::string& content);
+			void GenericProxyError(std::string_view title, std::string_view description);
+			void GenericProxyInfo(std::string_view title, std::string_view description);
+			void HostNotFound(std::string_view host);
+			void SendProxyError(std::string_view content);
 			void SendRedirect(const std::string& address);
 
 			void ForwardToUpstreamProxy();
 			void HandleUpstreamHTTPProxyConnect(const boost::system::error_code & ec);
 			void HandleUpstreamSocksProxyConnect(const boost::system::error_code & ec);
-			void HTTPConnect(const std::string & host, uint16_t port);
+			void HTTPConnect(std::string_view host, uint16_t port);
 			void HandleHTTPConnectStreamRequestComplete(std::shared_ptr<i2p::stream::Stream> stream);
 
 			typedef std::function<void(boost::asio::ip::tcp::endpoint)> ProxyResolvedHandler;
@@ -162,23 +162,23 @@ namespace proxy {
 		Done(shared_from_this());
 	}
 
-	void HTTPReqHandler::GenericProxyError(const std::string& title, const std::string& description) {
+	void HTTPReqHandler::GenericProxyError(std::string_view title, std::string_view description) 
+	{
 		std::stringstream ss;
 		ss << "<h1>" << tr("Proxy error") << ": " << title << "</h1>\r\n";
 		ss << "<p>" << description << "</p>\r\n";
-		std::string content = ss.str();
-		SendProxyError(content);
+		SendProxyError(ss.str ());
 	}
 
-	void HTTPReqHandler::GenericProxyInfo(const std::string& title, const std::string& description) {
+	void HTTPReqHandler::GenericProxyInfo(std::string_view title, std::string_view description) 
+	{
 		std::stringstream ss;
 		ss << "<h1>" << tr("Proxy info") << ": " << title << "</h1>\r\n";
 		ss << "<p>" << description << "</p>\r\n";
-		std::string content = ss.str();
-		SendProxyError(content);
+		SendProxyError(ss.str ());
 	}
 
-	void HTTPReqHandler::HostNotFound(const std::string& host) 
+	void HTTPReqHandler::HostNotFound(std::string_view host) 
 	{
 		std::stringstream ss;
 		ss << "<h1>" << tr("Proxy error: Host not found") << "</h1>\r\n"
@@ -192,11 +192,10 @@ namespace proxy {
 				ss << "  <li><a href=\"" << js->second << host << "\">" << js->first << "</a></li>\r\n";
 		}
 		ss << "</ul>\r\n";
-		std::string content = ss.str();
-		SendProxyError(content);
+		SendProxyError(ss.str ());
 	}
 
-	void HTTPReqHandler::SendProxyError(const std::string& content)
+	void HTTPReqHandler::SendProxyError(std::string_view content)
 	{
 		i2p::http::HTTPRes res;
 		res.code = 500;
@@ -473,7 +472,7 @@ namespace proxy {
 			if (dest_host != "")
 			{
 				/* absolute url, replace 'Host' header */
-				std::string h = dest_host;
+				std::string h (dest_host);
 				if (dest_port != 0 && dest_port != 80)
 					h += ":" + std::to_string(dest_port);
 				m_ClientRequest.UpdateHeader("Host", h);
@@ -513,7 +512,7 @@ namespace proxy {
 					GenericProxyError(tr("Outproxy failure"), tr("Bad outproxy settings"));
 			} else {
 				LogPrint (eLogWarning, "HTTPProxy: Outproxy failure for ", dest_host, ": no outproxy enabled");
-				std::stringstream ss; ss << tr("Host %s is not inside I2P network, but outproxy is not enabled", dest_host.c_str());
+				std::stringstream ss; ss << tr("Host %s is not inside I2P network, but outproxy is not enabled", dest_host.c_str ());
 				GenericProxyError(tr("Outproxy failure"), ss.str());
 			}
 			return true;
@@ -653,11 +652,10 @@ namespace proxy {
 		Terminate();
 	}
 
-	void HTTPReqHandler::HTTPConnect(const std::string & host, uint16_t port)
+	void HTTPReqHandler::HTTPConnect(std::string_view host, uint16_t port)
 	{
 		LogPrint(eLogDebug, "HTTPProxy: CONNECT ",host, ":", port);
-		std::string hostname(host);
-		if(str_rmatch(hostname, ".i2p"))
+		if(str_rmatch(host, ".i2p"))
 			GetOwner()->CreateStream (std::bind (&HTTPReqHandler::HandleHTTPConnectStreamRequestComplete,
 				shared_from_this(), std::placeholders::_1), host, port);
 		else

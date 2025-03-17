@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -90,10 +90,10 @@ namespace data
 	}
 
 	bool Families::VerifyFamily (const std::string& family, const IdentHash& ident,
-		const char * signature, const char * key) const
+		std::string_view signature, const char * key) const
 	{
 		uint8_t buf[100], signatureBuf[64];
-		size_t len = family.length (), signatureLen = strlen (signature);
+		size_t len = family.length ();
 		if (len + 32 > 100)
 		{
 			LogPrint (eLogError, "Family: ", family, " is too long");
@@ -105,7 +105,7 @@ namespace data
 			memcpy (buf, family.c_str (), len);
 			memcpy (buf + len, (const uint8_t *)ident, 32);
 			len += 32;
-			auto signatureBufLen = Base64ToByteStream (signature, signatureLen, signatureBuf, 64);
+			auto signatureBufLen = Base64ToByteStream (signature.data (), signature.length (), signatureBuf, 64);
 			if (signatureBufLen)
 			{
 				EVP_MD_CTX * ctx = EVP_MD_CTX_create ();

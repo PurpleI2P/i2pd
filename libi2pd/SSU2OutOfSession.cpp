@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2024, The PurpleI2P Project
+* Copyright (c) 2024-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -46,7 +46,7 @@ namespace transport
 		}
 		uint8_t nonce[12] = {0};
 		uint64_t headerX[2]; // sourceConnID, token
-		i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
+		GetServer ().ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
 		SetDestConnID (headerX[0]);
 		// decrypt and handle payload
 		uint8_t * payload = buf + 32;
@@ -68,7 +68,7 @@ namespace transport
 	void SSU2PeerTestSession::HandleAddress (const uint8_t * buf, size_t len)
 	{
 		if (!ExtractEndpoint (buf, len, m_OurEndpoint))
-			LogPrint (eLogWarning, "SSU2: Can't hanlde address block from peer test message");
+			LogPrint (eLogWarning, "SSU2: Can't handle address block from peer test message");
 	}	
 		
 	void SSU2PeerTestSession::HandlePeerTest (const uint8_t * buf, size_t len)
@@ -89,7 +89,7 @@ namespace transport
 			{	
 				if (htobe64 (((uint64_t)nonce << 32) | nonce) == GetSourceConnID ())
 				{
-					m_PeerTestResendTimer.cancel (); // calcel delayed msg 6 if any
+					m_PeerTestResendTimer.cancel (); // cancel delayed msg 6 if any
 					m_IsConnectedRecently = GetServer ().IsConnectedRecently (GetRemoteEndpoint ());
 					if (GetAddress ())
 					{
@@ -183,7 +183,7 @@ namespace transport
 		header.ll[0] ^= CreateHeaderMask (addr->i, payload + (payloadSize - 24));
 		header.ll[1] ^= CreateHeaderMask (addr->i, payload + (payloadSize - 12));
 		memset (n, 0, 12);
-		i2p::crypto::ChaCha20 (h + 16, 16, addr->i, n, h + 16);
+		GetServer ().ChaCha20 (h + 16, 16, addr->i, n, h + 16);
 		// send
 		GetServer ().Send (header.buf, 16, h + 16, 16, payload, payloadSize, GetRemoteEndpoint ());
 		UpdateNumSentBytes (payloadSize + 32);
@@ -191,12 +191,7 @@ namespace transport
 
 	void SSU2PeerTestSession::SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, bool delayed)
 	{
-#if __cplusplus >= 202002L // C++20
 		m_SignedData.assign (signedData, signedData + signedDataLen);
-#else		
-		m_SignedData.resize (signedDataLen);
-		memcpy (m_SignedData.data (), signedData, signedDataLen);
-#endif		
 		if (!delayed)
 			SendPeerTest (msg);
 		// schedule resend for msgs 5 or 6
@@ -257,7 +252,7 @@ namespace transport
 	{
 		// we are Charlie
 		uint64_t destConnID = htobe64 (((uint64_t)nonce << 32) | nonce); // dest id
-		uint32_t sourceConnID = ~destConnID;
+		uint64_t sourceConnID = ~destConnID;
 		SetSourceConnID (sourceConnID);
 		SetDestConnID (destConnID);	
 		SetState (eSSU2SessionStateHolePunch);
@@ -305,7 +300,7 @@ namespace transport
 		header.ll[0] ^= CreateHeaderMask (addr->i, payload + (payloadSize - 24));
 		header.ll[1] ^= CreateHeaderMask (addr->i, payload + (payloadSize - 12));
 		memset (n, 0, 12);
-		i2p::crypto::ChaCha20 (h + 16, 16, addr->i, n, h + 16);
+		GetServer ().ChaCha20 (h + 16, 16, addr->i, n, h + 16);
 		// send
 		GetServer ().Send (header.buf, 16, h + 16, 16, payload, payloadSize, ep);
 		UpdateNumSentBytes (payloadSize + 32);
@@ -313,12 +308,7 @@ namespace transport
 
 	void SSU2HolePunchSession::SendHolePunch (const uint8_t * relayResponseBlock, size_t relayResponseBlockLen)
 	{
-#if __cplusplus >= 202002L // C++20
 		m_RelayResponseBlock.assign (relayResponseBlock, relayResponseBlock + relayResponseBlockLen);
-#else		
-		m_RelayResponseBlock.resize (relayResponseBlockLen);
-		memcpy (m_RelayResponseBlock.data (), relayResponseBlock, relayResponseBlockLen);
-#endif		
 		SendHolePunch ();
 		ScheduleResend ();
 	}	

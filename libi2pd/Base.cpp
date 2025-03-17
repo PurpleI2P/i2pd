@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -27,11 +27,6 @@ namespace data
 	{
 		return T32;
 	}
-
-	bool IsBase32 (char ch)
-	{
-		return (ch >= 'a' && ch <= 'z') || (ch >= '2' && ch <= '7');
-	}	
 	
 	static void iT64Build(void);
 
@@ -59,11 +54,6 @@ namespace data
 	{
 		return T64;
 	}
-
-	bool IsBase64 (char ch)
-	{
-		return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '-' || ch == '~';
-	}	
 	
 	/*
 	* Reverse Substitution Table (built in run time)
@@ -234,21 +224,12 @@ namespace data
 
 		return outCount;
 	}
-
-	size_t Base64EncodingBufferSize (const size_t input_size)
-	{
-		auto d = div (input_size, 3);
-		if (d.rem)
-			d.quot++;
-
-		return 4 * d.quot;
-	}
-
-	std::string ToBase64Standard (const std::string& in)
+	
+	std::string ToBase64Standard (std::string_view in)
 	{
 		auto len = Base64EncodingBufferSize (in.length ());
 		char * str = new char[len + 1];
-		auto l = ByteStreamToBase64 ((const uint8_t *)in.c_str (), in.length (), str, len);
+		auto l = ByteStreamToBase64 ((const uint8_t *)in.data (), in.length (), str, len);
 		str[l] = 0;
 		// replace '-' by '+' and '~' by '/'
 		for (size_t i = 0; i < l; i++)
@@ -280,13 +261,12 @@ namespace data
 		iT64[(int)P64] = 0;
 	}
 
-	size_t Base32ToByteStream (const char * inBuf, size_t len, uint8_t * outBuf, size_t outLen)
+	size_t Base32ToByteStream (std::string_view base32Str, uint8_t * outBuf, size_t outLen)
 	{
 		unsigned int tmp = 0, bits = 0;
 		size_t ret = 0;
-		for (size_t i = 0; i < len; i++)
+		for (auto ch: base32Str)
 		{
-			char ch = inBuf[i];
 			if (ch >= '2' && ch <= '7') // digit
 				ch = (ch - '2') + 26; // 26 means a-z
 			else if (ch >= 'a' && ch <= 'z')
@@ -306,13 +286,15 @@ namespace data
 			tmp <<= 5;
 		}
 		return ret;
-	}
-
-	size_t ByteStreamToBase32 (const uint8_t * inBuf, size_t len, char * outBuf, size_t outLen)
+	}	
+	
+	std::string ByteStreamToBase32 (const uint8_t * inBuf, size_t len)
 	{
-		size_t ret = 0, pos = 1;
+		std::string out;
+		out.reserve ((len * 8 + 4) / 5);
+		size_t pos = 1;
 		unsigned int bits = 8, tmp = inBuf[0];
-		while (ret < outLen && (bits > 0 || pos < len))
+		while (bits > 0 || pos < len)
 		{
 			if (bits < 5)
 			{
@@ -332,10 +314,9 @@ namespace data
 
 			bits -= 5;
 			int ind = (tmp >> bits) & 0x1F;
-			outBuf[ret] = (ind < 26) ? (ind + 'a') : ((ind - 26) + '2');
-			ret++;
+			out.push_back ((ind < 26) ? (ind + 'a') : ((ind - 26) + '2'));
 		}
-		return ret;
-	}
+		return out;
+	}	
 }
 }

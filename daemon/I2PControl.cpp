@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -15,7 +15,6 @@
 // Use global placeholders from boost introduced when local_time.hpp is loaded
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/property_tree/json_parser.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include "FS.h"
 #include "Log.h"
@@ -30,11 +29,24 @@ namespace i2p
 namespace client
 {
 	I2PControlService::I2PControlService (const std::string& address, int port):
-		m_IsRunning (false), m_Thread (nullptr),
-		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::make_address(address), port)),
+		m_IsRunning (false),	
 		m_SSLContext (boost::asio::ssl::context::sslv23),
 		m_ShutdownTimer (m_Service)
 	{
+		if (port)		
+			m_Acceptor = std::make_unique<boost::asio::ip::tcp::acceptor>(m_Service,
+				boost::asio::ip::tcp::endpoint(boost::asio::ip::make_address(address), port));
+		else
+#if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
+		{		
+			std::remove (address.c_str ());	// just in case
+			m_LocalAcceptor = std::make_unique<boost::asio::local::stream_protocol::acceptor>(m_Service,
+				boost::asio::local::stream_protocol::endpoint(address));	
+		}	
+#else
+			LogPrint(eLogError, "I2PControl: Local sockets are not supported");
+#endif				
+				
 		i2p::config::GetOption("i2pcontrol.password", m_Password);
 
 		// certificate / keys
@@ -98,7 +110,7 @@ namespace client
 		{
 			Accept ();
 			m_IsRunning = true;
-			m_Thread = new std::thread (std::bind (&I2PControlService::Run, this));
+			m_Thread = std::make_unique<std::thread>(std::bind (&I2PControlService::Run, this));
 		}
 	}
 
@@ -107,12 +119,19 @@ namespace client
 		if (m_IsRunning)
 		{
 			m_IsRunning = false;
-			m_Acceptor.cancel ();
+			if (m_Acceptor) m_Acceptor->cancel ();
+#if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
+			if (m_LocalAcceptor) 
+			{
+				auto path = m_LocalAcceptor->local_endpoint().path();
+				m_LocalAcceptor->cancel ();
+				std::remove (path.c_str ());
+			}	
+#endif			
 			m_Service.stop ();
 			if (m_Thread)
 			{
 				m_Thread->join ();
-				delete m_Thread;
 				m_Thread = nullptr;
 			}
 		}
@@ -134,40 +153,60 @@ namespace client
 
 	void I2PControlService::Accept ()
 	{
-		auto newSocket = std::make_shared<ssl_socket> (m_Service, m_SSLContext);
-		m_Acceptor.async_accept (newSocket->lowest_layer(), std::bind (&I2PControlService::HandleAccept, this,
-			std::placeholders::_1, newSocket));
+		if (m_Acceptor)
+		{	
+			auto newSocket = std::make_shared<boost::asio::ssl::stream<boost::asio::ip::tcp::socket> > (m_Service, m_SSLContext);
+			m_Acceptor->async_accept (newSocket->lowest_layer(),
+				[this, newSocket](const boost::system::error_code& ecode)
+				{
+					HandleAccepted (ecode, newSocket);
+				});		
+		}	
+#if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
+		else if (m_LocalAcceptor)
+		{
+			auto newSocket = std::make_shared<boost::asio::ssl::stream<boost::asio::local::stream_protocol::socket> > (m_Service, m_SSLContext);
+			m_LocalAcceptor->async_accept (newSocket->lowest_layer(),
+				[this, newSocket](const boost::system::error_code& ecode)
+				{
+					HandleAccepted (ecode, newSocket);
+				});		
+		}	
+#endif		
 	}
 
-	void I2PControlService::HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<ssl_socket> socket)
+	template<typename ssl_socket> 
+	void I2PControlService::HandleAccepted (const boost::system::error_code& ecode,
+		std::shared_ptr<ssl_socket> newSocket)
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 			Accept ();
 
-		if (ecode) {
+		if (ecode) 
+		{
 			LogPrint (eLogError, "I2PControl: Accept error: ", ecode.message ());
 			return;
 		}
-		LogPrint (eLogDebug, "I2PControl: New request from ", socket->lowest_layer ().remote_endpoint ());
-		Handshake (socket);
-	}
-
+		LogPrint (eLogDebug, "I2PControl: New request from ", newSocket->lowest_layer ().remote_endpoint ());
+		Handshake (newSocket);
+	}	
+		
+	template<typename ssl_socket>
 	void I2PControlService::Handshake (std::shared_ptr<ssl_socket> socket)
 	{
 		socket->async_handshake(boost::asio::ssl::stream_base::server,
-		std::bind( &I2PControlService::HandleHandshake, this, std::placeholders::_1, socket));
+			[this, socket](const boost::system::error_code& ecode)
+		    {
+				if (ecode) 
+				{
+					LogPrint (eLogError, "I2PControl: Handshake error: ", ecode.message ());
+					return;
+				}
+				ReadRequest (socket);
+			});			                        
 	}
 
-	void I2PControlService::HandleHandshake (const boost::system::error_code& ecode, std::shared_ptr<ssl_socket> socket)
-	{
-		if (ecode) {
-			LogPrint (eLogError, "I2PControl: Handshake error: ", ecode.message ());
-			return;
-		}
-		//std::this_thread::sleep_for (std::chrono::milliseconds(5));
-		ReadRequest (socket);
-	}
-
+	template<typename ssl_socket>
 	void I2PControlService::ReadRequest (std::shared_ptr<ssl_socket> socket)
 	{
 		auto request = std::make_shared<I2PControlBuffer>();
@@ -177,10 +216,13 @@ namespace client
 #else
 			boost::asio::buffer (request->data (), request->size ()),
 #endif
-			std::bind(&I2PControlService::HandleRequestReceived, this,
-			std::placeholders::_1, std::placeholders::_2, socket, request));
+		    [this, socket, request](const boost::system::error_code& ecode, size_t bytes_transferred)
+		    {
+				HandleRequestReceived (ecode, bytes_transferred, socket, request);
+			});
 	}
 
+	template<typename ssl_socket>
 	void I2PControlService::HandleRequestReceived (const boost::system::error_code& ecode,
 		size_t bytes_transferred, std::shared_ptr<ssl_socket> socket,
 		std::shared_ptr<I2PControlBuffer> buf)
@@ -258,6 +300,7 @@ namespace client
 		}
 	}
 
+	template<typename ssl_socket>
 	void I2PControlService::SendResponse (std::shared_ptr<ssl_socket> socket,
 		std::shared_ptr<I2PControlBuffer> buf, std::ostringstream& response, bool isHtml)
 	{
@@ -267,7 +310,7 @@ namespace client
 			std::ostringstream header;
 			header << "HTTP/1.1 200 OK\r\n";
 			header << "Connection: close\r\n";
-			header << "Content-Length: " << boost::lexical_cast<std::string>(len) << "\r\n";
+			header << "Content-Length: " << std::to_string(len) << "\r\n";
 			header << "Content-Type: application/json\r\n";
 			header << "Date: ";
 			std::time_t t = std::time (nullptr);
@@ -280,16 +323,11 @@ namespace client
 		memcpy (buf->data () + offset, response.str ().c_str (), len);
 		boost::asio::async_write (*socket, boost::asio::buffer (buf->data (), offset + len),
 			boost::asio::transfer_all (),
-			std::bind(&I2PControlService::HandleResponseSent, this,
-				std::placeholders::_1, std::placeholders::_2, socket, buf));
-	}
-
-	void I2PControlService::HandleResponseSent (const boost::system::error_code& ecode, std::size_t bytes_transferred,
-		std::shared_ptr<ssl_socket> socket, std::shared_ptr<I2PControlBuffer> buf)
-	{
-		if (ecode) {
-			LogPrint (eLogError, "I2PControl: Write error: ", ecode.message ());
-		}
+		    [socket, buf](const boost::system::error_code& ecode, std::size_t bytes_transferred)
+		    {
+				if (ecode)
+					LogPrint (eLogError, "I2PControl: Write error: ", ecode.message ());
+			});	
 	}
 
 // handlers

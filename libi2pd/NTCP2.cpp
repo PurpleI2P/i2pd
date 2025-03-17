@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -120,9 +120,8 @@ namespace transport
 		// encrypt X
 		i2p::crypto::CBCEncryption encryption;
 		encryption.SetKey (m_RemoteIdentHash);
-		encryption.SetIV (m_IV);
-		encryption.Encrypt (GetPub (), 32, m_SessionRequestBuffer); // X
-		encryption.GetIV (m_IV); // save IV for SessionCreated
+		encryption.Encrypt (GetPub (), 32, m_IV, m_SessionRequestBuffer); // X
+		memcpy (m_IV, m_SessionRequestBuffer + 16, 16); // save last block as IV for SessionCreated
 		// encryption key for next block
 		if (!KDF1Alice ()) return false;
 		// fill options
@@ -161,8 +160,7 @@ namespace transport
 		// encrypt Y
 		i2p::crypto::CBCEncryption encryption;
 		encryption.SetKey (i2p::context.GetIdentHash ());
-		encryption.SetIV (m_IV);
-		encryption.Encrypt (GetPub (), 32, m_SessionCreatedBuffer); // Y
+		encryption.Encrypt (GetPub (), 32, m_IV, m_SessionCreatedBuffer); // Y
 		// encryption key for next block (m_K)
 		if (!KDF2Bob ()) return false;
 		uint8_t options[16];
@@ -208,9 +206,8 @@ namespace transport
 		// decrypt X
 		i2p::crypto::CBCDecryption decryption;
 		decryption.SetKey (i2p::context.GetIdentHash ());
-		decryption.SetIV (i2p::context.GetNTCP2IV ());
-		decryption.Decrypt (m_SessionRequestBuffer, 32, GetRemotePub ());
-		decryption.GetIV (m_IV); // save IV for SessionCreated
+		decryption.Decrypt (m_SessionRequestBuffer, 32, i2p::context.GetNTCP2IV (), GetRemotePub ());
+		memcpy (m_IV, m_SessionRequestBuffer + 16, 16); // save last block as IV for SessionCreated
 		// decryption key for next block
 		if (!KDF1Bob ())
 		{
@@ -268,8 +265,7 @@ namespace transport
 		// decrypt Y
 		i2p::crypto::CBCDecryption decryption;
 		decryption.SetKey (m_RemoteIdentHash);
-		decryption.SetIV (m_IV);
-		decryption.Decrypt (m_SessionCreatedBuffer, 32, GetRemotePub ());
+		decryption.Decrypt (m_SessionCreatedBuffer, 32, m_IV, GetRemotePub ());
 		// decryption key for next block (m_K)
 		if (!KDF2Alice ())
 		{
@@ -823,15 +819,20 @@ namespace transport
 			Terminate ();
 			return;
 		}
-		std::shared_ptr<i2p::data::RouterProfile> profile; // not null if older 
+		
+		bool isOlder = false;
 		if (ri.GetTimestamp () + i2p::data::NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < ri1->GetTimestamp ())
 		{	
 			// received RouterInfo is older than one in netdb
-			profile = i2p::data::GetRouterProfile (ri1->GetIdentHash ()); // retrieve profile	
-			if (profile && profile->IsDuplicated ())
+			isOlder = true;
+			if (ri1->HasProfile ())
 			{	
-				SendTerminationAndTerminate (eNTCP2Banned);
-				return;
+				auto profile = i2p::data::GetRouterProfile (ri1->GetIdentHash ()); // retrieve profile	
+				if (profile && profile->IsDuplicated ())
+				{	
+					SendTerminationAndTerminate (eNTCP2Banned);
+					return;
+				}	
 			}	
 		}
 		
@@ -848,8 +849,12 @@ namespace transport
 		     memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data () + 1, addr->host.to_v6 ().to_bytes ().data () + 1, 7) : // from the same yggdrasil subnet
 		     memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), addr->host.to_v6 ().to_bytes ().data (), 8)))) // temporary address
 		{
-			if (profile) // older router?
-				profile->Duplicated (); // mark router as duplicated in profile
+			if (isOlder) // older router?
+				i2p::data::UpdateRouterProfile (ri1->GetIdentHash (),
+					[](std::shared_ptr<i2p::data::RouterProfile> profile)
+					{
+						if (profile) profile->Duplicated (); // mark router as duplicated in profile
+					});
 			else
 				LogPrint (eLogInfo, "NTCP2: Host mismatch between published address ", addr->host, " and actual endpoint ", m_RemoteEndpoint.address ());
 			SendTerminationAndTerminate (eNTCP2Banned);
@@ -995,7 +1000,7 @@ namespace transport
 			i2p::transport::transports.UpdateReceivedBytes (bytes_transferred + 2);
 			uint8_t nonce[12];
 			CreateNonce (m_ReceiveSequenceNumber, nonce); m_ReceiveSequenceNumber++;
-			if (i2p::crypto::AEADChaCha20Poly1305 (m_NextReceivedBuffer, m_NextReceivedLen-16, nullptr, 0, m_ReceiveKey, nonce, m_NextReceivedBuffer, m_NextReceivedLen, false))
+			if (m_Server.AEADChaCha20Poly1305Decrypt (m_NextReceivedBuffer, m_NextReceivedLen-16, nullptr, 0, m_ReceiveKey, nonce, m_NextReceivedBuffer, m_NextReceivedLen))
 			{
 				LogPrint (eLogDebug, "NTCP2: Received message decrypted");
 				ProcessNextFrame (m_NextReceivedBuffer, m_NextReceivedLen-16);
@@ -1184,7 +1189,7 @@ namespace transport
 		}	
 		uint8_t nonce[12];
 		CreateNonce (m_SendSequenceNumber, nonce); m_SendSequenceNumber++;
-		i2p::crypto::AEADChaCha20Poly1305Encrypt (encryptBufs, m_SendKey, nonce, macBuf); // encrypt buffers
+		m_Server.AEADChaCha20Poly1305Encrypt (encryptBufs, m_SendKey, nonce, macBuf); // encrypt buffers
 		SetNextSentFrameLength (totalLen + 16, first->GetNTCP2Header () - 5); // frame length right before first block
 
 		// send buffers
@@ -1215,7 +1220,7 @@ namespace transport
 		// encrypt
 		uint8_t nonce[12];
 		CreateNonce (m_SendSequenceNumber, nonce); m_SendSequenceNumber++;
-		i2p::crypto::AEADChaCha20Poly1305Encrypt ({ {m_NextSendBuffer + 2, payloadLen} }, m_SendKey, nonce, m_NextSendBuffer + payloadLen + 2);
+		m_Server.AEADChaCha20Poly1305Encrypt ({ {m_NextSendBuffer + 2, payloadLen} }, m_SendKey, nonce, m_NextSendBuffer + payloadLen + 2);
 		SetNextSentFrameLength (payloadLen + 16, m_NextSendBuffer);
 		// send
 		m_IsSending = true;
@@ -1439,6 +1444,12 @@ namespace transport
 			boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::SendRouterInfo, shared_from_this ()));
 	}
 
+	i2p::data::RouterInfo::SupportedTransports NTCP2Session::GetTransportType () const
+	{
+		if (m_RemoteEndpoint.address ().is_v4 ()) return i2p::data::RouterInfo::eNTCP2V4;
+		return i2p::util::net::IsYggdrasilAddress (m_RemoteEndpoint.address ()) ? i2p::data::RouterInfo::eNTCP2V6Mesh : i2p::data::RouterInfo::eNTCP2V6;
+	}	
+		
 	NTCP2Server::NTCP2Server ():
 		RunnableServiceWithWork ("NTCP2"), m_TerminationTimer (GetService ()),
 		m_ProxyType(eNoProxy), m_Resolver(GetService ()),
@@ -1548,6 +1559,7 @@ namespace transport
 
 	void NTCP2Server::Stop ()
 	{
+		m_EstablisherService.Stop ();
 		{
 			// we have to copy it because Terminate changes m_NTCP2Sessions
 			auto ntcpSessions = m_NTCP2Sessions;
@@ -1563,7 +1575,6 @@ namespace transport
 			m_TerminationTimer.cancel ();
 			m_ProxyEndpoint = nullptr;
 		}
-		m_EstablisherService.Stop ();
 		StopIOService ();
 	}
 
@@ -1984,5 +1995,17 @@ namespace transport
 		else
 			m_Address4 = addr;
 	}
+
+	void NTCP2Server::AEADChaCha20Poly1305Encrypt (const std::vector<std::pair<uint8_t *, size_t> >& bufs, 
+		const uint8_t * key, const uint8_t * nonce, uint8_t * mac)
+	{
+		return m_Encryptor.Encrypt (bufs, key, nonce, mac);
+	}	
+		
+	bool NTCP2Server::AEADChaCha20Poly1305Decrypt (const uint8_t * msg, size_t msgLen,
+		const uint8_t * ad, size_t adLen, const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len)
+	{
+		return m_Decryptor.Decrypt (msg, msgLen, ad, adLen, key, nonce, buf, len);
+	}	
 }
 }

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -725,6 +725,8 @@ namespace garlic
 
 	bool ECIESX25519AEADRatchetSession::NewExistingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
 	{
+		auto owner = GetOwner ();
+		if (!owner) return false;
 		uint8_t nonce[12];
 		auto index = m_SendTagset->GetNextIndex ();
 		CreateNonce (index, nonce); // tag's index
@@ -732,8 +734,7 @@ namespace garlic
 		if (!tag)
 		{
 			LogPrint (eLogError, "Garlic: Can't create new ECIES-X25519-AEAD-Ratchet tag for send tagset");
-			if (GetOwner ())
-				GetOwner ()->RemoveECIESx25519Session (m_RemoteStaticKey);
+			owner->RemoveECIESx25519Session (m_RemoteStaticKey);
 			return false;
 		}
 		memcpy (out, &tag, 8);
@@ -741,7 +742,7 @@ namespace garlic
 		// ciphertext = ENCRYPT(k, n, payload, ad)
 		uint8_t key[32];
 		m_SendTagset->GetSymmKey (index, key);
-		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, out, 8, key, nonce, out + 8, outLen - 8, true)) // encrypt
+		if (!owner->AEADChaCha20Poly1305Encrypt (payload, len, out, 8, key, nonce, out + 8, outLen - 8))
 		{
 			LogPrint (eLogWarning, "Garlic: Payload section AEAD encryption failed");
 			return false;
@@ -760,34 +761,35 @@ namespace garlic
 		uint8_t * payload = buf + 8;
 		uint8_t key[32];
 		receiveTagset->GetSymmKey (index, key);
-		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len - 16, buf, 8, key, nonce, payload, len - 16, false)) // decrypt
+		auto owner = GetOwner ();
+		if (!owner) return true; // drop message
+		
+		if (!owner->AEADChaCha20Poly1305Decrypt (payload, len - 16, buf, 8, key, nonce, payload, len - 16))
 		{
 			LogPrint (eLogWarning, "Garlic: Payload section AEAD decryption failed");
 			return false;
 		}
 		HandlePayload (payload, len - 16, receiveTagset, index);
-		if (GetOwner ())
+		
+		int moreTags = 0;
+		if (owner->GetNumRatchetInboundTags () > 0) // override in settings?
 		{
-			int moreTags = 0;
-			if (GetOwner ()->GetNumRatchetInboundTags () > 0) // override in settings?
-			{
-				if (receiveTagset->GetNextIndex () - index < GetOwner ()->GetNumRatchetInboundTags ()/2)
-					moreTags = GetOwner ()->GetNumRatchetInboundTags ();
-				index -= GetOwner ()->GetNumRatchetInboundTags (); // trim behind
-			}
-			else
-			{
-				moreTags = (receiveTagset->GetTagSetID () > 0) ? ECIESX25519_MAX_NUM_GENERATED_TAGS : // for non first tagset
-					(ECIESX25519_MIN_NUM_GENERATED_TAGS + (index >> 1)); // N/2
-				if (moreTags > ECIESX25519_MAX_NUM_GENERATED_TAGS) moreTags = ECIESX25519_MAX_NUM_GENERATED_TAGS;
-				moreTags -= (receiveTagset->GetNextIndex () - index);
-				index -= ECIESX25519_MAX_NUM_GENERATED_TAGS; // trim behind
-			}
-			if (moreTags > 0)
-				GenerateMoreReceiveTags (receiveTagset, moreTags);
-			if (index > 0)
-				receiveTagset->SetTrimBehind (index);
+			if (receiveTagset->GetNextIndex () - index < owner->GetNumRatchetInboundTags ()/2)
+				moreTags = owner->GetNumRatchetInboundTags ();
+			index -= owner->GetNumRatchetInboundTags (); // trim behind
 		}
+		else
+		{
+			moreTags = (receiveTagset->GetTagSetID () > 0) ? ECIESX25519_MAX_NUM_GENERATED_TAGS : // for non first tagset
+				(ECIESX25519_MIN_NUM_GENERATED_TAGS + (index >> 1)); // N/2
+			if (moreTags > ECIESX25519_MAX_NUM_GENERATED_TAGS) moreTags = ECIESX25519_MAX_NUM_GENERATED_TAGS;
+			moreTags -= (receiveTagset->GetNextIndex () - index);
+			index -= ECIESX25519_MAX_NUM_GENERATED_TAGS; // trim behind
+		}
+		if (moreTags > 0)
+			GenerateMoreReceiveTags (receiveTagset, moreTags);
+		if (index > 0)
+			receiveTagset->SetTrimBehind (index);
 		return true;
 	}
 
@@ -911,7 +913,7 @@ namespace garlic
 			}
 		}
 		if (!sendAckRequest && !first &&
-		    ((!m_AckRequestMsgID && ts > m_LastAckRequestSendTime + ECIESX25519_ACK_REQUEST_INTERVAL) || // regular request
+		    ((!m_AckRequestMsgID && ts > m_LastAckRequestSendTime + m_AckRequestInterval) || // regular request
 		     (m_AckRequestMsgID && ts > m_LastAckRequestSendTime + LEASESET_CONFIRMATION_TIMEOUT))) // previous request failed. try again
 		{	
 			// not LeaseSet

@@ -52,7 +52,7 @@ namespace transport
 	{
 		m_IsRunning = true;
 		LogPrint(eLogInfo, "UPnP: Starting");
-		m_Service.post (std::bind (&UPnP::Discover, this));
+		boost::asio::post (m_Service, std::bind (&UPnP::Discover, this));
 		std::unique_lock<std::mutex> l(m_StartedMutex);
 		m_Thread.reset (new std::thread (std::bind (&UPnP::Run, this)));
 		m_Started.wait_for (l, std::chrono::seconds (5)); // 5 seconds maximum
@@ -150,7 +150,7 @@ namespace transport
 
 		// UPnP discovered
 		LogPrint (eLogDebug, "UPnP: ExternalIPAddress is ", m_externalIPAddress);
-		i2p::context.UpdateAddress (boost::asio::ip::address::from_string (m_externalIPAddress));
+		i2p::context.UpdateAddress (boost::asio::ip::make_address (m_externalIPAddress));
 		// port mapping
 		PortMapping ();
 	}

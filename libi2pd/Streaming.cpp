@@ -72,15 +72,15 @@ namespace stream
 		m_TunnelsChangeSequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_PreviousReceivedSequenceNumber (-1),
 		m_LastConfirmedReceivedSequenceNumber (0), // for limit inbound speed
 		m_Status (eStreamStatusNew), m_IsIncoming (false), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false), 
-		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true), m_IsWinDropped (false),
+		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true), m_IsWinDropped (false), m_IsClientChoked (false),
 		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_IsRemoteLeaseChangeInProgress (false), m_DoubleWinIncCounter (false), m_LocalDestination (local),
 		m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service),
 		m_AckSendTimer (m_Service), m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (port),
 		m_RTT (INITIAL_RTT), m_SlowRTT (INITIAL_RTT), m_SlowRTT2 (INITIAL_RTT), m_WindowSize (INITIAL_WINDOW_SIZE), m_LastWindowDropSize  (0),
 		m_WindowDropTargetSize (0), m_WindowIncCounter (0), m_RTO (INITIAL_RTO),
-		m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()), m_PrevRTTSample (INITIAL_RTT), 
+		m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()), m_PrevRTTSample (INITIAL_RTT), m_WindowSizeTail (0), 
 		m_Jitter (0), m_MinPacingTime (0),
-		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_LastSendTime (0), m_RemoteLeaseChangeTime (0),
+		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_LastSendTime (0), m_LastACKRecieveTime (0), m_ACKRecieveInterval (local.GetOwner ()->GetStreamingAckDelay ()), m_RemoteLeaseChangeTime (0), m_LastWindowIncTime (0),
 		m_LastACKSendTime (0), m_PacketACKInterval (1), m_PacketACKIntervalRem (0), // for limit inbound speed
 		m_NumResendAttempts (0), m_NumPacketsToSend (0), m_MTU (STREAMING_MTU)
 	{
@@ -99,15 +99,15 @@ namespace stream
 		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0), m_DropWindowDelaySequenceNumber (0),
 		m_TunnelsChangeSequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_PreviousReceivedSequenceNumber (-1),
 		m_LastConfirmedReceivedSequenceNumber (0), // for limit inbound speed
-		m_Status (eStreamStatusNew), m_IsIncoming (true), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false), 
-		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true), m_IsWinDropped (false),
+		m_Status (eStreamStatusNew), m_IsIncoming (true), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false),  
+		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true), m_IsWinDropped (false), m_IsClientChoked (false),
 		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_IsRemoteLeaseChangeInProgress (false), m_DoubleWinIncCounter (false), m_LocalDestination (local),
 		m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service),
 		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0), m_RTT (INITIAL_RTT), m_SlowRTT (INITIAL_RTT), m_SlowRTT2 (INITIAL_RTT),
 		m_WindowSize (INITIAL_WINDOW_SIZE), m_LastWindowDropSize  (0), m_WindowDropTargetSize (0), m_WindowIncCounter (0), 
 		m_RTO (INITIAL_RTO), m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
-		m_PrevRTTSample (INITIAL_RTT), m_Jitter (0), m_MinPacingTime (0),
-		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_LastSendTime (0), m_RemoteLeaseChangeTime (0),
+		m_PrevRTTSample (INITIAL_RTT), m_WindowSizeTail (0), m_Jitter (0), m_MinPacingTime (0),
+		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_LastSendTime (0), m_LastACKRecieveTime (0), m_ACKRecieveInterval (local.GetOwner ()->GetStreamingAckDelay ()), m_RemoteLeaseChangeTime (0), m_LastWindowIncTime (0),
 		m_LastACKSendTime (0), m_PacketACKInterval (1), m_PacketACKIntervalRem (0), // for limit inbound speed
 		m_NumResendAttempts (0), m_NumPacketsToSend (0), m_MTU (STREAMING_MTU)
 	{
@@ -364,12 +364,14 @@ namespace stream
 				}
 				if (delayRequested >= DELAY_CHOKING)
 				{
-					if (!m_IsWinDropped)
+					if (!m_IsClientChoked)
 					{
+						LogPrint (eLogDebug, "Streaming: Client choked, set min. window size");
 						m_WindowDropTargetSize = MIN_WINDOW_SIZE;
 						m_LastWindowDropSize = 0;
 						m_WindowIncCounter = 0;
-						m_IsWinDropped = true; // don't drop window twice
+						m_IsClientChoked = true;
+						m_IsWinDropped = false;
 						m_DropWindowDelaySequenceNumber = m_SequenceNumber;
 						UpdatePacingTime ();
 					}
@@ -537,12 +539,21 @@ namespace stream
 				m_SentPackets.erase (it++);
 				m_LocalDestination.DeletePacket (sentPacket);
 				acknowledged = true;
-				if (m_WindowSize < MAX_WINDOW_SIZE && !m_IsFirstACK)
+				if (m_WindowIncCounter < MAX_WINDOW_SIZE && !m_IsFirstACK && !m_IsWinDropped)
 					incCounter++;
 			}
 			else
 				break;
 		}
+		if (m_LastACKRecieveTime)
+		{
+			uint64_t interval = ts - m_LastACKRecieveTime;
+			if (m_ACKRecieveInterval)
+				m_ACKRecieveInterval = (m_ACKRecieveInterval + interval) / 2;
+			else
+				m_ACKRecieveInterval = interval;
+		}
+		m_LastACKRecieveTime = ts;
 		if (rttSample != INT_MAX)
 		{
 			if (m_IsFirstRttSample && !m_IsFirstACK)
@@ -588,36 +599,31 @@ namespace stream
 			m_WindowIncCounter = m_WindowIncCounter + incCounter;
 			//
 			// delay-based CC
-			if ((m_SlowRTT2 > m_SlowRTT + m_Jitter && rttSample > m_SlowRTT2 && rttSample > m_PrevRTTSample) && !m_IsWinDropped) // Drop window if RTT grows too fast, late detection
+			if ((m_SlowRTT2 > m_SlowRTT + m_Jitter && rttSample > m_SlowRTT2 && rttSample > m_PrevRTTSample) && !m_IsWinDropped && !m_IsClientChoked) // Drop window if RTT grows too fast, late detection
+			{
+				LogPrint (eLogDebug, "Streaming: Congestion detected, reduce window size");
 				ProcessWindowDrop ();
+			}
 			UpdatePacingTime ();
 			m_PrevRTTSample = rttSample;
 			
 			bool wasInitial = m_RTO == INITIAL_RTO;
-			m_RTO = std::max (MIN_RTO, (int)(m_RTT * 1.3 + m_Jitter)); // TODO: implement it better
+			m_RTO = std::max (MIN_RTO, (int)(m_RTT * 1.3 + m_Jitter + m_ACKRecieveInterval)); // TODO: implement it better
 			
 			if (wasInitial)
 				ScheduleResend ();
 		}
+		if (m_IsClientChoked && ackThrough >= m_DropWindowDelaySequenceNumber)
+			m_IsClientChoked = false;
 		if (m_IsWinDropped && ackThrough > m_DropWindowDelaySequenceNumber)
 		{
 			m_IsFirstRttSample = true;
 			m_IsWinDropped = false;
 		}
-		if (m_WindowDropTargetSize && m_WindowSize <= m_WindowDropTargetSize)
+		if (m_WindowDropTargetSize && int(m_SentPackets.size ()) <= m_WindowDropTargetSize)
 		{
+			m_WindowSize = m_WindowDropTargetSize;
 			m_WindowDropTargetSize = 0;
-			m_DropWindowDelaySequenceNumber = m_SequenceNumber;
-		}
-		if (acknowledged && m_WindowDropTargetSize && m_WindowSize > m_WindowDropTargetSize)
-		{
-			m_RTO = std::max (MIN_RTO, (int)(m_RTT * 1.5 + m_Jitter)); // we assume that the next rtt sample may be much larger than the current
-			m_IsResendNeeded = true;
-			m_WindowSize = m_SentPackets.size () + 1; // if there are no packets to resend, just send one regular packet
-			if (m_WindowSize < MIN_WINDOW_SIZE) m_WindowSize = MIN_WINDOW_SIZE;
-			if (m_WindowSize > MAX_WINDOW_SIZE) m_WindowSize = MAX_WINDOW_SIZE;
-			m_WindowIncCounter = 0;
-			UpdatePacingTime ();
 		}
 		if (acknowledged || m_IsNAcked)
 		{
@@ -626,12 +632,14 @@ namespace stream
 		if (m_SendBuffer.IsEmpty () && m_SentPackets.size () > 0) // tail loss
 		{
 			m_IsResendNeeded = true;
-			m_RTO = std::max (MIN_RTO, (int)(m_RTT * 1.5 + m_Jitter)); // to prevent spurious retransmit
+			m_RTO = std::max (MIN_RTO, (int)(m_RTT * 1.5 + m_Jitter + m_ACKRecieveInterval)); // to prevent spurious retransmit
 		}
 		if (m_SentPackets.empty () && m_SendBuffer.IsEmpty ())
 		{
 			m_ResendTimer.cancel ();
 			m_SendTimer.cancel ();
+			m_LastACKRecieveTime = 0;
+			m_ACKRecieveInterval = m_AckDelay;
 		}
 		if (acknowledged && m_IsFirstACK)
 		{
@@ -958,7 +966,7 @@ namespace stream
 		if (choking || requestImmediateAck)
 		{
 			htobe16buf (packet + size, 2); // 2 bytes delay interval
-			htobe16buf (packet + size + 2, choking ? DELAY_CHOKING : 0); // set choking or immediated ack interval
+			htobe16buf (packet + size + 2, choking ? DELAY_CHOKING : 0); // set choking or immediate ack interval
 			size += 2;
 			if (requestImmediateAck) // ack request sent
 			{
@@ -1147,7 +1155,6 @@ namespace stream
 				m_CurrentOutboundTunnel = routingPath->outboundTunnel;
 				m_CurrentRemoteLease = routingPath->remoteLease;
 				m_RTT = routingPath->rtt;
-				m_RTO = std::max (MIN_RTO, (int)(m_RTT * 1.3 + m_Jitter)); // TODO: implement it better
 			}
 		}
 
@@ -1159,9 +1166,10 @@ namespace stream
 		}
 		if (m_RemoteLeaseChangeTime && m_IsRemoteLeaseChangeInProgress && ts > m_RemoteLeaseChangeTime + INITIAL_RTO)
 		{
+			LogPrint (eLogDebug, "Streaming: RemoteLease changed, set initial window size");
 			CancelRemoteLeaseChange ();
 			m_CurrentRemoteLease = m_NextRemoteLease;
-			HalveWindowSize ();
+			ResetWindowSize ();
 		}
 		auto currentRemoteLease = m_CurrentRemoteLease;
 		if (!m_IsRemoteLeaseChangeInProgress && m_RemoteLeaseSet && m_CurrentRemoteLease && ts >= m_CurrentRemoteLease->endDate - i2p::data::LEASE_ENDDATE_THRESHOLD)
@@ -1196,7 +1204,8 @@ namespace stream
 			}
 			if (freshTunnel)
 			{
-				m_RTO = INITIAL_RTO;
+				LogPrint (eLogDebug, "Streaming: OutboundTunnel changed, set initial window size");
+				ResetWindowSize ();
 //				m_TunnelsChangeSequenceNumber = m_SequenceNumber; // should be determined more precisely
 			}
 
@@ -1286,31 +1295,64 @@ namespace stream
 					m_NumPacketsToSend = 1; m_PacingTimeRem = 0;
 				}	
 				m_IsSendTime = true;
-				if (m_WindowIncCounter && m_WindowSize < MAX_WINDOW_SIZE && !m_SendBuffer.IsEmpty () && m_PacingTime > m_MinPacingTime)
+				if (m_WindowIncCounter && (m_WindowSize < MAX_WINDOW_SIZE || m_WindowDropTargetSize) && !m_SendBuffer.IsEmpty () && m_PacingTime > m_MinPacingTime && m_RTT <= m_SlowRTT)
 				{
+					float winSize = m_WindowSize;
+					if (m_WindowDropTargetSize)
+						winSize = m_WindowDropTargetSize;
+					float maxWinSize = MAX_WINDOW_SIZE;
+					if (m_LastWindowIncTime)
+						maxWinSize = (ts - m_LastWindowIncTime) / (m_RTT / MAX_WINDOW_SIZE_INC_PER_RTT) + winSize;
 					for (int i = 0; i < m_NumPacketsToSend; i++)
 					{
 						if (m_WindowIncCounter)
 						{
-							if (m_LastWindowDropSize && (m_LastWindowDropSize >= m_WindowSize))
-								m_WindowSize += 1 - (1 / ((m_LastWindowDropSize + PREV_SPEED_KEEP_TIME_COEFF) / m_WindowSize)); // some magic here
-							else if (m_LastWindowDropSize && (m_LastWindowDropSize < m_WindowSize))
-								m_WindowSize += (m_WindowSize - (m_LastWindowDropSize - PREV_SPEED_KEEP_TIME_COEFF)) / m_WindowSize; // some magic here
+							if (m_WindowDropTargetSize)
+							{
+								if (m_LastWindowDropSize && (m_LastWindowDropSize >= m_WindowDropTargetSize))
+									m_WindowDropTargetSize += 1 - (1 / ((m_LastWindowDropSize + PREV_SPEED_KEEP_TIME_COEFF) / m_WindowDropTargetSize)); // some magic here
+								else if (m_LastWindowDropSize && (m_LastWindowDropSize < m_WindowDropTargetSize))
+									m_WindowDropTargetSize += (m_WindowDropTargetSize - (m_LastWindowDropSize - PREV_SPEED_KEEP_TIME_COEFF)) / m_WindowDropTargetSize; // some magic here
+								else
+									m_WindowDropTargetSize += (m_WindowDropTargetSize - (1 - PREV_SPEED_KEEP_TIME_COEFF)) / m_WindowDropTargetSize;
+								if (m_WindowDropTargetSize > MAX_WINDOW_SIZE) m_WindowDropTargetSize = MAX_WINDOW_SIZE;
+								m_WindowIncCounter--;
+								if (m_WindowDropTargetSize >= maxWinSize)
+								{
+									m_WindowDropTargetSize = maxWinSize;
+									break;
+								}
+							}
 							else
-								m_WindowSize += (m_WindowSize - (1 - PREV_SPEED_KEEP_TIME_COEFF)) / m_WindowSize;
-							if (m_WindowSize > MAX_WINDOW_SIZE) m_WindowSize = MAX_WINDOW_SIZE;
-							m_WindowIncCounter--;
+							{
+								if (m_LastWindowDropSize && (m_LastWindowDropSize >= m_WindowSize))
+									m_WindowSize += 1 - (1 / ((m_LastWindowDropSize + PREV_SPEED_KEEP_TIME_COEFF) / m_WindowSize)); // some magic here
+								else if (m_LastWindowDropSize && (m_LastWindowDropSize < m_WindowSize))
+									m_WindowSize += (m_WindowSize - (m_LastWindowDropSize - PREV_SPEED_KEEP_TIME_COEFF)) / m_WindowSize; // some magic here
+								else
+									m_WindowSize += (m_WindowSize - (1 - PREV_SPEED_KEEP_TIME_COEFF)) / m_WindowSize;
+								if (m_WindowSize > MAX_WINDOW_SIZE) m_WindowSize = MAX_WINDOW_SIZE;
+								m_WindowIncCounter--;
+								if (m_WindowSize >= maxWinSize)
+								{
+									m_WindowSize = maxWinSize;
+									break;
+								}
+							}
 						}
 						else
 							break;
 					}
+					m_LastWindowIncTime = ts;
 					UpdatePacingTime ();
 				}
-				if (m_IsNAcked)
+				else if (m_WindowIncCounter && m_WindowSize == MAX_WINDOW_SIZE && !m_SendBuffer.IsEmpty () && m_PacingTime > m_MinPacingTime)
+				{
+					m_WindowSizeTail = m_WindowSizeTail + m_WindowIncCounter;
+					if (m_WindowSizeTail > MAX_WINDOW_SIZE) m_WindowSizeTail = MAX_WINDOW_SIZE;
+				}
+				if (m_IsNAcked || m_IsResendNeeded || m_IsClientChoked) // resend packets
 					ResendPacket ();
-				else if (m_IsResendNeeded) // resend packets
-					ResendPacket ();
-				// delay-based CC
 				else if (m_WindowSize > int(m_SentPackets.size ())) // send packets
 					SendBuffer ();
 			}
@@ -1409,8 +1451,11 @@ namespace stream
 			if (m_NumResendAttempts == 1 && m_RTO != INITIAL_RTO)
 			{
 				// loss-based CC
-				if (!m_IsWinDropped && LOSS_BASED_CONTROL_ENABLED)
+				if (!m_IsWinDropped && LOSS_BASED_CONTROL_ENABLED && !m_IsClientChoked)
+				{
+					LogPrint (eLogDebug, "Streaming: Packet loss, reduce window size");
 					ProcessWindowDrop ();
+				}
 			}
 			else if (m_IsTimeOutResend)
 			{
@@ -1423,6 +1468,8 @@ namespace stream
 				m_IsFirstRttSample = true;
 				m_DropWindowDelaySequenceNumber = 0;
 				m_IsFirstACK = true;
+				m_LastACKRecieveTime = 0;
+				m_ACKRecieveInterval = m_AckDelay;
 				UpdatePacingTime ();
 				if (m_RoutingSession) m_RoutingSession->SetSharedRoutingPath (nullptr);
 				if (m_NumResendAttempts & 1)
@@ -1443,11 +1490,12 @@ namespace stream
 			SendPackets (packets);
 			m_LastSendTime = ts;
 			m_IsSendTime = false;
-			if (m_IsNAcked || m_IsResendNeeded) ScheduleSend ();
+			if (m_IsNAcked || m_IsResendNeeded || m_IsClientChoked) ScheduleSend ();
 		}
-		else
+		else if (!m_IsClientChoked)
 			SendBuffer ();
 		if (!m_IsNAcked && !m_IsResendNeeded) ScheduleResend ();
+		if (m_IsClientChoked) ScheduleSend ();
 	}
 
 	void Stream::ScheduleAck (int timeout)
@@ -1586,7 +1634,8 @@ namespace stream
 		}
 		if (isLeaseChanged && !m_IsRemoteLeaseChangeInProgress)
 		{
-			HalveWindowSize ();
+			LogPrint (eLogDebug, "Streaming: RemoteLease changed, set initial window size");
+			ResetWindowSize ();
 		}
 	}
 
@@ -1602,43 +1651,60 @@ namespace stream
 
 	void Stream::UpdatePacingTime ()
 	{
-		m_PacingTime = std::round (m_RTT*1000/m_WindowSize);
+		if (m_WindowDropTargetSize)
+			m_PacingTime = std::round (m_RTT*1000/m_WindowDropTargetSize);
+		else
+			m_PacingTime = std::round (m_RTT*1000/m_WindowSize);
 		if (m_MinPacingTime && m_PacingTime < m_MinPacingTime)
 			m_PacingTime = m_MinPacingTime;
 	}	
 
 	void Stream::ProcessWindowDrop ()
 	{
-		if (m_WindowSize > m_LastWindowDropSize)
-			m_LastWindowDropSize = (m_LastWindowDropSize + m_WindowSize) / 2;
+		if (m_WindowDropTargetSize)
+			m_WindowDropTargetSize = (m_WindowDropTargetSize / 2) * 0.75; // congestion window size and -25% to drain queue
 		else
-			m_LastWindowDropSize = m_WindowSize;
-		m_WindowDropTargetSize = m_LastWindowDropSize - (m_LastWindowDropSize / 4); // -25%;
-		if (m_WindowDropTargetSize < MIN_WINDOW_SIZE + 1)
-			m_WindowDropTargetSize = MIN_WINDOW_SIZE + 1;
-		m_WindowSize = m_SentPackets.size (); // stop sending now
-		if (m_WindowSize < MIN_WINDOW_SIZE) m_WindowSize = MIN_WINDOW_SIZE;
+		{
+			if (m_WindowSize < m_LastWindowDropSize)
+			{
+				m_LastWindowDropSize = std::max ((m_WindowSize - MAX_WINDOW_SIZE_INC_PER_RTT), (m_WindowSize - (m_LastWindowDropSize - m_WindowSize)));
+				if (m_LastWindowDropSize < MIN_WINDOW_SIZE) m_LastWindowDropSize = MIN_WINDOW_SIZE;
+			}
+			else
+			{
+				m_LastWindowDropSize = std::max ((m_WindowSize - MAX_WINDOW_SIZE_INC_PER_RTT), ((m_LastWindowDropSize + m_WindowSize + m_WindowSizeTail) / 2));
+				if (m_LastWindowDropSize > MAX_WINDOW_SIZE) m_LastWindowDropSize = MAX_WINDOW_SIZE;
+			}
+			m_WindowDropTargetSize = m_LastWindowDropSize * 0.75; // -25% to drain queue
+		}
+		if (m_WindowDropTargetSize < MIN_WINDOW_SIZE)
+			m_WindowDropTargetSize = MIN_WINDOW_SIZE;
 		m_WindowIncCounter = 0; // disable window growth
-		m_DropWindowDelaySequenceNumber = m_SequenceNumber;
+		m_DropWindowDelaySequenceNumber = m_SequenceNumber + int(m_WindowDropTargetSize);
 		m_IsFirstACK = true; // ignore first RTT sample
 		m_IsWinDropped = true; // don't drop window twice
+		m_WindowSizeTail = 0;
 		UpdatePacingTime ();
 	}
 
-	void Stream::HalveWindowSize ()
+	void Stream::ResetWindowSize ()
 	{
 		m_RTO = INITIAL_RTO;
-		if (m_WindowSize > INITIAL_WINDOW_SIZE)
+		if (!m_IsClientChoked)
 		{
-			m_WindowDropTargetSize = std::max (m_WindowSize/2, (float)INITIAL_WINDOW_SIZE);
-			m_IsWinDropped = true;
+			if (m_WindowSize > INITIAL_WINDOW_SIZE)
+			{
+				m_WindowDropTargetSize = (float)INITIAL_WINDOW_SIZE;
+				m_IsWinDropped = true;
+			}
+			else
+				m_WindowSize = INITIAL_WINDOW_SIZE;
 		}
-		else
-			m_WindowSize = INITIAL_WINDOW_SIZE;
 		m_LastWindowDropSize = 0;
 		m_WindowIncCounter = 0;
 		m_IsFirstRttSample = true;
 		m_IsFirstACK = true;
+		m_WindowSizeTail = 0;
 		UpdatePacingTime ();
 	}
 

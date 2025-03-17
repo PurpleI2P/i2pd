@@ -133,6 +133,8 @@ jobs:
         git clone https://github.com/msys2/MINGW-packages
         cd MINGW-packages
         git checkout 4cbb366edf2f268ac3146174b40ce38604646fc5 mingw-w64-boost
+        cd mingw-w64-boost
+        sed -i 's/boostorg.jfrog.io\/artifactory\/main/archives.boost.io/' PKGBUILD
 
     # headers
     - name: Get headers package version
@@ -230,8 +232,10 @@ jobs:
       run: |
         cd MINGW-packages/mingw-w64-boost
         MINGW_ARCH=mingw32 makepkg-mingw -sCLf --noconfirm --nocheck
+    - name: Remove boost packages
+      run: pacman --noconfirm -R mingw-w64-i686-boost mingw-w64-i686-boost-libs
     - name: Install boost package
-      run: pacman --noconfirm -U --overwrite MINGW-packages/mingw-w64-boost/mingw-w64-i686-*-any.pkg.tar.zst
+      run: pacman --noconfirm -U MINGW-packages/mingw-w64-boost/mingw-w64-i686-*-any.pkg.tar.zst
 
     # Building i2pd
     - name: Build application

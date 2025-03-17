@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -195,7 +195,7 @@ namespace client
 			m_IsPublic = itr->second != "true";
 		}
 
-		int inLen, outLen, inQuant, outQuant, numTags, minLatency, maxLatency;
+		int inLen = 0, outLen = 0, inQuant = 0, outQuant = 0, numTags = 0, minLatency = 0, maxLatency = 0;
 		std::map<std::string, int&> intOpts = {
 			{I2CP_PARAM_INBOUND_TUNNEL_LENGTH, inLen},
 			{I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH, outLen},
@@ -597,7 +597,8 @@ namespace client
 			m_ExcludedFloodfills.clear ();
 			m_PublishReplyToken = 0;
 			// schedule verification
-			m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_VERIFICATION_TIMEOUT));
+			m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_VERIFICATION_TIMEOUT +
+				(m_Pool ? m_Pool->GetRng ()() % PUBLISH_VERIFICATION_TIMEOUT_VARIANCE : 0)));
 			m_PublishVerificationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishVerificationTimer,
 			shared_from_this (), std::placeholders::_1));
 		}
@@ -676,8 +677,8 @@ namespace client
 				m_ExcludedFloodfills.clear ();
 				m_PublishReplyToken = 1; // dummy non-zero value
 				// try again after a while
-				LogPrint (eLogInfo, "Destination: Can't publish LeasetSet because destination is not ready. Try publishing again after ", PUBLISH_CONFIRMATION_TIMEOUT, " seconds");
-				m_PublishConfirmationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_CONFIRMATION_TIMEOUT));
+				LogPrint (eLogInfo, "Destination: Can't publish LeasetSet because destination is not ready. Try publishing again after ", PUBLISH_CONFIRMATION_TIMEOUT, " milliseconds");
+				m_PublishConfirmationTimer.expires_from_now (boost::posix_time::milliseconds(PUBLISH_CONFIRMATION_TIMEOUT));
 				m_PublishConfirmationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishConfirmationTimer,
 					shared_from_this (), std::placeholders::_1));
 				return;
@@ -696,7 +697,7 @@ namespace client
 						s->HandlePublishConfirmationTimer (boost::system::error_code());
 					});
 			};
-		m_PublishConfirmationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_CONFIRMATION_TIMEOUT));
+		m_PublishConfirmationTimer.expires_from_now (boost::posix_time::milliseconds(PUBLISH_CONFIRMATION_TIMEOUT));
 		m_PublishConfirmationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishConfirmationTimer,
 			shared_from_this (), std::placeholders::_1));
 		outbound->SendTunnelDataMsgTo (floodfill->GetIdentHash (), 0, msg);
@@ -712,15 +713,15 @@ namespace client
 				m_PublishReplyToken = 0;
 				if (GetIdentity ()->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ELGAMAL)
 				{
-					LogPrint (eLogWarning, "Destination: Publish confirmation was not received in ", PUBLISH_CONFIRMATION_TIMEOUT, " seconds or failed. will try again");
+					LogPrint (eLogWarning, "Destination: Publish confirmation was not received in ", PUBLISH_CONFIRMATION_TIMEOUT, " milliseconds or failed. will try again");
 					Publish ();
 				}
 				else
 				{
-					LogPrint (eLogWarning, "Destination: Publish confirmation was not received in ", PUBLISH_CONFIRMATION_TIMEOUT, " seconds from Java floodfill for crypto type ", (int)GetIdentity ()->GetCryptoKeyType ());
+					LogPrint (eLogWarning, "Destination: Publish confirmation was not received in ", PUBLISH_CONFIRMATION_TIMEOUT, " milliseconds from Java floodfill for crypto type ", (int)GetIdentity ()->GetCryptoKeyType ());
 					// Java floodfill never sends confirmation back for unknown crypto type
 					// assume it successive and try to verify
-					m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_VERIFICATION_TIMEOUT));
+					m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_VERIFICATION_TIMEOUT + PUBLISH_VERIFICATION_TIMEOUT_VARIANCE)); // always max
 					m_PublishVerificationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishVerificationTimer,
 			shared_from_this (), std::placeholders::_1));
 
@@ -833,7 +834,7 @@ namespace client
 			request->requestedBlindedKey = requestedBlindedKey; // for encrypted LeaseSet2
 			if (requestComplete)
 				request->requestComplete.push_back (requestComplete);
-			auto ts = i2p::util::GetSecondsSinceEpoch ();
+			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 			auto ret = m_LeaseSetRequests.insert (std::pair<i2p::data::IdentHash, std::shared_ptr<LeaseSetRequest> >(dest,request));
 			if (ret.second) // inserted
 			{
@@ -916,7 +917,7 @@ namespace client
 						nextFloodfill->GetIdentHash (), 0, msg
 					}
 				});
-			request->requestTimeoutTimer.expires_from_now (boost::posix_time::seconds(LEASESET_REQUEST_TIMEOUT));
+			request->requestTimeoutTimer.expires_from_now (boost::posix_time::milliseconds(LEASESET_REQUEST_TIMEOUT));
 			request->requestTimeoutTimer.async_wait (std::bind (&LeaseSetDestination::HandleRequestTimoutTimer,
 				shared_from_this (), std::placeholders::_1, dest));
 		}
@@ -933,7 +934,7 @@ namespace client
 			if (it != m_LeaseSetRequests.end ())
 			{
 				bool done = false;
-				uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
+				uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
 				if (ts < it->second->requestTime + MAX_LEASESET_REQUEST_TIMEOUT)
 				{
 					auto floodfill = i2p::data::netdb.GetClosestFloodfill (dest, it->second->excluded);

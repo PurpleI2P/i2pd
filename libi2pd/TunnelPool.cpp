@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -351,10 +351,13 @@ namespace tunnel
 				{
 					it.second.first->SetState (eTunnelStateFailed);
 					std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
-					if (m_OutboundTunnels.size () > 1 || m_NumOutboundTunnels <= 1) // don't fail last tunnel
+					if (m_OutboundTunnels.size () > 1) // don't fail last tunnel
 						m_OutboundTunnels.erase (it.second.first);
 					else
+					{	
 						it.second.first->SetState (eTunnelStateTestFailed);
+						CreateOutboundTunnel (); // create new tunnel immediately because last one failed
+					}		
 				}
 				else if (it.second.first->GetState () != eTunnelStateExpiring)
 					it.second.first->SetState (eTunnelStateTestFailed);
@@ -368,13 +371,16 @@ namespace tunnel
 						bool failed = false;
 						{
 							std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
-							if (m_InboundTunnels.size () > 1 || m_NumInboundTunnels <= 1) // don't fail last tunnel
+							if (m_InboundTunnels.size () > 1) // don't fail last tunnel
 							{	
 								m_InboundTunnels.erase (it.second.second);
 								failed = true;	
 							}	
 							else
+							{
 								it.second.second->SetState (eTunnelStateTestFailed);
+								CreateInboundTunnel (); // create new tunnel immediately because last one failed
+							}	
 						}
 						if (failed && m_LocalDestination)
 							m_LocalDestination->SetLeaseSetUpdated (true);
@@ -560,7 +566,7 @@ namespace tunnel
 				i2p::data::netdb.GetRandomRouter (prevHop, reverse, endpoint, false);
 			if (hop)
 			{
-				if (!hop->GetProfile ()->IsBad ())
+				if (!hop->HasProfile () || !hop->GetProfile ()->IsBad ())
 					break;
 			}
 			else if (tryClient)
@@ -588,7 +594,7 @@ namespace tunnel
 			(inbound && i2p::transport::transports.GetNumPeers () > 25))
 		{
 			auto r = i2p::transport::transports.GetRandomPeer (m_IsHighBandwidth && !i2p::context.IsLimitedConnectivity ());
-			if (r && r->IsECIES () && !r->GetProfile ()->IsBad () &&
+			if (r && r->IsECIES () && (!r->HasProfile () || !r->GetProfile ()->IsBad ()) &&
 				(numHops > 1 || (r->IsV4 () && (!inbound || r->IsPublished (true))))) // first inbound must be published ipv4
 			{
 				prevHop = r;

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -15,11 +15,13 @@
 #include <condition_variable>
 #include <functional>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <queue>
 #include <string>
 #include <memory>
 #include <atomic>
+#include <random>
 #include <boost/asio.hpp>
 #include "TransportSession.h"
 #include "SSU2.h"
@@ -54,8 +56,8 @@ namespace transport
 		private:
 
 			const int m_QueueSize;
-			std::queue<std::shared_ptr<Keys> > m_Queue;
 			i2p::util::MemoryPoolMt<Keys> m_KeysPool;
+			std::queue<std::shared_ptr<Keys> > m_Queue;
 
 			bool m_IsRunning;
 			std::unique_ptr<std::thread> m_Thread;
@@ -106,7 +108,8 @@ namespace transport
 	};
 
 	const uint64_t SESSION_CREATION_TIMEOUT = 15; // in seconds
-	const int PEER_TEST_INTERVAL = 71; // in minutes
+	const int PEER_TEST_INTERVAL = 68*60; // in seconds
+	const int PEER_TEST_INTERVAL_VARIANCE = 3*60; // in seconds
 	const int PEER_TEST_DELAY_INTERVAL = 20; // in milliseconds
 	const int PEER_TEST_DELAY_INTERVAL_VARIANCE = 30; // in milliseconds
 	const int MAX_NUM_DELAYED_MESSAGES = 150;
@@ -145,7 +148,6 @@ namespace transport
 			void ReuseX25519KeysPair (std::shared_ptr<i2p::crypto::X25519Keys> pair);
 
 			std::future<std::shared_ptr<TransportSession> > SendMessage (const i2p::data::IdentHash& ident, std::shared_ptr<i2p::I2NPMessage> msg);
-			std::future<std::shared_ptr<TransportSession> > SendMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >& msgs);
 			std::future<std::shared_ptr<TransportSession> > SendMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >&& msgs);
 
 			void PeerConnected (std::shared_ptr<TransportSession> session);
@@ -169,7 +171,7 @@ namespace transport
 			std::shared_ptr<const i2p::data::RouterInfo> GetRandomPeer (bool isHighBandwidth) const;
 
 			/** get a trusted first hop for restricted routes */
-			std::shared_ptr<const i2p::data::RouterInfo> GetRestrictedPeer() const;
+			std::shared_ptr<const i2p::data::RouterInfo> GetRestrictedPeer();
 			/** do we want to use restricted routes? */
 			bool RoutesRestricted() const;
 			/** restrict routes to use only these router families for first hops */
@@ -177,7 +179,8 @@ namespace transport
 			/** restrict routes to use only these routers for first hops */
 			void RestrictRoutesToRouters(const std::set<i2p::data::IdentHash>& routers);
 
-			bool IsRestrictedPeer(const i2p::data::IdentHash & ident) const;
+			bool IsTrustedRouter (const i2p::data::IdentHash& ih) const;
+			bool IsRestrictedPeer(const i2p::data::IdentHash& ih) const;
 
 			void PeerTest (bool ipv4 = true, bool ipv6 = true);
 
@@ -192,7 +195,7 @@ namespace transport
 			void HandleRequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, i2p::data::IdentHash ident);
 			std::shared_ptr<TransportSession> PostMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >& msgs);
 			bool ConnectToPeer (const i2p::data::IdentHash& ident, std::shared_ptr<Peer> peer);
-			void SetPriority (std::shared_ptr<Peer> peer) const;
+			void SetPriority (std::shared_ptr<Peer> peer);
 			void HandlePeerCleanupTimer (const boost::system::error_code& ecode);
 			void HandlePeerTestTimer (const boost::system::error_code& ecode);
 			void HandleUpdateBandwidthTimer (const boost::system::error_code& ecode);
@@ -236,10 +239,11 @@ namespace transport
 			mutable std::mutex m_FamilyMutex;
 
 			/** which routers for first hop to trust */
-			std::vector<i2p::data::IdentHash> m_TrustedRouters;
+			std::unordered_set<i2p::data::IdentHash> m_TrustedRouters;
 			mutable std::mutex m_TrustedRoutersMutex;
 
 			i2p::I2NPMessagesHandler m_LoopbackHandler;
+			std::mt19937 m_Rng;
 
 		public:
 

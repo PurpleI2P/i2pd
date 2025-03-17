@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -152,11 +152,11 @@ namespace data
 			m_BlindedSigType = m_SigType;
 	}
 
-	BlindedPublicKey::BlindedPublicKey (const std::string& b33):
+	BlindedPublicKey::BlindedPublicKey (std::string_view b33):
 		m_SigType (0) // 0 means invalid, we can't blind DSA, set it later
 	{
 		uint8_t addr[40]; // TODO: define length from b33
-		size_t l = i2p::data::Base32ToByteStream (b33.c_str (), b33.length (), addr, 40);
+		size_t l = i2p::data::Base32ToByteStream (b33, addr, 40);
 		if (l < 32)
 		{
 			LogPrint (eLogError, "Blinding: Malformed b33 ", b33);
@@ -198,7 +198,7 @@ namespace data
 	std::string BlindedPublicKey::ToB33 () const
 	{
 		if (m_PublicKey.size () > 32) return ""; // assume 25519
-		uint8_t addr[35]; char str[60]; // TODO: define actual length
+		uint8_t addr[35];
 		uint8_t flags = 0;
 		if (m_IsClientAuth) flags |= B33_PER_CLIENT_AUTH_FLAG;
 		addr[0] = flags; // flags
@@ -208,8 +208,7 @@ namespace data
 		uint32_t checksum = crc32 (0, addr + 3, m_PublicKey.size ());
 		// checksum is Little Endian
 		addr[0] ^= checksum; addr[1] ^= (checksum >> 8); addr[2] ^= (checksum >> 16);
-		auto l = ByteStreamToBase32 (addr, m_PublicKey.size () + 3, str, 60);
-		return std::string (str, str + l);
+		return ByteStreamToBase32 (addr, m_PublicKey.size () + 3);
 	}
 
 	void BlindedPublicKey::GetCredential (uint8_t * credential) const

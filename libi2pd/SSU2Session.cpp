@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022-2024, The PurpleI2P Project
+* Copyright (c) 2022-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -92,7 +92,7 @@ namespace transport
 		m_RTO (SSU2_INITIAL_RTO), m_RelayTag (0),m_ConnectTimer (server.GetService ()), 
 		m_TerminationReason (eSSU2TerminationReasonNormalClose),
 		m_MaxPayloadSize (SSU2_MIN_PACKET_SIZE - IPV6_HEADER_SIZE - UDP_HEADER_SIZE - 32), // min size
-		m_LastResendTime (0), m_LastResendAttemptTime (0)
+		m_LastResendTime (0), m_LastResendAttemptTime (0), m_NumRanges (0)
 	{
 		if (noise)	
 			m_NoiseState.reset (new i2p::crypto::NoiseSymmetricState);
@@ -189,7 +189,7 @@ namespace transport
 		if (!asz) return false;
 		payload[17] = asz;
 		packet->payloadSize = asz + 18;
-		SignedData s;
+		SignedData<128> s;
 		s.Insert ((const uint8_t *)"RelayRequestData", 16); // prologue
 		s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
 		s.Insert (session->GetRemoteIdentity ()->GetIdentHash (), 32); // chash
@@ -349,7 +349,7 @@ namespace transport
 
 	void SSU2Session::Done ()
 	{
-		m_Server.GetService ().post (std::bind (&SSU2Session::Terminate, shared_from_this ()));
+		boost::asio::post (m_Server.GetService (), std::bind (&SSU2Session::Terminate, shared_from_this ()));
 	}
 
 	void SSU2Session::SendLocalRouterInfo (bool update)
@@ -357,7 +357,7 @@ namespace transport
 		if (update || !IsOutgoing ())
 		{
 			auto s = shared_from_this ();
-			m_Server.GetService ().post ([s]()
+			boost::asio::post (m_Server.GetService (), [s]()
 				{
 					if (!s->IsEstablished ()) return;
 					uint8_t payload[SSU2_MAX_PACKET_SIZE];
@@ -389,7 +389,7 @@ namespace transport
 			m_IntermediateQueue.splice (m_IntermediateQueue.end (), msgs);
 		}
 		if (empty)
-			m_Server.GetService ().post (std::bind (&SSU2Session::PostI2NPMessages, shared_from_this ()));
+			boost::asio::post (m_Server.GetService (), std::bind (&SSU2Session::PostI2NPMessages, shared_from_this ()));
 	}
 
 	void SSU2Session::PostI2NPMessages ()
@@ -623,7 +623,8 @@ namespace transport
 				}
 				else
 				{
-					uint32_t packetNum = SendData (it->second->payload, it->second->payloadSize);
+					uint32_t packetNum = SendData (it->second->payload, it->second->payloadSize, 
+						it->second->numResends > 1 ? SSU2_FLAG_IMMEDIATE_ACK_REQUESTED : 0);
 					it->second->numResends++;
 					it->second->sendTime = ts;
 					resentPackets.emplace (packetNum, it->second);
@@ -682,7 +683,7 @@ namespace transport
 				}
 				const uint8_t nonce[12] = {0};
 				uint64_t headerX[2];
-				i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
+				m_Server.ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
 				LogPrint (eLogWarning, "SSU2: Unexpected PeerTest message SourceConnID=", connID, " DestConnID=", headerX[0]);
 				break;
 			}
@@ -748,7 +749,7 @@ namespace transport
 		payloadSize += 16;
 		header.ll[0] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 24));
 		header.ll[1] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 12));
-		i2p::crypto::ChaCha20 (headerX, 48, m_Address->i, nonce, headerX);
+		m_Server.ChaCha20 (headerX, 48, m_Address->i, nonce, headerX);
 		m_NoiseState->MixHash (payload, payloadSize); // h = SHA256(h || encrypted payload from Session Request) for SessionCreated
 		m_SentHandshakePacket->payloadSize = payloadSize;
 		// send
@@ -775,7 +776,7 @@ namespace transport
 		}
 		const uint8_t nonce[12] = {0};
 		uint8_t headerX[48];
-		i2p::crypto::ChaCha20 (buf + 16, 48, i2p::context.GetSSU2IntroKey (), nonce, headerX);
+		m_Server.ChaCha20 (buf + 16, 48, i2p::context.GetSSU2IntroKey (), nonce, headerX);
 		memcpy (&m_DestConnID, headerX, 8);
 		uint64_t token;
 		memcpy (&token, headerX + 8, 8);
@@ -874,7 +875,7 @@ namespace transport
 		m_NoiseState->MixHash (payload, payloadSize); // h = SHA256(h || encrypted Noise payload from Session Created)
 		header.ll[0] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), payload + (payloadSize - 24));
 		header.ll[1] ^= CreateHeaderMask (kh2, payload + (payloadSize - 12));
-		i2p::crypto::ChaCha20 (headerX, 48, kh2, nonce, headerX);
+		m_Server.ChaCha20 (headerX, 48, kh2, nonce, headerX);
 		m_State = eSSU2SessionStateSessionCreatedSent;
 		m_SentHandshakePacket->payloadSize = payloadSize;
 		// send
@@ -902,7 +903,7 @@ namespace transport
 		m_HandshakeInterval = i2p::util::GetMillisecondsSinceEpoch () - m_HandshakeInterval;
 		const uint8_t nonce[12] = {0};
 		uint8_t headerX[48];
-		i2p::crypto::ChaCha20 (buf + 16, 48, kh2, nonce, headerX);
+		m_Server.ChaCha20 (buf + 16, 48, kh2, nonce, headerX);
 		// KDF for SessionCreated
 		m_NoiseState->MixHash ( { {header.buf, 16}, {headerX, 16} } ); // h = SHA256(h || header)
 		m_NoiseState->MixHash (headerX + 16, 32); // h = SHA256(h || bepk);
@@ -1178,13 +1179,18 @@ namespace transport
 			LogPrint (eLogError, "SSU2: Couldn't update RouterInfo from SessionConfirmed in netdb");
 			return false;
 		}
-		std::shared_ptr<i2p::data::RouterProfile> profile; // not null if older 
+		
+		bool isOlder = false;
 		if (ri->GetTimestamp () + i2p::data::NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < ri1->GetTimestamp ())
 		{	
 			// received RouterInfo is older than one in netdb
-			profile = i2p::data::GetRouterProfile (ri->GetIdentHash ()); // retrieve profile	
-			if (profile && profile->IsDuplicated ())
-				return false;
+			isOlder = true;
+			if (ri->HasProfile ())
+			{	
+				auto profile = i2p::data::GetRouterProfile (ri->GetIdentHash ()); // retrieve profile	
+				if (profile && profile->IsDuplicated ())
+					return false;
+			}	
 		}	
 		ri = ri1;
 		
@@ -1198,15 +1204,28 @@ namespace transport
 		    (!m_RemoteEndpoint.address ().is_v6 () ||
 			 memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), m_Address->host.to_v6 ().to_bytes ().data (), 8))) // temporary address
 		{
-			if (profile) // older router?
-				profile->Duplicated (); // mark router as duplicated in profile
+			if (isOlder) // older router?
+				i2p::data::UpdateRouterProfile (ri->GetIdentHash (),
+					[](std::shared_ptr<i2p::data::RouterProfile> profile)
+					{
+						if (profile) profile->Duplicated (); // mark router as duplicated in profile
+					});
 			else	
 				LogPrint (eLogInfo, "SSU2: Host mismatch between published address ", m_Address->host,
 					" and actual endpoint ", m_RemoteEndpoint.address (), " from ", i2p::data::GetIdentHashAbbreviation (ri->GetIdentHash ()));
 			return false;
 		}
 		if (!m_Address->published)
-			ri->GetProfile ()->SetLastEndpoint (m_RemoteEndpoint);
+		{	
+			if (ri->HasProfile ())	
+				ri->GetProfile ()->SetLastEndpoint (m_RemoteEndpoint);
+			else
+				i2p::data::UpdateRouterProfile (ri->GetIdentHash (), 
+					[ep = m_RemoteEndpoint](std::shared_ptr<i2p::data::RouterProfile> profile)
+				    {
+						if (profile) profile->SetLastEndpoint (ep);
+					});	
+		}	
 		SetRemoteIdentity (ri->GetRouterIdentity ());
 		AdjustMaxPayloadSize ();
 		m_Server.AddSessionByRouterHash (shared_from_this ()); // we know remote router now
@@ -1264,7 +1283,7 @@ namespace transport
 		header.ll[0] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 24));
 		header.ll[1] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 12));
 		memset (nonce, 0, 12);
-		i2p::crypto::ChaCha20 (h + 16, 16, m_Address->i, nonce, h + 16);
+		m_Server.ChaCha20 (h + 16, 16, m_Address->i, nonce, h + 16);
 		// send
 		if (m_Server.AddPendingOutgoingSession (shared_from_this ()))
 			m_Server.Send (header.buf, 16, h + 16, 16, payload, payloadSize, m_RemoteEndpoint);
@@ -1286,7 +1305,7 @@ namespace transport
 		uint8_t nonce[12] = {0};
 		uint8_t h[32];
 		memcpy (h, header.buf, 16);
-		i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, h + 16);
+		m_Server.ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, h + 16);
 		memcpy (&m_DestConnID, h + 16, 8);
 		// decrypt
 		CreateNonce (be32toh (header.h.packetNum), nonce);
@@ -1338,7 +1357,7 @@ namespace transport
 		header.ll[0] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), payload + (payloadSize - 24));
 		header.ll[1] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), payload + (payloadSize - 12));
 		memset (nonce, 0, 12);
-		i2p::crypto::ChaCha20 (h + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, h + 16);
+		m_Server.ChaCha20 (h + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, h + 16);
 		// send
 		m_Server.Send (header.buf, 16, h + 16, 16, payload, payloadSize, m_RemoteEndpoint);
 	}
@@ -1362,7 +1381,7 @@ namespace transport
 		}
 		uint8_t nonce[12] = {0};
 		uint64_t headerX[2]; // sourceConnID, token
-		i2p::crypto::ChaCha20 (buf + 16, 16, m_Address->i, nonce, (uint8_t *)headerX);
+		m_Server.ChaCha20 (buf + 16, 16, m_Address->i, nonce, (uint8_t *)headerX);
 		uint64_t token = headerX[1];
 		if (token)
 			m_Server.UpdateOutgoingToken (m_RemoteEndpoint, token, i2p::util::GetSecondsSinceEpoch () + SSU2_TOKEN_EXPIRATION_TIMEOUT);
@@ -1411,7 +1430,7 @@ namespace transport
 		}
 		uint8_t nonce[12] = {0};
 		uint64_t headerX[2]; // sourceConnID, token
-		i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
+		m_Server.ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
 		m_DestConnID = headerX[0];
 		// decrypt and handle payload
 		uint8_t * payload = buf + 32;
@@ -1455,7 +1474,7 @@ namespace transport
 		uint8_t nonce[12];
 		CreateNonce (m_SendPacketNum, nonce);
 		uint8_t payload[SSU2_MAX_PACKET_SIZE];
-		i2p::crypto::AEADChaCha20Poly1305 (buf, len, header.buf, 16, m_KeyDataSend, nonce, payload, SSU2_MAX_PACKET_SIZE, true);
+		m_Server.AEADChaCha20Poly1305Encrypt (buf, len, header.buf, 16, m_KeyDataSend, nonce, payload, SSU2_MAX_PACKET_SIZE);
 		header.ll[0] ^= CreateHeaderMask (m_Address->i, payload + (len - 8));
 		header.ll[1] ^= CreateHeaderMask (m_KeyDataSend + 32, payload + (len + 4));
 		m_Server.Send (header.buf, 16, payload, len + 16, m_RemoteEndpoint);
@@ -1495,8 +1514,8 @@ namespace transport
 		uint32_t packetNum = be32toh (header.h.packetNum);
 		uint8_t nonce[12];
 		CreateNonce (packetNum, nonce);
-		if (!i2p::crypto::AEADChaCha20Poly1305 (buf + 16, payloadSize, header.buf, 16,
-			m_KeyDataReceive, nonce, payload, payloadSize, false))
+		if (!m_Server.AEADChaCha20Poly1305Decrypt (buf + 16, payloadSize, header.buf, 16,
+			m_KeyDataReceive, nonce, payload, payloadSize))
 		{
 			LogPrint (eLogWarning, "SSU2: Data AEAD verification failed ");
 			return;
@@ -1744,6 +1763,7 @@ namespace transport
 		HandleAckRange (firstPacketNum, ackThrough, i2p::util::GetMillisecondsSinceEpoch ()); // acnt
 		// ranges
 		len -= 5;
+		if (!len || m_SentPackets.empty ()) return; // don't handle ranges if nothing to acknowledge
 		const uint8_t * ranges = buf + 5;
 		while (len > 0 && firstPacketNum && ackThrough - firstPacketNum < SSU2_MAX_NUM_ACK_PACKETS)
 		{
@@ -1945,6 +1965,7 @@ namespace transport
 	void SSU2Session::HandleRelayRequest (const uint8_t * buf, size_t len)
 	{
 		// we are Bob
+		if (len < 9) return;
 		auto mts = i2p::util::GetMillisecondsSinceEpoch ();
 		uint32_t nonce = bufbe32toh (buf + 1); // nonce
 		uint32_t relayTag = bufbe32toh (buf + 5); // relay tag
@@ -1978,7 +1999,7 @@ namespace transport
 			packet->payloadSize = r ? CreateRouterInfoBlock (packet->payload, m_MaxPayloadSize - len - 32, r) : 0;
 			if (!packet->payloadSize && r)
 				session->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
-			packet->payloadSize += CreateRelayIntroBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize, buf + 1, len -1);
+			packet->payloadSize += CreateRelayIntroBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize, buf + 1, len - 1);
 			if (packet->payloadSize < m_MaxPayloadSize)
 				packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
 			uint32_t packetNum = session->SendData (packet->payload, packet->payloadSize);
@@ -1993,18 +2014,24 @@ namespace transport
 	void SSU2Session::HandleRelayIntro (const uint8_t * buf, size_t len, int attempts)
 	{
 		// we are Charlie
+		if (len < 47) return;
 		SSU2RelayResponseCode code = eSSU2RelayResponseCodeAccept;
 		boost::asio::ip::udp::endpoint ep;
 		std::shared_ptr<const i2p::data::RouterInfo::Address> addr;
 		auto r = i2p::data::netdb.FindRouter (buf + 1); // Alice
 		if (r)
 		{
-			SignedData s;
+			SignedData<128> s;
 			s.Insert ((const uint8_t *)"RelayRequestData", 16); // prologue
 			s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
 			s.Insert (i2p::context.GetIdentHash (), 32); // chash
 			s.Insert (buf + 33, 14); // nonce, relay tag, timestamp, ver, asz
 			uint8_t asz = buf[46];
+			if (asz + 47 + r->GetIdentity ()->GetSignatureLen () > len) 
+			{	
+				LogPrint (eLogWarning, "SSU2: Malformed RelayIntro len=", len);
+				return; 
+			}	
 			s.Insert (buf + 47, asz); // Alice Port, Alice IP
 			if (s.Verify (r->GetIdentity (), buf + 47 + asz))
 			{
@@ -2052,7 +2079,7 @@ namespace transport
 			auto vec = std::make_shared<std::vector<uint8_t> >(len);
 			memcpy (vec->data (), buf, len);
 			auto s = shared_from_this ();
-			m_Server.GetService ().post ([s, vec, attempts]()
+			boost::asio::post (m_Server.GetService (), [s, vec, attempts]()
 				{
 					LogPrint (eLogDebug, "SSU2: RelayIntro attempt ", attempts + 1);
 					s->HandleRelayIntro (vec->data (), vec->size (), attempts + 1);
@@ -2093,6 +2120,7 @@ namespace transport
 
 	void SSU2Session::HandleRelayResponse (const uint8_t * buf, size_t len)
 	{
+		if (len < 6) return;
 		uint32_t nonce = bufbe32toh (buf + 2);
 		if (m_State == eSSU2SessionStateIntroduced)
 		{
@@ -2113,7 +2141,9 @@ namespace transport
 		auto it = m_RelaySessions.find (nonce);
 		if (it != m_RelaySessions.end ())
 		{
-			if (it->second.first && it->second.first->IsEstablished ())
+			auto relaySession = it->second.first;
+			m_RelaySessions.erase (it);
+			if (relaySession && relaySession->IsEstablished ())
 			{
 				// we are Bob, message from Charlie
 				auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
@@ -2123,12 +2153,12 @@ namespace transport
 				memcpy (payload + 3, buf, len); // forward to Alice as is
 				packet->payloadSize = len + 3;
 				packet->payloadSize += CreatePaddingBlock (payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
-				uint32_t packetNum = it->second.first->SendData (packet->payload, packet->payloadSize);
+				uint32_t packetNum = relaySession->SendData (packet->payload, packet->payloadSize);
 				if (m_RemoteVersion >= SSU2_MIN_RELAY_RESPONSE_RESEND_VERSION)
 				{	
 					// sometimes Alice doesn't ack this RelayResponse in older versions
 					packet->sendTime = i2p::util::GetMillisecondsSinceEpoch ();
-					it->second.first->m_SentPackets.emplace (packetNum, packet);
+					relaySession->m_SentPackets.emplace (packetNum, packet);
 				}	
 			}
 			else
@@ -2137,25 +2167,31 @@ namespace transport
 				if (!buf[1]) // status code accepted?
 				{
 					// verify signature
-					uint8_t csz = buf[11];
-					SignedData s;
+					uint8_t csz = (len >= 12) ? buf[11] : 0;
+					if (csz + 12 + relaySession->GetRemoteIdentity ()->GetSignatureLen () > len)
+					{
+						LogPrint (eLogWarning, "SSU2: Malformed RelayResponse len=", len);
+						relaySession->Done ();
+						return;
+					}	
+					SignedData<128> s;
 					s.Insert ((const uint8_t *)"RelayAgreementOK", 16); // prologue
 					s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
 					s.Insert (buf + 2, 10 + csz); // nonce, timestamp, ver, csz and Charlie's endpoint
-					if (s.Verify (it->second.first->GetRemoteIdentity (), buf + 12 + csz))
+					if (s.Verify (relaySession->GetRemoteIdentity (), buf + 12 + csz))
 					{
-						if (it->second.first->m_State == eSSU2SessionStateIntroduced) // HolePunch not received yet
+						if (relaySession->m_State == eSSU2SessionStateIntroduced) // HolePunch not received yet
 						{
 							// update Charlie's endpoint
-							if (ExtractEndpoint (buf + 12, csz, it->second.first->m_RemoteEndpoint))
+							if (ExtractEndpoint (buf + 12, csz, relaySession->m_RemoteEndpoint))
 							{
 								// update token
 								uint64_t token;
 								memcpy (&token, buf + len - 8, 8);
-								m_Server.UpdateOutgoingToken (it->second.first->m_RemoteEndpoint,
+								m_Server.UpdateOutgoingToken (relaySession->m_RemoteEndpoint,
 									token, i2p::util::GetSecondsSinceEpoch () + SSU2_TOKEN_EXPIRATION_TIMEOUT);
 								// connect to Charlie, HolePunch will be ignored
-								it->second.first->ConnectAfterIntroduction ();
+								relaySession->ConnectAfterIntroduction ();
 							}
 							else
 								LogPrint (eLogWarning, "SSU2: RelayResponse can't extract endpoint");
@@ -2164,16 +2200,15 @@ namespace transport
 					else
 					{
 						LogPrint (eLogWarning, "SSU2: RelayResponse signature verification failed");
-						it->second.first->Done ();
+						relaySession->Done ();
 					}
 				}
 				else
 				{
 					LogPrint (eLogInfo, "SSU2: RelayResponse status code=", (int)buf[1], " nonce=", bufbe32toh (buf + 2));
-					it->second.first->Done ();
+					relaySession->Done ();
 				}
 			}
-			m_RelaySessions.erase (it);
 		}
 		else
 			LogPrint (eLogDebug, "SSU2: RelayResponse unknown nonce ", bufbe32toh (buf + 2));
@@ -2242,10 +2277,13 @@ namespace transport
 			case 2: // Charlie from Bob
 			{
 				// sign with Charlie's key
+				if (len < offset + 9) return;
 				uint8_t asz = buf[offset + 9];
-				std::vector<uint8_t> newSignedData (asz + 10 + i2p::context.GetIdentity ()->GetSignatureLen ());
+				size_t l = asz + 10 + i2p::context.GetIdentity ()->GetSignatureLen ();
+				if (len < offset + l) return;
+				std::vector<uint8_t> newSignedData (l);
 				memcpy (newSignedData.data (), buf + offset, asz + 10);
-				SignedData s;
+				SignedData<128> s;
 				s.Insert ((const uint8_t *)"PeerTestValidate", 16); // prologue
 				s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
 				s.Insert (buf + 3, 32); // ahash
@@ -2353,10 +2391,16 @@ namespace transport
 						if (GetRouterStatus () == eRouterStatusUnknown)
 							SetTestingState (true);
 						auto r = i2p::data::netdb.FindRouter (buf + 3); // find Charlie
-						if (r)
+						if (r && len >= offset + 9)
 						{
 							uint8_t asz = buf[offset + 9];
-							SignedData s;
+							if (len < offset + asz + 10 + r->GetIdentity ()->GetSignatureLen ())
+							{
+								LogPrint (eLogWarning, "Malformed PeerTest 4 len=", len);
+								session->Done ();
+								return;
+							}	
+							SignedData<128> s;
 							s.Insert ((const uint8_t *)"PeerTestValidate", 16); // prologue
 							s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
 							s.Insert (i2p::context.GetIdentity ()->GetIdentHash (), 32); // ahash
@@ -2624,17 +2668,17 @@ namespace transport
 	size_t SSU2Session::CreateAckBlock (uint8_t * buf, size_t len)
 	{
 		if (len < 8) return 0;
-		int maxNumRanges = (len - 8) >> 1;
-		if (maxNumRanges > SSU2_MAX_NUM_ACK_RANGES) maxNumRanges = SSU2_MAX_NUM_ACK_RANGES;
 		buf[0] = eSSU2BlkAck;
 		uint32_t ackThrough = m_OutOfSequencePackets.empty () ? m_ReceivePacketNum : *m_OutOfSequencePackets.rbegin ();
 		htobe32buf (buf + 3, ackThrough); // Ack Through
 		uint16_t acnt = 0;
-		int numRanges = 0;
 		if (ackThrough)
 		{
 			if (m_OutOfSequencePackets.empty ())
+			{	
 				acnt = std::min ((int)ackThrough, SSU2_MAX_NUM_ACNT); // no gaps
+				m_NumRanges = 0;
+			}	
 			else
 			{
 				auto it = m_OutOfSequencePackets.rbegin (); it++; // prev packet num
@@ -2647,93 +2691,102 @@ namespace transport
 						it++;
 				}
 				// ranges
-				uint32_t lastNum = ackThrough - acnt;
-				if (acnt > SSU2_MAX_NUM_ACNT)
-				{
-					auto d = std::div (acnt - SSU2_MAX_NUM_ACNT, SSU2_MAX_NUM_ACNT);
-					acnt = SSU2_MAX_NUM_ACNT;
-					if (d.quot > maxNumRanges)
+				if (!m_NumRanges)
+				{	
+					int maxNumRanges = (len - 8) >> 1;
+					if (maxNumRanges > SSU2_MAX_NUM_ACK_RANGES) maxNumRanges = SSU2_MAX_NUM_ACK_RANGES;
+					int numRanges = 0;
+					uint32_t lastNum = ackThrough - acnt;
+					if (acnt > SSU2_MAX_NUM_ACNT)
 					{
-						d.quot = maxNumRanges;
-						d.rem = 0;
-					}
-					// Acks only ranges for acnt
-					for (int i = 0; i < d.quot; i++)
-					{
-						buf[8 + numRanges*2] = 0; buf[8 + numRanges*2 + 1] = SSU2_MAX_NUM_ACNT; // NACKs 0, Acks 255
-						numRanges++;
-					}
-					if (d.rem > 0)
-					{
-						buf[8 + numRanges*2] = 0; buf[8 + numRanges*2 + 1] = d.rem;
-						numRanges++;
-					}
-				}
-				int numPackets = acnt + numRanges*SSU2_MAX_NUM_ACNT;
-				while (it != m_OutOfSequencePackets.rend () &&
-					numRanges < maxNumRanges && numPackets < SSU2_MAX_NUM_ACK_PACKETS)
-				{
-					if (lastNum - (*it) > SSU2_MAX_NUM_ACNT)
-					{
-						// NACKs only ranges
-						if (lastNum > (*it) + SSU2_MAX_NUM_ACNT*(maxNumRanges - numRanges)) break; // too many NACKs
-						while (lastNum - (*it) > SSU2_MAX_NUM_ACNT)
+						auto d = std::div (acnt - SSU2_MAX_NUM_ACNT, SSU2_MAX_NUM_ACNT);
+						acnt = SSU2_MAX_NUM_ACNT;
+						if (d.quot > maxNumRanges)
 						{
-							buf[8 + numRanges*2] = SSU2_MAX_NUM_ACNT; buf[8 + numRanges*2 + 1] = 0; // NACKs 255, Acks 0
-							lastNum -= SSU2_MAX_NUM_ACNT;
+							d.quot = maxNumRanges;
+							d.rem = 0;
+						}
+						// Acks only ranges for acnt
+						for (int i = 0; i < d.quot; i++)
+						{
+							m_Ranges[numRanges*2] = 0; m_Ranges[numRanges*2 + 1] = SSU2_MAX_NUM_ACNT; // NACKs 0, Acks 255
 							numRanges++;
-							numPackets += SSU2_MAX_NUM_ACNT;
+						}
+						if (d.rem > 0)
+						{
+							m_Ranges[numRanges*2] = 0; m_Ranges[numRanges*2 + 1] = d.rem;
+							numRanges++;
 						}
 					}
-					// NACKs and Acks ranges
-					buf[8 + numRanges*2] = lastNum - (*it) - 1; // NACKs
-					numPackets += buf[8 + numRanges*2];
-					lastNum = *it; it++;
-					int numAcks = 1;
-					while (it != m_OutOfSequencePackets.rend () && lastNum > 0 && *it == lastNum - 1)
+					int numPackets = acnt + numRanges*SSU2_MAX_NUM_ACNT;
+					while (it != m_OutOfSequencePackets.rend () &&
+						numRanges < maxNumRanges && numPackets < SSU2_MAX_NUM_ACK_PACKETS)
 					{
-						numAcks++; lastNum--;
-						it++;
-					}
-					while (numAcks > SSU2_MAX_NUM_ACNT)
-					{
-						// Acks only ranges
-						buf[8 + numRanges*2 + 1] = SSU2_MAX_NUM_ACNT; // Acks 255
-						numAcks -= SSU2_MAX_NUM_ACNT;
+						if (lastNum - (*it) > SSU2_MAX_NUM_ACNT)
+						{
+							// NACKs only ranges
+							if (lastNum > (*it) + SSU2_MAX_NUM_ACNT*(maxNumRanges - numRanges)) break; // too many NACKs
+							while (lastNum - (*it) > SSU2_MAX_NUM_ACNT)
+							{
+								m_Ranges[numRanges*2] = SSU2_MAX_NUM_ACNT; m_Ranges[numRanges*2 + 1] = 0; // NACKs 255, Acks 0
+								lastNum -= SSU2_MAX_NUM_ACNT;
+								numRanges++;
+								numPackets += SSU2_MAX_NUM_ACNT;
+							}
+						}
+						// NACKs and Acks ranges
+						m_Ranges[numRanges*2] = lastNum - (*it) - 1; // NACKs
+						numPackets += m_Ranges[numRanges*2];
+						lastNum = *it; it++;
+						int numAcks = 1;
+						while (it != m_OutOfSequencePackets.rend () && lastNum > 0 && *it == lastNum - 1)
+						{
+							numAcks++; lastNum--;
+							it++;
+						}
+						while (numAcks > SSU2_MAX_NUM_ACNT)
+						{
+							// Acks only ranges
+							m_Ranges[numRanges*2 + 1] = SSU2_MAX_NUM_ACNT; // Acks 255
+							numAcks -= SSU2_MAX_NUM_ACNT;
+							numRanges++;
+							numPackets += SSU2_MAX_NUM_ACNT;
+							m_Ranges[numRanges*2] = 0; // NACKs 0
+							if (numRanges >= maxNumRanges || numPackets >= SSU2_MAX_NUM_ACK_PACKETS) break;
+						}
+						if (numAcks > SSU2_MAX_NUM_ACNT) numAcks = SSU2_MAX_NUM_ACNT;
+						m_Ranges[numRanges*2 + 1] = (uint8_t)numAcks; // Acks
+						numPackets += numAcks;
 						numRanges++;
-						numPackets += SSU2_MAX_NUM_ACNT;
-						buf[8 + numRanges*2] = 0; // NACKs 0
-						if (numRanges >= maxNumRanges || numPackets >= SSU2_MAX_NUM_ACK_PACKETS) break;
 					}
-					if (numAcks > SSU2_MAX_NUM_ACNT) numAcks = SSU2_MAX_NUM_ACNT;
-					buf[8 + numRanges*2 + 1] = (uint8_t)numAcks; // Acks
-					numPackets += numAcks;
-					numRanges++;
-				}
-				if (it == m_OutOfSequencePackets.rend () &&
-					numRanges < maxNumRanges && numPackets < SSU2_MAX_NUM_ACK_PACKETS)
-				{
-					// add range between out-of-sequence and received
-					int nacks = *m_OutOfSequencePackets.begin () - m_ReceivePacketNum - 1;
-					if (nacks > 0)
+					if (it == m_OutOfSequencePackets.rend () &&
+						numRanges < maxNumRanges && numPackets < SSU2_MAX_NUM_ACK_PACKETS)
 					{
-						if (nacks > SSU2_MAX_NUM_ACNT) nacks = SSU2_MAX_NUM_ACNT;
-						buf[8 + numRanges*2] = nacks;
-						buf[8 + numRanges*2 + 1] = std::min ((int)m_ReceivePacketNum + 1, SSU2_MAX_NUM_ACNT);
-						numRanges++;
+						// add range between out-of-sequence and received
+						int nacks = *m_OutOfSequencePackets.begin () - m_ReceivePacketNum - 1;
+						if (nacks > 0)
+						{
+							if (nacks > SSU2_MAX_NUM_ACNT) nacks = SSU2_MAX_NUM_ACNT;
+							m_Ranges[numRanges*2] = nacks;
+							m_Ranges[numRanges*2 + 1] = std::min ((int)m_ReceivePacketNum + 1, SSU2_MAX_NUM_ACNT);
+							numRanges++;
+						}
 					}
-				}
+					m_NumRanges = numRanges;
+				}	
+				if (m_NumRanges)
+					memcpy (buf + 8, m_Ranges, m_NumRanges*2);
 			}
 		}
 		buf[7] = (uint8_t)acnt; // acnt
-		htobe16buf (buf + 1, 5 + numRanges*2);
-		return 8 + numRanges*2;
+		htobe16buf (buf + 1, 5 + m_NumRanges*2);
+		return 8 + m_NumRanges*2;
 	}
 
 	size_t SSU2Session::CreatePaddingBlock (uint8_t * buf, size_t len, size_t minSize)
 	{
 		if (len < 3 || len < minSize) return 0;
-		size_t paddingSize = m_Server.GetRng ()() & 0x0F; // 0 - 15
+		size_t paddingSize = m_Server.GetRng ()() & 0x1F; // 0 - 31
 		if (paddingSize + 3 > len) paddingSize = len - 3;
 		else if (paddingSize + 3 < minSize) paddingSize = minSize - 3;
 		buf[0] = eSSU2BlkPadding;
@@ -2835,7 +2888,7 @@ namespace transport
 			LogPrint (eLogError, "SSU2: Buffer for RelayResponse signature is too small ", len);
 			return 0;
 		}
-		SignedData s;
+		SignedData<128> s;
 		s.Insert ((const uint8_t *)"RelayAgreementOK", 16); // prologue
 		if (code == eSSU2RelayResponseCodeAccept || code >= 64) // Charlie
 			s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
@@ -2897,7 +2950,7 @@ namespace transport
 		size_t asz = CreateEndpoint (signedData + 10, 86, boost::asio::ip::udp::endpoint (localAddress->host, localAddress->port));
 		signedData[9] = asz;
 		// signature
-		SignedData s;
+		SignedData<128> s;
 		s.Insert ((const uint8_t *)"PeerTestValidate", 16); // prologue
 		s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
 		s.Insert (signedData, 10 + asz); // ver, nonce, ts, asz, Alice's endpoint
@@ -2961,11 +3014,17 @@ namespace transport
 					}
 					m_OutOfSequencePackets.erase (m_OutOfSequencePackets.begin (), it);
 				}
+				m_NumRanges = 0; // recalculate ranges when create next Ack
 			}
 			m_ReceivePacketNum = packetNum;
 		}
 		else
+		{
+			if (m_NumRanges && (m_OutOfSequencePackets.empty () ||
+				packetNum != (*m_OutOfSequencePackets.rbegin ()) + 1))
+				m_NumRanges = 0; // reset ranges if received packet is not next
 			m_OutOfSequencePackets.insert (packetNum);
+		}	
 		return true;
 	}
 
@@ -3114,5 +3173,10 @@ namespace transport
 		else if (!sent && !m_SentPackets.empty ()) // if only acks received, nothing sent and we still have something to resend
 			Resend (i2p::util::GetMillisecondsSinceEpoch ()); // than right time to resend
 	}
+
+	i2p::data::RouterInfo::SupportedTransports SSU2Session::GetTransportType () const
+	{
+		return m_RemoteEndpoint.address ().is_v4 () ? i2p::data::RouterInfo::eSSU2V4 : i2p::data::RouterInfo::eSSU2V6;
+	}	
 }
 }

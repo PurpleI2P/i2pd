@@ -7,9 +7,9 @@ LDFLAGS += -Wl,-dead_strip
 LDFLAGS += -Wl,-dead_strip_dylibs
 
 ifeq ($(USE_STATIC),yes)
-	LDLIBS = -lz /usr/local/lib/libcrypto.a /usr/local/lib/libssl.a /usr/local/lib/libboost_system.a /usr/local/lib/libboost_filesystem.a /usr/local/lib/libboost_program_options.a -lpthread
+	LDLIBS = -lz /usr/local/lib/libssl.a /usr/local/lib/libcrypto.a /usr/local/lib/libboost_system.a /usr/local/lib/libboost_filesystem.a /usr/local/lib/libboost_program_options.a -lpthread
 else
-	LDLIBS = -lz -lcrypto -lssl -lboost_system -lboost_filesystem -lboost_program_options -lpthread
+	LDLIBS = -lz -lssl -lcrypto -lboost_system -lboost_filesystem -lboost_program_options -lpthread
 endif
 
 ifeq ($(USE_UPNP),yes)
@@ -25,9 +25,5 @@ endif
 OSARCH = $(shell uname -p)
 
 ifneq ($(OSARCH),powerpc)
-	ifeq ($(USE_AESNI),yes)
-		CXXFLAGS += -D__AES__ -maes
-	else
-		CXXFLAGS += -msse
-	endif
+	CXXFLAGS += -msse
 endif

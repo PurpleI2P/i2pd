@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -20,8 +20,10 @@ namespace i2p
 namespace data
 {
 	RequestedDestination::RequestedDestination (const IdentHash& destination, bool isExploratory, bool direct):
-		m_Destination (destination), m_IsExploratory (isExploratory), m_IsDirect (direct), m_IsActive (true),
-		m_CreationTime (i2p::util::GetSecondsSinceEpoch ()), m_LastRequestTime (0), m_NumAttempts (0)
+		m_Destination (destination), m_IsExploratory (isExploratory), m_IsDirect (direct), 
+		m_IsActive (true), m_IsSentDirectly (false),
+		m_CreationTime (i2p::util::GetMillisecondsSinceEpoch ()), 
+		m_LastRequestTime (0), m_NumAttempts (0)
 	{
 		if (i2p::context.IsFloodfill ())
 			m_ExcludedPeers.insert (i2p::context.GetIdentHash ()); // exclude self if floodfill
@@ -44,8 +46,9 @@ namespace data
 			msg = i2p::CreateRouterInfoDatabaseLookupMsg(m_Destination, i2p::context.GetIdentHash(), 0, m_IsExploratory, &m_ExcludedPeers);
 		if(router)
 			m_ExcludedPeers.insert (router->GetIdentHash ());
-		m_LastRequestTime = i2p::util::GetSecondsSinceEpoch ();
+		m_LastRequestTime = i2p::util::GetMillisecondsSinceEpoch ();
 		m_NumAttempts++;
+		m_IsSentDirectly = false;
 		return msg;
 	}
 
@@ -55,7 +58,8 @@ namespace data
 			i2p::context.GetRouterInfo ().GetIdentHash () , 0, false, &m_ExcludedPeers);
 		m_ExcludedPeers.insert (floodfill);
 		m_NumAttempts++;
-		m_LastRequestTime = i2p::util::GetSecondsSinceEpoch ();
+		m_LastRequestTime = i2p::util::GetMillisecondsSinceEpoch ();
+		m_IsSentDirectly = true;
 		return msg;
 	}
 
@@ -210,7 +214,7 @@ namespace data
 
 	void NetDbRequests::ManageRequests ()
 	{
-		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
+		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
 		for (auto it = m_RequestedDestinations.begin (); it != m_RequestedDestinations.end ();)
 		{
 			auto& dest = it->second;
@@ -222,7 +226,8 @@ namespace data
 					bool done = false;
 					if (ts < dest->GetCreationTime () + MAX_REQUEST_TIME)
 					{
-						if (ts > dest->GetLastRequestTime () + MIN_REQUEST_TIME) // try next floodfill if no response after min interval
+						if (ts > dest->GetLastRequestTime () + (dest->IsSentDirectly () ? MIN_DIRECT_REQUEST_TIME : MIN_REQUEST_TIME)) 
+						// try next floodfill if no response after min interval
 							done = !SendNextRequest (dest);
 					}
 					else // request is expired
@@ -328,7 +333,8 @@ namespace data
 
 	void NetDbRequests::ScheduleManageRequests ()
 	{
-		m_ManageRequestsTimer.expires_from_now (boost::posix_time::seconds(MANAGE_REQUESTS_INTERVAL));
+		m_ManageRequestsTimer.expires_from_now (boost::posix_time::milliseconds(MANAGE_REQUESTS_INTERVAL +
+			m_Rng () % MANAGE_REQUESTS_INTERVAL_VARIANCE));
 		m_ManageRequestsTimer.async_wait (std::bind (&NetDbRequests::HandleManageRequestsTimer,
 			this, std::placeholders::_1));
 	}

@@ -57,6 +57,7 @@ namespace stream
 	const int INITIAL_WINDOW_SIZE = 10;
 	const int MIN_WINDOW_SIZE = 3;
 	const int MAX_WINDOW_SIZE = 512;
+	const int MAX_WINDOW_SIZE_INC_PER_RTT = 16;
 	const double RTT_EWMA_ALPHA = 0.25;
 	const double SLOWRTT_EWMA_ALPHA = 0.05;
 	const double PREV_SPEED_KEEP_TIME_COEFF = 0.35; // 0.1 - 1 // how long will the window size stay around the previous drop level, less is longer
@@ -251,7 +252,7 @@ namespace stream
 
 			void UpdatePacingTime ();
 			void ProcessWindowDrop ();
-			void HalveWindowSize ();
+			void ResetWindowSize ();
 			void CancelRemoteLeaseChange ();
 			
 		private:
@@ -272,6 +273,7 @@ namespace stream
 			bool m_IsFirstRttSample;
 			bool m_IsSendTime;
 			bool m_IsWinDropped;
+			bool m_IsClientChoked;
 			bool m_IsTimeOutResend;
 			bool m_IsImmediateAckRequested;
 			bool m_IsRemoteLeaseChangeInProgress;
@@ -295,10 +297,10 @@ namespace stream
 			SendBufferQueue m_SendBuffer;
 			double m_RTT, m_SlowRTT, m_SlowRTT2;
 			float m_WindowSize, m_LastWindowDropSize, m_WindowDropTargetSize;
-			int m_WindowIncCounter, m_RTO, m_AckDelay, m_PrevRTTSample;
+			int m_WindowIncCounter, m_RTO, m_AckDelay, m_PrevRTTSample, m_WindowSizeTail;
 			double m_Jitter;
 			uint64_t m_MinPacingTime, m_PacingTime, m_PacingTimeRem, // microseconds
-				m_LastSendTime, m_RemoteLeaseChangeTime;	// miliseconds
+				m_LastSendTime, m_LastACKRecieveTime, m_ACKRecieveInterval, m_RemoteLeaseChangeTime, m_LastWindowIncTime;	// milliseconds
 			uint64_t m_LastACKSendTime, m_PacketACKInterval, m_PacketACKIntervalRem; // for limit inbound speed
 			int m_NumResendAttempts, m_NumPacketsToSend;
 			size_t m_MTU;

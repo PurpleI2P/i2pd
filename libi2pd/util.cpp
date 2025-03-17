@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -8,6 +8,7 @@
 
 #include <cstdlib>
 #include <string>
+#include <array>
 #include <unordered_set>
 #include <boost/asio.hpp>
 
@@ -123,8 +124,8 @@ const char *inet_ntop_xp(int af, const void *src, char *dst, socklen_t size)
 #endif
 #endif
 
-#define address_pair_v4(a,b) { boost::asio::ip::make_address (a).to_v4 ().to_uint (), boost::asio::ip::make_address(b).to_v4 ().to_uint () }
-#define address_pair_v6(a,b) { boost::asio::ip::make_address (a).to_v6 ().to_bytes (), boost::asio::ip::make_address(b).to_v6 ().to_bytes () }
+#define address_pair_v4(a,b) std::pair{ boost::asio::ip::make_address (a).to_v4 ().to_uint (), boost::asio::ip::make_address(b).to_v4 ().to_uint () }
+#define address_pair_v6(a,b) std::pair{ boost::asio::ip::make_address (a).to_v6 ().to_bytes (), boost::asio::ip::make_address(b).to_v6 ().to_bytes () }
 
 namespace i2p
 {
@@ -454,9 +455,9 @@ namespace net
 #ifdef _WIN32
 		LogPrint(eLogError, "NetIface: Cannot get address by interface name, not implemented on WIN32");
 		if (ipv6)
-			return boost::asio::ip::address::from_string("::1");
+			return boost::asio::ip::make_address("::1");
 		else
-			return boost::asio::ip::address::from_string("127.0.0.1");
+			return boost::asio::ip::make_address("127.0.0.1");
 #else
 		int af = (ipv6 ? AF_INET6 : AF_INET);
 		ifaddrs *addrs;
@@ -647,7 +648,8 @@ namespace net
 		if (host.is_unspecified ()) return false;
 		if (host.is_v4())
 		{
-			static const std::vector< std::pair<uint32_t, uint32_t> > reservedIPv4Ranges {
+			static const std::array<std::pair<uint32_t, uint32_t>, 14> reservedIPv4Ranges 
+			{
 				address_pair_v4("0.0.0.0",      "0.255.255.255"),
 				address_pair_v4("10.0.0.0",     "10.255.255.255"),
 				address_pair_v4("100.64.0.0",   "100.127.255.255"),
@@ -672,7 +674,8 @@ namespace net
 		}
 		if (host.is_v6())
 		{
-			static const std::vector< std::pair<boost::asio::ip::address_v6::bytes_type, boost::asio::ip::address_v6::bytes_type> > reservedIPv6Ranges {
+			static const std::array<std::pair<boost::asio::ip::address_v6::bytes_type, boost::asio::ip::address_v6::bytes_type>, 7> reservedIPv6Ranges 
+			{
 				address_pair_v6("64:ff9b::",  "64:ff9b:ffff:ffff:ffff:ffff:ffff:ffff"),  // NAT64
 				address_pair_v6("2001:db8::", "2001:db8:ffff:ffff:ffff:ffff:ffff:ffff"),
 				address_pair_v6("fc00::",     "fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -11,6 +11,8 @@
 
 #include <inttypes.h>
 #include <string>
+#include <string_view>
+#include <tuple>
 #include <map>
 #include <vector>
 #include <array>
@@ -219,7 +221,7 @@ namespace data
 			std::string GetIdentHashBase64 () const { return GetIdentHash ().ToBase64 (); };
 			uint64_t GetTimestamp () const { return m_Timestamp; };
 			int GetVersion () const { return m_Version; };
-			virtual void SetProperty (const std::string& key, const std::string& value) {};
+			virtual void SetProperty (std::string_view key, std::string_view value) {};
 			virtual void ClearProperties () {};
 			AddressesPtr GetAddresses () const; // should be called for local RI only, otherwise must return shared_ptr
 			std::shared_ptr<const Address> GetNTCP2V4Address () const;
@@ -294,6 +296,7 @@ namespace data
 			std::shared_ptr<Buffer> GetSharedBuffer () const { return m_Buffer; };	
 			std::shared_ptr<Buffer> CopyBuffer () const;
 			void ScheduleBufferToDelete () { m_IsBufferScheduledToDelete = true; };
+			void CancelBufferToDelete () { m_IsBufferScheduledToDelete = false; };
 			bool IsBufferScheduledToDelete () const { return m_IsBufferScheduledToDelete; };
 
 			bool IsUpdated () const { return m_IsUpdated; };
@@ -332,11 +335,12 @@ namespace data
 
 			bool LoadFile (const std::string& fullPath);
 			void ReadFromFile (const std::string& fullPath);
-			void ReadFromStream (std::istream& s);
+			bool ReadFromBuffer (const uint8_t * buf, size_t len); // return false if malformed
 			void ReadFromBuffer (bool verifySignature);
-			size_t ReadString (char* str, size_t len, std::istream& s) const;
-			void ExtractCaps (const char * value);
-			uint8_t ExtractAddressCaps (const char * value) const;
+			std::string_view ExtractString (const uint8_t * buf, size_t len) const;
+			std::tuple<std::string_view, std::string_view, size_t> ExtractParam (const uint8_t * buf, size_t len) const;
+			void ExtractCaps (std::string_view value);
+			uint8_t ExtractAddressCaps (std::string_view value) const;
 			void UpdateIntroducers (std::shared_ptr<Address> address, uint64_t ts); 
 			template<typename Filter>
 			std::shared_ptr<const Address> GetAddress (Filter filter) const;
@@ -363,6 +367,10 @@ namespace data
 			int m_Version;
 			Congestion m_Congestion;
 			mutable std::shared_ptr<RouterProfile> m_Profile;
+
+		public:
+
+			static std::string GetTransportName (SupportedTransports tr);
 	};
 
 	class LocalRouterInfo: public RouterInfo
@@ -374,7 +382,7 @@ namespace data
 			void UpdateCaps (uint8_t caps);
 			bool UpdateCongestion (Congestion c); // returns true if updated
 
-			void SetProperty (const std::string& key, const std::string& value) override;
+			void SetProperty (std::string_view key, std::string_view value) override;
 			void DeleteProperty (const std::string& key);
 			std::string GetProperty (const std::string& key) const;
 			void ClearProperties () override { m_Properties.clear (); };

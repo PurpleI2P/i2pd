@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -33,11 +33,13 @@ namespace tunnel
 				const i2p::crypto::AESKey& layerKey, const i2p::crypto::AESKey& ivKey);
 
 			virtual size_t GetNumTransmittedBytes () const { return 0; };
+			virtual std::string GetNextPeerName () const;
 
 			// implements TunnelBase
 			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg) override;
 			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg) override;
 			void EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out) override;
+		
 		private:
 
 			i2p::crypto::AESKey m_LayerKey, m_IVKey;
@@ -56,6 +58,7 @@ namespace tunnel
 			~TransitTunnelParticipant ();
 
 			size_t GetNumTransmittedBytes () const override { return m_NumTransmittedBytes; };
+			std::string GetNextPeerName () const override;
 			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg) override;
 			void FlushTunnelDataMsgs () override;
 
@@ -63,6 +66,7 @@ namespace tunnel
 
 			size_t m_NumTransmittedBytes;
 			std::list<std::shared_ptr<i2p::I2NPMessage> > m_TunnelDataMsgs;
+			std::unique_ptr<TunnelTransportSender> m_Sender;
 	};
 
 	class TransitTunnelGateway: public TransitTunnel
@@ -78,7 +82,8 @@ namespace tunnel
 			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg) override;
 			void FlushTunnelDataMsgs () override;
 			size_t GetNumTransmittedBytes () const override { return m_Gateway.GetNumSentBytes (); };
-
+			std::string GetNextPeerName () const override;
+			
 		private:
 
 			std::mutex m_SendMutex;
@@ -92,17 +97,19 @@ namespace tunnel
 			TransitTunnelEndpoint (uint32_t receiveTunnelID,
 				const i2p::data::IdentHash& nextIdent, uint32_t nextTunnelID,
 				const i2p::crypto::AESKey& layerKey, const i2p::crypto::AESKey& ivKey):
-				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey),
-				m_Endpoint (false) {}; // transit endpoint is always outbound
+				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey) {}; 
 
-			void Cleanup () override { m_Endpoint.Cleanup (); }
-
+			void Cleanup () override;
+		
 			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg) override;
-			size_t GetNumTransmittedBytes () const override { return m_Endpoint.GetNumReceivedBytes (); }
-
+			void FlushTunnelDataMsgs () override;
+			size_t GetNumTransmittedBytes () const override { return m_Endpoint ? m_Endpoint->GetNumReceivedBytes () : 0; }
+			std::string GetNextPeerName () const override;
+			
 		private:
 
-			TunnelEndpoint m_Endpoint;
+			std::mutex m_HandleMutex;
+			std::unique_ptr<TunnelEndpoint> m_Endpoint;
 	};
 
 	std::shared_ptr<TransitTunnel> CreateTransitTunnel (uint32_t receiveTunnelID,
@@ -144,6 +151,7 @@ namespace tunnel
 			std::unique_ptr<std::thread> m_Thread;
 			std::list<std::shared_ptr<TransitTunnel> > m_TransitTunnels;
 			i2p::util::Queue<std::shared_ptr<I2NPMessage> > m_TunnelBuildMsgQueue;
+			std::mt19937 m_Rng;
 			
 		public:
 

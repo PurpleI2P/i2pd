@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -12,10 +12,14 @@
 #include <boost/static_assert.hpp>
 #include <string.h>
 #include <openssl/rand.h>
+#include <string>
+#include <string_view>
 #include "Base.h"
 
-namespace i2p {
-namespace data {
+namespace i2p 
+{
+namespace data 
+{
 	template<size_t sz>
 	class Tag
 	{
@@ -65,19 +69,17 @@ namespace data {
 
 			std::string ToBase32 (size_t len = sz) const
 			{
-				char str[sz*2];
-				size_t l = i2p::data::ByteStreamToBase32 (m_Buf, len, str, sz*2);
-				return std::string (str, str + l);
+				return i2p::data::ByteStreamToBase32 (m_Buf, len);
 			}
 
-			size_t FromBase32 (const std::string& s)
+			size_t FromBase32 (std::string_view s)
 			{
-				return i2p::data::Base32ToByteStream (s.c_str (), s.length (), m_Buf, sz);
+				return i2p::data::Base32ToByteStream (s, m_Buf, sz);
 			}
 
-			size_t FromBase64 (const std::string& s)
+			size_t FromBase64 (std::string_view s)
 			{
-				return i2p::data::Base64ToByteStream (s.c_str (), s.length (), m_Buf, sz);
+				return i2p::data::Base64ToByteStream (s.data (), s.length (), m_Buf, sz);
 			}
 
 			uint8_t GetBit (int i) const

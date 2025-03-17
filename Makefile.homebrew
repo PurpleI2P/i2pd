@@ -18,7 +18,7 @@ endif
 	LDLIBS +=  -lpthread -ldl
 else
 	LDFLAGS += -L${SSLROOT}/lib -L${BOOSTROOT}/lib
-	LDLIBS = -lz -lcrypto -lssl -lboost_system -lboost_filesystem -lboost_program_options -lpthread
+	LDLIBS = -lz -lssl -lcrypto -lboost_system -lboost_filesystem -lboost_program_options -lpthread
 ifeq ($(USE_UPNP),yes)
 	LDFLAGS += -L${UPNPROOT}/lib
 	LDLIBS += -lminiupnpc
@@ -28,13 +28,6 @@ endif
 ifeq ($(USE_UPNP),yes)
 	DEFINES += -DUSE_UPNP
 	INCFLAGS += -I${UPNPROOT}/include
-endif
-
-ifeq ($(USE_AESNI),yes)
-ifneq (, $(findstring i386, $(SYS))$(findstring i686, $(SYS))$(findstring x86_64, $(SYS))) # only x86-based CPU supports that
-	NEEDED_CXXFLAGS += -maes
-	DEFINES += -D__AES__
-endif
 endif
 
 install: all

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -27,13 +27,15 @@ namespace data
 	static i2p::fs::HashedStorage g_ProfilesStorage("peerProfiles", "p", "profile-", "txt");
 	static std::unordered_map<i2p::data::IdentHash, std::shared_ptr<RouterProfile> > g_Profiles;
 	static std::mutex g_ProfilesMutex;
-
+	static std::list<std::pair<i2p::data::IdentHash, std::function<void (std::shared_ptr<RouterProfile>)> > > g_PostponedUpdates;
+	static std::mutex g_PostponedUpdatesMutex;
+	
 	RouterProfile::RouterProfile ():
 		m_IsUpdated (false), m_LastDeclineTime (0), m_LastUnreachableTime (0),
-		m_LastUpdateTime (i2p::util::GetSecondsSinceEpoch ()), 
-		m_NumTunnelsAgreed (0), m_NumTunnelsDeclined (0), m_NumTunnelsNonReplied (0),
-		m_NumTimesTaken (0), m_NumTimesRejected (0), m_HasConnected (false),
-		m_IsDuplicated (false)
+		m_LastUpdateTime (i2p::util::GetSecondsSinceEpoch ()), m_LastAccessTime (0),
+		m_LastPersistTime (0), m_NumTunnelsAgreed (0), m_NumTunnelsDeclined (0),
+		m_NumTunnelsNonReplied (0),m_NumTimesTaken (0), m_NumTimesRejected (0),
+		m_HasConnected (false), m_IsDuplicated (false)
 	{
 	}
 
@@ -78,6 +80,7 @@ namespace data
 
 	void RouterProfile::Load (const IdentHash& identHash)
 	{
+		m_IsUpdated = false;
 		std::string ident = identHash.ToBase64 ();
 		std::string path = g_ProfilesStorage.Path(ident);
 		boost::property_tree::ptree pt;
@@ -255,21 +258,33 @@ namespace data
 			std::unique_lock<std::mutex> l(g_ProfilesMutex);
 			auto it = g_Profiles.find (identHash);
 			if (it != g_Profiles.end ())
+			{
+				it->second->SetLastAccessTime (i2p::util::GetSecondsSinceEpoch ());
 				return it->second;
+			}	
 		}
 		auto profile = netdb.NewRouterProfile ();
 		profile->Load (identHash); // if possible
-		std::unique_lock<std::mutex> l(g_ProfilesMutex);
+		std::lock_guard<std::mutex> l(g_ProfilesMutex);
 		g_Profiles.emplace (identHash, profile);
 		return profile;
 	}
 
 	bool IsRouterBanned (const IdentHash& identHash)
 	{
-		std::unique_lock<std::mutex> l(g_ProfilesMutex);
+		std::lock_guard<std::mutex> l(g_ProfilesMutex);
 		auto it = g_Profiles.find (identHash);
 		if (it != g_Profiles.end ())
 			return it->second->IsUnreachable ();
+		return false;
+	}	
+
+	bool IsRouterDuplicated (const IdentHash& identHash)
+	{
+		std::lock_guard<std::mutex> l(g_ProfilesMutex);
+		auto it = g_Profiles.find (identHash);
+		if (it != g_Profiles.end ())
+			return it->second->IsDuplicated ();
 		return false;
 	}	
 		
@@ -278,7 +293,7 @@ namespace data
 		g_ProfilesStorage.SetPlace(i2p::fs::GetDataDir());
 		g_ProfilesStorage.Init(i2p::data::GetBase64SubstitutionTable(), 64);
 	}
-
+		
 	static void SaveProfilesToDisk (std::list<std::pair<i2p::data::IdentHash, std::shared_ptr<RouterProfile> > >&& profiles)
 	{
 		for (auto& it: profiles)
@@ -290,15 +305,17 @@ namespace data
 		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		std::list<std::pair<i2p::data::IdentHash, std::shared_ptr<RouterProfile> > > tmp;
 		{
-			std::unique_lock<std::mutex> l(g_ProfilesMutex);
+			std::lock_guard<std::mutex> l(g_ProfilesMutex);
 			for (auto it = g_Profiles.begin (); it != g_Profiles.end ();)
 			{
-				if (ts - it->second->GetLastUpdateTime () > PEER_PROFILE_PERSIST_INTERVAL)
+				if (it->second->IsUpdated () && ts > it->second->GetLastPersistTime () + PEER_PROFILE_PERSIST_INTERVAL)
 				{
-					if (it->second->IsUpdated ())
-						tmp.push_back (std::make_pair (it->first, it->second));
+					tmp.push_back (*it);
+					it->second->SetLastPersistTime (ts);
+					it->second->SetUpdated (false);
+				}	
+				if (!it->second->IsUpdated () && ts > std::max (it->second->GetLastUpdateTime (), it->second->GetLastAccessTime ()) + PEER_PROFILE_PERSIST_INTERVAL)
 					it = g_Profiles.erase (it);
-				}
 				else
 					it++;
 			}
@@ -312,7 +329,7 @@ namespace data
 	{
 		std::unordered_map<i2p::data::IdentHash, std::shared_ptr<RouterProfile> > tmp;
 		{
-			std::unique_lock<std::mutex> l(g_ProfilesMutex);
+			std::lock_guard<std::mutex> l(g_ProfilesMutex);
 			std::swap (tmp, g_Profiles);
 		}
 		auto ts = i2p::util::GetSecondsSinceEpoch ();
@@ -347,7 +364,7 @@ namespace data
 	{
 		{
 			auto ts = i2p::util::GetSecondsSinceEpoch ();
-			std::unique_lock<std::mutex> l(g_ProfilesMutex);
+			std::lock_guard<std::mutex> l(g_ProfilesMutex);
 			for (auto it = g_Profiles.begin (); it != g_Profiles.end ();)
 			{
 				if (ts - it->second->GetLastUpdateTime () >= PEER_PROFILE_EXPIRATION_TIMEOUT)
@@ -359,5 +376,47 @@ namespace data
 
 		return std::async (std::launch::async, DeleteFilesFromDisk);
 	}
+
+	bool UpdateRouterProfile (const IdentHash& identHash, std::function<void (std::shared_ptr<RouterProfile>)> update)
+	{
+		if (!update) return true;
+		std::shared_ptr<RouterProfile> profile;
+		{
+			std::lock_guard<std::mutex> l(g_ProfilesMutex);
+			auto it = g_Profiles.find (identHash);
+			if (it != g_Profiles.end ())
+				profile = it->second;
+		}
+		if (profile)
+		{
+			update (profile);
+			return true;
+		}	
+		// postpone
+		std::lock_guard<std::mutex> l(g_PostponedUpdatesMutex);
+		g_PostponedUpdates.emplace_back (identHash, update);
+		return false;
+	}	
+
+	static void ApplyPostponedUpdates (std::list<std::pair<i2p::data::IdentHash, std::function<void (std::shared_ptr<RouterProfile>)> > >&& updates)
+	{
+		for (const auto& [ident, update] : updates)
+		{
+			auto profile = GetRouterProfile (ident);
+			update (profile);
+		}	
+	}	
+		
+	std::future<void> FlushPostponedRouterProfileUpdates ()
+	{
+		if (g_PostponedUpdates.empty ()) return std::future<void>();
+
+		std::list<std::pair<i2p::data::IdentHash, std::function<void (std::shared_ptr<RouterProfile>)> > > updates;
+		{
+			std::lock_guard<std::mutex> l(g_PostponedUpdatesMutex);
+			g_PostponedUpdates.swap (updates);
+		}		
+		return std::async (std::launch::async, ApplyPostponedUpdates, std::move (updates));	
+	}	
 }
 }

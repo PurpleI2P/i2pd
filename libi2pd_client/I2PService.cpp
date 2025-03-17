@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -107,7 +107,7 @@ namespace client
 			m_ReadyTimerTriggered = false;
 	}
 
-	void I2PService::CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, uint16_t port) {
+	void I2PService::CreateStream (StreamRequestComplete streamRequestComplete, std::string_view dest, uint16_t port) {
 		assert(streamRequestComplete);
 		auto address = i2p::client::context.GetAddressBook ().GetAddress (dest);
 		if (address)

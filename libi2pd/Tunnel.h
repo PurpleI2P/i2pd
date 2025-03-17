@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -99,6 +99,7 @@ namespace tunnel
 			void SetRecreated (bool recreated) { m_IsRecreated = recreated; };
 			int GetNumHops () const { return m_Hops.size (); };
 			virtual bool IsInbound() const = 0;
+			virtual bool Recreate () = 0;
 
 			std::shared_ptr<TunnelPool> GetTunnelPool () const { return m_Pool; };
 			void SetTunnelPool (std::shared_ptr<TunnelPool> pool) { m_Pool = pool; };
@@ -150,6 +151,7 @@ namespace tunnel
 			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg) override;
 
 			bool IsInbound() const override { return false; }
+			bool Recreate () override;
 
 		private:
 
@@ -166,6 +168,7 @@ namespace tunnel
 			void HandleTunnelDataMsg (std::shared_ptr<I2NPMessage>&& msg) override;
 			virtual size_t GetNumReceivedBytes () const { return m_Endpoint.GetNumReceivedBytes (); };
 			bool IsInbound() const override { return true; }
+			bool Recreate () override;
 
 			// override TunnelBase
 			void Cleanup () override { m_Endpoint.Cleanup (); };
@@ -245,8 +248,6 @@ namespace tunnel
 			void SetMaxNumTransitTunnels (uint32_t maxNumTransitTunnels);
 			uint32_t GetMaxNumTransitTunnels () const { return m_MaxNumTransitTunnels; };
 			int GetCongestionLevel() const { return m_MaxNumTransitTunnels ? CONGESTION_LEVEL_FULL * m_TransitTunnels.GetNumTransitTunnels () / m_MaxNumTransitTunnels : CONGESTION_LEVEL_FULL; }
-
-			std::mt19937& GetRng () { return m_Rng; };
 			
 		private:
 
@@ -264,8 +265,8 @@ namespace tunnel
 			
 			void Run ();
 			void ManageTunnels (uint64_t ts);
-			void ManageOutboundTunnels (uint64_t ts);
-			void ManageInboundTunnels (uint64_t ts);
+			void ManageOutboundTunnels (uint64_t ts, std::vector<std::shared_ptr<Tunnel> >& toRecreate);
+			void ManageInboundTunnels (uint64_t ts, std::vector<std::shared_ptr<Tunnel> >& toRecreate);
 			void ManagePendingTunnels (uint64_t ts);
 			template<class PendingTunnels>
 			void ManagePendingTunnels (PendingTunnels& pendingTunnels, uint64_t ts);
@@ -296,6 +297,8 @@ namespace tunnel
 
 			bool m_IsRunning;
 			std::thread * m_Thread;
+			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_ENPOINT_MESSAGE_SIZE> > m_I2NPTunnelEndpointMessagesMemoryPool;
+			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_MESSAGE_SIZE> > m_I2NPTunnelMessagesMemoryPool;
 			std::map<uint32_t, std::shared_ptr<InboundTunnel> > m_PendingInboundTunnels; // by replyMsgID
 			std::map<uint32_t, std::shared_ptr<OutboundTunnel> > m_PendingOutboundTunnels; // by replyMsgID
 			std::list<std::shared_ptr<InboundTunnel> > m_InboundTunnels;
@@ -306,8 +309,6 @@ namespace tunnel
 			std::list<std::shared_ptr<TunnelPool>> m_Pools;
 			std::shared_ptr<TunnelPool> m_ExploratoryPool;
 			i2p::util::Queue<std::shared_ptr<I2NPMessage> > m_Queue;
-			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_ENPOINT_MESSAGE_SIZE> > m_I2NPTunnelEndpointMessagesMemoryPool;
-			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_MESSAGE_SIZE> > m_I2NPTunnelMessagesMemoryPool;
 			uint32_t m_MaxNumTransitTunnels;
 			// count of tunnels for total TCSR algorithm
 			int m_TotalNumSuccesiveTunnelCreations, m_TotalNumFailedTunnelCreations;

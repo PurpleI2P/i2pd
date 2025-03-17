@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -415,7 +415,7 @@ namespace client
 			{
 				session->UDPEndpoint = forward;
 				auto dest = session->GetLocalDestination ()->CreateDatagramDestination ();
-				auto port = std::stoi(params[SAM_PARAM_PORT]);
+				auto port = forward ? std::stoi(params[SAM_PARAM_PORT]) : 0;
 				if (type == eSAMSessionTypeDatagram)
 					dest->SetReceiver (std::bind (&SAMSocket::HandleI2PDatagramReceive, shared_from_this (),
 						std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
@@ -470,15 +470,11 @@ namespace client
 		auto session = m_Owner.FindSession(m_ID);
 		if (session)
 		{
-			uint8_t buf[1024];
-			char priv[1024];
-			size_t l = session->GetLocalDestination ()->GetPrivateKeys ().ToBuffer (buf, 1024);
-			size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, priv, 1024);
-			priv[l1] = 0;
+			std::string priv = session->GetLocalDestination ()->GetPrivateKeys ().ToBase64 ();
 #ifdef _MSC_VER
-			size_t l2 = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_CREATE_REPLY_OK, priv);
+			size_t l2 = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_CREATE_REPLY_OK, priv.c_str ());
 #else
-			size_t l2 = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_CREATE_REPLY_OK, priv);
+			size_t l2 = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_CREATE_REPLY_OK, priv.c_str ());
 #endif
 			SendMessageReply (m_Buffer, l2, false);
 		}
@@ -1350,12 +1346,14 @@ namespace client
 			LogPrint (eLogError, "SAM: Runtime exception: ", ex.what ());
 		}
 
+		decltype(m_Sessions) sessions;
 		{
 			std::unique_lock<std::mutex> l(m_SessionsMutex);
-			for (auto& it: m_Sessions)
-				it.second->Close ();
-			m_Sessions.clear ();
-		}
+			m_Sessions.swap (sessions);
+		}	
+		for (auto& it: sessions)
+			it.second->Close ();
+		
 		StopIOService ();
 	}
 

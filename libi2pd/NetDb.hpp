@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -16,6 +16,7 @@
 #include <thread>
 #include <mutex>
 #include <future>
+#include <random>
 
 #include "Base.h"
 #include "Gzip.h"
@@ -52,6 +53,7 @@ namespace data
 	const int NETDB_MIN_HIGHBANDWIDTH_VERSION = MAKE_VERSION_NUMBER(0, 9, 58); // 0.9.58
 	const int NETDB_MIN_FLOODFILL_VERSION = MAKE_VERSION_NUMBER(0, 9, 59); // 0.9.59
 	const int NETDB_MIN_SHORT_TUNNEL_BUILD_VERSION = MAKE_VERSION_NUMBER(0, 9, 51); // 0.9.51
+	const int NETDB_MIN_PEER_TEST_VERSION = MAKE_VERSION_NUMBER(0, 9, 62); // 0.9.62
 	const size_t NETDB_MAX_NUM_SEARCH_REPLY_PEER_HASHES = 16;
 	const size_t NETDB_MAX_EXPLORATORY_SELECTION_SIZE = 500;
 	const int NETDB_EXPLORATORY_SELECTION_UPDATE_INTERVAL = 82; // in seconds. for floodfill
@@ -185,10 +187,11 @@ namespace data
 			std::shared_ptr<NetDbRequests> m_Requests;
 
 			bool m_PersistProfiles;
-			std::future<void> m_SavingProfiles, m_DeletingProfiles, m_PersistingRouters;
+			std::future<void> m_SavingProfiles, m_DeletingProfiles, m_ApplyingProfileUpdates, m_PersistingRouters;
 
 			std::vector<std::shared_ptr<const RouterInfo> > m_ExploratorySelection;
 			uint64_t m_LastExploratorySelectionUpdateTime; // in monotonic seconds
+			std::mt19937 m_Rng;
 
 			i2p::util::MemoryPoolMt<RouterInfo::Buffer> m_RouterInfoBuffersPool;
 			i2p::util::MemoryPoolMt<RouterInfo::Address> m_RouterInfoAddressesPool;

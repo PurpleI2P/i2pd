@@ -37,9 +37,7 @@ namespace api
 		i2p::fs::Init();
 
 		bool precomputation; i2p::config::GetOption("precomputation.elgamal", precomputation);
-		bool aesni; i2p::config::GetOption("cpuext.aesni", aesni);
-		bool forceCpuExt; i2p::config::GetOption("cpuext.force", forceCpuExt);
-		i2p::crypto::InitCrypto (precomputation, aesni, forceCpuExt);
+		i2p::crypto::InitCrypto (precomputation);
 
 		int netID; i2p::config::GetOption("netid", netID);
 		i2p::context.SetNetID (netID);

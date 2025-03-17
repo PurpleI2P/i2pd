@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -21,10 +21,8 @@ namespace i2p
 {
 namespace http
 {
-	const char CRLF[] = "\r\n";         /**< HTTP line terminator */
-	const char HTTP_EOH[] = "\r\n\r\n"; /**< HTTP end-of-headers mark */
-	extern const std::vector<std::string> HTTP_METHODS;  /**< list of valid HTTP methods */
-	extern const std::vector<std::string> HTTP_VERSIONS; /**< list of valid HTTP versions */
+	constexpr std::string_view CRLF = "\r\n";         /**< HTTP line terminator */
+	constexpr std::string_view HTTP_EOH = "\r\n\r\n"; /**< HTTP end-of-headers mark */
 
 	struct URL
 	{
@@ -103,8 +101,8 @@ namespace http
 		void UpdateHeader (const std::string& name, const std::string& value);
 		void RemoveHeader (const std::string& name, const std::string& exempt); // remove all headers starting with name, but exempt
 		void RemoveHeader (const std::string& name) { RemoveHeader (name, ""); };
-		std::string GetHeader (const std::string& name) const;
-		size_t GetNumHeaders (const std::string& name) const;
+		std::string GetHeader (std::string_view name) const;
+		size_t GetNumHeaders (std::string_view name) const;
 		size_t GetNumHeaders () const { return headers.size (); };
 	};
 
@@ -154,7 +152,7 @@ namespace http
 	 * @param code HTTP code [100, 599]
 	 * @return Immutable string with status
 	 */
-	const char * HTTPCodeToStatus(int code);
+	std::string_view HTTPCodeToStatus(int code);
 
 	/**
 	 * @brief Replaces %-encoded characters in string with their values

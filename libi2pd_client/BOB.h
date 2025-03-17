@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -71,6 +71,23 @@ namespace client
 	const char BOB_HELP_STATUS[] = "status <NICKNAME> - Display status of a nicknamed tunnel.";
 	const char BOB_HELP_HELP [] = "help <COMMAND> - Get help on a command.";
 
+	class BOBI2PTunnelIncomingConnection: public I2PTunnelConnection
+	{
+		public:
+
+			BOBI2PTunnelIncomingConnection (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
+				const boost::asio::ip::tcp::endpoint& target, bool quiet):
+				I2PTunnelConnection (owner, stream, target), m_IsQuiet (quiet) {};
+
+		protected:
+
+			void Established () override;
+		
+		private:
+
+			bool m_IsQuiet; // don't send destination
+	};
+	
 	class BOBI2PTunnel: public I2PService
 	{
 		public:
