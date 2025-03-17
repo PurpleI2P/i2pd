@@ -261,13 +261,12 @@ namespace data
 		iT64[(int)P64] = 0;
 	}
 
-	size_t Base32ToByteStream (const char * inBuf, size_t len, uint8_t * outBuf, size_t outLen)
+	size_t Base32ToByteStream (std::string_view base32Str, uint8_t * outBuf, size_t outLen)
 	{
 		unsigned int tmp = 0, bits = 0;
 		size_t ret = 0;
-		for (size_t i = 0; i < len; i++)
+		for (auto ch: base32Str)
 		{
-			char ch = inBuf[i];
 			if (ch >= '2' && ch <= '7') // digit
 				ch = (ch - '2') + 26; // 26 means a-z
 			else if (ch >= 'a' && ch <= 'z')
@@ -287,13 +286,15 @@ namespace data
 			tmp <<= 5;
 		}
 		return ret;
-	}
-
-	size_t ByteStreamToBase32 (const uint8_t * inBuf, size_t len, char * outBuf, size_t outLen)
+	}	
+	
+	std::string ByteStreamToBase32 (const uint8_t * inBuf, size_t len)
 	{
-		size_t ret = 0, pos = 1;
+		std::string out;
+		out.reserve ((len * 8 + 4) / 5);
+		size_t pos = 1;
 		unsigned int bits = 8, tmp = inBuf[0];
-		while (ret < outLen && (bits > 0 || pos < len))
+		while (bits > 0 || pos < len)
 		{
 			if (bits < 5)
 			{
@@ -313,10 +314,9 @@ namespace data
 
 			bits -= 5;
 			int ind = (tmp >> bits) & 0x1F;
-			outBuf[ret] = (ind < 26) ? (ind + 'a') : ((ind - 26) + '2');
-			ret++;
+			out.push_back ((ind < 26) ? (ind + 'a') : ((ind - 26) + '2'));
 		}
-		return ret;
-	}
+		return out;
+	}	
 }
 }

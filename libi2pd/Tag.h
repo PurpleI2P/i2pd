@@ -69,14 +69,12 @@ namespace data
 
 			std::string ToBase32 (size_t len = sz) const
 			{
-				char str[sz*2];
-				size_t l = i2p::data::ByteStreamToBase32 (m_Buf, len, str, sz*2);
-				return std::string (str, str + l);
+				return i2p::data::ByteStreamToBase32 (m_Buf, len);
 			}
 
 			size_t FromBase32 (std::string_view s)
 			{
-				return i2p::data::Base32ToByteStream (s.data (), s.length (), m_Buf, sz);
+				return i2p::data::Base32ToByteStream (s, m_Buf, sz);
 			}
 
 			size_t FromBase64 (std::string_view s)

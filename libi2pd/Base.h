@@ -27,8 +27,9 @@ namespace data
 		return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '-' || ch == '~';
 	}	
 
-	size_t Base32ToByteStream (const char * inBuf, size_t len, uint8_t * outBuf, size_t outLen);
-	size_t ByteStreamToBase32 (const uint8_t * InBuf, size_t len, char * outBuf, size_t outLen);
+	size_t Base32ToByteStream (std::string_view base32Str, uint8_t * outBuf, size_t outLen);
+	std::string ByteStreamToBase32 (const uint8_t * inBuf, size_t len);
+	
 	constexpr bool IsBase32 (char ch)
 	{
 		return (ch >= 'a' && ch <= 'z') || (ch >= '2' && ch <= '7');
