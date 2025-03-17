@@ -18,8 +18,10 @@ namespace i2p
 {
 namespace data 
 {
-	size_t ByteStreamToBase64 (const uint8_t * InBuffer, size_t InCount, char * OutBuffer, size_t len);
-	size_t Base64ToByteStream (const char * InBuffer, size_t InCount, uint8_t * OutBuffer, size_t len );
+	size_t ByteStreamToBase64 (const uint8_t * InBuffer, size_t InCount, char * OutBuffer, size_t len); // called from SAM TODO: rewrite
+	std::string ByteStreamToBase64 (const uint8_t * InBuffer, size_t InCount);
+	size_t Base64ToByteStream (std::string_view base64Str, uint8_t * OutBuffer, size_t len);
+
 	const char * GetBase32SubstitutionTable ();
 	const char * GetBase64SubstitutionTable ();
 	constexpr bool IsBase64 (char ch)
@@ -28,8 +30,7 @@ namespace data
 	}	
 
 	size_t Base32ToByteStream (std::string_view base32Str, uint8_t * outBuf, size_t outLen);
-	std::string ByteStreamToBase32 (const uint8_t * inBuf, size_t len);
-	
+	std::string ByteStreamToBase32 (const uint8_t * inBuf, size_t len);	
 	constexpr bool IsBase32 (char ch)
 	{
 		return (ch >= 'a' && ch <= 'z') || (ch >= '2' && ch <= '7');

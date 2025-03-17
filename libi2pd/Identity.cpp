@@ -271,21 +271,17 @@ namespace data
 
 	size_t IdentityEx::FromBase64(std::string_view s)
 	{
-		const size_t slen = s.length();
-		std::vector<uint8_t> buf(slen); // binary data can't exceed base64
-		const size_t len = Base64ToByteStream (s.data(), slen, buf.data(), slen);
+		std::vector<uint8_t> buf(s.length ()); // binary data can't exceed base64
+		auto len = Base64ToByteStream (s, buf.data(), buf.size ());
 		return FromBuffer (buf.data(), len);
 	}
 
 	std::string IdentityEx::ToBase64 () const
 	{
 		const size_t bufLen = GetFullLen();
-		const size_t strLen = Base64EncodingBufferSize(bufLen);
 		std::vector<uint8_t> buf(bufLen);
-		std::vector<char> str(strLen);
 		size_t l = ToBuffer (buf.data(), bufLen);
-		size_t l1 = i2p::data::ByteStreamToBase64 (buf.data(), l, str.data(), strLen);
-		return std::string (str.data(), l1);
+		return i2p::data::ByteStreamToBase64 (buf.data(), l);
 	}
 
 	size_t IdentityEx::GetSigningPublicKeyLen () const
@@ -570,26 +566,18 @@ namespace data
 		return ret;
 	}
 
-	size_t PrivateKeys::FromBase64(const std::string& s)
+	size_t PrivateKeys::FromBase64(std::string_view s)
 	{
-		uint8_t * buf = new uint8_t[s.length ()];
-		size_t l = i2p::data::Base64ToByteStream (s.c_str (), s.length (), buf, s.length ());
-		size_t ret = FromBuffer (buf, l);
-		delete[] buf;
-		return ret;
+		std::vector<uint8_t> buf(s.length ());
+		size_t l = i2p::data::Base64ToByteStream (s, buf.data (), buf.size ());
+		return FromBuffer (buf.data (), l);
 	}
 
 	std::string PrivateKeys::ToBase64 () const
 	{
-		uint8_t * buf = new uint8_t[GetFullLen ()];
-		char * str = new char[GetFullLen ()*2];
-		size_t l = ToBuffer (buf, GetFullLen ());
-		size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, str, GetFullLen ()*2);
-		str[l1] = 0;
-		delete[] buf;
-		std::string ret(str);
-		delete[] str;
-		return ret;
+		std::vector<uint8_t> buf(GetFullLen ());
+		size_t l = ToBuffer (buf.data (), buf.size ());
+		return i2p::data::ByteStreamToBase64 (buf.data (), l);
 	}
 
 	void PrivateKeys::Sign (const uint8_t * buf, int len, uint8_t * signature) const

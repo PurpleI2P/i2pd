@@ -62,9 +62,7 @@ namespace data
 
 			std::string ToBase64 (size_t len = sz) const
 			{
-				char str[sz*2];
-				size_t l = i2p::data::ByteStreamToBase64 (m_Buf, len, str, sz*2);
-				return std::string (str, str + l);
+				return i2p::data::ByteStreamToBase64 (m_Buf, len);
 			}
 
 			std::string ToBase32 (size_t len = sz) const
@@ -79,7 +77,7 @@ namespace data
 
 			size_t FromBase64 (std::string_view s)
 			{
-				return i2p::data::Base64ToByteStream (s.data (), s.length (), m_Buf, sz);
+				return i2p::data::Base64ToByteStream (s, m_Buf, sz);
 			}
 
 			uint8_t GetBit (int i) const

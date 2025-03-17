@@ -951,9 +951,7 @@ namespace data
 			LogPrint (eLogError, "NetDb: DatabaseLookup for zero ident. Ignored");
 			return;
 		}
-		char key[48];
-		int l = i2p::data::ByteStreamToBase64 (buf, 32, key, 48);
-		key[l] = 0;
+		auto key = i2p::data::ByteStreamToBase64 (buf, 32);
 
 		IdentHash replyIdent(buf + 32);
 		uint8_t flag = buf[64];

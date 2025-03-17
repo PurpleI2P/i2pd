@@ -281,7 +281,7 @@ namespace data
 					address->caps = ExtractAddressCaps (value);
 				else if (key == "s") // ntcp2 or ssu2 static key
 				{
-					if (Base64ToByteStream (value.data (), value.length (), address->s, 32) == 32 &&
+					if (Base64ToByteStream (value, address->s, 32) == 32 &&
 						!(address->s[31] & 0x80)) // check if x25519 public key
 							isStaticKey = true;
 					else
@@ -291,14 +291,14 @@ namespace data
 				{
 					if (address->IsNTCP2 ())
 					{
-						if (Base64ToByteStream (value.data (), value.length (), address->i, 16) == 16)
+						if (Base64ToByteStream (value, address->i, 16) == 16)
 							address->published = true; // presence of "i" means "published" NTCP2
 						else
 							address->transportStyle = eTransportUnknown; // invalid address
 					}
 					else if (address->IsSSU2 ())
 					{	
-						if (Base64ToByteStream (value.data (), value.length (), address->i, 32) == 32)
+						if (Base64ToByteStream (value, address->i, 32) == 32)
 							isIntroKey = true;
 						else
 							address->transportStyle = eTransportUnknown; // invalid address
@@ -343,7 +343,7 @@ namespace data
 							LogPrint (eLogWarning, "RouterInfo: 'itag' conversion error: ", std::make_error_code (res.ec).message ());
 					}
 					else if (key1 == "ih")
-						Base64ToByteStream (value.data (), value.length (), introducer.iH, 32);
+						Base64ToByteStream (value, introducer.iH, 32);
 					else if (key1 == "iexp")
 					{
 						auto res = std::from_chars(value.data(), value.data() + value.size(), introducer.iExp);
@@ -1394,9 +1394,7 @@ namespace data
 						if (!introducer.iTag) continue;
 						WriteString ("ih" + std::to_string(i), properties);
 						properties << '=';
-						char value[64];
-						size_t l = ByteStreamToBase64 (introducer.iH, 32, value, 64);
-						value[l] = 0;
+						auto value = ByteStreamToBase64 (introducer.iH, 32);
 						WriteString (value, properties);
 						properties << ';';
 						i++;

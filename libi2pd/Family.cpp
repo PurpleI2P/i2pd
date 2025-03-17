@@ -105,7 +105,7 @@ namespace data
 			memcpy (buf, family.c_str (), len);
 			memcpy (buf + len, (const uint8_t *)ident, 32);
 			len += 32;
-			auto signatureBufLen = Base64ToByteStream (signature.data (), signature.length (), signatureBuf, 64);
+			auto signatureBufLen = Base64ToByteStream (signature, signatureBuf, 64);
 			if (signatureBufLen)
 			{
 				EVP_MD_CTX * ctx = EVP_MD_CTX_create ();
@@ -154,12 +154,7 @@ namespace data
 						memcpy (buf + len, (const uint8_t *)ident, 32);
 						len += 32;
 						signer.Sign (buf, len, signature);
-						len = Base64EncodingBufferSize (64);
-						char * b64 = new char[len+1];
-						len = ByteStreamToBase64 (signature, 64, b64, len);
-						b64[len] = 0;
-						sig = b64;
-						delete[] b64;
+						sig = ByteStreamToBase64 (signature, 64);
 					}
 					else
 						LogPrint (eLogWarning, "Family: elliptic curve ", curve, " is not supported");

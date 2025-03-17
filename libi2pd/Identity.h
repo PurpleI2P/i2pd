@@ -164,7 +164,7 @@ namespace data
 			size_t FromBuffer (const uint8_t * buf, size_t len);
 			size_t ToBuffer (uint8_t * buf, size_t len) const;
 
-			size_t FromBase64(const std::string& s);
+			size_t FromBase64(std::string_view s);
 			std::string ToBase64 () const;
 
 			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> CreateDecryptor (const uint8_t * key) const;

@@ -15,7 +15,7 @@ namespace i2p
 {
 namespace data
 {
-	static const char T32[32] =
+	static constexpr char T32[32] =
 	{
 		'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
 		'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
@@ -38,7 +38,7 @@ namespace data
 	* Direct Substitution Table
 	*/
 
-	static const char T64[64] =
+	static constexpr char T64[64] =
 	{
 		'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 		'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
@@ -77,11 +77,11 @@ namespace data
 	*
 	*/
 
-	size_t ByteStreamToBase64 (   /* Number of bytes in the encoded buffer */
-		const uint8_t * InBuffer, /* Input buffer, binary data */
-		size_t InCount,           /* Number of bytes in the input buffer */
-		char * OutBuffer,         /* output buffer */
-		size_t len                /* length of output buffer */
+	size_t ByteStreamToBase64 (   // Number of bytes in the encoded buffer 
+		const uint8_t * InBuffer, // Input buffer, binary data 
+		size_t InCount,           // Number of bytes in the input buffer 
+		char * OutBuffer,         // output buffer 
+		size_t len                // length of output buffer 
 	)
 	{
 		unsigned char * ps;
@@ -108,24 +108,24 @@ namespace data
 		{
 			acc_1 = *ps++;
 			acc_2 = (acc_1 << 4) & 0x30;
-			acc_1 >>= 2;                 /* base64 digit #1 */
+			acc_1 >>= 2;                 // base64 digit #1 
 			*pd++ = T64[acc_1];
 			acc_1 = *ps++;
-			acc_2 |= acc_1 >> 4;         /* base64 digit #2 */
+			acc_2 |= acc_1 >> 4;         // base64 digit #2 
 			*pd++ = T64[acc_2];
 			acc_1 &= 0x0f;
 			acc_1 <<= 2;
 			acc_2 = *ps++;
-			acc_1 |= acc_2 >> 6;         /* base64 digit #3 */
+			acc_1 |= acc_2 >> 6;         // base64 digit #3 
 			*pd++ = T64[acc_1];
-			acc_2 &= 0x3f;               /* base64 digit #4 */
+			acc_2 &= 0x3f;               // base64 digit #4 
 			*pd++ = T64[acc_2];
 		}
 		if ( m == 1 )
 		{
 			acc_1 = *ps++;
-			acc_2 = (acc_1 << 4) & 0x3f; /* base64 digit #2 */
-			acc_1 >>= 2;                 /* base64 digit #1 */
+			acc_2 = (acc_1 << 4) & 0x3f; // base64 digit #2 
+			acc_1 >>= 2;                 // base64 digit #1 
 			*pd++ = T64[acc_1];
 			*pd++ = T64[acc_2];
 			*pd++ = P64;
@@ -136,13 +136,13 @@ namespace data
 		{
 			acc_1 = *ps++;
 			acc_2 = (acc_1 << 4) & 0x3f;
-			acc_1 >>= 2;                 /* base64 digit #1 */
+			acc_1 >>= 2;                 // base64 digit #1 
 			*pd++ = T64[acc_1];
 			acc_1 = *ps++;
-			acc_2 |= acc_1 >> 4;         /* base64 digit #2 */
+			acc_2 |= acc_1 >> 4;         // base64 digit #2 
 			*pd++ = T64[acc_2];
 			acc_1 &= 0x0f;
-			acc_1 <<= 2;                 /* base64 digit #3 */
+			acc_1 <<= 2;                 // base64 digit #3
 			*pd++ = T64[acc_1];
 			*pd++ = P64;
 		}
@@ -150,60 +150,112 @@ namespace data
 		return outCount;
 	}
 
-	/*
-	*
-	* Base64ToByteStream
-	* ------------------
-	*
-	* Converts BASE64 encoded data to binary format. If input buffer is
-	* not properly padded, buffer of negative length is returned
-	*
-	*/
-
-	size_t Base64ToByteStream ( /* Number of output bytes */
-		const char * InBuffer,  /* BASE64 encoded buffer */
-		size_t InCount,         /* Number of input bytes */
-		uint8_t * OutBuffer,    /* output buffer length */
-		size_t len              /* length of output buffer */
+	std::string ByteStreamToBase64 (// base64 encoded string 
+		const uint8_t * InBuffer, 	// Input buffer, binary data 
+	    size_t InCount 				// Number of bytes in the input buffer 
 	)
 	{
 		unsigned char * ps;
-		unsigned char * pd;
 		unsigned char   acc_1;
 		unsigned char   acc_2;
 		int             i;
 		int             n;
 		int             m;
+
+		ps = (unsigned char *)InBuffer;
+		n = InCount / 3;
+		m = InCount % 3;
+		size_t outCount = m ? (4 * (n + 1)) : (4 * n);
+
+		std::string out;
+		out.reserve (outCount);
+		for ( i = 0; i < n; i++ )
+		{
+			acc_1 = *ps++;
+			acc_2 = (acc_1 << 4) & 0x30;
+			acc_1 >>= 2;                 // base64 digit #1 
+			out.push_back (T64[acc_1]);
+			acc_1 = *ps++;
+			acc_2 |= acc_1 >> 4;         // base64 digit #2
+			out.push_back (T64[acc_2]);
+			acc_1 &= 0x0f;
+			acc_1 <<= 2;
+			acc_2 = *ps++;
+			acc_1 |= acc_2 >> 6;         // base64 digit #3
+			out.push_back (T64[acc_1]);
+			acc_2 &= 0x3f;               // base64 digit #4
+			out.push_back (T64[acc_2]);
+		}
+		if ( m == 1 )
+		{
+			acc_1 = *ps++;
+			acc_2 = (acc_1 << 4) & 0x3f; // base64 digit #2
+			acc_1 >>= 2;                 // base64 digit #1
+			out.push_back (T64[acc_1]);
+			out.push_back (T64[acc_2]);
+			out.push_back (P64);
+			out.push_back (P64);
+
+		}
+		else if ( m == 2 )
+		{
+			acc_1 = *ps++;
+			acc_2 = (acc_1 << 4) & 0x3f;
+			acc_1 >>= 2;                 // base64 digit #1
+			out.push_back (T64[acc_1]);
+			acc_1 = *ps++;
+			acc_2 |= acc_1 >> 4;         // base64 digit #2
+			out.push_back (T64[acc_2]);
+			acc_1 &= 0x0f;
+			acc_1 <<= 2;                 // base64 digit #3
+			out.push_back (T64[acc_1]);
+			out.push_back (P64);
+		}
+
+		return out;
+	}	
+	
+	/*
+	*
+	* Base64ToByteStream
+	* ------------------
+	*
+	* Converts BASE64 encoded string to binary format. If input buffer is
+	* not properly padded, buffer of negative length is returned
+	*
+	*/
+	size_t Base64ToByteStream (		// Number of output bytes 
+		std::string_view base64Str,	// BASE64 encoded string  
+	    uint8_t * OutBuffer, 		// output buffer length 
+	    size_t len					// length of output buffer 
+	)
+	{
+		unsigned char * pd;
+		unsigned char   acc_1;
+		unsigned char   acc_2;
 		size_t          outCount;
 
-		if (isFirstTime)
-			iT64Build();
-
-		n = InCount / 4;
-		m = InCount % 4;
-
-		if (InCount && !m)
-			outCount = 3 * n;
+		if (base64Str.empty () || base64Str[0] == P64) return 0;
+		auto d = std::div (base64Str.length (), 4);
+		if (!d.rem)
+			outCount = 3 * d.quot;
 		else
 			return 0;
 
-		if(*InBuffer == P64)
-			return 0;
+		if (isFirstTime) iT64Build();
 
-		ps = (unsigned char *)(InBuffer + InCount - 1);
-		while ( *ps-- == P64 )
-			outCount--;
-		ps = (unsigned char *)InBuffer;
-
-		if (outCount > len)
-			return 0;
-
+		auto pos = base64Str.find_last_not_of (P64);
+		if (pos == base64Str.npos) return 0;
+		outCount -= (base64Str.length () - pos - 1);
+		if (outCount > len) return 0;
+		
+		auto ps = base64Str.begin ();
 		pd = OutBuffer;
 		auto endOfOutBuffer = OutBuffer + outCount;
-		for ( i = 0; i < n; i++ )
+		for (int i = 0; i < d.quot; i++)
 		{
-			acc_1 = iT64[*ps++];
-			acc_2 = iT64[*ps++];
+			acc_1 = iT64[int(*ps++)];
+			acc_2 = iT64[int(*ps++)];
 			acc_1 <<= 2;
 			acc_1 |= acc_2 >> 4;
 			*pd++ = acc_1;
@@ -211,36 +263,30 @@ namespace data
 				break;
 
 			acc_2 <<= 4;
-			acc_1 = iT64[*ps++];
+			acc_1 = iT64[int(*ps++)];
 			acc_2 |= acc_1 >> 2;
 			*pd++ = acc_2;
 			if (pd >= endOfOutBuffer)
 				break;
 
-			acc_2 = iT64[*ps++];
+			acc_2 = iT64[int(*ps++)];
 			acc_2 |= acc_1 << 6;
 			*pd++ = acc_2;
 		}
 
 		return outCount;
-	}
+	}	
 	
 	std::string ToBase64Standard (std::string_view in)
 	{
-		auto len = Base64EncodingBufferSize (in.length ());
-		char * str = new char[len + 1];
-		auto l = ByteStreamToBase64 ((const uint8_t *)in.data (), in.length (), str, len);
-		str[l] = 0;
+		auto str = ByteStreamToBase64 ((const uint8_t *)in.data (), in.length ());
 		// replace '-' by '+' and '~' by '/'
-		for (size_t i = 0; i < l; i++)
-			if (str[i] == '-')
-				str[i] = '+';
-			else if (str[i] == '~')
-				str[i] = '/';
-
-		std::string s(str);
-		delete[] str;
-		return s;
+		for (auto& ch: str)
+			if (ch == '-')
+				ch = '+';
+			else if (ch == '~')
+				ch = '/';
+		return str;
 	}
 
 	/*
