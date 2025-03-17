@@ -39,7 +39,7 @@ namespace data
 	/**
 	 * Compute the size for a buffer to contain encoded base64 given that the size of the input is input_size bytes
 	 */
-	constexpr size_t Base64EncodingBufferSize(size_t input_size)
+	inline size_t Base64EncodingBufferSize(size_t input_size)
 	{
 		auto d = std::div (input_size, 3);
 		if (d.rem) d.quot++;
