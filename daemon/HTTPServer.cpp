@@ -1419,13 +1419,11 @@ namespace http {
 					{
 						auto signatureLen = dest->GetIdentity ()->GetSignatureLen ();
 						uint8_t * signature = new uint8_t[signatureLen];
-						char * sig = new char[signatureLen*2];
 						std::stringstream out;
 
 						out << name << "=" << dest->GetIdentity ()->ToBase64 ();
 						dest->Sign ((uint8_t *)out.str ().c_str (), out.str ().length (), signature);
-						auto len = i2p::data::ByteStreamToBase64 (signature, signatureLen, sig, signatureLen*2);
-						sig[len] = 0;
+						auto sig = i2p::data::ByteStreamToBase64 (signature, signatureLen);
 						out << "#!sig=" << sig;
 						s << "<b>" << tr("SUCCESS") << "</b>:<br>\r\n<form action=\"http://shx5vqsw7usdaunyzr2qmes2fq37oumybpudrd4jjj4e4vk4uusa.b32.i2p/add\" method=\"post\" rel=\"noreferrer\" target=\"_blank\">\r\n"
 						     "<textarea readonly name=\"record\" cols=\"80\" rows=\"10\">" << out.str () << "</textarea>\r\n<br>\r\n<br>\r\n"
@@ -1434,7 +1432,6 @@ namespace http {
 						     "<input type=\"submit\" value=\"" << tr("Submit") << "\">\r\n"
 						     "</form>\r\n<br>\r\n";
 						delete[] signature;
-						delete[] sig;
 					}
 					else
 						s << "<b>" << tr("ERROR") << "</b>:&nbsp;" << tr("Domain can't end with .b32.i2p") << "\r\n<br>\r\n<br>\r\n";

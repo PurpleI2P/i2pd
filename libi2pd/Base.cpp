@@ -58,15 +58,13 @@ namespace data
 	/*
 	* Reverse Substitution Table (built in run time)
 	*/
-
 	static char iT64[256];
 	static int isFirstTime = 1;
 
 	/*
 	* Padding
 	*/
-
-	static char P64 = '=';
+	static constexpr char P64 = '=';
 
 	/*
 	*
@@ -76,80 +74,6 @@ namespace data
 	* Converts binary encoded data to BASE64 format.
 	*
 	*/
-
-	size_t ByteStreamToBase64 (   // Number of bytes in the encoded buffer 
-		const uint8_t * InBuffer, // Input buffer, binary data 
-		size_t InCount,           // Number of bytes in the input buffer 
-		char * OutBuffer,         // output buffer 
-		size_t len                // length of output buffer 
-	)
-	{
-		unsigned char * ps;
-		unsigned char * pd;
-		unsigned char   acc_1;
-		unsigned char   acc_2;
-		int             i;
-		int             n;
-		int             m;
-		size_t          outCount;
-
-		ps = (unsigned char *)InBuffer;
-		n = InCount / 3;
-		m = InCount % 3;
-		if (!m)
-			outCount = 4 * n;
-		else
-			outCount = 4 * (n + 1);
-
-		if (outCount > len) return 0;
-
-		pd = (unsigned char *)OutBuffer;
-		for ( i = 0; i < n; i++ )
-		{
-			acc_1 = *ps++;
-			acc_2 = (acc_1 << 4) & 0x30;
-			acc_1 >>= 2;                 // base64 digit #1 
-			*pd++ = T64[acc_1];
-			acc_1 = *ps++;
-			acc_2 |= acc_1 >> 4;         // base64 digit #2 
-			*pd++ = T64[acc_2];
-			acc_1 &= 0x0f;
-			acc_1 <<= 2;
-			acc_2 = *ps++;
-			acc_1 |= acc_2 >> 6;         // base64 digit #3 
-			*pd++ = T64[acc_1];
-			acc_2 &= 0x3f;               // base64 digit #4 
-			*pd++ = T64[acc_2];
-		}
-		if ( m == 1 )
-		{
-			acc_1 = *ps++;
-			acc_2 = (acc_1 << 4) & 0x3f; // base64 digit #2 
-			acc_1 >>= 2;                 // base64 digit #1 
-			*pd++ = T64[acc_1];
-			*pd++ = T64[acc_2];
-			*pd++ = P64;
-			*pd++ = P64;
-
-		}
-		else if ( m == 2 )
-		{
-			acc_1 = *ps++;
-			acc_2 = (acc_1 << 4) & 0x3f;
-			acc_1 >>= 2;                 // base64 digit #1 
-			*pd++ = T64[acc_1];
-			acc_1 = *ps++;
-			acc_2 |= acc_1 >> 4;         // base64 digit #2 
-			*pd++ = T64[acc_2];
-			acc_1 &= 0x0f;
-			acc_1 <<= 2;                 // base64 digit #3
-			*pd++ = T64[acc_1];
-			*pd++ = P64;
-		}
-
-		return outCount;
-	}
-
 	std::string ByteStreamToBase64 (// base64 encoded string 
 		const uint8_t * InBuffer, 	// Input buffer, binary data 
 	    size_t InCount 				// Number of bytes in the input buffer 

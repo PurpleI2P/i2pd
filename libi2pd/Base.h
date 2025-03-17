@@ -18,7 +18,6 @@ namespace i2p
 {
 namespace data 
 {
-	size_t ByteStreamToBase64 (const uint8_t * InBuffer, size_t InCount, char * OutBuffer, size_t len); // called from SAM TODO: rewrite
 	std::string ByteStreamToBase64 (const uint8_t * InBuffer, size_t InCount);
 	size_t Base64ToByteStream (std::string_view base64Str, uint8_t * OutBuffer, size_t len);
 
