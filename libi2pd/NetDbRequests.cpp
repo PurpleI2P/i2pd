@@ -360,9 +360,12 @@ namespace data
 	void NetDbRequests::HandleDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg)
 	{
 		const uint8_t * buf = msg->GetPayload ();
-		auto key = i2p::data::ByteStreamToBase64 (buf, 32);
+		std::string key;
 		size_t num = buf[32]; // num
+		if (CheckLogLevel (eLogInfo))
+			key = i2p::data::ByteStreamToBase64 (buf, 32);
 		LogPrint (eLogDebug, "NetDbReq: DatabaseSearchReply for ", key, " num=", num);
+
 		IdentHash ident (buf);
 		bool isExploratory = false;
 		auto dest = FindRequest (ident);

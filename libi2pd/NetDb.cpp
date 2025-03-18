@@ -951,11 +951,12 @@ namespace data
 			LogPrint (eLogError, "NetDb: DatabaseLookup for zero ident. Ignored");
 			return;
 		}
-		auto key = i2p::data::ByteStreamToBase64 (buf, 32);
+		std::string key;
+		if (CheckLogLevel (eLogInfo))
+			key = i2p::data::ByteStreamToBase64 (buf, 32);
 
 		IdentHash replyIdent(buf + 32);
 		uint8_t flag = buf[64];
-
 
 		LogPrint (eLogDebug, "NetDb: DatabaseLookup for ", key, " received flags=", (int)flag);
 		uint8_t lookupType = flag & DATABASE_LOOKUP_TYPE_FLAGS_MASK;
