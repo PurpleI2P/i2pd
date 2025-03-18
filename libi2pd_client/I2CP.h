@@ -21,6 +21,7 @@
 #include "util.h"
 #include "Destination.h"
 #include "Streaming.h"
+#include "CryptoKey.h"
 
 namespace i2p
 {

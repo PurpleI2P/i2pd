@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -174,12 +174,17 @@ namespace crypto
 		return m_StaticKeys.Agree (epub, sharedSecret);
 	}
 
-	void CreateECIESX25519AEADRatchetRandomKeys (uint8_t * priv, uint8_t * pub)
+	bool CreateECIESX25519AEADRatchetRandomKeys (uint8_t * priv, uint8_t * pub, i2p::data::CryptoKeyType type)
 	{
-		X25519Keys k;
-		k.GenerateKeys ();
-		k.GetPrivateKey (priv);
-		memcpy (pub, k.GetPublicKey (), 32);
+		if (type == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
+		{
+			X25519Keys k;
+			k.GenerateKeys ();
+			k.GetPrivateKey (priv);
+			memcpy (pub, k.GetPublicKey (), 32);
+			return true;
+		}	
+		return false;
 	}
 }
 }

@@ -10,6 +10,7 @@
 #include "I2PEndian.h"
 #include "Log.h"
 #include "Timestamp.h"
+#include "CryptoKey.h"
 #include "Identity.h"
 
 namespace i2p
@@ -658,8 +659,7 @@ namespace data
 
 	size_t PrivateKeys::GetPrivateKeyLen () const
 	{
-		// private key length always 256, but type 4
-		return (m_Public->GetCryptoKeyType () == CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) ? 32 : 256;
+		return i2p::crypto::GetCryptoPrivateKeyLen (m_Public->GetCryptoKeyType ());
 	}
 
 	uint8_t * PrivateKeys::GetPadding()

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -14,6 +14,7 @@
 #include "Timestamp.h"
 #include "NetDb.hpp"
 #include "Tunnel.h"
+#include "CryptoKey.h"
 #include "LeaseSet.h"
 
 namespace i2p

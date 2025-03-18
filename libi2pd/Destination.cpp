@@ -1416,21 +1416,29 @@ namespace client
 		std::string path  = i2p::fs::DataDirPath("destinations", ident + "." + std::to_string (keys->keyType) + ".dat");
 		std::ifstream f(path, std::ifstream::binary);
 
-		if (f) {
-			f.read ((char *)keys->pub, 256);
-			f.read ((char *)keys->priv, 256);
+		if (f) 
+		{
+			char pub[256], priv[256];
+			f.read (pub, 256);
+			memcpy (keys->pub.data(), pub, keys->pub.size());
+			f.read (priv, 256);
+			memcpy (keys->priv.data (), priv, keys->priv.size ());
 			return;
 		}
 
 		LogPrint (eLogInfo, "Destination: Creating new temporary keys of type for address ", ident, ".b32.i2p");
-		memset (keys->priv, 0, 256);
-		memset (keys->pub, 0, 256);
+		memset (keys->priv.data (), 0, keys->priv.size ());
+		memset (keys->pub.data (), 0, keys->pub.size ());
 		keys->GenerateKeys ();
 		// TODO:: persist crypto key type
 		std::ofstream f1 (path, std::ofstream::binary | std::ofstream::out);
-		if (f1) {
-			f1.write ((char *)keys->pub, 256);
-			f1.write ((char *)keys->priv, 256);
+		if (f1) 
+		{
+			char pub[256], priv[256];
+			memset (pub, 0, 256); memcpy (pub, keys->pub.data (), keys->pub.size ());
+			f1.write (pub, 256);
+			memset (priv, 0, 256); memcpy (priv, keys->priv.data (), keys->priv.size ());
+			f1.write (priv, 256);
 			return;
 		}
 		LogPrint(eLogCritical, "Destinations: Can't save keys to ", path);
@@ -1443,7 +1451,7 @@ namespace client
 		{
 			if (m_StandardEncryptionKey)
 			{
-				leaseSet = std::make_shared<i2p::data::LocalLeaseSet> (GetIdentity (), m_StandardEncryptionKey->pub, tunnels);
+				leaseSet = std::make_shared<i2p::data::LocalLeaseSet> (GetIdentity (), m_StandardEncryptionKey->pub.data (), tunnels);
 				// sign
 				Sign (leaseSet->GetBuffer (), leaseSet->GetBufferLen () - leaseSet->GetSignatureLen (), leaseSet->GetSignature ());
 			}
@@ -1455,9 +1463,9 @@ namespace client
 			// standard LS2 (type 3) first
 			i2p::data::LocalLeaseSet2::KeySections keySections;
 			if (m_ECIESx25519EncryptionKey)
-				keySections.push_back ({m_ECIESx25519EncryptionKey->keyType, 32, m_ECIESx25519EncryptionKey->pub} );
+				keySections.push_back ({m_ECIESx25519EncryptionKey->keyType, (uint16_t)m_ECIESx25519EncryptionKey->pub.size (), m_ECIESx25519EncryptionKey->pub.data ()} );
 			if (m_StandardEncryptionKey)
-				keySections.push_back ({m_StandardEncryptionKey->keyType, (uint16_t)m_StandardEncryptionKey->decryptor->GetPublicKeyLen (), m_StandardEncryptionKey->pub} );
+				keySections.push_back ({m_StandardEncryptionKey->keyType, (uint16_t)m_StandardEncryptionKey->decryptor->GetPublicKeyLen (), m_StandardEncryptionKey->pub.data ()} );
 
 			auto publishedTimestamp = i2p::util::GetSecondsSinceEpoch ();
 			if (publishedTimestamp <= m_LastPublishedTimestamp)
@@ -1501,8 +1509,8 @@ namespace client
 	const uint8_t * ClientDestination::GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const
 	{
 		if (keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
-			return m_ECIESx25519EncryptionKey ? m_ECIESx25519EncryptionKey->pub : nullptr;
-		return m_StandardEncryptionKey ? m_StandardEncryptionKey->pub : nullptr;
+			return m_ECIESx25519EncryptionKey ? m_ECIESx25519EncryptionKey->pub.data () : nullptr;
+		return m_StandardEncryptionKey ? m_StandardEncryptionKey->pub.data () : nullptr;
 	}
 
 	void ClientDestination::ReadAuthKey (const std::string& group, const std::map<std::string, std::string> * params)

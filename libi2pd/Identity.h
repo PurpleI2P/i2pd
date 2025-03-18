@@ -17,10 +17,14 @@
 #include <vector>
 #include "Base.h"
 #include "Signature.h"
-#include "CryptoKey.h"
 
 namespace i2p
 {
+namespace crypto
+{
+	class CryptoKeyEncryptor;
+	class CryptoKeyDecryptor;
+}	
 namespace data
 {
 	typedef Tag<32> IdentHash;

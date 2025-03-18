@@ -22,6 +22,7 @@
 #include "ECIESX25519AEADRatchetSession.h"
 #include "Transports.h"
 #include "Tunnel.h"
+#include "CryptoKey.h"
 #include "RouterContext.h"
 
 namespace i2p

@@ -22,6 +22,7 @@
 #include "Identity.h"
 #include "TunnelPool.h"
 #include "Crypto.h"
+#include "CryptoKey.h"
 #include "LeaseSet.h"
 #include "Garlic.h"
 #include "NetDb.hpp"
@@ -231,13 +232,17 @@ namespace client
 	{
 		struct EncryptionKey
 		{
-			uint8_t pub[256], priv[256];
+			std::vector<uint8_t> pub, priv;
 			i2p::data::CryptoKeyType keyType;
 			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> decryptor;
 
-			EncryptionKey (i2p::data::CryptoKeyType t):keyType(t) { memset (pub, 0, 256); memset (priv, 0, 256);	};
-			void GenerateKeys () { i2p::data::PrivateKeys::GenerateCryptoKeyPair (keyType, priv, pub); };
-			void CreateDecryptor () { decryptor = i2p::data::PrivateKeys::CreateDecryptor (keyType, priv); };
+			EncryptionKey (i2p::data::CryptoKeyType t): keyType(t) 
+			{ 
+				pub.resize (i2p::crypto::GetCryptoPublicKeyLen (keyType)); 
+				priv.resize (i2p::crypto::GetCryptoPrivateKeyLen (keyType));
+			}
+			void GenerateKeys () { i2p::data::PrivateKeys::GenerateCryptoKeyPair (keyType, priv.data (), pub.data ()); };
+			void CreateDecryptor () { decryptor = i2p::data::PrivateKeys::CreateDecryptor (keyType, priv.data ()); };
 		};
 
 		public:

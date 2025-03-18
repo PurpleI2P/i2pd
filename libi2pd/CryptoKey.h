@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -11,6 +11,7 @@
 
 #include <inttypes.h>
 #include "Crypto.h"
+#include "Identity.h"
 
 namespace i2p
 {
@@ -157,7 +158,30 @@ namespace crypto
 			X25519Keys m_StaticKeys;
 	};
 
-	void CreateECIESX25519AEADRatchetRandomKeys (uint8_t * priv, uint8_t * pub);
+	bool CreateECIESX25519AEADRatchetRandomKeys (uint8_t * priv, uint8_t * pub,
+		i2p::data::CryptoKeyType type = i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD);
+
+	constexpr size_t GetCryptoPrivateKeyLen (i2p::data::CryptoKeyType type)
+	{
+		switch (type)
+		{
+			case i2p::data::CRYPTO_KEY_TYPE_ELGAMAL: return 256;
+			case i2p::data::CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC: return 32;
+			case i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD: return 32;
+		};	
+		return 0;
+	}
+
+	constexpr size_t GetCryptoPublicKeyLen (i2p::data::CryptoKeyType type)
+	{
+		switch (type)
+		{
+			case i2p::data::CRYPTO_KEY_TYPE_ELGAMAL: return 256;
+			case i2p::data::CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC: return 32;
+			case i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD: return 32;
+		};	
+		return 0;
+	}
 }
 }
 

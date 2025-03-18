@@ -25,6 +25,7 @@
 #include "Transports.h"
 #include "NetDb.hpp"
 #include "RouterContext.h"
+#include "CryptoKey.h"
 #include "RouterInfo.h"
 
 namespace i2p
