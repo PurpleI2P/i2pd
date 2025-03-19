@@ -1415,33 +1415,50 @@ namespace client
 		std::string ident = GetIdentHash().ToBase32();
 		std::string path  = i2p::fs::DataDirPath("destinations", ident + "." + std::to_string (keys->keyType) + ".dat");
 		std::ifstream f(path, std::ifstream::binary);
-
 		if (f) 
 		{
-			char pub[256], priv[256];
-			f.read (pub, 256);
-			memcpy (keys->pub.data(), pub, keys->pub.size());
-			f.read (priv, 256);
-			memcpy (keys->priv.data (), priv, keys->priv.size ());
-			return;
+			size_t len = 0;
+			if (keys->keyType == i2p::data::CRYPTO_KEY_TYPE_ELGAMAL)
+				len = 512;
+			else if (keys->keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
+			{	
+				f.seekg (0, std::ios::end);
+				len = f.tellg();
+				f.seekg (0, std::ios::beg);
+			}
+				
+			if (len == 512)
+			{    
+				char pub[256], priv[256];
+				f.read (pub, 256);
+				memcpy (keys->pub.data(), pub, keys->pub.size());
+				f.read (priv, 256);
+				memcpy (keys->priv.data (), priv, keys->priv.size ());
+			}
+			else
+			{
+				f.read ((char *)keys->pub.data(), keys->pub.size());
+				f.read ((char *)keys->priv.data(), keys->priv.size());
+			}	
+			if (f) 
+				return;
+			else
+				LogPrint(eLogWarning, "Destination: Can't read keys from ", path);
 		}
 
-		LogPrint (eLogInfo, "Destination: Creating new temporary keys of type for address ", ident, ".b32.i2p");
+		LogPrint (eLogInfo, "Destination: Creating new temporary keys of type ", keys->keyType, " for address ", ident, ".b32.i2p");
 		memset (keys->priv.data (), 0, keys->priv.size ());
 		memset (keys->pub.data (), 0, keys->pub.size ());
 		keys->GenerateKeys ();
-		// TODO:: persist crypto key type
+		
 		std::ofstream f1 (path, std::ofstream::binary | std::ofstream::out);
 		if (f1) 
 		{
-			char pub[256], priv[256];
-			memset (pub, 0, 256); memcpy (pub, keys->pub.data (), keys->pub.size ());
-			f1.write (pub, 256);
-			memset (priv, 0, 256); memcpy (priv, keys->priv.data (), keys->priv.size ());
-			f1.write (priv, 256);
-			return;
+			f1.write ((char *)keys->pub.data (), keys->pub.size ());
+			f1.write ((char *)keys->priv.data (), keys->priv.size ());
 		}
-		LogPrint(eLogCritical, "Destinations: Can't save keys to ", path);
+		if (!f1)
+			LogPrint(eLogError, "Destination: Can't save keys to ", path);
 	}
 
 	void ClientDestination::CreateNewLeaseSet (const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels)
