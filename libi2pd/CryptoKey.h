@@ -158,8 +158,7 @@ namespace crypto
 			X25519Keys m_StaticKeys;
 	};
 
-	bool CreateECIESX25519AEADRatchetRandomKeys (uint8_t * priv, uint8_t * pub,
-		i2p::data::CryptoKeyType type = i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD);
+	void CreateECIESX25519AEADRatchetRandomKeys (uint8_t * priv, uint8_t * pub); // including hybrid
 
 	constexpr size_t GetCryptoPrivateKeyLen (i2p::data::CryptoKeyType type)
 	{
@@ -168,6 +167,7 @@ namespace crypto
 			case i2p::data::CRYPTO_KEY_TYPE_ELGAMAL: return 256;
 			case i2p::data::CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC: return 32;
 			case i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD: return 32;
+			case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD: return 32;
 		};	
 		return 0;
 	}
@@ -179,6 +179,7 @@ namespace crypto
 			case i2p::data::CRYPTO_KEY_TYPE_ELGAMAL: return 256;
 			case i2p::data::CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC: return 32;
 			case i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD: return 32;
+			case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD: return 32;
 		};	
 		return 0;
 	}

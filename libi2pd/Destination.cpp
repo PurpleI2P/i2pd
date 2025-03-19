@@ -1520,14 +1520,14 @@ namespace client
 
 	bool ClientDestination::SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const
 	{
-		return keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ? (bool)m_ECIESx25519EncryptionKey : (bool)m_StandardEncryptionKey;
+		return keyType == i2p::data::CRYPTO_KEY_TYPE_ELGAMAL ? (bool)m_StandardEncryptionKey : (bool)m_ECIESx25519EncryptionKey;
 	}
 
 	const uint8_t * ClientDestination::GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const
 	{
-		if (keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
-			return m_ECIESx25519EncryptionKey ? m_ECIESx25519EncryptionKey->pub.data () : nullptr;
-		return m_StandardEncryptionKey ? m_StandardEncryptionKey->pub.data () : nullptr;
+		if (keyType == i2p::data::CRYPTO_KEY_TYPE_ELGAMAL)
+			return m_StandardEncryptionKey ? m_StandardEncryptionKey->pub.data () : nullptr;
+		return m_ECIESx25519EncryptionKey ? m_ECIESx25519EncryptionKey->pub.data () : nullptr;
 	}
 
 	void ClientDestination::ReadAuthKey (const std::string& group, const std::map<std::string, std::string> * params)

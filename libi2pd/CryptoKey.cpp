@@ -174,17 +174,12 @@ namespace crypto
 		return m_StaticKeys.Agree (epub, sharedSecret);
 	}
 
-	bool CreateECIESX25519AEADRatchetRandomKeys (uint8_t * priv, uint8_t * pub, i2p::data::CryptoKeyType type)
+	void CreateECIESX25519AEADRatchetRandomKeys (uint8_t * priv, uint8_t * pub)
 	{
-		if (type == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
-		{
-			X25519Keys k;
-			k.GenerateKeys ();
-			k.GetPrivateKey (priv);
-			memcpy (pub, k.GetPublicKey (), 32);
-			return true;
-		}	
-		return false;
+		X25519Keys k;
+		k.GenerateKeys ();
+		k.GetPrivateKey (priv);
+		memcpy (pub, k.GetPublicKey (), 32);
 	}
 }
 }
