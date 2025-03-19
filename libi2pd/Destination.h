@@ -306,7 +306,7 @@ namespace client
 			std::shared_ptr<ClientDestination> GetSharedFromThis () {
 				return std::static_pointer_cast<ClientDestination>(shared_from_this ());
 			}
-			void PersistTemporaryKeys (EncryptionKey * keys);
+			void PersistTemporaryKeys (std::shared_ptr<EncryptionKey> keys);
 			void ReadAuthKey (const std::string& group, const std::map<std::string, std::string> * params);
 
 			template<typename Dest>
@@ -315,8 +315,7 @@ namespace client
 		private:
 
 			i2p::data::PrivateKeys m_Keys;
-			std::unique_ptr<EncryptionKey> m_StandardEncryptionKey;
-			std::unique_ptr<EncryptionKey> m_ECIESx25519EncryptionKey;
+			std::map<i2p::data::CryptoKeyType, std::shared_ptr<EncryptionKey> > m_EncryptionKeys; // last is most preferable
 
 			int m_StreamingAckDelay,m_StreamingOutboundSpeed, m_StreamingInboundSpeed, m_StreamingMaxConcurrentStreams;
 			bool m_IsStreamingAnswerPings;

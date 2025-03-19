@@ -1046,20 +1046,15 @@ namespace client
 
 		for (auto& it: encryptionKeyTypes)
 		{
-			auto encryptionKey = new EncryptionKey (it);
+			auto encryptionKey = std::make_shared<EncryptionKey> (it);
 			if (IsPublic ())
 				PersistTemporaryKeys (encryptionKey);
 			else
 				encryptionKey->GenerateKeys ();
 			encryptionKey->CreateDecryptor ();
-			if (it == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
-			{
-				m_ECIESx25519EncryptionKey.reset (encryptionKey);
-				if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_LEASESET)
-					SetLeaseSetType (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2); // Rathets must use LeaseSet2
-			}
-			else
-				m_StandardEncryptionKey.reset (encryptionKey);
+			if (it > i2p::data::CRYPTO_KEY_TYPE_ELGAMAL && GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_LEASESET)
+				SetLeaseSetType (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2); // Only DSA can use LeaseSet1
+			m_EncryptionKeys.emplace (it, encryptionKey);
 		}
 
 		if (IsPublic ())
@@ -1409,7 +1404,7 @@ namespace client
 		return ret;
 	}
 
-	void ClientDestination::PersistTemporaryKeys (EncryptionKey * keys)
+	void ClientDestination::PersistTemporaryKeys (std::shared_ptr<EncryptionKey> keys)
 	{
 		if (!keys) return;
 		std::string ident = GetIdentHash().ToBase32();
@@ -1466,9 +1461,10 @@ namespace client
 		std::shared_ptr<i2p::data::LocalLeaseSet> leaseSet;
 		if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_LEASESET)
 		{
-			if (m_StandardEncryptionKey)
+			auto it = m_EncryptionKeys.find (i2p::data::CRYPTO_KEY_TYPE_ELGAMAL);
+			if (it != m_EncryptionKeys.end ())
 			{
-				leaseSet = std::make_shared<i2p::data::LocalLeaseSet> (GetIdentity (), m_StandardEncryptionKey->pub.data (), tunnels);
+				leaseSet = std::make_shared<i2p::data::LocalLeaseSet> (GetIdentity (), it->second->pub.data (), tunnels);
 				// sign
 				Sign (leaseSet->GetBuffer (), leaseSet->GetBufferLen () - leaseSet->GetSignatureLen (), leaseSet->GetSignature ());
 			}
@@ -1479,10 +1475,8 @@ namespace client
 		{
 			// standard LS2 (type 3) first
 			i2p::data::LocalLeaseSet2::KeySections keySections;
-			if (m_ECIESx25519EncryptionKey)
-				keySections.push_back ({m_ECIESx25519EncryptionKey->keyType, (uint16_t)m_ECIESx25519EncryptionKey->pub.size (), m_ECIESx25519EncryptionKey->pub.data ()} );
-			if (m_StandardEncryptionKey)
-				keySections.push_back ({m_StandardEncryptionKey->keyType, (uint16_t)m_StandardEncryptionKey->decryptor->GetPublicKeyLen (), m_StandardEncryptionKey->pub.data ()} );
+			for (const auto& it: m_EncryptionKeys)
+				keySections.push_back ({it.first, (uint16_t)it.second->pub.size (), it.second->pub.data ()} );
 
 			auto publishedTimestamp = i2p::util::GetSecondsSinceEpoch ();
 			if (publishedTimestamp <= m_LastPublishedTimestamp)
@@ -1508,11 +1502,22 @@ namespace client
 
 	bool ClientDestination::Decrypt (const uint8_t * encrypted, uint8_t * data, i2p::data::CryptoKeyType preferredCrypto) const
 	{
-		if (preferredCrypto == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
-			if (m_ECIESx25519EncryptionKey && m_ECIESx25519EncryptionKey->decryptor)
-				return m_ECIESx25519EncryptionKey->decryptor->Decrypt (encrypted, data);
-		if (m_StandardEncryptionKey && m_StandardEncryptionKey->decryptor)
-			return m_StandardEncryptionKey->decryptor->Decrypt (encrypted, data);
+		std::shared_ptr<EncryptionKey> encryptionKey;
+		if (!m_EncryptionKeys.empty ())
+		{
+			if (m_EncryptionKeys.rbegin ()->first == preferredCrypto)
+				encryptionKey = m_EncryptionKeys.rbegin ()->second;
+			else
+			{
+				auto it = m_EncryptionKeys.find (preferredCrypto);
+				if (it != m_EncryptionKeys.end ())
+					encryptionKey = it->second;
+			}	
+			if (!encryptionKey)
+				encryptionKey = m_EncryptionKeys.rbegin ()->second;
+		}	
+		if (encryptionKey)
+			return encryptionKey->decryptor->Decrypt (encrypted, data);
 		else
 			LogPrint (eLogError, "Destinations: Decryptor is not set");
 		return false;
@@ -1520,14 +1525,19 @@ namespace client
 
 	bool ClientDestination::SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const
 	{
-		return keyType == i2p::data::CRYPTO_KEY_TYPE_ELGAMAL ? (bool)m_StandardEncryptionKey : (bool)m_ECIESx25519EncryptionKey;
+#if __cplusplus >= 202002L // C++20
+		return m_EncryptionKeys.contains (keyType);
+#else		
+		return m_EncryptionKeys.count (keyType) > 0;
+#endif		
 	}
 
 	const uint8_t * ClientDestination::GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const
 	{
-		if (keyType == i2p::data::CRYPTO_KEY_TYPE_ELGAMAL)
-			return m_StandardEncryptionKey ? m_StandardEncryptionKey->pub.data () : nullptr;
-		return m_ECIESx25519EncryptionKey ? m_ECIESx25519EncryptionKey->pub.data () : nullptr;
+		auto it = m_EncryptionKeys.find (keyType);
+		if (it != m_EncryptionKeys.end ())
+			return it->second->pub.data ();
+		return nullptr;
 	}
 
 	void ClientDestination::ReadAuthKey (const std::string& group, const std::map<std::string, std::string> * params)
