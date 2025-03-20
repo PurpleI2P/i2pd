@@ -101,18 +101,20 @@ namespace client
 			bool SendMsg (const uint8_t * payload, size_t len, std::shared_ptr<i2p::garlic::GarlicRoutingSession> remoteSession, uint32_t nonce);
 			
 			// implements LocalDestination
-			bool Decrypt (const uint8_t * encrypted, uint8_t * data, i2p::data::CryptoKeyType preferredCrypto) const;
-			bool SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const;
-			const uint8_t * GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const; // for 4 only
-			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Identity; };
+			bool Decrypt (const uint8_t * encrypted, uint8_t * data, i2p::data::CryptoKeyType preferredCrypto) const override;
+			bool SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const override;
+			const uint8_t * GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const override; // for 4 only
+			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const override { return m_Identity; };
 
 		protected:
 
-			void CleanupDestination ();
+			// LeaseSetDestination
+			void CleanupDestination () override;
+			i2p::data::CryptoKeyType GetPreferredCryptoType () const override;
 			// I2CP
-			void HandleDataMessage (const uint8_t * buf, size_t len);
-			void CreateNewLeaseSet (const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels);
-
+			void HandleDataMessage (const uint8_t * buf, size_t len) override;
+			void CreateNewLeaseSet (const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels) override;
+			
 		private:
 
 			std::shared_ptr<I2CPDestination> GetSharedFromThis ()

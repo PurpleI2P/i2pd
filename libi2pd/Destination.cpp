@@ -994,17 +994,10 @@ namespace client
 		}
 	}
 
-	i2p::data::CryptoKeyType LeaseSetDestination::GetPreferredCryptoType () const
-	{
-		if (SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD))
-			return i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD;
-		return i2p::data::CRYPTO_KEY_TYPE_ELGAMAL;
-	}
-
 	ClientDestination::ClientDestination (boost::asio::io_context& service, const i2p::data::PrivateKeys& keys,
 		bool isPublic, const std::map<std::string, std::string> * params):
 		LeaseSetDestination (service, isPublic, params),
-		m_Keys (keys), m_StreamingAckDelay (DEFAULT_INITIAL_ACK_DELAY),
+		m_Keys (keys), m_PreferredCryptoType (0), m_StreamingAckDelay (DEFAULT_INITIAL_ACK_DELAY),
 		m_StreamingOutboundSpeed (DEFAULT_MAX_OUTBOUND_SPEED),
 		m_StreamingInboundSpeed (DEFAULT_MAX_INBOUND_SPEED),
 		m_StreamingMaxConcurrentStreams (DEFAULT_MAX_CONCURRENT_STREAMS),
@@ -1029,7 +1022,10 @@ namespace client
 				{
 					try
 					{
-						encryptionKeyTypes.insert (std::stoi(it1));
+						i2p::data::CryptoKeyType preferredCryptoType = std::stoi(it1);
+						if (!m_PreferredCryptoType && preferredCryptoType)
+							m_PreferredCryptoType = preferredCryptoType; // first non-zero in the list
+						encryptionKeyTypes.insert (preferredCryptoType);
 					}
 					catch (std::exception& ex)
 					{

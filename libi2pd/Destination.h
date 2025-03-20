@@ -171,10 +171,11 @@ namespace client
 			void SetLeaseSetType (int leaseSetType) { m_LeaseSetType = leaseSetType; };
 			int GetAuthType () const { return m_AuthType; };
 			virtual void CleanupDestination () {}; // additional clean up in derived classes
+			virtual i2p::data::CryptoKeyType GetPreferredCryptoType () const = 0;
 			// I2CP
 			virtual void HandleDataMessage (const uint8_t * buf, size_t len) = 0;
 			virtual void CreateNewLeaseSet (const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels) = 0;
-
+			
 		private:
 
 			void UpdateLeaseSet ();
@@ -193,7 +194,6 @@ namespace client
 			void HandleRequestTimoutTimer (const boost::system::error_code& ecode, const i2p::data::IdentHash& dest);
 			void HandleCleanupTimer (const boost::system::error_code& ecode);
 			void CleanupRemoteLeaseSets ();
-			i2p::data::CryptoKeyType GetPreferredCryptoType () const;
 
 		private:
 
@@ -289,18 +289,20 @@ namespace client
 			i2p::datagram::DatagramDestination * CreateDatagramDestination (bool gzip = true);
 
 			// implements LocalDestination
-			bool Decrypt (const uint8_t * encrypted, uint8_t * data, i2p::data::CryptoKeyType preferredCrypto) const;
-			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Keys.GetPublic (); };
-			bool SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const;
-			const uint8_t * GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const;
+			bool Decrypt (const uint8_t * encrypted, uint8_t * data, i2p::data::CryptoKeyType preferredCrypto) const override;
+			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const override { return m_Keys.GetPublic (); };
+			bool SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const override;
+			const uint8_t * GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const override;
 
 		protected:
 
-			void CleanupDestination ();
+			// LeaseSetDestination
+			void CleanupDestination () override;
+			i2p::data::CryptoKeyType GetPreferredCryptoType () const override { return m_PreferredCryptoType; }
 			// I2CP
 			void HandleDataMessage (const uint8_t * buf, size_t len);
 			void CreateNewLeaseSet (const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels);
-
+						
 		private:
 
 			std::shared_ptr<ClientDestination> GetSharedFromThis () {
@@ -316,7 +318,8 @@ namespace client
 
 			i2p::data::PrivateKeys m_Keys;
 			std::map<i2p::data::CryptoKeyType, std::shared_ptr<EncryptionKey> > m_EncryptionKeys; // last is most preferable
-
+			i2p::data::CryptoKeyType m_PreferredCryptoType;
+			
 			int m_StreamingAckDelay,m_StreamingOutboundSpeed, m_StreamingInboundSpeed, m_StreamingMaxConcurrentStreams;
 			bool m_IsStreamingAnswerPings;
 			std::shared_ptr<i2p::stream::StreamingDestination> m_StreamingDestination; // default

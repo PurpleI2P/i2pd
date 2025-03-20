@@ -79,7 +79,13 @@ namespace client
 		return keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ? (bool)m_ECIESx25519Decryptor : m_EncryptionKeyType == keyType;
 	}
 
-
+	i2p::data::CryptoKeyType I2CPDestination::GetPreferredCryptoType () const
+	{
+		if (m_ECIESx25519Decryptor)
+			return i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD;
+		return i2p::data::CRYPTO_KEY_TYPE_ELGAMAL;
+	}	
+		
 	void I2CPDestination::HandleDataMessage (const uint8_t * buf, size_t len)
 	{
 		uint32_t length = bufbe32toh (buf);
