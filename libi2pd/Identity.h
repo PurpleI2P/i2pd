@@ -84,7 +84,7 @@ namespace data
 	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256 = 9;
 	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512 = 10; // approved by FSB
 	const uint16_t SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519 = 11; // for LeaseSet2 only
-	const uint16_t SIGNING_KEY_TYPE_MLDSA44 = 15;
+	const uint16_t SIGNING_KEY_TYPE_MLDSA44 = 12;
 	
 	typedef uint16_t SigningKeyType;
 	typedef uint16_t CryptoKeyType;
