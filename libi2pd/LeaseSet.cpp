@@ -400,6 +400,7 @@ namespace data
 		offset += propertiesLen; // skip for now. TODO: implement properties
 		// key sections
 		CryptoKeyType preferredKeyType = m_EncryptionType;
+		m_EncryptionType = 0;
 		bool preferredKeyFound = false;
 		if (offset + 1 > len) return 0;
 		int numKeySections = buf[offset]; offset++;
@@ -411,14 +412,17 @@ namespace data
 			if (offset + encryptionKeyLen > len) return 0;
 			if (IsStoreLeases () && !preferredKeyFound) // create encryptor with leases only
 			{
-				// we pick first valid key if preferred not found
-				auto encryptor = i2p::data::IdentityEx::CreateEncryptor (keyType, buf + offset);
-				if (encryptor && (!m_Encryptor || keyType == preferredKeyType))
+				// we pick max key type if preferred not found
+				if (keyType == preferredKeyType || !m_Encryptor || keyType > m_EncryptionType)
 				{
-					m_Encryptor = encryptor; // TODO: atomic
-					m_EncryptionType = keyType;
-					if (keyType == preferredKeyType) preferredKeyFound = true;
-				}
+					auto encryptor = i2p::data::IdentityEx::CreateEncryptor (keyType, buf + offset);
+					if (encryptor)
+					{
+						m_Encryptor = encryptor; // TODO: atomic
+						m_EncryptionType = keyType;
+						if (keyType == preferredKeyType) preferredKeyFound = true;
+					}	
+				}	
 			}
 			offset += encryptionKeyLen;
 		}
