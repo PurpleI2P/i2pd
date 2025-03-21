@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -747,31 +747,35 @@ namespace garlic
 		std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet,
 	    bool requestNewIfNotFound)
 	{
-		if (destination->GetEncryptionType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD &&
-			SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD))
+		if (destination->GetEncryptionType () >= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
 		{
-			ECIESX25519AEADRatchetSessionPtr session;
-			uint8_t staticKey[32];
-			destination->Encrypt (nullptr, staticKey); // we are supposed to get static key
-			auto it = m_ECIESx25519Sessions.find (staticKey);
-			if (it != m_ECIESx25519Sessions.end ())
-			{
-				session = it->second;
-				if (session->IsInactive (i2p::util::GetSecondsSinceEpoch ()))
+			if (SupportsEncryptionType (destination->GetEncryptionType ()))
+			{	
+				ECIESX25519AEADRatchetSessionPtr session;
+				uint8_t staticKey[32];
+				destination->Encrypt (nullptr, staticKey); // we are supposed to get static key
+				auto it = m_ECIESx25519Sessions.find (staticKey);
+				if (it != m_ECIESx25519Sessions.end ())
 				{
-					LogPrint (eLogDebug, "Garlic: Session restarted");
-					requestNewIfNotFound = true; // it's not a new session
-					session = nullptr;
+					session = it->second;
+					if (session->IsInactive (i2p::util::GetSecondsSinceEpoch ()))
+					{
+						LogPrint (eLogDebug, "Garlic: Session restarted");
+						requestNewIfNotFound = true; // it's not a new session
+						session = nullptr;
+					}
 				}
+				if (!session && requestNewIfNotFound)
+				{
+					session = std::make_shared<ECIESX25519AEADRatchetSession> (this, true);
+					session->SetRemoteStaticKey (destination->GetEncryptionType (), staticKey);
+				}
+				if (session && destination->IsDestination ())
+					session->SetDestination (destination->GetIdentHash ()); // NS or NSR
+				return session;
 			}
-			if (!session && requestNewIfNotFound)
-			{
-				session = std::make_shared<ECIESX25519AEADRatchetSession> (this, true);
-				session->SetRemoteStaticKey (staticKey);
-			}
-			if (session && destination->IsDestination ())
-				session->SetDestination (destination->GetIdentHash ()); // NS or NSR
-			return session;
+			else
+				LogPrint (eLogError, "Garlic: Non-supported encryption type ", destination->GetEncryptionType ());
 		}
 		else
 		{

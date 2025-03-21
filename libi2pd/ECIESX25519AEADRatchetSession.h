@@ -168,14 +168,16 @@ namespace garlic
 			std::shared_ptr<I2NPMessage> WrapOneTimeMessage (std::shared_ptr<const I2NPMessage> msg);
 
 			const uint8_t * GetRemoteStaticKey () const { return m_RemoteStaticKey; }
-			void SetRemoteStaticKey (const uint8_t * key) { memcpy (m_RemoteStaticKey, key, 32); }
-
+			void SetRemoteStaticKey (i2p::data::CryptoKeyType keyType, const uint8_t * key) 
+			{ 
+				m_RemoteStaticKeyType = keyType;
+				memcpy (m_RemoteStaticKey, key, 32); 
+			}
 			void Terminate () { m_IsTerminated = true; }
 			void SetDestination (const i2p::data::IdentHash& dest)
 			{
 				if (!m_Destination) m_Destination.reset (new i2p::data::IdentHash (dest));
 			}
-
 			bool CheckExpired (uint64_t ts); // true is expired
 			bool CanBeRestarted (uint64_t ts) const { return ts > m_SessionCreatedTimestamp + ECIESX25519_RESTART_TIMEOUT; }
 			bool IsInactive (uint64_t ts) const { return ts > m_LastActivityTimestamp + ECIESX25519_INACTIVITY_TIMEOUT && CanBeRestarted (ts); }
@@ -219,6 +221,7 @@ namespace garlic
 
 		private:
 
+			i2p::data::CryptoKeyType m_RemoteStaticKeyType;
 			uint8_t m_RemoteStaticKey[32];
 			uint8_t m_Aepk[32]; // Alice's ephemeral keys, for incoming only
 			uint8_t m_NSREncodedKey[32], m_NSRH[32], m_NSRKey[32]; // new session reply, for incoming only

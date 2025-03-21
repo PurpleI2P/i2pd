@@ -167,7 +167,7 @@ namespace garlic
 	}
 
 	ECIESX25519AEADRatchetSession::ECIESX25519AEADRatchetSession (GarlicDestination * owner, bool attachLeaseSetNS):
-		GarlicRoutingSession (owner, true)
+		GarlicRoutingSession (owner, true), m_RemoteStaticKeyType (0)
 	{
 		if (!attachLeaseSetNS) SetLeaseSetUpdateStatus (eLeaseSetUpToDate);
 		RAND_bytes (m_PaddingSizes, 32); m_NextPaddingSize = 0;
@@ -291,7 +291,7 @@ namespace garlic
 		if (isStatic)
 		{
 			// static key, fs is apk
-			memcpy (m_RemoteStaticKey, fs, 32);
+			SetRemoteStaticKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD, fs); // TODO:  actual key type
 			if (!GetOwner ()->Decrypt (fs, sharedSecret, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, apk)
 			{
 				LogPrint (eLogWarning, "Garlic: Incorrect Alice static key");
