@@ -90,7 +90,7 @@ namespace client
 			    const std::map<std::string, std::string>& params);
 			~I2CPDestination () {};
 
-			void Stop ();
+			void Stop () override;
 
 			void SetEncryptionPrivateKey (const uint8_t * key);
 			void SetEncryptionType (i2p::data::CryptoKeyType keyType) { m_EncryptionKeyType = keyType; };

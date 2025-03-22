@@ -251,8 +251,8 @@ namespace client
 				bool isPublic, const std::map<std::string, std::string> * params = nullptr);
 			~ClientDestination ();
 
-			void Start ();
-			void Stop ();
+			void Start () override;
+			void Stop () override;
 
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Keys.Sign (buf, len, signature); };
@@ -300,8 +300,8 @@ namespace client
 			void CleanupDestination () override;
 			i2p::data::CryptoKeyType GetPreferredCryptoType () const override { return m_PreferredCryptoType; }
 			// I2CP
-			void HandleDataMessage (const uint8_t * buf, size_t len);
-			void CreateNewLeaseSet (const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels);
+			void HandleDataMessage (const uint8_t * buf, size_t len) override;
+			void CreateNewLeaseSet (const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels) override;
 						
 		private:
 
