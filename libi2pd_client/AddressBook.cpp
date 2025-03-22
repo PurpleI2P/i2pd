@@ -584,7 +584,7 @@ namespace client
 				}
 
 #if __cplusplus >= 202002L // C++20
-				if (name.ends_with (".i2p"))
+				if (!name.ends_with (".i2p"))
 #else	
 				if (name.find(".i2p") == name.npos)
 #endif					
