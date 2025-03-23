@@ -19,6 +19,10 @@
 #if OPENSSL_HKDF
 #include <openssl/kdf.h>
 #endif
+#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+#include <openssl/param_build.h>
+#include <openssl/core_names.h>
+#endif
 #include "CPU.h"
 #include "Crypto.h"
 #include "Ed25519.h"
@@ -146,6 +150,37 @@ namespace crypto
 	#define dsap GetCryptoConstants ().dsap
 	#define dsaq GetCryptoConstants ().dsaq
 	#define dsag GetCryptoConstants ().dsag
+#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+	EVP_PKEY * CreateDSA (BIGNUM * pubKey, BIGNUM * privKey)
+	{
+		EVP_PKEY * pkey = nullptr;
+		int selection = EVP_PKEY_KEY_PARAMETERS;
+		auto bld = OSSL_PARAM_BLD_new();
+		OSSL_PARAM_BLD_push_BN(bld, OSSL_PKEY_PARAM_FFC_P, dsap);
+		OSSL_PARAM_BLD_push_BN(bld, OSSL_PKEY_PARAM_FFC_Q, dsaq);
+		OSSL_PARAM_BLD_push_BN(bld, OSSL_PKEY_PARAM_FFC_G, dsag);
+		if (pubKey)
+		{	
+			OSSL_PARAM_BLD_push_BN (bld, OSSL_PKEY_PARAM_PUB_KEY, pubKey);
+			selection = EVP_PKEY_PUBLIC_KEY;
+		}	
+		if (privKey)
+		{	
+			OSSL_PARAM_BLD_push_BN (bld, OSSL_PKEY_PARAM_PRIV_KEY, privKey);
+			selection = EVP_PKEY_KEYPAIR;
+		}	
+		auto params = OSSL_PARAM_BLD_to_param(bld);
+		
+		EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_from_name (NULL, "DSA", NULL);
+		EVP_PKEY_fromdata_init(ctx);
+        EVP_PKEY_fromdata(ctx, &pkey, selection, params);
+		
+		EVP_PKEY_CTX_free(ctx);
+		OSSL_PARAM_free(params);
+		OSSL_PARAM_BLD_free(bld);
+		return pkey;
+	}	
+#else	
 	DSA * CreateDSA ()
 	{
 		DSA * dsa = DSA_new ();
@@ -153,7 +188,8 @@ namespace crypto
 		DSA_set0_key (dsa, NULL, NULL);
 		return dsa;
 	}
-
+#endif
+	
 // DH/ElGamal
 
 #if !IS_X86_64
@@ -943,7 +979,6 @@ namespace crypto
 	}
 
 #if OPENSSL_PQ	
-#include <openssl/core_names.h>
 	
 	MLKEM512Keys::MLKEM512Keys ():
 		m_Pkey (nullptr)

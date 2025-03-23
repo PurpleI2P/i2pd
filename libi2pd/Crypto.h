@@ -45,7 +45,11 @@ namespace crypto
 	bool bn2buf (const BIGNUM * bn, uint8_t * buf, size_t len);
 
 	// DSA
+#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+	EVP_PKEY * CreateDSA (BIGNUM * pubKey = nullptr, BIGNUM * privKey = nullptr);
+#else
 	DSA * CreateDSA ();
+#endif	
 
 	// RSA
 	const BIGNUM * GetRSAE ();

@@ -43,94 +43,55 @@ namespace crypto
 			virtual void Sign (const uint8_t * buf, int len, uint8_t * signature) const = 0;
 	};
 
+	// DSA
 	const size_t DSA_PUBLIC_KEY_LENGTH = 128;
 	const size_t DSA_SIGNATURE_LENGTH = 40;
 	const size_t DSA_PRIVATE_KEY_LENGTH = DSA_SIGNATURE_LENGTH/2;
 	class DSAVerifier: public Verifier
 	{
 		public:
+			
+			DSAVerifier ();
+			~DSAVerifier ();
 
-			DSAVerifier ()
-			{
-				m_PublicKey = CreateDSA ();
-			}
-
-			void SetPublicKey (const uint8_t * signingKey)
-			{
-				DSA_set0_key (m_PublicKey, BN_bin2bn (signingKey, DSA_PUBLIC_KEY_LENGTH, NULL), NULL);
-			}
-
-			~DSAVerifier ()
-			{
-				DSA_free (m_PublicKey);
-			}
-
-			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
-			{
-				// calculate SHA1 digest
-				uint8_t digest[20];
-				SHA1 (buf, len, digest);
-				// signature
-				DSA_SIG * sig = DSA_SIG_new();
-				DSA_SIG_set0 (sig, BN_bin2bn (signature, DSA_SIGNATURE_LENGTH/2, NULL), BN_bin2bn (signature + DSA_SIGNATURE_LENGTH/2, DSA_SIGNATURE_LENGTH/2, NULL));
-				// DSA verification
-				int ret = DSA_do_verify (digest, 20, sig, m_PublicKey);
-				DSA_SIG_free(sig);
-				return ret;
-			}
-
-			size_t GetPublicKeyLen () const { return DSA_PUBLIC_KEY_LENGTH; };
-			size_t GetSignatureLen () const { return DSA_SIGNATURE_LENGTH; };
-
+			// implements Verifier
+			void SetPublicKey (const uint8_t * signingKey) override;
+			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const override;
+			size_t GetPublicKeyLen () const override { return DSA_PUBLIC_KEY_LENGTH; };
+			size_t GetSignatureLen () const override { return DSA_SIGNATURE_LENGTH; };
+			
 		private:
 
+#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+			EVP_PKEY * m_PublicKey;
+#else			
 			DSA * m_PublicKey;
+#endif			
 	};
 
 	class DSASigner: public Signer
 	{
 		public:
 
-			DSASigner (const uint8_t * signingPrivateKey, const uint8_t * signingPublicKey)
+			DSASigner (const uint8_t * signingPrivateKey, const uint8_t * signingPublicKey);
 			// openssl 1.1 always requires DSA public key even for signing
-			{
-				m_PrivateKey = CreateDSA ();
-				DSA_set0_key (m_PrivateKey, BN_bin2bn (signingPublicKey, DSA_PUBLIC_KEY_LENGTH, NULL), BN_bin2bn (signingPrivateKey, DSA_PRIVATE_KEY_LENGTH, NULL));
-			}
+			~DSASigner ();
 
-			~DSASigner ()
-			{
-				DSA_free (m_PrivateKey);
-			}
-
-			void Sign (const uint8_t * buf, int len, uint8_t * signature) const
-			{
-				uint8_t digest[20];
-				SHA1 (buf, len, digest);
-				DSA_SIG * sig = DSA_do_sign (digest, 20, m_PrivateKey);
-				const BIGNUM * r, * s;
-				DSA_SIG_get0 (sig, &r, &s);
-				bn2buf (r, signature, DSA_SIGNATURE_LENGTH/2);
-				bn2buf (s, signature + DSA_SIGNATURE_LENGTH/2, DSA_SIGNATURE_LENGTH/2);
-				DSA_SIG_free(sig);
-			}
+			// implements Signer
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const override;
 
 		private:
 
+#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+			EVP_PKEY * m_PrivateKey;
+#else
 			DSA * m_PrivateKey;
+#endif			
 	};
 
-	inline void CreateDSARandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
-	{
-		DSA * dsa = CreateDSA ();
-		DSA_generate_key (dsa);
-		const BIGNUM * pub_key, * priv_key;
-		DSA_get0_key(dsa, &pub_key, &priv_key);
-		bn2buf (priv_key, signingPrivateKey, DSA_PRIVATE_KEY_LENGTH);
-		bn2buf (pub_key, signingPublicKey, DSA_PUBLIC_KEY_LENGTH);
-		DSA_free (dsa);
-	}
+	void CreateDSARandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey);
 
+	// ECDSA	
 	struct SHA256Hash
 	{
 		static void CalculateHash (const uint8_t * buf, size_t len, uint8_t * digest)
@@ -161,7 +122,6 @@ namespace crypto
 		enum { hashLen = 64 };
 	};
 
-	// EcDSA
 	template<typename Hash, int curve, size_t keyLen>
 	class ECDSAVerifier: public Verifier
 	{
