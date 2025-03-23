@@ -261,10 +261,30 @@ namespace crypto
 	void InitNoiseXKState (NoiseSymmetricState& state, const uint8_t * pub); // Noise_XK (NTCP2)
 	void InitNoiseXKState1 (NoiseSymmetricState& state, const uint8_t * pub); // Noise_XK (SSU2)
 	void InitNoiseIKState (NoiseSymmetricState& state, const uint8_t * pub); // Noise_IK (ratchets)
+	void InitNoiseIKStateMLKEM512 (NoiseSymmetricState& state, const uint8_t * pub); // Noise_IK (ratchets) PQ ML-KEM512
 
 // init and terminate
 	void InitCrypto (bool precomputation);
 	void TerminateCrypto ();
+
+#if OPENSSL_PQ	
+// Post Quantum
+	constexpr size_t MLKEM512_KEY_LENGTH = 800;
+	class MLKEM512Keys
+	{
+		public:
+
+			MLKEM512Keys ();
+			~MLKEM512Keys ();
+
+			void GenerateKeys ();
+			void GetPublicKey (uint8_t * pub) const;
+			
+		private:
+
+			EVP_PKEY * m_Pkey;		
+	};
+#endif	
 }
 }
 
