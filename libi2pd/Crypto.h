@@ -274,6 +274,7 @@ namespace crypto
 #if OPENSSL_PQ	
 // Post Quantum
 	constexpr size_t MLKEM512_KEY_LENGTH = 800;
+	constexpr size_t MLKEM512_CIPHER_TEXT_LENGTH = 768;
 	class MLKEM512Keys
 	{
 		public:
@@ -283,6 +284,9 @@ namespace crypto
 
 			void GenerateKeys ();
 			void GetPublicKey (uint8_t * pub) const;
+			void SetPublicKey (const uint8_t * pub);
+			void Encaps (uint8_t * ciphertext, uint8_t * shared);
+			void Decaps (const uint8_t * ciphertext, uint8_t * shared);
 			
 		private:
 

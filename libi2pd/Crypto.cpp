@@ -992,19 +992,71 @@ namespace crypto
 
 	void MLKEM512Keys::GenerateKeys ()
 	{
-		if (m_Pkey)
-		{
-			EVP_PKEY_free (m_Pkey);
-			m_Pkey = nullptr;
-		}
+		if (m_Pkey) EVP_PKEY_free (m_Pkey);
 		m_Pkey = EVP_PKEY_Q_keygen(NULL, NULL, "ML-KEM-512");
 	}
 
 	void MLKEM512Keys::GetPublicKey (uint8_t * pub) const
 	{	
-		size_t len = MLKEM512_KEY_LENGTH;
-        EVP_PKEY_get_octet_string_param (m_Pkey, OSSL_PKEY_PARAM_PUB_KEY, pub, MLKEM512_KEY_LENGTH, &len);
+		if (m_Pkey)
+		{	
+			size_t len = MLKEM512_KEY_LENGTH;
+		    EVP_PKEY_get_octet_string_param (m_Pkey, OSSL_PKEY_PARAM_PUB_KEY, pub, MLKEM512_KEY_LENGTH, &len);
+		}	
 	}
+
+	void MLKEM512Keys::SetPublicKey (const uint8_t * pub)
+	{
+		if (m_Pkey)
+		{	
+			EVP_PKEY_free (m_Pkey);
+			m_Pkey = nullptr;
+		}	
+		OSSL_PARAM params[] =
+		{
+			OSSL_PARAM_octet_string (OSSL_PKEY_PARAM_PUB_KEY, (uint8_t *)pub, MLKEM512_KEY_LENGTH),
+			OSSL_PARAM_END
+		};		
+		EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_from_name (NULL, "ML-KEM-512", NULL);
+		if (ctx)
+		{
+			EVP_PKEY_fromdata_init (ctx);
+			EVP_PKEY_fromdata (ctx, &m_Pkey, OSSL_KEYMGMT_SELECT_PUBLIC_KEY, params);
+			EVP_PKEY_CTX_free (ctx);
+		}
+		else
+			LogPrint (eLogError, "MLKEM512 can't create PKEY context");
+	}
+
+	void MLKEM512Keys::Encaps (uint8_t * ciphertext, uint8_t * shared)
+	{
+		if (!m_Pkey) return;
+		auto ctx = EVP_PKEY_CTX_new_from_pkey (NULL, m_Pkey, NULL);
+		if (ctx)
+		{	
+			EVP_PKEY_encapsulate_init (ctx, NULL);
+			size_t len = MLKEM512_CIPHER_TEXT_LENGTH, sharedLen = 32;
+			EVP_PKEY_encapsulate (ctx, ciphertext, &len, shared, &sharedLen);
+			EVP_PKEY_CTX_free (ctx);
+		}
+		else
+			LogPrint (eLogError, "MLKEM512 can't create PKEY context");
+	}	
+
+	void MLKEM512Keys::Decaps (const uint8_t * ciphertext, uint8_t * shared)
+	{
+		if (!m_Pkey) return;
+		auto ctx = EVP_PKEY_CTX_new_from_pkey (NULL, m_Pkey, NULL);
+		if (ctx)
+		{	
+			EVP_PKEY_decapsulate_init (ctx, NULL);
+			size_t sharedLen = 32;
+			EVP_PKEY_decapsulate (ctx, shared, &sharedLen, ciphertext, MLKEM512_CIPHER_TEXT_LENGTH);
+			EVP_PKEY_CTX_free (ctx);
+		}
+		else
+			LogPrint (eLogError, "MLKEM512 can't create PKEY context");
+	}	
 #endif		
 }
 }
