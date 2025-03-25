@@ -1022,10 +1022,15 @@ namespace client
 				{
 					try
 					{
-						i2p::data::CryptoKeyType preferredCryptoType = std::stoi(it1);
-						if (!m_PreferredCryptoType && preferredCryptoType)
-							m_PreferredCryptoType = preferredCryptoType; // first non-zero in the list
-						encryptionKeyTypes.insert (preferredCryptoType);
+						i2p::data::CryptoKeyType cryptoType = std::stoi(it1);
+#if !OPENSSL_PQ
+						if (cryptoType <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) // skip PQ keys if not supported
+#endif					
+						{
+							if (!m_PreferredCryptoType && cryptoType)
+								m_PreferredCryptoType = cryptoType; // first non-zero in the list
+							encryptionKeyTypes.insert (cryptoType);
+						}	
 					}
 					catch (std::exception& ex)
 					{

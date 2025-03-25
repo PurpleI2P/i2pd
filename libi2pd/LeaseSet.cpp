@@ -413,15 +413,20 @@ namespace data
 			if (IsStoreLeases () && !preferredKeyFound) // create encryptor with leases only
 			{
 				// we pick max key type if preferred not found
-				if (keyType == preferredKeyType || !m_Encryptor || keyType > m_EncryptionType)
-				{
-					auto encryptor = i2p::data::IdentityEx::CreateEncryptor (keyType, buf + offset);
-					if (encryptor)
+#if !OPENSSL_PQ
+				if (keyType <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) // skip PQ keys if not supported
+#endif			
+				{	
+					if (keyType == preferredKeyType || !m_Encryptor || keyType > m_EncryptionType)
 					{
-						m_Encryptor = encryptor; // TODO: atomic
-						m_EncryptionType = keyType;
-						if (keyType == preferredKeyType) preferredKeyFound = true;
-					}	
+						auto encryptor = i2p::data::IdentityEx::CreateEncryptor (keyType, buf + offset);
+						if (encryptor)
+						{
+							m_Encryptor = encryptor; // TODO: atomic
+							m_EncryptionType = keyType;
+							if (keyType == preferredKeyType) preferredKeyFound = true;
+						}	
+					}
 				}	
 			}
 			offset += encryptionKeyLen;
