@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -13,6 +13,10 @@
 #include <boost/system/system_error.hpp>
 #endif
 #include <TargetConditionals.h>
+#endif
+
+#if defined(__HAIKU__)
+#include <FindDirectory.h>
 #endif
 
 #ifdef _WIN32
@@ -169,12 +173,11 @@ namespace fs {
 		dataDir += "/Library/Application Support/" + appName;
 		return;
 #elif defined(__HAIKU__)
-		char *home = getenv("HOME");
-		if (home != NULL && strlen(home) > 0) {
-			dataDir = std::string(home) + "/config/settings/" + appName;
-		} else {
+		char home[PATH_MAX]; // /boot/home/config/settings
+		if (find_directory(B_USER_SETTINGS_DIRECTORY, -1, false, home, PATH_MAX) == B_OK)	
+			dataDir = std::string(home) + "/" + appName;
+		else
 			dataDir = "/tmp/" + appName;
-		}
 		return;
 #else /* other unix */
 #if defined(ANDROID)
