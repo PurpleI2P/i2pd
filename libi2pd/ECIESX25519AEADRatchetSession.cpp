@@ -492,7 +492,16 @@ namespace garlic
 		offset += 32;
 
 		// KDF1
-		i2p::crypto::InitNoiseIKState (GetNoiseState (), m_RemoteStaticKey); // bpk
+#if OPENSSL_PQ		
+		if (m_RemoteStaticKeyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
+		{
+			i2p::crypto::InitNoiseIKStateMLKEM512 (GetNoiseState (), m_RemoteStaticKey); // bpk
+			m_PQKeys = std::make_unique<i2p::crypto::MLKEM512Keys>();
+			m_PQKeys->GenerateKeys ();
+		}	
+		else	
+#endif			
+			i2p::crypto::InitNoiseIKState (GetNoiseState (), m_RemoteStaticKey); // bpk
 		MixHash (m_EphemeralKeys->GetPublicKey (), 32); // h = SHA256(h || aepk)
 		uint8_t sharedSecret[32];
 		if (!m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret)) // x25519(aesk, bpk)
@@ -501,9 +510,29 @@ namespace garlic
 			return false;
 		}
 		MixKey (sharedSecret);
+		uint64_t n = 0; // seqn
+#if OPENSSL_PQ
+		if (m_RemoteStaticKeyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
+		{
+			uint8_t encapsKey[i2p::crypto::MLKEM512_KEY_LENGTH];
+			m_PQKeys->GetPublicKey (encapsKey);
+			// encrypt encapsKey 
+			uint8_t nonce[12];
+			CreateNonce (n, nonce);
+			if (!i2p::crypto::AEADChaCha20Poly1305 (encapsKey, i2p::crypto::MLKEM512_KEY_LENGTH,
+				m_H, 32, m_CK + 32, nonce, out + offset, i2p::crypto::MLKEM512_KEY_LENGTH + 16, true)) // encrypt
+			{
+				LogPrint (eLogWarning, "Garlic: ML-KEM encap_key section AEAD encryption failed ");
+				return false;
+			}
+			MixHash (out + offset, i2p::crypto::MLKEM512_KEY_LENGTH + 16); // h = SHA256(h || ciphertext)
+			offset += i2p::crypto::MLKEM512_KEY_LENGTH + 16;
+			n++;
+		}	
+#endif		
 		// encrypt flags/static key section
 		uint8_t nonce[12];
-		CreateNonce (0, nonce);
+		CreateNonce (n, nonce);
 		const uint8_t * fs;
 		if (isStatic)
 			fs = GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD);
@@ -675,6 +704,24 @@ namespace garlic
 
 		uint8_t nonce[12];
 		CreateNonce (0, nonce);
+#if OPENSSL_PQ
+		if (m_RemoteStaticKeyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
+		{
+			// decrypt kem_ciphertext section
+			uint8_t kemCiphertext[i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH];
+			if (!i2p::crypto::AEADChaCha20Poly1305 (buf, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH, 
+				m_H, 32, m_CK + 32, nonce, kemCiphertext, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH, false)) // decrypt, DECRYPT(k, n, ZEROLEN, ad) verification only
+			{
+				LogPrint (eLogWarning, "Garlic: Reply ML-KEM ciphertext section AEAD decryption failed");
+				return false;
+			}
+			MixHash (buf, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16);
+			buf += i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16;
+			// decaps
+			m_PQKeys->Decaps (kemCiphertext, sharedSecret);
+			MixKey (sharedSecret);
+		}
+#endif		
 		// calculate hash for zero length
 		if (!i2p::crypto::AEADChaCha20Poly1305 (buf, 0, m_H, 32, m_CK + 32, nonce, sharedSecret/* can be anything */, 0, false)) // decrypt, DECRYPT(k, n, ZEROLEN, ad) verification only
 		{
@@ -711,6 +758,9 @@ namespace garlic
 		{
 			m_State = eSessionStateEstablished;
 			//m_EphemeralKeys = nullptr; // TODO: delete after a while
+#if OPENSSL_PQ
+			// m_PQKeys = nullptr; // TODO: delete after a while
+#endif			
 			m_SessionCreatedTimestamp = i2p::util::GetSecondsSinceEpoch ();
 			GetOwner ()->AddECIESx25519Session (m_RemoteStaticKey, shared_from_this ());
 		}

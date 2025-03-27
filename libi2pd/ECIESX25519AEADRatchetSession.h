@@ -226,6 +226,9 @@ namespace garlic
 			uint8_t m_Aepk[32]; // Alice's ephemeral keys, for incoming only
 			uint8_t m_NSREncodedKey[32], m_NSRH[32], m_NSRKey[32]; // new session reply, for incoming only
 			std::shared_ptr<i2p::crypto::X25519Keys> m_EphemeralKeys;
+#if OPENSSL_PQ	
+			std::unique_ptr<i2p::crypto::MLKEM512Keys> m_PQKeys;
+#endif			
 			SessionState m_State = eSessionStateNew;
 			uint64_t m_SessionCreatedTimestamp = 0, m_LastActivityTimestamp = 0, // incoming (in seconds)
 				m_LastSentTimestamp = 0; // in milliseconds
