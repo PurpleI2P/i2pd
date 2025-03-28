@@ -1498,11 +1498,11 @@ namespace transport
 				ResendHandshakePacket (); // assume we receive
 			return;
 		}
-		if (from != m_RemoteEndpoint && !i2p::transport::transports.IsInReservedRange (from.address ()))
+		if (from != m_RemoteEndpoint && !i2p::transport::transports.IsInReservedRange (from.address ()) &&
+		    (!m_PathChallenge || from != m_PathChallenge->second)) // path challenge was not sent to this endpoint yet 
 		{
 			LogPrint (eLogInfo, "SSU2: Remote endpoint update ", m_RemoteEndpoint, "->", from);
-			m_RemoteEndpoint = from;
-			SendPathChallenge ();
+			SendPathChallenge (from);
 		}
 		if (len < 32)
 		{
@@ -1660,10 +1660,13 @@ namespace transport
 					LogPrint (eLogDebug, "SSU2: Path response");
 					if (m_PathChallenge)
 					{
-						i2p::data::IdentHash hash;
+						i2p::data::Tag<32> hash;
 						SHA256 (buf + offset, size, hash);
-						if (hash == *m_PathChallenge)
+						if (hash == m_PathChallenge->first)
+						{
+							m_RemoteEndpoint = m_PathChallenge->second;
 							m_PathChallenge.reset (nullptr);
+						}	
 					}
 					break;
 				}
@@ -3070,7 +3073,7 @@ namespace transport
 		SendData (payload, payloadSize);
 	}
 
-	void SSU2Session::SendPathChallenge ()
+	void SSU2Session::SendPathChallenge (const boost::asio::ip::udp::endpoint& to)
 	{
 		uint8_t payload[SSU2_MAX_PACKET_SIZE];
 		payload[0] = eSSU2BlkPathChallenge;
@@ -3078,15 +3081,18 @@ namespace transport
 		htobe16buf (payload + 1, len);
 		if (len > 0)
 		{
+			m_PathChallenge = std::make_unique<std::pair<i2p::data::Tag<32>, boost::asio::ip::udp::endpoint> >();
 			RAND_bytes (payload + 3, len);
-			i2p::data::IdentHash * hash = new i2p::data::IdentHash ();
-			SHA256 (payload + 3, len, *hash);
-			m_PathChallenge.reset (hash);
+			SHA256 (payload + 3, len, m_PathChallenge->first);
+			m_PathChallenge->second = to;
 		}
 		len += 3;
 		if (len < m_MaxPayloadSize)
 			len += CreatePaddingBlock (payload + len, m_MaxPayloadSize - len, len < 8 ? 8 : 0);
+		auto existing = m_RemoteEndpoint;
+		m_RemoteEndpoint = to; // send path challenge to new endpoint
 		SendData (payload, len);
+		m_RemoteEndpoint = existing; // restore endpoint back until path response received
 	}
 
 	void SSU2Session::CleanUp (uint64_t ts)

@@ -327,7 +327,7 @@ namespace transport
 			void SendQuickAck ();
 			void SendTermination ();
 			void SendPathResponse (const uint8_t * data, size_t len);
-			void SendPathChallenge ();
+			void SendPathChallenge (const boost::asio::ip::udp::endpoint& to);
 
 			void HandleDateTime (const uint8_t * buf, size_t len);
 			void HandleRouterInfo (const uint8_t * buf, size_t len);
@@ -394,7 +394,7 @@ namespace transport
 			boost::asio::deadline_timer m_ConnectTimer;
 			SSU2TerminationReason m_TerminationReason;
 			size_t m_MaxPayloadSize;
-			std::unique_ptr<i2p::data::IdentHash> m_PathChallenge;
+			std::unique_ptr<std::pair<i2p::data::Tag<32>, boost::asio::ip::udp::endpoint> > m_PathChallenge;
 			std::unordered_map<uint32_t, uint32_t> m_ReceivedI2NPMsgIDs; // msgID -> timestamp in seconds
 			uint64_t m_LastResendTime, m_LastResendAttemptTime; // in milliseconds
 			int m_NumRanges;
