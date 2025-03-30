@@ -336,7 +336,7 @@ namespace transport
 			virtual void HandleAddress (const uint8_t * buf, size_t len);
 			size_t CreateEndpoint (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep);
 			std::shared_ptr<const i2p::data::RouterInfo::Address> FindLocalAddress () const;
-			void AdjustMaxPayloadSize ();
+			void AdjustMaxPayloadSize (size_t maxMtu = SSU2_MAX_PACKET_SIZE);
 			bool GetTestingState () const;
 			void SetTestingState(bool testing) const;
 			std::shared_ptr<const i2p::data::RouterInfo> ExtractRouterInfo (const uint8_t * buf, size_t size);

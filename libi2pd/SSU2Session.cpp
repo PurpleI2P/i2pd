@@ -2562,17 +2562,19 @@ namespace transport
 		return nullptr;
 	}
 
-	void SSU2Session::AdjustMaxPayloadSize ()
+	void SSU2Session::AdjustMaxPayloadSize (size_t maxMtu)
 	{
 		auto addr = FindLocalAddress ();
 		if (addr && addr->ssu)
 		{
 			int mtu = addr->ssu->mtu;
 			if (!mtu && addr->IsV4 ()) mtu = SSU2_MAX_PACKET_SIZE;
+			if (mtu > (int)maxMtu) mtu = maxMtu;
 			if (m_Address && m_Address->ssu && (!mtu || m_Address->ssu->mtu < mtu))
 				mtu = m_Address->ssu->mtu;
 			if (mtu)
 			{
+				if (mtu > (int)SSU2_MAX_PACKET_SIZE) mtu = SSU2_MAX_PACKET_SIZE;
 				if (mtu < (int)SSU2_MIN_PACKET_SIZE) mtu = SSU2_MIN_PACKET_SIZE;
 				m_MaxPayloadSize = mtu - (addr->IsV6 () ? IPV6_HEADER_SIZE: IPV4_HEADER_SIZE) - UDP_HEADER_SIZE - 32;
 				LogPrint (eLogDebug, "SSU2: Session MTU=", mtu, ", max payload size=", m_MaxPayloadSize);
@@ -3075,23 +3077,35 @@ namespace transport
 
 	void SSU2Session::SendPathChallenge (const boost::asio::ip::udp::endpoint& to)
 	{
+		AdjustMaxPayloadSize (SSU2_MIN_PACKET_SIZE); // reduce to minimum 
+		m_WindowSize = SSU2_MIN_WINDOW_SIZE; // reduce window to minimum
+		
 		uint8_t payload[SSU2_MAX_PACKET_SIZE];
-		payload[0] = eSSU2BlkPathChallenge;
-		size_t len = m_Server.GetRng ()() % (m_MaxPayloadSize - 3);
-		htobe16buf (payload + 1, len);
-		if (len > 0)
-		{
-			m_PathChallenge = std::make_unique<std::pair<i2p::data::Tag<32>, boost::asio::ip::udp::endpoint> >();
-			RAND_bytes (payload + 3, len);
-			SHA256 (payload + 3, len, m_PathChallenge->first);
+		size_t payloadSize = 0;
+		// datetime block
+		payload[0] = eSSU2BlkDateTime;
+		htobe16buf (payload + 1, 4);
+		htobe32buf (payload + 3, (i2p::util::GetMillisecondsSinceEpoch () + 500)/1000);
+		payloadSize += 7;
+		// address block with new address
+		payloadSize += CreateAddressBlock (payload + payloadSize, m_MaxPayloadSize  - payloadSize, to);
+		// path challenge block
+		payload[payloadSize] = eSSU2BlkPathChallenge;
+		size_t len = m_Server.GetRng ()() % (m_MaxPayloadSize - payloadSize - 3 - 8) + 8; // 8 bytes min
+		htobe16buf (payload + payloadSize + 1, len);
+		payloadSize += 3;
+		m_PathChallenge = std::make_unique<std::pair<i2p::data::Tag<32>, boost::asio::ip::udp::endpoint> >();
+		RAND_bytes (payload + payloadSize, len);
+			SHA256 (payload + payloadSize, len, m_PathChallenge->first);
 			m_PathChallenge->second = to;
-		}
-		len += 3;
-		if (len < m_MaxPayloadSize)
-			len += CreatePaddingBlock (payload + len, m_MaxPayloadSize - len, len < 8 ? 8 : 0);
+		payloadSize += len;
+		// padding block
+		if (payloadSize < m_MaxPayloadSize)
+			payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
+		// send to new endpoint
 		auto existing = m_RemoteEndpoint;
 		m_RemoteEndpoint = to; // send path challenge to new endpoint
-		SendData (payload, len);
+		SendData (payload, payloadSize);
 		m_RemoteEndpoint = existing; // restore endpoint back until path response received
 	}
 
