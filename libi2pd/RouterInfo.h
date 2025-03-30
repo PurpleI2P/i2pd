@@ -210,8 +210,8 @@ namespace data
 			typedef boost::shared_ptr<Addresses> AddressesPtr;
 #endif			
 			RouterInfo (const std::string& fullPath);
-			RouterInfo (const RouterInfo& ) = default;
-			RouterInfo& operator=(const RouterInfo& ) = default;
+			RouterInfo (const RouterInfo& ) = delete;
+			RouterInfo& operator=(const RouterInfo& ) = delete;
 			RouterInfo (std::shared_ptr<Buffer>&& buf, size_t len);
 			RouterInfo (const uint8_t * buf, size_t len);
 			virtual ~RouterInfo ();
