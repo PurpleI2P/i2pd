@@ -1,4 +1,8 @@
+ifeq ($(shell $(CXX) -dumpmachine | cut -c 1-4), i586)
+CXX = g++-x86
+else
 CXX = g++
+endif
 CXXFLAGS := -Wall -std=c++20
 INCFLAGS = -I/system/develop/headers
 DEFINES = -D_DEFAULT_SOURCE -D_GNU_SOURCE
