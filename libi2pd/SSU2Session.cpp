@@ -3058,18 +3058,31 @@ namespace transport
 
 	void SSU2Session::SendPathResponse (const uint8_t * data, size_t len)
 	{
-		if (len > m_MaxPayloadSize - 3)
+		uint8_t payload[SSU2_MAX_PACKET_SIZE];
+		size_t payloadSize = 0;
+		// datetime block
+		payload[0] = eSSU2BlkDateTime;
+		htobe16buf (payload + 1, 4);
+		htobe32buf (payload + 3, (i2p::util::GetMillisecondsSinceEpoch () + 500)/1000);
+		payloadSize += 7;
+		// address block 
+		payloadSize += CreateAddressBlock (payload + payloadSize, m_MaxPayloadSize  - payloadSize, m_RemoteEndpoint);
+		// path response
+		if (payloadSize + len > m_MaxPayloadSize)
 		{
 			LogPrint (eLogWarning, "SSU2: Incorrect data size for path response ", len);
 			return;
-		}
-		uint8_t payload[SSU2_MAX_PACKET_SIZE];
-		payload[0] = eSSU2BlkPathResponse;
-		htobe16buf (payload + 1, len);
-		memcpy (payload + 3, data, len);
-		size_t payloadSize = len + 3;	
+		}	
+		payload[payloadSize] = eSSU2BlkPathResponse;
+		htobe16buf (payload + payloadSize + 1, len);
+		memcpy (payload + payloadSize + 3, data, len);
+		payloadSize += len + 3;	
+		// ack block
 		if (payloadSize < m_MaxPayloadSize)
-			payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize, payloadSize < 8 ? 8 : 0);
+			payloadSize += CreateAckBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
+		// padding
+		if (payloadSize < m_MaxPayloadSize)
+			payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
 		SendData (payload, payloadSize);
 	}
 
