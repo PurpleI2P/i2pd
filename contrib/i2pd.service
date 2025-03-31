@@ -2,6 +2,7 @@
 Description=I2P Router written in C++
 Documentation=man:i2pd(1) https://i2pd.readthedocs.io/en/latest/
 After=network.target
+Wants=yggdrasil.service
 
 [Service]
 User=i2pd
