@@ -1660,9 +1660,7 @@ namespace transport
 					LogPrint (eLogDebug, "SSU2: Path response");
 					if (m_PathChallenge)
 					{
-						i2p::data::Tag<32> hash;
-						SHA256 (buf + offset, size, hash);
-						if (hash == m_PathChallenge->first)
+						if (buf64toh (buf + offset) == m_PathChallenge->first)
 						{
 							m_RemoteEndpoint = m_PathChallenge->second;
 							m_PathChallenge.reset (nullptr);
@@ -3091,14 +3089,15 @@ namespace transport
 		payloadSize += CreateAddressBlock (payload + payloadSize, m_MaxPayloadSize  - payloadSize, to);
 		// path challenge block
 		payload[payloadSize] = eSSU2BlkPathChallenge;
-		size_t len = m_Server.GetRng ()() % (m_MaxPayloadSize - payloadSize - 3 - 8) + 8; // 8 bytes min
-		htobe16buf (payload + payloadSize + 1, len);
-		payloadSize += 3;
-		m_PathChallenge = std::make_unique<std::pair<i2p::data::Tag<32>, boost::asio::ip::udp::endpoint> >();
-		RAND_bytes (payload + payloadSize, len);
-			SHA256 (payload + payloadSize, len, m_PathChallenge->first);
-			m_PathChallenge->second = to;
-		payloadSize += len;
+		uint64_t challenge;
+		RAND_bytes ((uint8_t *)&challenge, 8);		
+		htobe16buf (payload + payloadSize + 1, 8); // always 8 bytes
+		htobuf64 (payload + payloadSize + 3, challenge);
+		payloadSize += 11;
+		m_PathChallenge = std::make_unique<std::pair<uint64_t, boost::asio::ip::udp::endpoint> >(challenge, to);	
+		// ack block
+		if (payloadSize < m_MaxPayloadSize)
+			payloadSize += CreateAckBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
 		// padding block
 		if (payloadSize < m_MaxPayloadSize)
 			payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);

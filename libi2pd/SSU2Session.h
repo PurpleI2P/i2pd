@@ -394,7 +394,7 @@ namespace transport
 			boost::asio::deadline_timer m_ConnectTimer;
 			SSU2TerminationReason m_TerminationReason;
 			size_t m_MaxPayloadSize;
-			std::unique_ptr<std::pair<i2p::data::Tag<32>, boost::asio::ip::udp::endpoint> > m_PathChallenge;
+			std::unique_ptr<std::pair<uint64_t, boost::asio::ip::udp::endpoint> > m_PathChallenge;
 			std::unordered_map<uint32_t, uint32_t> m_ReceivedI2NPMsgIDs; // msgID -> timestamp in seconds
 			uint64_t m_LastResendTime, m_LastResendAttemptTime; // in milliseconds
 			int m_NumRanges;
