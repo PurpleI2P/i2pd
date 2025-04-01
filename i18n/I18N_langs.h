@@ -30,6 +30,7 @@ namespace i18n
 	namespace english    { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace french     { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace german     { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
+	namespace hebrew     { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace italian    { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace polish     { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace portuguese { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
@@ -53,6 +54,7 @@ namespace i18n
 		{ "english", {"English", "en", i2p::i18n::english::GetLocale} },
 		{ "french", {"Français", "fr", i2p::i18n::french::GetLocale} },
 		{ "german", {"Deutsch", "de", i2p::i18n::german::GetLocale} },
+		{ "hebrew", {"עברית", "he", i2p::i18n::hebrew::GetLocale} },
 		{ "italian", {"Italiano", "it", i2p::i18n::italian::GetLocale} },
 		{ "polish", {"Polski", "pl", i2p::i18n::polish::GetLocale} },
 		{ "portuguese", {"Português", "pt", i2p::i18n::portuguese::GetLocale} },
