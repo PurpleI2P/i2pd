@@ -257,27 +257,66 @@ namespace garlic
 		if (!GetOwner ()) return false;
 		// we are Bob
 		// KDF1
-		i2p::crypto::InitNoiseIKState (GetNoiseState (), GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)); // bpk
-
+		
 		if (!i2p::crypto::GetElligator ()->Decode (buf, m_Aepk))
 		{
 			LogPrint (eLogError, "Garlic: Can't decode elligator");
 			return false;
 		}
 		buf += 32; len -= 32;
-		MixHash (m_Aepk, 32); // h = SHA256(h || aepk)
 
+		uint64_t n = 0;
 		uint8_t sharedSecret[32];
-		if (!GetOwner ()->Decrypt (m_Aepk, sharedSecret, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, aepk)
+		bool decrypted = false;
+#if OPENSSL_PQ
+		if (GetOwner ()->SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD))
 		{
-			LogPrint (eLogWarning, "Garlic: Incorrect Alice ephemeral key");
-			return false;
-		}
-		MixKey (sharedSecret);
+			i2p::crypto::InitNoiseIKStateMLKEM512 (GetNoiseState (), GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)); // bpk
+			MixHash (m_Aepk, 32); // h = SHA256(h || aepk)
+
+			if (GetOwner ()->Decrypt (m_Aepk, sharedSecret, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, aepk)
+			{
+				MixKey (sharedSecret);
+				
+				uint8_t nonce[12], encapsKey[i2p::crypto::MLKEM512_KEY_LENGTH];
+				CreateNonce (n, nonce);
+				if (i2p::crypto::AEADChaCha20Poly1305 (buf, i2p::crypto::MLKEM512_KEY_LENGTH,
+					m_H, 32, m_CK + 32, nonce, encapsKey, i2p::crypto::MLKEM512_KEY_LENGTH , false)) // decrypt
+				{
+					decrypted = true; // encaps section has right hash 
+					MixHash (buf, i2p::crypto::MLKEM512_KEY_LENGTH);
+					n++;
+					
+					m_PQKeys = std::make_unique<i2p::crypto::MLKEM512Keys>();
+					m_PQKeys->SetPublicKey (encapsKey);
+				}	
+			}	
+		}	
+#endif
+		if (!decrypted)
+		{	
+			if (GetOwner ()->SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD))
+			{
+				i2p::crypto::InitNoiseIKState (GetNoiseState (), GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)); // bpk
+				MixHash (m_Aepk, 32); // h = SHA256(h || aepk)
+
+				if (!GetOwner ()->Decrypt (m_Aepk, sharedSecret, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, aepk)
+				{
+					LogPrint (eLogWarning, "Garlic: Incorrect Alice ephemeral key");
+					return false;
+				}
+				MixKey (sharedSecret);	
+			}	
+			else
+			{
+				LogPrint (eLogWarning, "Garlic: No supported encryption type");
+				return false;
+			}	
+		}	
 
 		// decrypt flags/static
 		uint8_t nonce[12], fs[32];
-		CreateNonce (0, nonce);
+		CreateNonce (n, nonce);
 		if (!i2p::crypto::AEADChaCha20Poly1305 (buf, 32, m_H, 32, m_CK + 32, nonce, fs, 32, false)) // decrypt
 		{
 			LogPrint (eLogWarning, "Garlic: Flags/static section AEAD verification failed ");
@@ -291,8 +330,13 @@ namespace garlic
 		if (isStatic)
 		{
 			// static key, fs is apk
-			SetRemoteStaticKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD, fs); // TODO:  actual key type
-			if (!GetOwner ()->Decrypt (fs, sharedSecret, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, apk)
+#if OPENSSL_PQ
+			if (m_PQKeys)
+				SetRemoteStaticKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD, fs);
+			else	
+#endif			
+				SetRemoteStaticKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD, fs); 
+			if (!GetOwner ()->Decrypt (fs, sharedSecret, m_RemoteStaticKeyType)) // x25519(bsk, apk)
 			{
 				LogPrint (eLogWarning, "Garlic: Incorrect Alice static key");
 				return false;
@@ -596,7 +640,7 @@ namespace garlic
 		}
 		memcpy (m_NSREncodedKey, out + offset, 32); // for possible next NSR
 		memcpy (m_NSRH, m_H, 32);
-		offset += 32;
+		offset += 32;	
 		// KDF for Reply Key Section
 		MixHash ((const uint8_t *)&tag, 8); // h = SHA256(h || tag)
 		MixHash (m_EphemeralKeys->GetPublicKey (), 32); // h = SHA256(h || bepk)
@@ -613,8 +657,26 @@ namespace garlic
 			return false;
 		}
 		MixKey (sharedSecret);
+		
 		uint8_t nonce[12];
 		CreateNonce (0, nonce);
+#if OPENSSL_PQ
+		if (m_PQKeys)
+		{
+			uint8_t kemCiphertext[i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH];
+			m_PQKeys->Encaps (kemCiphertext, sharedSecret);
+
+			if (!i2p::crypto::AEADChaCha20Poly1305 (kemCiphertext, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH,
+				m_H, 32, m_CK + 32, nonce, out + offset, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16, true)) // encrypt
+			{
+				LogPrint (eLogWarning, "Garlic: NSR ML-KEM ciphertext section AEAD encryption failed");
+				return false;
+			}
+			MixHash (out + offset, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16);
+			MixKey (sharedSecret);
+			offset += i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16;
+		}	
+#endif		
 		// calculate hash for zero length
 		if (!i2p::crypto::AEADChaCha20Poly1305 (nonce /* can be anything */, 0, m_H, 32, m_CK + 32, nonce, out + offset, 16, true)) // encrypt, ciphertext = ENCRYPT(k, n, ZEROLEN, ad)
 		{
