@@ -533,7 +533,7 @@ namespace client
 		if (sendBuf)
 		{
 			if (m_SendQueue.GetSize () < I2CP_MAX_SEND_QUEUE_SIZE)
-				m_SendQueue.Add (sendBuf);
+				m_SendQueue.Add (std::move(sendBuf));
 			else
 			{
 				LogPrint (eLogWarning, "I2CP: Send queue size exceeds ", I2CP_MAX_SEND_QUEUE_SIZE);
@@ -1079,7 +1079,7 @@ namespace client
 		if (sendBuf)
 		{
 			if (m_SendQueue.GetSize () < I2CP_MAX_SEND_QUEUE_SIZE)
-				m_SendQueue.Add (sendBuf);
+				m_SendQueue.Add (std::move(sendBuf));
 			else
 			{
 				LogPrint (eLogWarning, "I2CP: Send queue size exceeds ", I2CP_MAX_SEND_QUEUE_SIZE);

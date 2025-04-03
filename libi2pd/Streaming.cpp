@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -19,39 +19,55 @@ namespace i2p
 {
 namespace stream
 {
-	void SendBufferQueue::Add (std::shared_ptr<SendBuffer> buf)
+	void SendBufferQueue::Add (std::shared_ptr<SendBuffer>&& buf)
 	{
 		if (buf)
 		{
-			m_Buffers.push_back (buf);
 			m_Size += buf->len;
+			m_Buffers.push_back (std::move (buf));
 		}
 	}
 
 	size_t SendBufferQueue::Get (uint8_t * buf, size_t len)
 	{
+		if (!m_Size) return 0;
 		size_t offset = 0;
-		while (!m_Buffers.empty () && offset < len)
+		if (len >= m_Size)
 		{
-			auto nextBuffer = m_Buffers.front ();
-			auto rem = nextBuffer->GetRemainingSize ();
-			if (offset + rem <= len)
+			for (auto& it: m_Buffers)
 			{
-				// whole buffer
-				memcpy (buf + offset, nextBuffer->GetRemaningBuffer (), rem);
+				auto rem = it->GetRemainingSize ();
+				memcpy (buf + offset, it->GetRemaningBuffer (), rem);
 				offset += rem;
-				m_Buffers.pop_front (); // delete it
 			}
-			else
+			m_Buffers.clear ();
+			m_Size = 0;
+			return offset;
+		}	
+		else
+		{	
+			while (!m_Buffers.empty () && offset < len)
 			{
-				// partially
-				rem = len - offset;
-				memcpy (buf + offset, nextBuffer->GetRemaningBuffer (), rem);
-				nextBuffer->offset += rem;
-				offset = len; // break
+				auto nextBuffer = m_Buffers.front ();
+				auto rem = nextBuffer->GetRemainingSize ();
+				if (offset + rem <= len)
+				{
+					// whole buffer
+					memcpy (buf + offset, nextBuffer->GetRemaningBuffer (), rem);
+					offset += rem;
+					m_Buffers.pop_front (); // delete it
+				}
+				else
+				{
+					// partially
+					rem = len - offset;
+					memcpy (buf + offset, nextBuffer->GetRemaningBuffer (), rem);
+					nextBuffer->offset += rem;
+					offset = len; // break
+				}
 			}
-		}
-		m_Size -= offset;
+			m_Size -= offset;
+		}	
 		return offset;
 	}
 
@@ -59,7 +75,7 @@ namespace stream
 	{
 		if (!m_Buffers.empty ())
 		{
-			for (auto it: m_Buffers)
+			for (auto& it: m_Buffers)
 				it->Cancel ();
 			m_Buffers.clear ();
 			m_Size = 0;
@@ -717,10 +733,10 @@ namespace stream
 		else if (handler)
 			handler(boost::system::error_code ());
 		auto s = shared_from_this ();
-		boost::asio::post (m_Service, [s, buffer]()
+		boost::asio::post (m_Service, [s, buffer = std::move(buffer)]() mutable
 			{
 				if (buffer)
-					s->m_SendBuffer.Add (buffer);
+					s->m_SendBuffer.Add (std::move(buffer));
 				s->SendBuffer ();
 			});	
 	}
