@@ -279,6 +279,8 @@ namespace garlic
 			void SaveTags ();
 			void LoadTags ();
 
+			virtual bool SupportsRatchets () const { return GetIdentity ()->GetCryptoKeyType () >= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD; }
+			
 		private:
 
 			void HandleAESBlock (uint8_t * buf, size_t len, std::shared_ptr<AESDecryption> decryption,

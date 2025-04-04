@@ -108,6 +108,8 @@ namespace client
 
 		protected:
 
+			// GarlicDestination
+			bool SupportsRatchets () const override { return (bool)m_ECIESx25519Decryptor; }
 			// LeaseSetDestination
 			void CleanupDestination () override;
 			i2p::data::CryptoKeyType GetPreferredCryptoType () const override;

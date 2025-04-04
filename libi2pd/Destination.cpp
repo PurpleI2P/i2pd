@@ -1533,6 +1533,12 @@ namespace client
 #endif		
 	}
 
+	bool ClientDestination::SupportsRatchets () const
+	{
+		if (m_EncryptionKeys.empty ()) return false;
+		return m_EncryptionKeys.rbegin ()->first >= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD;
+	}	
+		
 	const uint8_t * ClientDestination::GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const
 	{
 		auto it = m_EncryptionKeys.find (keyType);

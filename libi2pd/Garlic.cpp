@@ -498,7 +498,7 @@ namespace garlic
 		buf += 4; // length
 
 		bool found = false;
-		if (SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD))
+		if (SupportsRatchets ())
 			// try ECIESx25519 tag
 			found = HandleECIESx25519TagMessage (buf, length);
 		if (!found)
@@ -535,7 +535,7 @@ namespace garlic
 					decryption->Decrypt(buf + 514, length - 514, iv, buf + 514);
 					HandleAESBlock (buf + 514, length - 514, decryption, msg->from);
 				}
-				else if (SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD))
+				else if (SupportsRatchets ())
 				{
 					// otherwise ECIESx25519
 					auto ts = i2p::util::GetMillisecondsSinceEpoch ();
