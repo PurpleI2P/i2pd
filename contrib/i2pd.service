@@ -1,7 +1,8 @@
 [Unit]
 Description=I2P Router written in C++
 Documentation=man:i2pd(1) https://i2pd.readthedocs.io/en/latest/
-After=network.target
+Wants=network.target
+After=network.target network-online.target
 
 [Service]
 User=i2pd
