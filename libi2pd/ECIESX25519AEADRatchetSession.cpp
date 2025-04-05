@@ -274,22 +274,24 @@ namespace garlic
 			i2p::crypto::InitNoiseIKStateMLKEM512 (GetNoiseState (), GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)); // bpk
 			MixHash (m_Aepk, 32); // h = SHA256(h || aepk)
 
-			if (GetOwner ()->Decrypt (m_Aepk, sharedSecret, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, aepk)
+			if (GetOwner ()->Decrypt (m_Aepk, sharedSecret, i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)) // x25519(bsk, aepk)
 			{
 				MixKey (sharedSecret);
 				
 				uint8_t nonce[12], encapsKey[i2p::crypto::MLKEM512_KEY_LENGTH];
 				CreateNonce (n, nonce);
 				if (i2p::crypto::AEADChaCha20Poly1305 (buf, i2p::crypto::MLKEM512_KEY_LENGTH,
-					m_H, 32, m_CK + 32, nonce, encapsKey, i2p::crypto::MLKEM512_KEY_LENGTH , false)) // decrypt
+					m_H, 32, m_CK + 32, nonce, encapsKey, i2p::crypto::MLKEM512_KEY_LENGTH, false)) // decrypt
 				{
 					decrypted = true; // encaps section has right hash 
-					MixHash (buf, i2p::crypto::MLKEM512_KEY_LENGTH);
+					MixHash (buf, i2p::crypto::MLKEM512_KEY_LENGTH + 16);
+					buf += i2p::crypto::MLKEM512_KEY_LENGTH + 16;
+					len -= i2p::crypto::MLKEM512_KEY_LENGTH + 16;
 					n++;
 					
 					m_PQKeys = std::make_unique<i2p::crypto::MLKEM512Keys>();
 					m_PQKeys->SetPublicKey (encapsKey);
-				}	
+				}
 			}	
 		}	
 #endif
@@ -579,7 +581,7 @@ namespace garlic
 		CreateNonce (n, nonce);
 		const uint8_t * fs;
 		if (isStatic)
-			fs = GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD);
+			fs = GetOwner ()->GetEncryptionPublicKey (m_RemoteStaticKeyType);
 		else
 		{
 			memset (out + offset, 0, 32); // all zeros flags section
@@ -596,7 +598,7 @@ namespace garlic
 		// KDF2
 		if (isStatic)
 		{
-			GetOwner ()->Decrypt (m_RemoteStaticKey, sharedSecret, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519 (ask, bpk)
+			GetOwner ()->Decrypt (m_RemoteStaticKey, sharedSecret, m_RemoteStaticKeyType); // x25519 (ask, bpk)
 			MixKey (sharedSecret);
 		}
 		else
@@ -665,7 +667,7 @@ namespace garlic
 		{
 			uint8_t kemCiphertext[i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH];
 			m_PQKeys->Encaps (kemCiphertext, sharedSecret);
-
+			
 			if (!i2p::crypto::AEADChaCha20Poly1305 (kemCiphertext, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH,
 				m_H, 32, m_CK + 32, nonce, out + offset, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16, true)) // encrypt
 			{
@@ -761,7 +763,7 @@ namespace garlic
 			return false;
 		}
 		MixKey (sharedSecret);
-		GetOwner ()->Decrypt (bepk, sharedSecret, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519 (ask, bepk)
+		GetOwner ()->Decrypt (bepk, sharedSecret, m_RemoteStaticKeyType); // x25519 (ask, bepk)
 		MixKey (sharedSecret);
 
 		uint8_t nonce[12];
@@ -779,6 +781,7 @@ namespace garlic
 			}
 			MixHash (buf, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16);
 			buf += i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16;
+			len -= i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16;
 			// decaps
 			m_PQKeys->Decaps (kemCiphertext, sharedSecret);
 			MixKey (sharedSecret);
@@ -945,7 +948,11 @@ namespace garlic
 		if (!payload) return nullptr;
 		size_t len = CreatePayload (msg, m_State != eSessionStateEstablished, payload);
 		if (!len) return nullptr;
+#if OPENSSL_PQ
+		auto m = NewI2NPMessage (len + (m_State == eSessionStateEstablished ? 28 : i2p::crypto::MLKEM512_KEY_LENGTH + 116));
+#else		
 		auto m = NewI2NPMessage (len + 100); // 96 + 4
+#endif		
 		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
 		uint8_t * buf = m->GetPayload () + 4; // 4 bytes for length
 
@@ -960,11 +967,19 @@ namespace garlic
 				if (!NewOutgoingSessionMessage (payload, len, buf, m->maxLen))
 					return nullptr;
 				len += 96;
+#if OPENSSL_PQ
+				if (m_RemoteStaticKeyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
+					len += i2p::crypto::MLKEM512_KEY_LENGTH + 16;
+#endif				
 			break;
 			case eSessionStateNewSessionReceived:
 				if (!NewSessionReplyMessage (payload, len, buf, m->maxLen))
 					return nullptr;
 				len += 72;
+#if OPENSSL_PQ
+				if (m_RemoteStaticKeyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
+					len += i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16;
+#endif				
 			break;
 			case eSessionStateNewSessionReplySent:
 				if (!NextNewSessionReplyMessage (payload, len, buf, m->maxLen))
