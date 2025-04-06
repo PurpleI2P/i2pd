@@ -334,7 +334,10 @@ namespace garlic
 			// static key, fs is apk
 #if OPENSSL_PQ
 			if (m_PQKeys)
+			{	
 				SetRemoteStaticKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD, fs);
+				CreateNonce (0, nonce); // reset nonce
+			}	
 			else	
 #endif			
 				SetRemoteStaticKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD, fs); 
@@ -600,6 +603,10 @@ namespace garlic
 		{
 			GetOwner ()->Decrypt (m_RemoteStaticKey, sharedSecret, m_RemoteStaticKeyType); // x25519 (ask, bpk)
 			MixKey (sharedSecret);
+#if OPENSSL_PQ
+		if (m_RemoteStaticKeyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
+			CreateNonce (0, nonce); // reset nonce	
+#endif			
 		}
 		else
 			CreateNonce (1, nonce);
