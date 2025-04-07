@@ -821,6 +821,18 @@ namespace crypto
 
 // Noise
 
+	void NoiseSymmetricState::Init (const uint8_t * ck, const uint8_t * hh, const uint8_t * pub)
+	{
+		// pub is Bob's public static key, hh = SHA256(h)
+		memcpy (m_CK, ck, 32);
+		SHA256_CTX ctx;
+		SHA256_Init (&ctx);
+		SHA256_Update (&ctx, hh, 32);
+		SHA256_Update (&ctx, pub, 32);
+		SHA256_Final (m_H, &ctx); // h = MixHash(pub) = SHA256(hh || pub)
+		m_N = 0;
+	}	
+	
 	void NoiseSymmetricState::MixHash (const uint8_t * buf, size_t len)
 	{
 		SHA256_CTX ctx;
@@ -844,20 +856,39 @@ namespace crypto
 	{
 		HKDF (m_CK, sharedSecret, 32, "", m_CK);
 		// new ck is m_CK[0:31], key is m_CK[32:63]
+		m_N = 0;
 	}
 
-	static void InitNoiseState (NoiseSymmetricState& state, const uint8_t * ck,
-		const uint8_t * hh, const uint8_t * pub)
+	bool NoiseSymmetricState::Encrypt (const uint8_t * in, uint8_t * out, size_t len)
 	{
-		// pub is Bob's public static key, hh = SHA256(h)
-		memcpy (state.m_CK, ck, 32);
-		SHA256_CTX ctx;
-		SHA256_Init (&ctx);
-		SHA256_Update (&ctx, hh, 32);
-		SHA256_Update (&ctx, pub, 32);
-		SHA256_Final (state.m_H, &ctx); // h = MixHash(pub) = SHA256(hh || pub)
+		uint8_t nonce[12];
+		if (m_N)
+		{	
+			memset (nonce, 0, 4);
+			htole64buf (nonce + 4, m_N);
+		}	
+		else
+			memset (nonce, 0, 12);
+		auto ret = AEADChaCha20Poly1305 (in, len, m_H, 32, m_CK + 32, nonce, out, len + 16, true);
+		if (ret) m_N++;
+		return ret;
 	}
 
+	bool NoiseSymmetricState::Decrypt (const uint8_t * in, uint8_t * out, size_t len)
+	{
+		uint8_t nonce[12];
+		if (m_N)
+		{	
+			memset (nonce, 0, 4);
+			htole64buf (nonce + 4, m_N);
+		}
+		else
+			memset (nonce, 0, 12);
+		auto ret = AEADChaCha20Poly1305 (in, len, m_H, 32, m_CK + 32, nonce, out, len, false);
+		if (ret) m_N++;
+		return ret;
+	}	
+	
 	void InitNoiseNState (NoiseSymmetricState& state, const uint8_t * pub)
 	{
 		static constexpr char protocolName[] = "Noise_N_25519_ChaChaPoly_SHA256"; // 31 chars
@@ -866,7 +897,7 @@ namespace crypto
 			0x69, 0x4d, 0x52, 0x44, 0x5a, 0x27, 0xd9, 0xad, 0xfa, 0xd2, 0x9c, 0x76, 0x32, 0x39, 0x5d, 0xc1,
 			0xe4, 0x35, 0x4c, 0x69, 0xb4, 0xf9, 0x2e, 0xac, 0x8a, 0x1e, 0xe4, 0x6a, 0x9e, 0xd2, 0x15, 0x54
 		}; // hh = SHA256(protocol_name || 0)
-		InitNoiseState (state, (const uint8_t *)protocolName, hh, pub); // ck = protocol_name || 0
+		state.Init ((const uint8_t *)protocolName, hh, pub); // ck = protocol_name || 0
 	}
 
 	void InitNoiseXKState (NoiseSymmetricState& state, const uint8_t * pub)
@@ -881,7 +912,7 @@ namespace crypto
 			0x49, 0xff, 0x48, 0x3f, 0xc4, 0x04, 0xb9, 0xb2, 0x6b, 0x11, 0x94, 0x36, 0x72, 0xff, 0x05, 0xb5,
 			0x61, 0x27, 0x03, 0x31, 0xba, 0x89, 0xb8, 0xfc, 0x33, 0x15, 0x93, 0x87, 0x57, 0xdd, 0x3d, 0x1e
 		}; // SHA256 (protocolNameHash)
-		InitNoiseState (state, protocolNameHash, hh, pub);
+		state.Init (protocolNameHash, hh, pub);
 	}
 
 	void InitNoiseXKState1 (NoiseSymmetricState& state, const uint8_t * pub)
@@ -896,7 +927,7 @@ namespace crypto
 			0xdc, 0x85, 0xe6, 0xaf, 0x7b, 0x02, 0x65, 0x0c, 0xf1, 0xf9, 0x0d, 0x71, 0xfb, 0xc6, 0xd4, 0x53,
 			0xa7, 0xcf, 0x6d, 0xbf, 0xbd, 0x52, 0x5e, 0xa5, 0xb5, 0x79, 0x1c, 0x47, 0xb3, 0x5e, 0xbc, 0x33
 		}; // SHA256 (protocolNameHash)
-		InitNoiseState (state, protocolNameHash, hh, pub);
+		state.Init (protocolNameHash, hh, pub);
 	}
 
 	void InitNoiseIKState (NoiseSymmetricState& state, const uint8_t * pub)
@@ -911,7 +942,7 @@ namespace crypto
 			0x9c, 0xcf, 0x85, 0x2c, 0xc9, 0x3b, 0xb9, 0x50, 0x44, 0x41, 0xe9, 0x50, 0xe0, 0x1d, 0x52, 0x32,
 			0x2e, 0x0d, 0x47, 0xad, 0xd1, 0xe9, 0xa5, 0x55, 0xf7, 0x55, 0xb5, 0x69, 0xae, 0x18, 0x3b, 0x5c
 		}; // SHA256 (protocolNameHash)
-		InitNoiseState (state, protocolNameHash, hh, pub);
+		state.Init (protocolNameHash, hh, pub);
 	}
 
 	void InitNoiseIKStateMLKEM512 (NoiseSymmetricState& state, const uint8_t * pub)
@@ -926,7 +957,7 @@ namespace crypto
 			0x95, 0x8d, 0xf6, 0x6c, 0x95, 0xce, 0xa9, 0xf7, 0x42, 0xfc, 0xfa, 0x62, 0x71, 0x36, 0x1e, 0xa7,
 			0xdc, 0x7a, 0xc0, 0x75, 0x01, 0xcf, 0xf9, 0xfc, 0x9f, 0xdb, 0x4c, 0x68, 0x3a, 0x53, 0x49, 0xeb
 		}; // SHA256 (protocolNameHash)
-		InitNoiseState (state, protocolNameHash, hh, pub);
+		state.Init (protocolNameHash, hh, pub);
 	}	
 		
 // init and terminate

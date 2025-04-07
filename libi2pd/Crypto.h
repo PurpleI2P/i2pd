@@ -255,10 +255,16 @@ namespace crypto
 	struct NoiseSymmetricState
 	{
 		uint8_t m_H[32] /*h*/, m_CK[64] /*[ck, k]*/;
+		uint64_t m_N;
 
+		void Init (const uint8_t * ck, const uint8_t * hh, const uint8_t * pub);
+		
 		void MixHash (const uint8_t * buf, size_t len);
 		void MixHash (const std::vector<std::pair<uint8_t *, size_t> >& bufs);
 		void MixKey (const uint8_t * sharedSecret);
+
+		bool Encrypt (const uint8_t * in, uint8_t * out, size_t len); // out length = len + 16
+		bool Decrypt (const uint8_t * in, uint8_t * out, size_t len); // len without 16 bytes tag
 	};
 
 	void InitNoiseNState (NoiseSymmetricState& state, const uint8_t * pub); // Noise_N (tunnels, router)

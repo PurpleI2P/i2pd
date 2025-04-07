@@ -559,29 +559,22 @@ namespace garlic
 			return false;
 		}
 		MixKey (sharedSecret);
-		uint64_t n = 0; // seqn
 #if OPENSSL_PQ
 		if (m_RemoteStaticKeyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
 		{
 			uint8_t encapsKey[i2p::crypto::MLKEM512_KEY_LENGTH];
 			m_PQKeys->GetPublicKey (encapsKey);
 			// encrypt encapsKey 
-			uint8_t nonce[12];
-			CreateNonce (n, nonce);
-			if (!i2p::crypto::AEADChaCha20Poly1305 (encapsKey, i2p::crypto::MLKEM512_KEY_LENGTH,
-				m_H, 32, m_CK + 32, nonce, out + offset, i2p::crypto::MLKEM512_KEY_LENGTH + 16, true)) // encrypt
+			if (!Encrypt (encapsKey, out + offset, i2p::crypto::MLKEM512_KEY_LENGTH))
 			{
 				LogPrint (eLogWarning, "Garlic: ML-KEM encap_key section AEAD encryption failed ");
 				return false;
 			}
 			MixHash (out + offset, i2p::crypto::MLKEM512_KEY_LENGTH + 16); // h = SHA256(h || ciphertext)
 			offset += i2p::crypto::MLKEM512_KEY_LENGTH + 16;
-			n++;
 		}	
 #endif		
 		// encrypt flags/static key section
-		uint8_t nonce[12];
-		CreateNonce (n, nonce);
 		const uint8_t * fs;
 		if (isStatic)
 			fs = GetOwner ()->GetEncryptionPublicKey (m_RemoteStaticKeyType);
@@ -590,7 +583,7 @@ namespace garlic
 			memset (out + offset, 0, 32); // all zeros flags section
 			fs = out + offset;
 		}
-		if (!i2p::crypto::AEADChaCha20Poly1305 (fs, 32, m_H, 32, m_CK + 32, nonce, out + offset, 48, true)) // encrypt
+		if (!Encrypt (fs, out + offset, 32)) 
 		{
 			LogPrint (eLogWarning, "Garlic: Flags/static section AEAD encryption failed ");
 			return false;
@@ -602,16 +595,10 @@ namespace garlic
 		if (isStatic)
 		{
 			GetOwner ()->Decrypt (m_RemoteStaticKey, sharedSecret, m_RemoteStaticKeyType); // x25519 (ask, bpk)
-			MixKey (sharedSecret);
-#if OPENSSL_PQ
-		if (m_RemoteStaticKeyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
-			CreateNonce (0, nonce); // reset nonce	
-#endif			
+			MixKey (sharedSecret);	
 		}
-		else
-			CreateNonce (1, nonce);
 		// encrypt payload
-		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, m_CK + 32, nonce, out + offset, len + 16, true)) // encrypt
+		if (!Encrypt (payload, out + offset, len))
 		{
 			LogPrint (eLogWarning, "Garlic: Payload section AEAD encryption failed");
 			return false;
@@ -667,16 +654,13 @@ namespace garlic
 		}
 		MixKey (sharedSecret);
 		
-		uint8_t nonce[12];
-		CreateNonce (0, nonce);
 #if OPENSSL_PQ
 		if (m_PQKeys)
 		{
 			uint8_t kemCiphertext[i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH];
 			m_PQKeys->Encaps (kemCiphertext, sharedSecret);
 			
-			if (!i2p::crypto::AEADChaCha20Poly1305 (kemCiphertext, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH,
-				m_H, 32, m_CK + 32, nonce, out + offset, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16, true)) // encrypt
+			if (!Encrypt (kemCiphertext, out + offset, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH))
 			{
 				LogPrint (eLogWarning, "Garlic: NSR ML-KEM ciphertext section AEAD encryption failed");
 				return false;
@@ -687,7 +671,7 @@ namespace garlic
 		}	
 #endif		
 		// calculate hash for zero length
-		if (!i2p::crypto::AEADChaCha20Poly1305 (nonce /* can be anything */, 0, m_H, 32, m_CK + 32, nonce, out + offset, 16, true)) // encrypt, ciphertext = ENCRYPT(k, n, ZEROLEN, ad)
+		if (!Encrypt (sharedSecret /* can be anything */, out + offset, 0)) // encrypt, ciphertext = ENCRYPT(k, n, ZEROLEN, ad)
 		{
 			LogPrint (eLogWarning, "Garlic: Reply key section AEAD encryption failed");
 			return false;
@@ -708,6 +692,7 @@ namespace garlic
 			GetOwner ()->GetNumRatchetInboundTags () : ECIESX25519_MIN_NUM_GENERATED_TAGS);
 		i2p::crypto::HKDF (keydata + 32, nullptr, 0, "AttachPayloadKDF", m_NSRKey, 32); // k = HKDF(k_ba, ZEROLEN, "AttachPayloadKDF", 32)
 		// encrypt payload
+		uint8_t nonce[12]; memset (nonce, 0, 12); // seqn = 0
 		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, m_NSRKey, nonce, out + offset, len + 16, true)) // encrypt
 		{
 			LogPrint (eLogWarning, "Garlic: NSR payload section AEAD encryption failed");
@@ -729,16 +714,22 @@ namespace garlic
 		memcpy (m_H, m_NSRH, 32);
 		MixHash ((const uint8_t *)&tag, 8); // h = SHA256(h || tag)
 		MixHash (m_EphemeralKeys->GetPublicKey (), 32); // h = SHA256(h || bepk)
-		uint8_t nonce[12];
-		CreateNonce (0, nonce);
-		if (!i2p::crypto::AEADChaCha20Poly1305 (nonce /* can be anything */, 0, m_H, 32, m_CK + 32, nonce, out + 40, 16, true)) // encrypt, ciphertext = ENCRYPT(k, n, ZEROLEN, ad)
+		m_N = 0;
+		size_t offset = 40;
+#if OPENSSL_PQ		
+		if (m_PQKeys)
+			// TODO: encrypted ML-KEM section
+			offset += i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16;
+#endif
+		if (!Encrypt (m_NSRH /* can be anything */, out + offset, 0)) // encrypt, ciphertext = ENCRYPT(k, n, ZEROLEN, ad)
 		{
 			LogPrint (eLogWarning, "Garlic: Reply key section AEAD encryption failed");
 			return false;
 		}
-		MixHash (out + 40, 16); // h = SHA256(h || ciphertext)
+		MixHash (out + offset, 16); // h = SHA256(h || ciphertext)
 		// encrypt payload
-		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, m_NSRKey, nonce, out + 56, len + 16, true)) // encrypt
+		uint8_t nonce[12]; memset (nonce, 0, 12);
+		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, m_NSRKey, nonce, out + offset + 16, len + 16, true)) // encrypt
 		{
 			LogPrint (eLogWarning, "Garlic: Next NSR payload section AEAD encryption failed");
 			return false;
@@ -773,15 +764,12 @@ namespace garlic
 		GetOwner ()->Decrypt (bepk, sharedSecret, m_RemoteStaticKeyType); // x25519 (ask, bepk)
 		MixKey (sharedSecret);
 
-		uint8_t nonce[12];
-		CreateNonce (0, nonce);
 #if OPENSSL_PQ
 		if (m_RemoteStaticKeyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
 		{
 			// decrypt kem_ciphertext section
 			uint8_t kemCiphertext[i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH];
-			if (!i2p::crypto::AEADChaCha20Poly1305 (buf, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH, 
-				m_H, 32, m_CK + 32, nonce, kemCiphertext, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH, false)) // decrypt, DECRYPT(k, n, ZEROLEN, ad) verification only
+			if (!Decrypt (buf, kemCiphertext, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH))
 			{
 				LogPrint (eLogWarning, "Garlic: Reply ML-KEM ciphertext section AEAD decryption failed");
 				return false;
@@ -795,7 +783,7 @@ namespace garlic
 		}
 #endif		
 		// calculate hash for zero length
-		if (!i2p::crypto::AEADChaCha20Poly1305 (buf, 0, m_H, 32, m_CK + 32, nonce, sharedSecret/* can be anything */, 0, false)) // decrypt, DECRYPT(k, n, ZEROLEN, ad) verification only
+		if (!Decrypt (buf, sharedSecret/* can be anything */, 0)) // decrypt, DECRYPT(k, n, ZEROLEN, ad) verification only
 		{
 			LogPrint (eLogWarning, "Garlic: Reply key section AEAD decryption failed");
 			return false;
@@ -820,6 +808,7 @@ namespace garlic
 		}
 		i2p::crypto::HKDF (keydata + 32, nullptr, 0, "AttachPayloadKDF", keydata, 32); // k = HKDF(k_ba, ZEROLEN, "AttachPayloadKDF", 32)
 		// decrypt payload
+		uint8_t nonce[12]; memset (nonce, 0, 12); // seqn = 0
 		if (!i2p::crypto::AEADChaCha20Poly1305 (buf, len - 16, m_H, 32, keydata, nonce, buf, len - 16, false)) // decrypt
 		{
 			LogPrint (eLogWarning, "Garlic: Payload section AEAD decryption failed");
