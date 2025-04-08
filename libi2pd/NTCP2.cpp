@@ -145,10 +145,12 @@ namespace transport
 		// 2 bytes reserved
 		htobe32buf (options + 8, (i2p::util::GetMillisecondsSinceEpoch () + 500)/1000); // tsA, rounded to seconds
 		// 4 bytes reserved
-		// sign and encrypt options, use m_H as AD
-		uint8_t nonce[12];
-		memset (nonce, 0, 12); // set nonce to zero
-		i2p::crypto::AEADChaCha20Poly1305 (options, 16, GetH (), 32, GetK (), nonce, m_SessionRequestBuffer + 32, 32, true); // encrypt
+		// encrypt options
+		if (!Encrypt (options, m_SessionRequestBuffer + 32, 16))
+		{
+			LogPrint (eLogWarning, "NTCP2: SessionRequest failed to encrypt options");
+			return false;
+		}	
 		return true;
 	}
 
@@ -167,14 +169,16 @@ namespace transport
 		memset (options, 0, 16);
 		htobe16buf (options + 2, paddingLen); // padLen
 		htobe32buf (options + 8, (i2p::util::GetMillisecondsSinceEpoch () + 500)/1000); // tsB, rounded to seconds
-		// sign and encrypt options, use m_H as AD
-		uint8_t nonce[12];
-		memset (nonce, 0, 12); // set nonce to zero
-		i2p::crypto::AEADChaCha20Poly1305 (options, 16, GetH (), 32, GetK (), nonce, m_SessionCreatedBuffer + 32, 32, true); // encrypt
+		// encrypt options
+		if (!Encrypt (options, m_SessionCreatedBuffer + 32, 16))
+		{
+			LogPrint (eLogWarning, "NTCP2: SessionCreated failed to encrypt options");
+			return false;
+		}	
 		return true;
 	}
 
-	void NTCP2Establisher::CreateSessionConfirmedMessagePart1 (const uint8_t * nonce)
+	bool NTCP2Establisher::CreateSessionConfirmedMessagePart1 ()
 	{
 		// update AD
 		MixHash (m_SessionCreatedBuffer + 32, 32);	// encrypted payload
@@ -182,19 +186,28 @@ namespace transport
 		if (paddingLength > 0)
 			MixHash (m_SessionCreatedBuffer + 64, paddingLength);
 
-		// part1 48 bytes
-		i2p::crypto::AEADChaCha20Poly1305 (i2p::context.GetNTCP2StaticPublicKey (), 32, GetH (), 32, GetK (), nonce, m_SessionConfirmedBuffer, 48, true); // encrypt
+		// part1 48 bytes, n = 1
+		if (!Encrypt (i2p::context.GetNTCP2StaticPublicKey (), m_SessionConfirmedBuffer, 32))
+		{
+			LogPrint (eLogWarning, "NTCP2: SessionConfirmed failed to encrypt part1");
+			return false;
+		}	
+		return true;		
 	}
 
-	bool NTCP2Establisher::CreateSessionConfirmedMessagePart2 (const uint8_t * nonce)
+	bool NTCP2Establisher::CreateSessionConfirmedMessagePart2 ()
 	{
 		// part 2
 		// update AD again
 		MixHash (m_SessionConfirmedBuffer, 48);
 		// encrypt m3p2, it must be filled in SessionRequest
-		if (!KDF3Alice ()) return false;
+		if (!KDF3Alice ()) return false; // MixKey, n = 0
 		uint8_t * m3p2 = m_SessionConfirmedBuffer + 48;
-		i2p::crypto::AEADChaCha20Poly1305 (m3p2, m3p2Len - 16, GetH (), 32, GetK (), nonce, m3p2, m3p2Len, true); // encrypt
+		if (!Encrypt (m3p2, m3p2, m3p2Len - 16))
+		{
+			LogPrint (eLogWarning, "NTCP2: SessionConfirmed failed to encrypt part2");
+			return false;
+		}	
 		// update h again
 		MixHash (m3p2, m3p2Len); //h = SHA256(h || ciphertext)
 		return true;
@@ -214,10 +227,9 @@ namespace transport
 			LogPrint (eLogWarning, "NTCP2: SessionRequest KDF failed");
 			return false;
 		}	
-		// verify MAC and decrypt options block (32 bytes), use m_H as AD
-		uint8_t nonce[12], options[16];
-		memset (nonce, 0, 12); // set nonce to zero
-		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionRequestBuffer + 32, 16, GetH (), 32, GetK (), nonce, options, 16, false)) // decrypt
+		// verify MAC and decrypt options block (32 bytes)
+		uint8_t options[16];
+		if (Decrypt (m_SessionRequestBuffer + 32, options, 16)) 
 		{
 			// options
 			if (options[0] && options[0] != i2p::context.GetNetID ())
@@ -274,9 +286,7 @@ namespace transport
 		}	
 		// decrypt and verify MAC
 		uint8_t payload[16];
-		uint8_t nonce[12];
-		memset (nonce, 0, 12); // set nonce to zero
-		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionCreatedBuffer + 32, 16, GetH (), 32, GetK (), nonce, payload, 16, false)) // decrypt
+		if (Decrypt (m_SessionCreatedBuffer + 32, payload, 16)) 
 		{
 			// options
 			paddingLen = bufbe16toh(payload + 2);
@@ -297,7 +307,7 @@ namespace transport
 		return true;
 	}
 
-	bool NTCP2Establisher::ProcessSessionConfirmedMessagePart1 (const uint8_t * nonce)
+	bool NTCP2Establisher::ProcessSessionConfirmedMessagePart1 ()
 	{
 		// update AD
 		MixHash (m_SessionCreatedBuffer + 32, 32);	// encrypted payload
@@ -305,7 +315,8 @@ namespace transport
 		if (paddingLength > 0)
 			MixHash (m_SessionCreatedBuffer + 64, paddingLength);
 
-		if (!i2p::crypto::AEADChaCha20Poly1305 (m_SessionConfirmedBuffer, 32, GetH (), 32, GetK (), nonce, m_RemoteStaticKey, 32, false)) // decrypt S
+		// decrypt S, n = 1
+		if (!Decrypt (m_SessionConfirmedBuffer, m_RemoteStaticKey, 32))
 		{
 			LogPrint (eLogWarning, "NTCP2: SessionConfirmed Part1 AEAD verification failed ");
 			return false;
@@ -313,17 +324,17 @@ namespace transport
 		return true;
 	}
 
-	bool NTCP2Establisher::ProcessSessionConfirmedMessagePart2 (const uint8_t * nonce, uint8_t * m3p2Buf)
+	bool NTCP2Establisher::ProcessSessionConfirmedMessagePart2 (uint8_t * m3p2Buf)
 	{
 		// update AD again
 		MixHash (m_SessionConfirmedBuffer, 48);
 
-		if (!KDF3Bob ())
+		if (!KDF3Bob ()) // MixKey, n = 0
 		{
 			LogPrint (eLogWarning, "NTCP2: SessionConfirmed Part2 KDF failed");
 			return false;
 		}	
-		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionConfirmedBuffer + 48, m3p2Len - 16, GetH (), 32, GetK (), nonce, m3p2Buf, m3p2Len - 16, false)) // decrypt
+		if (Decrypt (m_SessionConfirmedBuffer + 48, m3p2Buf, m3p2Len - 16))
 			// calculate new h again for KDF data
 			MixHash (m_SessionConfirmedBuffer + 48, m3p2Len); // h = SHA256(h || ciphertext)
 		else
@@ -657,11 +668,12 @@ namespace transport
 
 	void NTCP2Session::SendSessionConfirmed ()
 	{
-		uint8_t nonce[12];
-		CreateNonce (1, nonce); // set nonce to 1
-		m_Establisher->CreateSessionConfirmedMessagePart1 (nonce);
-		memset (nonce, 0, 12); // set nonce back to 0
-		if (!m_Establisher->CreateSessionConfirmedMessagePart2 (nonce))
+		if (!m_Establisher->CreateSessionConfirmedMessagePart1 ()) 
+		{
+			boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+			return;
+		}	
+		if (!m_Establisher->CreateSessionConfirmedMessagePart2 ())
 		{
 			LogPrint (eLogWarning, "NTCP2: Send SessionConfirmed Part2 KDF failed");
 			boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
@@ -740,14 +752,11 @@ namespace transport
 		// run on establisher thread
 		LogPrint (eLogDebug, "NTCP2: SessionConfirmed received");
 		// part 1
-		uint8_t nonce[12];
-		CreateNonce (1, nonce);
-		if (m_Establisher->ProcessSessionConfirmedMessagePart1 (nonce))
+		if (m_Establisher->ProcessSessionConfirmedMessagePart1 ())
 		{
 			// part 2
 			auto buf = std::make_shared<std::vector<uint8_t> > (m_Establisher->m3p2Len - 16); // -MAC
-			memset (nonce, 0, 12); // set nonce to 0 again
-			if (m_Establisher->ProcessSessionConfirmedMessagePart2 (nonce, buf->data ())) // TODO:handle in establisher thread
+			if (m_Establisher->ProcessSessionConfirmedMessagePart2 (buf->data ())) // TODO:handle in establisher thread
 			{
 				// payload 
 				// RI block must be first 

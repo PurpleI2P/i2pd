@@ -91,7 +91,6 @@ namespace transport
 		const uint8_t * GetRemotePub () const { return m_RemoteEphemeralPublicKey; }; // Y for Alice and X for Bob
 		uint8_t * GetRemotePub () { return m_RemoteEphemeralPublicKey; }; // to set
 
-		const uint8_t * GetK () const { return m_CK + 32; };
 		const uint8_t * GetCK () const { return m_CK; };
 		const uint8_t * GetH () const { return m_H; };
 
@@ -108,13 +107,13 @@ namespace transport
 
 		bool CreateSessionRequestMessage (std::mt19937& rng);
 		bool CreateSessionCreatedMessage (std::mt19937& rng);
-		void CreateSessionConfirmedMessagePart1 (const uint8_t * nonce);
-		bool CreateSessionConfirmedMessagePart2 (const uint8_t * nonce);
+		bool CreateSessionConfirmedMessagePart1 ();
+		bool CreateSessionConfirmedMessagePart2 ();
 
 		bool ProcessSessionRequestMessage (uint16_t& paddingLen, bool& clockSkew);
 		bool ProcessSessionCreatedMessage (uint16_t& paddingLen);
-		bool ProcessSessionConfirmedMessagePart1 (const uint8_t * nonce);
-		bool ProcessSessionConfirmedMessagePart2 (const uint8_t * nonce, uint8_t * m3p2Buf);
+		bool ProcessSessionConfirmedMessagePart1 ();
+		bool ProcessSessionConfirmedMessagePart2 (uint8_t * m3p2Buf);
 
 		std::shared_ptr<i2p::crypto::X25519Keys> m_EphemeralKeys;
 		uint8_t m_RemoteEphemeralPublicKey[32]; // x25519
