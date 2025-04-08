@@ -665,6 +665,8 @@ namespace garlic
 				LogPrint (eLogWarning, "Garlic: NSR ML-KEM ciphertext section AEAD encryption failed");
 				return false;
 			}
+			m_NSREncodedPQKey = std::make_unique<std::array<uint8_t, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16> >();
+			memcpy (m_NSREncodedPQKey->data (), out + offset, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16);
 			MixHash (out + offset, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16);
 			MixKey (sharedSecret);
 			offset += i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16;
@@ -718,8 +720,19 @@ namespace garlic
 		size_t offset = 40;
 #if OPENSSL_PQ		
 		if (m_PQKeys)
-			// TODO: encrypted ML-KEM section
-			offset += i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16;
+		{	
+			if (m_NSREncodedPQKey)
+			{	
+				memcpy (out + offset, m_NSREncodedPQKey->data (), i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16);
+				MixHash (out + offset, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16);
+				offset += i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16;
+			}
+			else
+			{
+				LogPrint (eLogWarning, "Garlic: No stored ML-KEM keys");
+				return false;
+			}
+		}
 #endif
 		if (!Encrypt (m_NSRH /* can be anything */, out + offset, 0)) // encrypt, ciphertext = ENCRYPT(k, n, ZEROLEN, ad)
 		{
@@ -914,6 +927,10 @@ namespace garlic
 				m_State = eSessionStateEstablished;
 				m_NSRSendTagset = nullptr;
 				m_EphemeralKeys = nullptr;
+#if OPENSSL_PQ
+				m_PQKeys = nullptr;
+				m_NSREncodedPQKey = nullptr;
+#endif				
 				[[fallthrough]];
 			case eSessionStateEstablished:
 				if (m_SendReverseKey && receiveTagset->GetTagSetID () == m_NextReceiveRatchet->GetReceiveTagSetID ())

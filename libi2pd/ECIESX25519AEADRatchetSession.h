@@ -14,6 +14,7 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include <array>
 #include <list>
 #include <unordered_map>
 #include "Identity.h"
@@ -228,6 +229,7 @@ namespace garlic
 			std::shared_ptr<i2p::crypto::X25519Keys> m_EphemeralKeys;
 #if OPENSSL_PQ	
 			std::unique_ptr<i2p::crypto::MLKEM512Keys> m_PQKeys;
+			std::unique_ptr<std::array<uint8_t, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16> > m_NSREncodedPQKey;
 #endif			
 			SessionState m_State = eSessionStateNew;
 			uint64_t m_SessionCreatedTimestamp = 0, m_LastActivityTimestamp = 0, // incoming (in seconds)
