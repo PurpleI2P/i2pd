@@ -11,7 +11,10 @@
 
 #include <inttypes.h>
 #include <string>
+#include <string_view>
 #include <vector>
+#include <array>
+#include <tuple>
 #include <openssl/bn.h>
 #include <openssl/dh.h>
 #include <openssl/aes.h>
@@ -279,14 +282,13 @@ namespace crypto
 
 #if OPENSSL_PQ	
 // Post Quantum
-	constexpr size_t MLKEM512_KEY_LENGTH = 800;
-	constexpr size_t MLKEM512_CIPHER_TEXT_LENGTH = 768;
-	class MLKEM512Keys
+	
+	class MLKEMKeys
 	{
 		public:
 
-			MLKEM512Keys ();
-			~MLKEM512Keys ();
+			MLKEMKeys (std::string_view name, size_t keyLen, size_t ctLen);
+			~MLKEMKeys ();
 
 			void GenerateKeys ();
 			void GetPublicKey (uint8_t * pub) const;
@@ -296,8 +298,26 @@ namespace crypto
 			
 		private:
 
+			const std::string m_Name;
+			const size_t m_KeyLen, m_CTLen;
 			EVP_PKEY * m_Pkey;		
 	};
+
+	constexpr size_t MLKEM512_KEY_LENGTH = 800;
+	constexpr size_t MLKEM512_CIPHER_TEXT_LENGTH = 768;
+
+	constexpr std::array<std::tuple<std::string_view, size_t, size_t>, 1> MLKEMS =
+	{
+		std::make_tuple ("ML-KEM-512", MLKEM512_KEY_LENGTH, MLKEM512_CIPHER_TEXT_LENGTH)
+	};	
+	
+	class MLKEM512Keys: public MLKEMKeys
+	{
+		public:
+
+			MLKEM512Keys (): MLKEMKeys (std::get<0>(MLKEMS[0]), std::get<1>(MLKEMS[0]), std::get<2>(MLKEMS[0])) {}
+	};
+		
 #endif	
 }
 }

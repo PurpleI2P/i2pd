@@ -11,6 +11,7 @@
 #include "Log.h"
 #include "util.h"
 #include "Crypto.h"
+#include "CryptoKey.h"
 #include "Elligator.h"
 #include "Tag.h"
 #include "I2PEndian.h"
@@ -560,18 +561,19 @@ namespace garlic
 		}
 		MixKey (sharedSecret);
 #if OPENSSL_PQ
-		if (m_RemoteStaticKeyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
+		if (m_RemoteStaticKeyType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
 		{
-			uint8_t encapsKey[i2p::crypto::MLKEM512_KEY_LENGTH];
-			m_PQKeys->GetPublicKey (encapsKey);
+			auto keyLen = i2p::crypto::GetMLKEMPublicKeyLen (m_RemoteStaticKeyType);
+			std::vector<uint8_t> encapsKey(keyLen);
+			m_PQKeys->GetPublicKey (encapsKey.data ());
 			// encrypt encapsKey 
-			if (!Encrypt (encapsKey, out + offset, i2p::crypto::MLKEM512_KEY_LENGTH))
+			if (!Encrypt (encapsKey.data (), out + offset, keyLen))
 			{
 				LogPrint (eLogWarning, "Garlic: ML-KEM encap_key section AEAD encryption failed ");
 				return false;
 			}
-			MixHash (out + offset, i2p::crypto::MLKEM512_KEY_LENGTH + 16); // h = SHA256(h || ciphertext)
-			offset += i2p::crypto::MLKEM512_KEY_LENGTH + 16;
+			MixHash (out + offset, keyLen + 16); // h = SHA256(h || ciphertext)
+			offset += keyLen + 16;
 		}	
 #endif		
 		// encrypt flags/static key section
@@ -657,19 +659,20 @@ namespace garlic
 #if OPENSSL_PQ
 		if (m_PQKeys)
 		{
-			uint8_t kemCiphertext[i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH];
-			m_PQKeys->Encaps (kemCiphertext, sharedSecret);
+			size_t cipherTextLen = i2p::crypto::GetMLKEMCipherTextLen (m_RemoteStaticKeyType);
+			std::vector<uint8_t> kemCiphertext(cipherTextLen);
+			m_PQKeys->Encaps (kemCiphertext.data (), sharedSecret);
 			
-			if (!Encrypt (kemCiphertext, out + offset, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH))
+			if (!Encrypt (kemCiphertext.data (), out + offset, cipherTextLen))
 			{
 				LogPrint (eLogWarning, "Garlic: NSR ML-KEM ciphertext section AEAD encryption failed");
 				return false;
 			}
-			m_NSREncodedPQKey = std::make_unique<std::array<uint8_t, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16> >();
-			memcpy (m_NSREncodedPQKey->data (), out + offset, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16);
-			MixHash (out + offset, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16);
+			m_NSREncodedPQKey = std::make_unique<std::vector<uint8_t> > (cipherTextLen + 16);
+			memcpy (m_NSREncodedPQKey->data (), out + offset, cipherTextLen + 16);
+			MixHash (out + offset, cipherTextLen + 16);
 			MixKey (sharedSecret);
-			offset += i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16;
+			offset += cipherTextLen + 16;
 		}	
 #endif		
 		// calculate hash for zero length
@@ -723,9 +726,10 @@ namespace garlic
 		{	
 			if (m_NSREncodedPQKey)
 			{	
-				memcpy (out + offset, m_NSREncodedPQKey->data (), i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16);
-				MixHash (out + offset, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16);
-				offset += i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16;
+				size_t cipherTextLen = i2p::crypto::GetMLKEMCipherTextLen (m_RemoteStaticKeyType);
+				memcpy (out + offset, m_NSREncodedPQKey->data (), cipherTextLen + 16);
+				MixHash (out + offset, cipherTextLen + 16);
+				offset += cipherTextLen + 16;
 			}
 			else
 			{
@@ -778,20 +782,21 @@ namespace garlic
 		MixKey (sharedSecret);
 
 #if OPENSSL_PQ
-		if (m_RemoteStaticKeyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
+		if (m_RemoteStaticKeyType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
 		{
 			// decrypt kem_ciphertext section
-			uint8_t kemCiphertext[i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH];
-			if (!Decrypt (buf, kemCiphertext, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH))
+			size_t cipherTextLen = i2p::crypto::GetMLKEMCipherTextLen (m_RemoteStaticKeyType);
+			std::vector<uint8_t> kemCiphertext(cipherTextLen);
+			if (!Decrypt (buf, kemCiphertext.data (), cipherTextLen))
 			{
 				LogPrint (eLogWarning, "Garlic: Reply ML-KEM ciphertext section AEAD decryption failed");
 				return false;
 			}
-			MixHash (buf, i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16);
-			buf += i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16;
-			len -= i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16;
+			MixHash (buf, cipherTextLen + 16);
+			buf += cipherTextLen + 16;
+			len -= cipherTextLen + 16;
 			// decaps
-			m_PQKeys->Decaps (kemCiphertext, sharedSecret);
+			m_PQKeys->Decaps (kemCiphertext.data (), sharedSecret);
 			MixKey (sharedSecret);
 		}
 #endif		
@@ -981,8 +986,8 @@ namespace garlic
 					return nullptr;
 				len += 96;
 #if OPENSSL_PQ
-				if (m_RemoteStaticKeyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
-					len += i2p::crypto::MLKEM512_KEY_LENGTH + 16;
+				if (m_RemoteStaticKeyType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
+					len += i2p::crypto::GetMLKEMPublicKeyLen (m_RemoteStaticKeyType) + 16;
 #endif				
 			break;
 			case eSessionStateNewSessionReceived:

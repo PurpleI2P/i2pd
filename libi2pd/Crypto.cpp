@@ -1011,32 +1011,32 @@ namespace crypto
 
 #if OPENSSL_PQ	
 	
-	MLKEM512Keys::MLKEM512Keys ():
-		m_Pkey (nullptr)
+	MLKEMKeys::MLKEMKeys (std::string_view name, size_t keyLen, size_t ctLen):
+		m_Name (name), m_KeyLen (keyLen), m_CTLen (ctLen),m_Pkey (nullptr)
 	{
 	}
 	
-	MLKEM512Keys::~MLKEM512Keys ()
+	MLKEMKeys::~MLKEMKeys ()
 	{
 		if (m_Pkey) EVP_PKEY_free (m_Pkey);
 	}	
 
-	void MLKEM512Keys::GenerateKeys ()
+	void MLKEMKeys::GenerateKeys ()
 	{
 		if (m_Pkey) EVP_PKEY_free (m_Pkey);
-		m_Pkey = EVP_PKEY_Q_keygen(NULL, NULL, "ML-KEM-512");
+		m_Pkey = EVP_PKEY_Q_keygen(NULL, NULL, m_Name.c_str ());
 	}
 
-	void MLKEM512Keys::GetPublicKey (uint8_t * pub) const
+	void MLKEMKeys::GetPublicKey (uint8_t * pub) const
 	{	
 		if (m_Pkey)
 		{	
-			size_t len = MLKEM512_KEY_LENGTH;
-		    EVP_PKEY_get_octet_string_param (m_Pkey, OSSL_PKEY_PARAM_PUB_KEY, pub, MLKEM512_KEY_LENGTH, &len);
+			size_t len = m_KeyLen;
+		    EVP_PKEY_get_octet_string_param (m_Pkey, OSSL_PKEY_PARAM_PUB_KEY, pub, m_KeyLen, &len);
 		}	
 	}
 
-	void MLKEM512Keys::SetPublicKey (const uint8_t * pub)
+	void MLKEMKeys::SetPublicKey (const uint8_t * pub)
 	{
 		if (m_Pkey)
 		{	
@@ -1045,10 +1045,10 @@ namespace crypto
 		}	
 		OSSL_PARAM params[] =
 		{
-			OSSL_PARAM_octet_string (OSSL_PKEY_PARAM_PUB_KEY, (uint8_t *)pub, MLKEM512_KEY_LENGTH),
+			OSSL_PARAM_octet_string (OSSL_PKEY_PARAM_PUB_KEY, (uint8_t *)pub, m_KeyLen),
 			OSSL_PARAM_END
 		};		
-		EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_from_name (NULL, "ML-KEM-512", NULL);
+		EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_from_name (NULL, m_Name.c_str (), NULL);
 		if (ctx)
 		{
 			EVP_PKEY_fromdata_init (ctx);
@@ -1059,14 +1059,14 @@ namespace crypto
 			LogPrint (eLogError, "MLKEM512 can't create PKEY context");
 	}
 
-	void MLKEM512Keys::Encaps (uint8_t * ciphertext, uint8_t * shared)
+	void MLKEMKeys::Encaps (uint8_t * ciphertext, uint8_t * shared)
 	{
 		if (!m_Pkey) return;
 		auto ctx = EVP_PKEY_CTX_new_from_pkey (NULL, m_Pkey, NULL);
 		if (ctx)
 		{	
 			EVP_PKEY_encapsulate_init (ctx, NULL);
-			size_t len = MLKEM512_CIPHER_TEXT_LENGTH, sharedLen = 32;
+			size_t len = m_CTLen, sharedLen = 32;
 			EVP_PKEY_encapsulate (ctx, ciphertext, &len, shared, &sharedLen);
 			EVP_PKEY_CTX_free (ctx);
 		}
@@ -1074,7 +1074,7 @@ namespace crypto
 			LogPrint (eLogError, "MLKEM512 can't create PKEY context");
 	}	
 
-	void MLKEM512Keys::Decaps (const uint8_t * ciphertext, uint8_t * shared)
+	void MLKEMKeys::Decaps (const uint8_t * ciphertext, uint8_t * shared)
 	{
 		if (!m_Pkey) return;
 		auto ctx = EVP_PKEY_CTX_new_from_pkey (NULL, m_Pkey, NULL);
@@ -1082,7 +1082,7 @@ namespace crypto
 		{	
 			EVP_PKEY_decapsulate_init (ctx, NULL);
 			size_t sharedLen = 32;
-			EVP_PKEY_decapsulate (ctx, shared, &sharedLen, ciphertext, MLKEM512_CIPHER_TEXT_LENGTH);
+			EVP_PKEY_decapsulate (ctx, shared, &sharedLen, ciphertext, m_CTLen);
 			EVP_PKEY_CTX_free (ctx);
 		}
 		else
