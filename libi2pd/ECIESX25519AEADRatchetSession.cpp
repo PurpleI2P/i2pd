@@ -649,13 +649,6 @@ namespace garlic
 			return false;
 		}
 		MixKey (sharedSecret);
-		if (!m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret)) // sharedSecret = x25519(besk, apk)
-		{
-			LogPrint (eLogWarning, "Garlic: Incorrect Alice static key");
-			return false;
-		}
-		MixKey (sharedSecret);
-		
 #if OPENSSL_PQ
 		if (m_PQKeys)
 		{
@@ -675,6 +668,12 @@ namespace garlic
 			offset += cipherTextLen + 16;
 		}	
 #endif		
+		if (!m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret)) // sharedSecret = x25519(besk, apk)
+		{
+			LogPrint (eLogWarning, "Garlic: Incorrect Alice static key");
+			return false;
+		}
+		MixKey (sharedSecret);
 		// calculate hash for zero length
 		if (!Encrypt (sharedSecret /* can be anything */, out + offset, 0)) // encrypt, ciphertext = ENCRYPT(k, n, ZEROLEN, ad)
 		{
@@ -778,9 +777,6 @@ namespace garlic
 			return false;
 		}
 		MixKey (sharedSecret);
-		GetOwner ()->Decrypt (bepk, sharedSecret, m_RemoteStaticKeyType); // x25519 (ask, bepk)
-		MixKey (sharedSecret);
-
 #if OPENSSL_PQ
 		if (m_RemoteStaticKeyType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
 		{
@@ -799,7 +795,10 @@ namespace garlic
 			m_PQKeys->Decaps (kemCiphertext.data (), sharedSecret);
 			MixKey (sharedSecret);
 		}
-#endif		
+#endif	
+		GetOwner ()->Decrypt (bepk, sharedSecret, m_RemoteStaticKeyType); // x25519 (ask, bepk)
+		MixKey (sharedSecret);
+		
 		// calculate hash for zero length
 		if (!Decrypt (buf, sharedSecret/* can be anything */, 0)) // decrypt, DECRYPT(k, n, ZEROLEN, ad) verification only
 		{
