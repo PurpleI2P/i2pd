@@ -183,23 +183,6 @@ namespace crypto
 		};	
 		return 0;
 	}
-	
-#if OPENSSL_PQ
-	constexpr size_t GetMLKEMPublicKeyLen (i2p::data::CryptoKeyType type)
-	{
-		if (type <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ||
-		    type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD > (int)MLKEMS.size ()) return 0;
-		return std::get<1>(MLKEMS[type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD - 1]);
-	}	
-
-	constexpr size_t GetMLKEMCipherTextLen (i2p::data::CryptoKeyType type)
-	{
-		if (type <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ||
-		    type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD > (int)MLKEMS.size ()) return 0;
-		return std::get<2>(MLKEMS[type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD - 1]);
-	}
-	
-#endif	
 }
 }
 

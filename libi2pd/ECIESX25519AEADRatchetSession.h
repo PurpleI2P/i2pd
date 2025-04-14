@@ -19,6 +19,7 @@
 #include <unordered_map>
 #include "Identity.h"
 #include "Crypto.h"
+#include "PostQuantum.h"
 #include "Garlic.h"
 #include "Tag.h"
 
@@ -228,7 +229,7 @@ namespace garlic
 			uint8_t m_NSREncodedKey[32], m_NSRH[32], m_NSRKey[32]; // new session reply, for incoming only
 			std::shared_ptr<i2p::crypto::X25519Keys> m_EphemeralKeys;
 #if OPENSSL_PQ	
-			std::unique_ptr<i2p::crypto::MLKEM512Keys> m_PQKeys;
+			std::unique_ptr<i2p::crypto::MLKEMKeys> m_PQKeys;
 			std::unique_ptr<std::vector<uint8_t> > m_NSREncodedPQKey;
 #endif			
 			SessionState m_State = eSessionStateNew;

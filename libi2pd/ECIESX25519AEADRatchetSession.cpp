@@ -11,7 +11,7 @@
 #include "Log.h"
 #include "util.h"
 #include "Crypto.h"
-#include "CryptoKey.h"
+#include "PostQuantum.h"
 #include "Elligator.h"
 #include "Tag.h"
 #include "I2PEndian.h"
