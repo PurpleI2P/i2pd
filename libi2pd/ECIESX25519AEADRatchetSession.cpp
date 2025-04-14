@@ -290,7 +290,7 @@ namespace garlic
 					len -= i2p::crypto::MLKEM512_KEY_LENGTH + 16;
 					n++;
 					
-					m_PQKeys = std::make_unique<i2p::crypto::MLKEM512Keys>();
+					m_PQKeys = i2p::crypto::CreateMLKEMKeys (i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD);
 					m_PQKeys->SetPublicKey (encapsKey);
 				}
 			}	
@@ -546,7 +546,7 @@ namespace garlic
 		if (m_RemoteStaticKeyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
 		{
 			i2p::crypto::InitNoiseIKStateMLKEM512 (GetNoiseState (), m_RemoteStaticKey); // bpk
-			m_PQKeys = std::make_unique<i2p::crypto::MLKEM512Keys>();
+			m_PQKeys = i2p::crypto::CreateMLKEMKeys (m_RemoteStaticKeyType);
 			m_PQKeys->GenerateKeys ();
 		}	
 		else	

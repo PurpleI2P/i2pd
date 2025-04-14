@@ -18,8 +18,9 @@ namespace i2p
 {
 namespace crypto
 {
-	MLKEMKeys::MLKEMKeys (std::string_view name, size_t keyLen, size_t ctLen):
-		m_Name (name), m_KeyLen (keyLen), m_CTLen (ctLen),m_Pkey (nullptr)
+	MLKEMKeys::MLKEMKeys (MLKEMTypes type):
+		m_Name (std::get<0>(MLKEMS[type])), m_KeyLen (std::get<1>(MLKEMS[type])), 
+		m_CTLen (std::get<2>(MLKEMS[type])), m_Pkey (nullptr)
 	{
 	}
 	
@@ -94,6 +95,13 @@ namespace crypto
 		}
 		else
 			LogPrint (eLogError, "MLKEM512 can't create PKEY context");
+	}	
+
+	std::unique_ptr<MLKEMKeys> CreateMLKEMKeys (i2p::data::CryptoKeyType type)
+	{
+		if (type <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ||
+		    type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD > (int)MLKEMS.size ()) return nullptr;
+		return std::make_unique<MLKEMKeys>((MLKEMTypes)(type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD - 1));
 	}	
 }	
 }	
