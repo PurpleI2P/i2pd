@@ -271,8 +271,7 @@ namespace crypto
 	void InitNoiseXKState (NoiseSymmetricState& state, const uint8_t * pub); // Noise_XK (NTCP2)
 	void InitNoiseXKState1 (NoiseSymmetricState& state, const uint8_t * pub); // Noise_XK (SSU2)
 	void InitNoiseIKState (NoiseSymmetricState& state, const uint8_t * pub); // Noise_IK (ratchets)
-	void InitNoiseIKStateMLKEM512 (NoiseSymmetricState& state, const uint8_t * pub); // Noise_IK (ratchets) PQ ML-KEM512
-
+	
 // init and terminate
 	void InitCrypto (bool precomputation);
 	void TerminateCrypto ();

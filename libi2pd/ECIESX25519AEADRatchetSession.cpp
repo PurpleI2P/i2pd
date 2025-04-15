@@ -272,7 +272,8 @@ namespace garlic
 #if OPENSSL_PQ
 		if (GetOwner ()->SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD))
 		{
-			i2p::crypto::InitNoiseIKStateMLKEM512 (GetNoiseState (), GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)); // bpk
+			i2p::crypto::InitNoiseIKStateMLKEM (GetNoiseState (), i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD,
+				GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)); // bpk
 			MixHash (m_Aepk, 32); // h = SHA256(h || aepk)
 
 			if (GetOwner ()->Decrypt (m_Aepk, sharedSecret, i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)) // x25519(bsk, aepk)
@@ -281,8 +282,7 @@ namespace garlic
 				
 				uint8_t nonce[12], encapsKey[i2p::crypto::MLKEM512_KEY_LENGTH];
 				CreateNonce (n, nonce);
-				if (i2p::crypto::AEADChaCha20Poly1305 (buf, i2p::crypto::MLKEM512_KEY_LENGTH,
-					m_H, 32, m_CK + 32, nonce, encapsKey, i2p::crypto::MLKEM512_KEY_LENGTH, false)) // decrypt
+				if (Decrypt (buf, encapsKey, i2p::crypto::MLKEM512_KEY_LENGTH))
 				{
 					decrypted = true; // encaps section has right hash 
 					MixHash (buf, i2p::crypto::MLKEM512_KEY_LENGTH + 16);
@@ -320,7 +320,7 @@ namespace garlic
 		// decrypt flags/static
 		uint8_t nonce[12], fs[32];
 		CreateNonce (n, nonce);
-		if (!i2p::crypto::AEADChaCha20Poly1305 (buf, 32, m_H, 32, m_CK + 32, nonce, fs, 32, false)) // decrypt
+		if (!Decrypt (buf, fs, 32))
 		{
 			LogPrint (eLogWarning, "Garlic: Flags/static section AEAD verification failed ");
 			return false;
@@ -354,7 +354,7 @@ namespace garlic
 
 		// decrypt payload
 		std::vector<uint8_t> payload (len - 16); // we must save original ciphertext
-		if (!i2p::crypto::AEADChaCha20Poly1305 (buf, len - 16, m_H, 32, m_CK + 32, nonce, payload.data (), len - 16, false)) // decrypt
+		if (!Decrypt (buf, payload.data (), len - 16))
 		{
 			LogPrint (eLogWarning, "Garlic: Payload section AEAD verification failed");
 			return false;
@@ -543,9 +543,9 @@ namespace garlic
 
 		// KDF1
 #if OPENSSL_PQ		
-		if (m_RemoteStaticKeyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
+		if (m_RemoteStaticKeyType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
 		{
-			i2p::crypto::InitNoiseIKStateMLKEM512 (GetNoiseState (), m_RemoteStaticKey); // bpk
+			i2p::crypto::InitNoiseIKStateMLKEM (GetNoiseState (), m_RemoteStaticKeyType, m_RemoteStaticKey); // bpk
 			m_PQKeys = i2p::crypto::CreateMLKEMKeys (m_RemoteStaticKeyType);
 			m_PQKeys->GenerateKeys ();
 		}	

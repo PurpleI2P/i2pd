@@ -78,6 +78,8 @@ namespace crypto
 	};
 
 	std::unique_ptr<MLKEMKeys> CreateMLKEMKeys (i2p::data::CryptoKeyType type);
+
+	void InitNoiseIKStateMLKEM (NoiseSymmetricState& state, i2p::data::CryptoKeyType type, const uint8_t * pub); // Noise_IK (ratchets) PQ ML-KEM5
 }	
 }	
 
