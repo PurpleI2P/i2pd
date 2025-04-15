@@ -167,7 +167,11 @@ namespace crypto
 			case i2p::data::CRYPTO_KEY_TYPE_ELGAMAL: return 256;
 			case i2p::data::CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC: return 32;
 			case i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD: return 32;
-			case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD: return 32;
+			// ML-KEM hybrid
+			case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD:
+			case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM768_X25519_AEAD:
+			case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM1024_X25519_AEAD:	
+				return 32;
 		};	
 		return 0;
 	}
@@ -179,7 +183,11 @@ namespace crypto
 			case i2p::data::CRYPTO_KEY_TYPE_ELGAMAL: return 256;
 			case i2p::data::CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC: return 32;
 			case i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD: return 32;
-			case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD: return 32;
+			// ML-KEM hybrid
+			case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD:
+			case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM768_X25519_AEAD:
+			case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM1024_X25519_AEAD:	
+				return 32;
 		};	
 		return 0;
 	}

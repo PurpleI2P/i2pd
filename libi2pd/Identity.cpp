@@ -419,7 +419,9 @@ namespace data
 				return std::make_shared<i2p::crypto::ElGamalEncryptor>(key);
 			break;
 			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD:
-			case CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD:	
+			case CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD:
+			case CRYPTO_KEY_TYPE_ECIES_MLKEM768_X25519_AEAD:
+			case CRYPTO_KEY_TYPE_ECIES_MLKEM1024_X25519_AEAD:	
 				return std::make_shared<i2p::crypto::ECIESX25519AEADRatchetEncryptor>(key);
 			break;
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
@@ -686,7 +688,9 @@ namespace data
 				return std::make_shared<i2p::crypto::ElGamalDecryptor>(key);
 			break;
 			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD:
-			case CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD:	
+			case CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD:
+			case CRYPTO_KEY_TYPE_ECIES_MLKEM768_X25519_AEAD:
+			case CRYPTO_KEY_TYPE_ECIES_MLKEM1024_X25519_AEAD:	
 				return std::make_shared<i2p::crypto::ECIESX25519AEADRatchetDecryptor>(key);
 			break;
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
@@ -774,7 +778,9 @@ namespace data
 				i2p::crypto::CreateECIESP256RandomKeys (priv, pub);
 			break;
 			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD:
-			case CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD:	
+			case CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD:
+			case CRYPTO_KEY_TYPE_ECIES_MLKEM768_X25519_AEAD:
+			case CRYPTO_KEY_TYPE_ECIES_MLKEM1024_X25519_AEAD:	
 				i2p::crypto::CreateECIESX25519AEADRatchetRandomKeys (priv, pub);
 			break;
 			default:
