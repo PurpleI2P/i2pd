@@ -1047,7 +1047,7 @@ namespace client
 
 		for (auto& it: encryptionKeyTypes)
 		{
-			auto encryptionKey = std::make_shared<EncryptionKey> (it);
+			auto encryptionKey = std::make_shared<i2p::crypto::LocalEncryptionKey> (it);
 			if (IsPublic ())
 				PersistTemporaryKeys (encryptionKey);
 			else
@@ -1405,7 +1405,7 @@ namespace client
 		return ret;
 	}
 
-	void ClientDestination::PersistTemporaryKeys (std::shared_ptr<EncryptionKey> keys)
+	void ClientDestination::PersistTemporaryKeys (std::shared_ptr<i2p::crypto::LocalEncryptionKey> keys)
 	{
 		if (!keys) return;
 		std::string ident = GetIdentHash().ToBase32();
@@ -1475,9 +1475,9 @@ namespace client
 		else
 		{
 			// standard LS2 (type 3) first
-			i2p::data::LocalLeaseSet2::KeySections keySections;
+			i2p::data::LocalLeaseSet2::EncryptionKeys keySections;
 			for (const auto& it: m_EncryptionKeys)
-				keySections.push_back ({it.first, (uint16_t)it.second->pub.size (), it.second->pub.data ()} );
+				keySections.push_back (it.second);
 
 			auto publishedTimestamp = i2p::util::GetSecondsSinceEpoch ();
 			if (publishedTimestamp <= m_LastPublishedTimestamp)
@@ -1503,7 +1503,7 @@ namespace client
 
 	bool ClientDestination::Decrypt (const uint8_t * encrypted, uint8_t * data, i2p::data::CryptoKeyType preferredCrypto) const
 	{
-		std::shared_ptr<EncryptionKey> encryptionKey;
+		std::shared_ptr<i2p::crypto::LocalEncryptionKey> encryptionKey;
 		if (!m_EncryptionKeys.empty ())
 		{
 			if (m_EncryptionKeys.rbegin ()->first == preferredCrypto)

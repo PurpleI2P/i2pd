@@ -191,6 +191,17 @@ namespace crypto
 		};	
 		return 0;
 	}
+
+	struct LocalEncryptionKey
+	{
+		std::vector<uint8_t> pub, priv;
+		i2p::data::CryptoKeyType keyType;
+		std::shared_ptr<CryptoKeyDecryptor> decryptor;
+
+		LocalEncryptionKey (i2p::data::CryptoKeyType t);
+		void GenerateKeys ();
+		void CreateDecryptor (); 
+	};
 }
 }
 

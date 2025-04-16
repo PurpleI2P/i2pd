@@ -181,5 +181,21 @@ namespace crypto
 		k.GetPrivateKey (priv);
 		memcpy (pub, k.GetPublicKey (), 32);
 	}
+
+	LocalEncryptionKey::LocalEncryptionKey (i2p::data::CryptoKeyType t): keyType(t) 
+	{ 
+		pub.resize (GetCryptoPublicKeyLen (keyType)); 
+		priv.resize (GetCryptoPrivateKeyLen (keyType));
+	}
+	
+	void LocalEncryptionKey::GenerateKeys () 
+	{ 
+		i2p::data::PrivateKeys::GenerateCryptoKeyPair (keyType, priv.data (), pub.data ()); 
+	}
+	
+	void LocalEncryptionKey::CreateDecryptor () 
+	{ 
+		decryptor = i2p::data::PrivateKeys::CreateDecryptor (keyType, priv.data ()); 
+	}
 }
 }

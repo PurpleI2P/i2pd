@@ -230,21 +230,6 @@ namespace client
 
 	class ClientDestination: public LeaseSetDestination
 	{
-		struct EncryptionKey
-		{
-			std::vector<uint8_t> pub, priv;
-			i2p::data::CryptoKeyType keyType;
-			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> decryptor;
-
-			EncryptionKey (i2p::data::CryptoKeyType t): keyType(t) 
-			{ 
-				pub.resize (i2p::crypto::GetCryptoPublicKeyLen (keyType)); 
-				priv.resize (i2p::crypto::GetCryptoPrivateKeyLen (keyType));
-			}
-			void GenerateKeys () { i2p::data::PrivateKeys::GenerateCryptoKeyPair (keyType, priv.data (), pub.data ()); };
-			void CreateDecryptor () { decryptor = i2p::data::PrivateKeys::CreateDecryptor (keyType, priv.data ()); };
-		};
-
 		public:
 
 			ClientDestination (boost::asio::io_context& service, const i2p::data::PrivateKeys& keys,
@@ -310,7 +295,7 @@ namespace client
 			std::shared_ptr<ClientDestination> GetSharedFromThis () {
 				return std::static_pointer_cast<ClientDestination>(shared_from_this ());
 			}
-			void PersistTemporaryKeys (std::shared_ptr<EncryptionKey> keys);
+			void PersistTemporaryKeys (std::shared_ptr<i2p::crypto::LocalEncryptionKey> keys);
 			void ReadAuthKey (const std::string& group, const std::map<std::string, std::string> * params);
 
 			template<typename Dest>
@@ -319,7 +304,7 @@ namespace client
 		private:
 
 			i2p::data::PrivateKeys m_Keys;
-			std::map<i2p::data::CryptoKeyType, std::shared_ptr<EncryptionKey> > m_EncryptionKeys; // last is most preferable
+			std::map<i2p::data::CryptoKeyType, std::shared_ptr<i2p::crypto::LocalEncryptionKey> > m_EncryptionKeys; // last is most preferable
 			i2p::data::CryptoKeyType m_PreferredCryptoType;
 			
 			int m_StreamingAckDelay,m_StreamingOutboundSpeed, m_StreamingInboundSpeed, m_StreamingMaxConcurrentStreams;

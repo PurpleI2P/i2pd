@@ -12,12 +12,14 @@
 #include <inttypes.h>
 #include <string.h>
 #include <vector>
+#include <list>
 #include <set>
 #include <memory>
 #include "Identity.h"
 #include "Timestamp.h"
 #include "I2PEndian.h"
 #include "Blinding.h"
+#include "CryptoKey.h"
 
 namespace i2p
 {
@@ -247,15 +249,10 @@ namespace data
 	{
 		public:
 
-			struct KeySection
-			{
-				uint16_t keyType, keyLen;
-				const uint8_t * encryptionPublicKey;
-			};
-			typedef std::vector<KeySection> KeySections;
+			typedef std::list<std::shared_ptr<const i2p::crypto::LocalEncryptionKey> > EncryptionKeys;
 
 			LocalLeaseSet2 (uint8_t storeType, const i2p::data::PrivateKeys& keys,
-				const KeySections& encryptionKeys,
+				const EncryptionKeys& encryptionKeys,
 				const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels,
 				bool isPublic, uint64_t publishedTimestamp,
 			    bool isPublishedEncrypted = false);

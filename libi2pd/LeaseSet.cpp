@@ -848,7 +848,7 @@ namespace data
 	}
 
 	LocalLeaseSet2::LocalLeaseSet2 (uint8_t storeType, const i2p::data::PrivateKeys& keys,
-		const KeySections& encryptionKeys, const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels,
+		const EncryptionKeys& encryptionKeys, const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels,
 		bool isPublic, uint64_t publishedTimestamp, bool isPublishedEncrypted):
 		LocalLeaseSet (keys.GetPublic (), nullptr, 0)
 	{
@@ -858,7 +858,7 @@ namespace data
 		if (num > MAX_NUM_LEASES) num = MAX_NUM_LEASES;
 		size_t keySectionsLen = 0;
 		for (const auto& it: encryptionKeys)
-			keySectionsLen += 2/*key type*/ + 2/*key len*/ + it.keyLen/*key*/;
+			keySectionsLen += 2/*key type*/ + 2/*key len*/ + it->pub.size()/*key*/;
 		m_BufferLen = identity->GetFullLen () + 4/*published*/ + 2/*expires*/ + 2/*flag*/ + 2/*properties len*/ +
 			1/*num keys*/ + keySectionsLen + 1/*num leases*/ + num*LEASE2_SIZE + keys.GetSignatureLen ();
 		uint16_t flags = 0;
@@ -893,9 +893,9 @@ namespace data
 		m_Buffer[offset] = encryptionKeys.size (); offset++; // 1 key
 		for (const auto& it: encryptionKeys)
 		{
-			htobe16buf (m_Buffer + offset, it.keyType); offset += 2; // key type
-			htobe16buf (m_Buffer + offset, it.keyLen); offset += 2; // key len
-			memcpy (m_Buffer + offset, it.encryptionPublicKey, it.keyLen); offset += it.keyLen; // key
+			htobe16buf (m_Buffer + offset, it->keyType); offset += 2; // key type
+			htobe16buf (m_Buffer + offset, it->pub.size()); offset += 2; // key len
+			memcpy (m_Buffer + offset, it->pub.data(), it->pub.size()); offset += it->pub.size(); // key
 		}
 		// leases
 		uint32_t expirationTime = 0; // in seconds
