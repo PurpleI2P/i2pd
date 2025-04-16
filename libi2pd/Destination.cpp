@@ -1475,10 +1475,27 @@ namespace client
 		else
 		{
 			// standard LS2 (type 3) first
+			if (m_EncryptionKeys.empty ())
+			{
+				LogPrint (eLogError, "Destinations: No encryption keys");
+				return;
+			}	
+			
 			i2p::data::LocalLeaseSet2::EncryptionKeys keySections;
-			for (const auto& it: m_EncryptionKeys)
-				keySections.push_back (it.second);
-
+			std::shared_ptr<const i2p::crypto::LocalEncryptionKey> preferredSection;
+			if (m_EncryptionKeys.size () == 1)
+				preferredSection = m_EncryptionKeys.begin ()->second; // only key
+			else
+			{	
+				for (const auto& it: m_EncryptionKeys)
+					if (it.first == m_PreferredCryptoType)
+						preferredSection = it.second;
+					else
+						keySections.push_back (it.second);
+			}	
+			if (preferredSection) 
+				keySections.push_front (preferredSection); // make preferred first
+			
 			auto publishedTimestamp = i2p::util::GetSecondsSinceEpoch ();
 			if (publishedTimestamp <= m_LastPublishedTimestamp)
 			{
