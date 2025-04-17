@@ -170,6 +170,7 @@ namespace garlic
 			std::shared_ptr<I2NPMessage> WrapOneTimeMessage (std::shared_ptr<const I2NPMessage> msg);
 
 			const uint8_t * GetRemoteStaticKey () const { return m_RemoteStaticKey; }
+			i2p::data::CryptoKeyType GetRemoteStaticKeyType () const { return m_RemoteStaticKeyType; }
 			void SetRemoteStaticKey (i2p::data::CryptoKeyType keyType, const uint8_t * key) 
 			{ 
 				m_RemoteStaticKeyType = keyType;

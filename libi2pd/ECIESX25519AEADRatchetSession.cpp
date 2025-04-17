@@ -163,7 +163,7 @@ namespace garlic
 			return false;
 		}
 		if (m_Destination)
-			m_Destination->HandleECIESx25519GarlicClove (buf + offset, size);
+			m_Destination->HandleECIESx25519GarlicClove (buf + offset, size, nullptr);
 		return true;
 	}
 
@@ -390,7 +390,7 @@ namespace garlic
 			{
 				case eECIESx25519BlkGalicClove:
 					if (GetOwner ())
-						GetOwner ()->HandleECIESx25519GarlicClove (buf + offset, size);
+						GetOwner ()->HandleECIESx25519GarlicClove (buf + offset, size, this);
 				break;
 				case eECIESx25519BlkNextKey:
 					LogPrint (eLogDebug, "Garlic: Next key");

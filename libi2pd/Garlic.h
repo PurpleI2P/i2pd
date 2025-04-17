@@ -257,7 +257,7 @@ namespace garlic
 			uint64_t AddECIESx25519SessionNextTag (ReceiveRatchetTagSetPtr tagset);
 			void AddECIESx25519Session (const uint8_t * staticKey, ECIESX25519AEADRatchetSessionPtr session);
 			void RemoveECIESx25519Session (const uint8_t * staticKey);
-			void HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len);
+			void HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len, ECIESX25519AEADRatchetSession * from);
 			uint8_t * GetPayloadBuffer ();
 
 			virtual void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
@@ -272,7 +272,8 @@ namespace garlic
 			void AddECIESx25519Key (const uint8_t * key, const uint8_t * tag); // one tag
 			bool HandleECIESx25519TagMessage (uint8_t * buf, size_t len); // return true if found
 			virtual void HandleI2NPMessage (const uint8_t * buf, size_t len) = 0; // called from clove only
-			virtual bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len, uint32_t msgID) = 0;
+			virtual bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, 
+				size_t len, uint32_t msgID, ECIESX25519AEADRatchetSession * from) = 0;
 			void HandleGarlicMessage (std::shared_ptr<I2NPMessage> msg);
 			void HandleDeliveryStatusMessage (uint32_t msgID);
 

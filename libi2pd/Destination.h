@@ -164,7 +164,8 @@ namespace client
 
 			// implements GarlicDestination
 			void HandleI2NPMessage (const uint8_t * buf, size_t len) override;
-			bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len, uint32_t msgID) override;
+			bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, 
+				size_t len, uint32_t msgID, i2p::garlic::ECIESX25519AEADRatchetSession * from) override;
 
 			void SetLeaseSet (std::shared_ptr<const i2p::data::LocalLeaseSet> newLeaseSet);
 			int GetLeaseSetType () const { return m_LeaseSetType; };
@@ -184,7 +185,7 @@ namespace client
 			void HandlePublishConfirmationTimer (const boost::system::error_code& ecode);
 			void HandlePublishVerificationTimer (const boost::system::error_code& ecode);
 			void HandlePublishDelayTimer (const boost::system::error_code& ecode);
-			void HandleDatabaseStoreMessage (const uint8_t * buf, size_t len);
+			void HandleDatabaseStoreMessage (const uint8_t * buf, size_t len, i2p::garlic::ECIESX25519AEADRatchetSession * from);
 			void HandleDatabaseSearchReplyMessage (const uint8_t * buf, size_t len);
 			void HandleDeliveryStatusMessage (uint32_t msgID);
 

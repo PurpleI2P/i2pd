@@ -1003,7 +1003,8 @@ namespace garlic
 				i2p::fs::Remove (it);
 	}
 
-	void GarlicDestination::HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len)
+	void GarlicDestination::HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len,
+		ECIESX25519AEADRatchetSession * from)
 	{
 		const uint8_t * buf1 = buf;
 		uint8_t flag = buf[0]; buf++; // flag
@@ -1023,7 +1024,7 @@ namespace garlic
 				buf += 4; // expiration
 				ptrdiff_t offset = buf - buf1;
 				if (offset <= (int)len)
-					HandleCloveI2NPMessage (typeID, buf, len - offset, msgID);
+					HandleCloveI2NPMessage (typeID, buf, len - offset, msgID, from);
 				else
 					LogPrint (eLogError, "Garlic: Clove is too long");
 				break;

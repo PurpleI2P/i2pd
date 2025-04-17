@@ -13,6 +13,7 @@
 #include <vector>
 #include <boost/algorithm/string.hpp>
 #include "Crypto.h"
+#include "ECIESX25519AEADRatchetSession.h"
 #include "Log.h"
 #include "FS.h"
 #include "Timestamp.h"
@@ -377,10 +378,12 @@ namespace client
 	{
 		I2NPMessageType typeID = (I2NPMessageType)(buf[I2NP_HEADER_TYPEID_OFFSET]);
 		uint32_t msgID = bufbe32toh (buf + I2NP_HEADER_MSGID_OFFSET);
-		LeaseSetDestination::HandleCloveI2NPMessage (typeID, buf + I2NP_HEADER_SIZE, GetI2NPMessageLength(buf, len) - I2NP_HEADER_SIZE, msgID);
+		LeaseSetDestination::HandleCloveI2NPMessage (typeID, buf + I2NP_HEADER_SIZE, 
+			GetI2NPMessageLength(buf, len) - I2NP_HEADER_SIZE, msgID, nullptr);
 	}
 
-	bool LeaseSetDestination::HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len, uint32_t msgID)
+	bool LeaseSetDestination::HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload,
+		size_t len, uint32_t msgID, i2p::garlic::ECIESX25519AEADRatchetSession * from)
 	{
 		switch (typeID)
 		{
@@ -395,7 +398,7 @@ namespace client
 					m_Pool->ProcessTunnelTest (bufbe32toh (payload + TUNNEL_TEST_MSGID_OFFSET), bufbe64toh (payload + TUNNEL_TEST_TIMESTAMP_OFFSET));
 			break;
 			case eI2NPDatabaseStore:
-				HandleDatabaseStoreMessage (payload, len);
+				HandleDatabaseStoreMessage (payload, len, from);
 			break;
 			case eI2NPDatabaseSearchReply:
 				HandleDatabaseSearchReplyMessage (payload, len);
@@ -410,7 +413,8 @@ namespace client
 		return true;
 	}
 
-	void LeaseSetDestination::HandleDatabaseStoreMessage (const uint8_t * buf, size_t len)
+	void LeaseSetDestination::HandleDatabaseStoreMessage (const uint8_t * buf, size_t len,
+		i2p::garlic::ECIESX25519AEADRatchetSession * from)
 	{
 		if (len < DATABASE_STORE_HEADER_SIZE)
 		{
@@ -465,7 +469,8 @@ namespace client
 					if (buf[DATABASE_STORE_TYPE_OFFSET] == i2p::data::NETDB_STORE_TYPE_LEASESET)
 						leaseSet = std::make_shared<i2p::data::LeaseSet> (buf + offset, len - offset); // LeaseSet
 					else
-						leaseSet = std::make_shared<i2p::data::LeaseSet2> (buf[DATABASE_STORE_TYPE_OFFSET], buf + offset, len - offset, true, GetPreferredCryptoType () ); // LeaseSet2
+						leaseSet = std::make_shared<i2p::data::LeaseSet2> (buf[DATABASE_STORE_TYPE_OFFSET], 
+							buf + offset, len - offset, true, from ? from->GetRemoteStaticKeyType () : GetPreferredCryptoType () ); // LeaseSet2
 					if (leaseSet->IsValid () && leaseSet->GetIdentHash () == key && !leaseSet->IsExpired ())
 					{
 						if (leaseSet->GetIdentHash () != GetIdentHash ())
@@ -494,7 +499,8 @@ namespace client
 					if (request->requestedBlindedKey)
 					{
 						auto ls2 = std::make_shared<i2p::data::LeaseSet2> (buf + offset, len - offset,
-							request->requestedBlindedKey, m_LeaseSetPrivKey ? ((const uint8_t *)*m_LeaseSetPrivKey) : nullptr , GetPreferredCryptoType ());
+							request->requestedBlindedKey, m_LeaseSetPrivKey ? ((const uint8_t *)*m_LeaseSetPrivKey) : nullptr, 
+						    from ? from->GetRemoteStaticKeyType () : GetPreferredCryptoType ());
 						if (ls2->IsValid () && !ls2->IsExpired ())
 						{
 							leaseSet = ls2;
