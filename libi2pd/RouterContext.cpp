@@ -1194,7 +1194,8 @@ namespace i2p
 		i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf, len)));
 	}
 
-	bool RouterContext::HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len, uint32_t msgID)
+	bool RouterContext::HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, 
+		size_t len, uint32_t msgID, i2p::garlic::ECIESX25519AEADRatchetSession * from)
 	{
 		if (typeID == eI2NPTunnelTest)
 		{

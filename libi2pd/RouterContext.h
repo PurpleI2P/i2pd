@@ -204,7 +204,8 @@ namespace garlic
 
 			// implements GarlicDestination
 			void HandleI2NPMessage (const uint8_t * buf, size_t len) override;
-			bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len, uint32_t msgID) override;
+			bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload,
+				size_t len, uint32_t msgID, i2p::garlic::ECIESX25519AEADRatchetSession * from) override;
 
 		private:
 
