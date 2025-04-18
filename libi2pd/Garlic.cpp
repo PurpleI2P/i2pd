@@ -498,7 +498,8 @@ namespace garlic
 		buf += 4; // length
 
 		bool found = false;
-		if (SupportsRatchets ())
+		bool supportsRatchets = SupportsRatchets ();
+		if (supportsRatchets)
 			// try ECIESx25519 tag
 			found = HandleECIESx25519TagMessage (buf, length);
 		if (!found)
@@ -535,7 +536,7 @@ namespace garlic
 					decryption->Decrypt(buf + 514, length - 514, iv, buf + 514);
 					HandleAESBlock (buf + 514, length - 514, decryption, msg->from);
 				}
-				else if (SupportsRatchets ())
+				else if (supportsRatchets)
 				{
 					// otherwise ECIESx25519
 					auto ts = i2p::util::GetMillisecondsSinceEpoch ();

@@ -266,6 +266,10 @@ namespace garlic
 
 			virtual std::shared_ptr<const i2p::data::LocalLeaseSet> GetLeaseSet () = 0; // TODO
 			virtual std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () const = 0;
+			virtual i2p::data::CryptoKeyType GetRatchetsHighestCryptoType () const 
+			{
+				return GetIdentity ()->GetCryptoKeyType () >= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ? GetIdentity ()->GetCryptoKeyType () : 0;
+			}	
 
 		protected:
 
@@ -279,11 +283,10 @@ namespace garlic
 
 			void SaveTags ();
 			void LoadTags ();
-
-			virtual bool SupportsRatchets () const { return GetIdentity ()->GetCryptoKeyType () >= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD; }
 			
 		private:
 
+			bool SupportsRatchets () const { return GetRatchetsHighestCryptoType () > 0; }
 			void HandleAESBlock (uint8_t * buf, size_t len, std::shared_ptr<AESDecryption> decryption,
 				std::shared_ptr<i2p::tunnel::InboundTunnel> from);
 			void HandleGarlicPayload (uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from);

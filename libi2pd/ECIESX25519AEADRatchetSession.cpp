@@ -266,40 +266,40 @@ namespace garlic
 		}
 		buf += 32; len -= 32;
 
-		uint64_t n = 0;
 		uint8_t sharedSecret[32];
 		bool decrypted = false;
+		auto cryptoType = GetOwner ()->GetRatchetsHighestCryptoType ();
 #if OPENSSL_PQ
-		if (GetOwner ()->SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD))
+		if (cryptoType > i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) // we support post quantum
 		{
-			i2p::crypto::InitNoiseIKStateMLKEM (GetNoiseState (), i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD,
-				GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)); // bpk
+			i2p::crypto::InitNoiseIKStateMLKEM (GetNoiseState (), cryptoType, GetOwner ()->GetEncryptionPublicKey (cryptoType)); // bpk
 			MixHash (m_Aepk, 32); // h = SHA256(h || aepk)
 
-			if (GetOwner ()->Decrypt (m_Aepk, sharedSecret, i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)) // x25519(bsk, aepk)
+			if (GetOwner ()->Decrypt (m_Aepk, sharedSecret, cryptoType)) // x25519(bsk, aepk)
 			{
 				MixKey (sharedSecret);
-				
-				uint8_t nonce[12], encapsKey[i2p::crypto::MLKEM512_KEY_LENGTH];
-				CreateNonce (n, nonce);
-				if (Decrypt (buf, encapsKey, i2p::crypto::MLKEM512_KEY_LENGTH))
+
+				auto keyLen = i2p::crypto::GetMLKEMPublicKeyLen (cryptoType);
+				std::vector<uint8_t> encapsKey(keyLen);
+				if (Decrypt (buf, encapsKey.data (), keyLen))
 				{
 					decrypted = true; // encaps section has right hash 
-					MixHash (buf, i2p::crypto::MLKEM512_KEY_LENGTH + 16);
-					buf += i2p::crypto::MLKEM512_KEY_LENGTH + 16;
-					len -= i2p::crypto::MLKEM512_KEY_LENGTH + 16;
-					n++;
+					MixHash (buf, keyLen + 16);
+					buf += keyLen + 16;
+					len -= keyLen + 16;
 					
-					m_PQKeys = i2p::crypto::CreateMLKEMKeys (i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD);
-					m_PQKeys->SetPublicKey (encapsKey);
+					m_PQKeys = i2p::crypto::CreateMLKEMKeys (cryptoType);
+					m_PQKeys->SetPublicKey (encapsKey.data ());
 				}
 			}	
 		}	
 #endif
 		if (!decrypted)
 		{	
-			if (GetOwner ()->SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD))
+			if (cryptoType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ||
+			    GetOwner ()->SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD))
 			{
+				cryptoType = i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD;
 				i2p::crypto::InitNoiseIKState (GetNoiseState (), GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)); // bpk
 				MixHash (m_Aepk, 32); // h = SHA256(h || aepk)
 
@@ -318,8 +318,7 @@ namespace garlic
 		}	
 
 		// decrypt flags/static
-		uint8_t nonce[12], fs[32];
-		CreateNonce (n, nonce);
+		uint8_t fs[32];
 		if (!Decrypt (buf, fs, 32))
 		{
 			LogPrint (eLogWarning, "Garlic: Flags/static section AEAD verification failed ");
@@ -332,16 +331,8 @@ namespace garlic
 		bool isStatic = !i2p::data::Tag<32> (fs).IsZero ();
 		if (isStatic)
 		{
-			// static key, fs is apk
-#if OPENSSL_PQ
-			if (m_PQKeys)
-			{	
-				SetRemoteStaticKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD, fs);
-				CreateNonce (0, nonce); // reset nonce
-			}	
-			else	
-#endif			
-				SetRemoteStaticKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD, fs); 
+			// static key, fs is apk	
+			SetRemoteStaticKey (cryptoType, fs); 
 			if (!GetOwner ()->Decrypt (fs, sharedSecret, m_RemoteStaticKeyType)) // x25519(bsk, apk)
 			{
 				LogPrint (eLogWarning, "Garlic: Incorrect Alice static key");
@@ -349,8 +340,6 @@ namespace garlic
 			}
 			MixKey (sharedSecret);
 		}
-		else // all zeros flags
-			CreateNonce (1, nonce);
 
 		// decrypt payload
 		std::vector<uint8_t> payload (len - 16); // we must save original ciphertext
@@ -966,7 +955,8 @@ namespace garlic
 		size_t len = CreatePayload (msg, m_State != eSessionStateEstablished, payload);
 		if (!len) return nullptr;
 #if OPENSSL_PQ
-		auto m = NewI2NPMessage (len + (m_State == eSessionStateEstablished ? 28 : i2p::crypto::MLKEM512_KEY_LENGTH + 116));
+		auto m = NewI2NPMessage (len + (m_State == eSessionStateEstablished ? 28 :
+			i2p::crypto::GetMLKEMPublicKeyLen (m_RemoteStaticKeyType) + 116));
 #else		
 		auto m = NewI2NPMessage (len + 100); // 96 + 4
 #endif		
@@ -994,8 +984,8 @@ namespace garlic
 					return nullptr;
 				len += 72;
 #if OPENSSL_PQ
-				if (m_RemoteStaticKeyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
-					len += i2p::crypto::MLKEM512_CIPHER_TEXT_LENGTH + 16;
+				if (m_RemoteStaticKeyType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
+					len += i2p::crypto::GetMLKEMPublicKeyLen (m_RemoteStaticKeyType) + 16;
 #endif				
 			break;
 			case eSessionStateNewSessionReplySent:

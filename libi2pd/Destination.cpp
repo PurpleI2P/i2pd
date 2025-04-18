@@ -1556,11 +1556,12 @@ namespace client
 #endif		
 	}
 
-	bool ClientDestination::SupportsRatchets () const
+	i2p::data::CryptoKeyType ClientDestination::GetRatchetsHighestCryptoType () const
 	{
-		if (m_EncryptionKeys.empty ()) return false;
-		return m_EncryptionKeys.rbegin ()->first >= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD;
-	}	
+		if (m_EncryptionKeys.empty ()) return 0;
+		auto cryptoType = m_EncryptionKeys.rbegin ()->first; 
+		return cryptoType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ? cryptoType : 0;
+	}
 		
 	const uint8_t * ClientDestination::GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const
 	{

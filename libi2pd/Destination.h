@@ -283,7 +283,7 @@ namespace client
 		protected:
 
 			// GarlicDestionation
-			bool SupportsRatchets () const override;
+			i2p::data::CryptoKeyType GetRatchetsHighestCryptoType () const override;
 			// LeaseSetDestination
 			void CleanupDestination () override;
 			i2p::data::CryptoKeyType GetPreferredCryptoType () const override { return m_PreferredCryptoType; }
