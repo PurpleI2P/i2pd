@@ -985,13 +985,17 @@ namespace garlic
 				len += 72;
 #if OPENSSL_PQ
 				if (m_RemoteStaticKeyType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
-					len += i2p::crypto::GetMLKEMPublicKeyLen (m_RemoteStaticKeyType) + 16;
+					len += i2p::crypto::GetMLKEMCipherTextLen (m_RemoteStaticKeyType) + 16;
 #endif				
 			break;
 			case eSessionStateNewSessionReplySent:
 				if (!NextNewSessionReplyMessage (payload, len, buf, m->maxLen))
 					return nullptr;
 				len += 72;
+#if OPENSSL_PQ
+				if (m_RemoteStaticKeyType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
+					len += i2p::crypto::GetMLKEMCipherTextLen (m_RemoteStaticKeyType) + 16;
+#endif				
 			break;
 			case eSessionStateOneTime:
 				if (!NewOutgoingSessionMessage (payload, len, buf, m->maxLen, false))
