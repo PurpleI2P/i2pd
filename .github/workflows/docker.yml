@@ -108,7 +108,7 @@ jobs:
       uses: Noelware/docker-manifest-action@master
       with:
         inputs: purplei2p/i2pd:latest
-        images: purplei2p/i2pd:latest-amd64,purplei2p/i2pd:latest-i386,purplei2p/i2pd:latest-arm64,purplei2p/i2pd:latest-armv7
+        tags: purplei2p/i2pd:latest-amd64,purplei2p/i2pd:latest-i386,purplei2p/i2pd:latest-arm64,purplei2p/i2pd:latest-armv7
         push: true
 
     - name: Create and push latest manifest image to GHCR
@@ -116,7 +116,7 @@ jobs:
       uses: Noelware/docker-manifest-action@master
       with:
         inputs: ghcr.io/purplei2p/i2pd:latest
-        images: ghcr.io/purplei2p/i2pd:latest-amd64,ghcr.io/purplei2p/i2pd:latest-i386,ghcr.io/purplei2p/i2pd:latest-arm64,ghcr.io/purplei2p/i2pd:latest-armv7
+        tags: ghcr.io/purplei2p/i2pd:latest-amd64,ghcr.io/purplei2p/i2pd:latest-i386,ghcr.io/purplei2p/i2pd:latest-arm64,ghcr.io/purplei2p/i2pd:latest-armv7
         push: true
 
     - name: Store release version to env
@@ -128,7 +128,7 @@ jobs:
       uses: Noelware/docker-manifest-action@master
       with:
         inputs: purplei2p/i2pd:latest,purplei2p/i2pd:latest-release,purplei2p/i2pd:release-${{ env.RELEASE_VERSION }}
-        images: purplei2p/i2pd:latest-amd64,purplei2p/i2pd:latest-i386,purplei2p/i2pd:latest-arm64,purplei2p/i2pd:latest-armv7
+        tags: purplei2p/i2pd:latest-amd64,purplei2p/i2pd:latest-i386,purplei2p/i2pd:latest-arm64,purplei2p/i2pd:latest-armv7
         push: true
 
     - name: Create and push release manifest to GHCR
@@ -136,5 +136,5 @@ jobs:
       uses: Noelware/docker-manifest-action@master
       with:
         inputs: ghcr.io/purplei2p/i2pd:latest,ghcr.io/purplei2p/i2pd:latest-release,ghcr.io/purplei2p/i2pd:release-${{ env.RELEASE_VERSION }}
-        images: ghcr.io/purplei2p/i2pd:latest-amd64,ghcr.io/purplei2p/i2pd:latest-i386,ghcr.io/purplei2p/i2pd:latest-arm64,ghcr.io/purplei2p/i2pd:latest-armv7
+        tags: ghcr.io/purplei2p/i2pd:latest-amd64,ghcr.io/purplei2p/i2pd:latest-i386,ghcr.io/purplei2p/i2pd:latest-arm64,ghcr.io/purplei2p/i2pd:latest-armv7
         push: true
