@@ -81,8 +81,8 @@ namespace garlic
 	{
 		public:
 
-			ReceiveRatchetTagSet (std::shared_ptr<ECIESX25519AEADRatchetSession> session, bool isNS = false):
-				m_Session (session), m_IsNS (isNS) {};
+			ReceiveRatchetTagSet (std::shared_ptr<ECIESX25519AEADRatchetSession> session, bool isNS = false);
+			~ReceiveRatchetTagSet () override;
 
 			bool IsNS () const { return m_IsNS; };
 			std::shared_ptr<ECIESX25519AEADRatchetSession> GetSession () { return m_Session; };
@@ -184,7 +184,8 @@ namespace garlic
 			bool CheckExpired (uint64_t ts); // true is expired
 			bool CanBeRestarted (uint64_t ts) const { return ts > m_SessionCreatedTimestamp + ECIESX25519_RESTART_TIMEOUT; }
 			bool IsInactive (uint64_t ts) const { return ts > m_LastActivityTimestamp + ECIESX25519_INACTIVITY_TIMEOUT && CanBeRestarted (ts); }
-
+			void CleanupReceiveNSRKeys (); // called from ReceiveRatchetTagSet at Alice's side
+			
 			bool IsRatchets () const override { return true; };
 			bool IsReadyToSend () const override { return m_State != eSessionStateNewSessionSent; };
 			bool IsTerminated () const override { return m_IsTerminated; }

@@ -95,6 +95,17 @@ namespace garlic
 		m_ItermediateSymmKeys.erase (index);
 	}
 
+	ReceiveRatchetTagSet::ReceiveRatchetTagSet (std::shared_ptr<ECIESX25519AEADRatchetSession> session, bool isNS):
+		m_Session (session), m_IsNS (isNS) 
+	{
+	}
+		
+	ReceiveRatchetTagSet::~ReceiveRatchetTagSet ()
+	{
+		if (m_IsNS && m_Session)
+			m_Session->CleanupReceiveNSRKeys ();
+	}	
+	
 	void ReceiveRatchetTagSet::Expire ()
 	{
 		if (!m_ExpirationTimestamp)
@@ -251,6 +262,14 @@ namespace garlic
 			return true;	
 		}
 		return false;
+	}	
+
+	void ECIESX25519AEADRatchetSession::CleanupReceiveNSRKeys ()
+	{
+		m_EphemeralKeys = nullptr;
+#if OPENSSL_PQ
+		m_PQKeys = nullptr;
+#endif	
 	}	
 		
 	bool ECIESX25519AEADRatchetSession::HandleNewIncomingSession (const uint8_t * buf, size_t len)
@@ -824,10 +843,8 @@ namespace garlic
 		if (m_State == eSessionStateNewSessionSent)
 		{
 			m_State = eSessionStateEstablished;
-			//m_EphemeralKeys = nullptr; // TODO: delete after a while
-#if OPENSSL_PQ
-			// m_PQKeys = nullptr; // TODO: delete after a while
-#endif			
+			// don't delete m_EpehemralKey and m_PQKeys because delayd NSR's migth come
+			// done in CleanupReceiveNSRKeys called from NSR tagset destructor		
 			m_SessionCreatedTimestamp = i2p::util::GetSecondsSinceEpoch ();
 			GetOwner ()->AddECIESx25519Session (m_RemoteStaticKey, shared_from_this ());
 		}
