@@ -142,7 +142,11 @@ namespace data
 			IdentHash m_IdentHash;
 			std::unique_ptr<i2p::crypto::Verifier> m_Verifier;
 			size_t m_ExtendedLen;
-			uint8_t m_ExtendedBuffer[MAX_EXTENDED_BUFFER_SIZE]; // TODO: support PQ keys
+			union
+			{	
+				uint8_t m_ExtendedBuffer[MAX_EXTENDED_BUFFER_SIZE]; 
+				uint8_t * m_ExtendedBufferPtr;
+			};	
 	};
 
 	size_t GetIdentityBufferLen (const uint8_t * buf, size_t len); // return actual identity length in buffer
@@ -160,7 +164,7 @@ namespace data
 
 			std::shared_ptr<const IdentityEx> GetPublic () const { return m_Public; };
 			const uint8_t * GetPrivateKey () const { return m_PrivateKey; };
-			const uint8_t * GetSigningPrivateKey () const { return m_SigningPrivateKey; };
+			const uint8_t * GetSigningPrivateKey () const { return m_SigningPrivateKey.data (); };
 			size_t GetSignatureLen () const; // might not match identity
 			bool IsOfflineSignature () const { return m_TransientSignatureLen > 0; };
 			uint8_t * GetPadding();
@@ -196,7 +200,7 @@ namespace data
 
 			std::shared_ptr<IdentityEx> m_Public;
 			uint8_t m_PrivateKey[256];
-			uint8_t m_SigningPrivateKey[128]; // assume private key doesn't exceed 128 bytes
+			std::vector<uint8_t> m_SigningPrivateKey;
 			mutable std::unique_ptr<i2p::crypto::Signer> m_Signer;
 			std::vector<uint8_t> m_OfflineSignature; // non zero length, if applicable
 			size_t m_TransientSignatureLen = 0;

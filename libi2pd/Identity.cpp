@@ -127,6 +127,7 @@ namespace data
 					excessLen = i2p::crypto::MLDSA44_PUBLIC_KEY_LENGTH - 384;
 					excessBuf = new uint8_t[excessLen];
 					memcpy (excessBuf, signingKey + 384, excessLen);
+					cryptoType = 0xFF; // crypto key is not used
 					break;
 				}	
 #endif					
@@ -142,12 +143,15 @@ namespace data
 			htobe16buf (m_ExtendedBuffer + 2, cryptoType);
 			if (excessLen && excessBuf)
 			{
-				if (excessLen > MAX_EXTENDED_BUFFER_SIZE - 4)
+				if (m_ExtendedLen > MAX_EXTENDED_BUFFER_SIZE)
 				{
-					LogPrint (eLogError, "Identity: Unexpected excessive signing key len ", excessLen);
-					excessLen = MAX_EXTENDED_BUFFER_SIZE - 4;
+					auto newBuf = new uint8_t[m_ExtendedLen];
+					memcpy (newBuf, m_ExtendedBuffer, 4);
+					memcpy (newBuf + 4, excessBuf, excessLen);
+					m_ExtendedBufferPtr = newBuf;
 				}
-				memcpy (m_ExtendedBuffer + 4, excessBuf, excessLen);
+				else
+					memcpy (m_ExtendedBuffer + 4, excessBuf, excessLen);
 				delete[] excessBuf;
 			}
 			// calculate ident hash
@@ -195,6 +199,8 @@ namespace data
 
 	IdentityEx::~IdentityEx ()
 	{
+		if (m_ExtendedLen > MAX_EXTENDED_BUFFER_SIZE)
+			delete[] m_ExtendedBufferPtr;
 	}
 
 	IdentityEx& IdentityEx::operator=(const IdentityEx& other)
@@ -202,11 +208,29 @@ namespace data
 		memcpy (&m_StandardIdentity, &other.m_StandardIdentity, DEFAULT_IDENTITY_SIZE);
 		m_IdentHash = other.m_IdentHash;
 
+		size_t oldLen = m_ExtendedLen;
 		m_ExtendedLen = other.m_ExtendedLen;
 		if (m_ExtendedLen > 0)
 		{
-			if (m_ExtendedLen > MAX_EXTENDED_BUFFER_SIZE) m_ExtendedLen = MAX_EXTENDED_BUFFER_SIZE;
-			memcpy (m_ExtendedBuffer, other.m_ExtendedBuffer, m_ExtendedLen);
+			if (m_ExtendedLen > MAX_EXTENDED_BUFFER_SIZE) 
+			{
+				if (oldLen > MAX_EXTENDED_BUFFER_SIZE) 
+				{
+					if (m_ExtendedLen > oldLen)
+					{	
+						delete[] m_ExtendedBufferPtr;
+						m_ExtendedBufferPtr = new uint8_t[m_ExtendedLen];
+					}	
+				}
+				else
+					m_ExtendedBufferPtr = new uint8_t[m_ExtendedLen];
+				memcpy (m_ExtendedBufferPtr, other.m_ExtendedBufferPtr, m_ExtendedLen);	
+			}	
+			else
+			{
+				if (oldLen > MAX_EXTENDED_BUFFER_SIZE) delete[] m_ExtendedBufferPtr;
+				memcpy (m_ExtendedBuffer, other.m_ExtendedBuffer, m_ExtendedLen);
+			}	
 		}
 		m_Verifier = nullptr;
 		CreateVerifier ();
@@ -235,13 +259,28 @@ namespace data
 		}
 		memcpy (&m_StandardIdentity, buf, DEFAULT_IDENTITY_SIZE);
 
+		size_t oldLen = m_ExtendedLen;
 		m_ExtendedLen = bufbe16toh (m_StandardIdentity.certificate + 1);
 		if (m_ExtendedLen)
 		{
 			if (m_ExtendedLen + DEFAULT_IDENTITY_SIZE <= len)
 			{
-				if (m_ExtendedLen > MAX_EXTENDED_BUFFER_SIZE) m_ExtendedLen = MAX_EXTENDED_BUFFER_SIZE;
-				memcpy (m_ExtendedBuffer, buf + DEFAULT_IDENTITY_SIZE, m_ExtendedLen);
+				if (m_ExtendedLen > MAX_EXTENDED_BUFFER_SIZE)
+				{
+					if (oldLen > MAX_EXTENDED_BUFFER_SIZE) 
+					{
+						if (m_ExtendedLen > oldLen)
+						{	
+							delete[] m_ExtendedBufferPtr;
+							m_ExtendedBufferPtr = new uint8_t[m_ExtendedLen];
+						}	
+					}
+					else
+						m_ExtendedBufferPtr = new uint8_t[m_ExtendedLen];
+					memcpy (m_ExtendedBufferPtr, buf + DEFAULT_IDENTITY_SIZE, m_ExtendedLen);
+				}	
+				else	
+					memcpy (m_ExtendedBuffer, buf + DEFAULT_IDENTITY_SIZE, m_ExtendedLen);
 			}
 			else
 			{
@@ -266,7 +305,12 @@ namespace data
 		if (fullLen > len) return 0; // buffer is too small and may overflow somewhere else
 		memcpy (buf, &m_StandardIdentity, DEFAULT_IDENTITY_SIZE);
 		if (m_ExtendedLen > 0)
-			memcpy (buf + DEFAULT_IDENTITY_SIZE, m_ExtendedBuffer, m_ExtendedLen);
+		{	
+			if (m_ExtendedLen > MAX_EXTENDED_BUFFER_SIZE)
+				memcpy (buf + DEFAULT_IDENTITY_SIZE, m_ExtendedBufferPtr, m_ExtendedLen);
+			else	
+				memcpy (buf + DEFAULT_IDENTITY_SIZE, m_ExtendedBuffer, m_ExtendedLen);
+		}	
 		return fullLen;
 	}
 
@@ -295,7 +339,7 @@ namespace data
 	const uint8_t * IdentityEx::GetSigningPublicKeyBuffer () const
 	{
 		auto keyLen = GetSigningPublicKeyLen ();
-		if (keyLen > 128) return nullptr; // P521
+		if (keyLen > 128) return nullptr; // P521 or PQ
 		return m_StandardIdentity.signingKey + 128 - keyLen;
 	}
 
@@ -322,7 +366,7 @@ namespace data
 	SigningKeyType IdentityEx::GetSigningKeyType () const
 	{
 		if (m_StandardIdentity.certificate[0] == CERTIFICATE_TYPE_KEY && m_ExtendedLen >= 2)
-			return bufbe16toh (m_ExtendedBuffer); // signing key
+			return bufbe16toh (m_ExtendedLen <= MAX_EXTENDED_BUFFER_SIZE ? m_ExtendedBuffer : m_ExtendedBufferPtr); // signing key
 		return SIGNING_KEY_TYPE_DSA_SHA1;
 	}
 
@@ -335,7 +379,7 @@ namespace data
 	CryptoKeyType IdentityEx::GetCryptoKeyType () const
 	{
 		if (m_StandardIdentity.certificate[0] == CERTIFICATE_TYPE_KEY && m_ExtendedLen >= 4)
-			return bufbe16toh (m_ExtendedBuffer + 2); // crypto key
+			return bufbe16toh (m_ExtendedLen <= MAX_EXTENDED_BUFFER_SIZE ? m_ExtendedBuffer + 2 : m_ExtendedBufferPtr + 2); // crypto key
 		return CRYPTO_KEY_TYPE_ELGAMAL;
 	}
 
@@ -359,7 +403,7 @@ namespace data
 				return new i2p::crypto::GOSTR3410_512_Verifier (i2p::crypto::eGOSTR3410TC26A512);
 			case SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
 				return new i2p::crypto::RedDSA25519Verifier ();
-#if OPENSSL_PQ				
+#if OPENSSL_PQ
 			case SIGNING_KEY_TYPE_MLDSA44:
 				return new i2p::crypto::MLDSA44Verifier ();
 #endif				
@@ -391,7 +435,7 @@ namespace data
 					uint8_t * signingKey = new uint8_t[keyLen];
 					memcpy (signingKey, m_StandardIdentity.signingKey, 384);
 					size_t excessLen = keyLen - 384;
-					memcpy (signingKey + 384, m_ExtendedBuffer + 4, excessLen); // right after signing and crypto key types
+					memcpy (signingKey + 384, m_ExtendedBufferPtr + 4, excessLen); // right after signing and crypto key types
 					verifier->SetPublicKey (signingKey);
 					delete[] signingKey;
 				}	
@@ -451,7 +495,9 @@ namespace data
 	{
 		m_Public = std::make_shared<IdentityEx>(Identity (keys));
 		memcpy (m_PrivateKey, keys.privateKey, 256); // 256
-		memcpy (m_SigningPrivateKey, keys.signingPrivateKey, m_Public->GetSigningPrivateKeyLen ());
+		size_t keyLen = m_Public->GetSigningPrivateKeyLen ();
+		if (keyLen > 128) m_SigningPrivateKey.resize (keyLen);
+		memcpy (m_SigningPrivateKey.data (), keys.signingPrivateKey, keyLen);
 		m_OfflineSignature.resize (0);
 		m_TransientSignatureLen = 0;
 		m_TransientSigningPrivateKeyLen = 0;
@@ -467,7 +513,7 @@ namespace data
 		m_OfflineSignature = other.m_OfflineSignature;
 		m_TransientSignatureLen = other.m_TransientSignatureLen;
 		m_TransientSigningPrivateKeyLen = other.m_TransientSigningPrivateKeyLen;
-		memcpy (m_SigningPrivateKey, other.m_SigningPrivateKey, m_TransientSigningPrivateKeyLen > 0 ? m_TransientSigningPrivateKeyLen : m_Public->GetSigningPrivateKeyLen ());
+		m_SigningPrivateKey = other.m_SigningPrivateKey;
 		m_Signer = nullptr;
 		CreateSigner ();
 		return *this;
@@ -490,8 +536,9 @@ namespace data
 		memcpy (m_PrivateKey, buf + ret, cryptoKeyLen);
 		ret += cryptoKeyLen;
 		size_t signingPrivateKeySize = m_Public->GetSigningPrivateKeyLen ();
-		if(signingPrivateKeySize + ret > len || signingPrivateKeySize > 128) return 0; // overflow
-		memcpy (m_SigningPrivateKey, buf + ret, signingPrivateKeySize);
+		if (signingPrivateKeySize + ret > len) return 0; // overflow
+		m_SigningPrivateKey.resize (signingPrivateKeySize);
+		memcpy (m_SigningPrivateKey.data (), buf + ret, signingPrivateKeySize);
 		ret += signingPrivateKeySize;
 		m_Signer = nullptr;
 		// check if signing private key is all zeros
@@ -532,8 +579,9 @@ namespace data
 			memcpy (m_OfflineSignature.data (), offlineInfo, offlineInfoLen);
 			// override signing private key
 			m_TransientSigningPrivateKeyLen = transientVerifier->GetPrivateKeyLen ();
-			if (m_TransientSigningPrivateKeyLen + ret > len || m_TransientSigningPrivateKeyLen > 128) return 0;
-			memcpy (m_SigningPrivateKey, buf + ret, m_TransientSigningPrivateKeyLen);
+			if (m_TransientSigningPrivateKeyLen + ret > len) return 0;
+			if (m_TransientSigningPrivateKeyLen > 128) m_SigningPrivateKey.resize (m_TransientSigningPrivateKeyLen);
+			memcpy (m_SigningPrivateKey.data (), buf + ret, m_TransientSigningPrivateKeyLen);
 			ret += m_TransientSigningPrivateKeyLen;
 			CreateSigner (keyType);
 		}
@@ -553,7 +601,7 @@ namespace data
 		if (IsOfflineSignature ())
 			memset (buf + ret, 0, signingPrivateKeySize);
 		else
-			memcpy (buf + ret, m_SigningPrivateKey, signingPrivateKeySize);
+			memcpy (buf + ret, m_SigningPrivateKey.data (), signingPrivateKeySize);
 		ret += signingPrivateKeySize;
 		if (IsOfflineSignature ())
 		{
@@ -564,7 +612,7 @@ namespace data
 			ret += offlineSignatureLen;
 			// transient private key
 			if (ret + m_TransientSigningPrivateKeyLen > len) return 0;
-			memcpy (buf + ret, m_SigningPrivateKey, m_TransientSigningPrivateKeyLen);
+			memcpy (buf + ret, m_SigningPrivateKey.data (), m_TransientSigningPrivateKeyLen);
 			ret += m_TransientSigningPrivateKeyLen;
 		}
 		return ret;
@@ -603,13 +651,13 @@ namespace data
 	{
 		if (m_Signer) return;
 		if (keyType == SIGNING_KEY_TYPE_DSA_SHA1)
-			m_Signer.reset (new i2p::crypto::DSASigner (m_SigningPrivateKey, m_Public->GetStandardIdentity ().signingKey));
+			m_Signer.reset (new i2p::crypto::DSASigner (m_SigningPrivateKey.data (), m_Public->GetStandardIdentity ().signingKey));
 		else if (keyType == SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519 && !IsOfflineSignature ())
-			m_Signer.reset (new i2p::crypto::EDDSA25519Signer (m_SigningPrivateKey, m_Public->GetStandardIdentity ().signingKey + (sizeof(Identity::signingKey) - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH))); // TODO: remove public key check
+			m_Signer.reset (new i2p::crypto::EDDSA25519Signer (m_SigningPrivateKey.data (), m_Public->GetStandardIdentity ().signingKey + (sizeof(Identity::signingKey) - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH))); // TODO: remove public key check
 		else
 		{
 			// public key is not required
-			auto signer = CreateSigner (keyType, m_SigningPrivateKey);
+			auto signer = CreateSigner (keyType, m_SigningPrivateKey.data ());
 			if (signer) m_Signer.reset (signer);
 		}
 	}
@@ -708,8 +756,10 @@ namespace data
 		{
 			PrivateKeys keys;
 			// signature
-			uint8_t signingPublicKey[512]; // signing public key is 512 bytes max
-			GenerateSigningKeyPair (type, keys.m_SigningPrivateKey, signingPublicKey);
+			std::unique_ptr<i2p::crypto::Verifier> verifier (IdentityEx::CreateVerifier (type));
+			std::vector<uint8_t> signingPublicKey(verifier->GetPublicKeyLen ()); 
+			keys.m_SigningPrivateKey.resize (verifier->GetPrivateKeyLen ());
+			GenerateSigningKeyPair (type, keys.m_SigningPrivateKey.data (), signingPublicKey.data ());
 			// encryption
 			uint8_t publicKey[256];
 			if (isDestination)
@@ -717,7 +767,7 @@ namespace data
 			else
 				GenerateCryptoKeyPair (cryptoType, keys.m_PrivateKey, publicKey);
 			// identity
-			keys.m_Public = std::make_shared<IdentityEx> (isDestination ? nullptr : publicKey, signingPublicKey, type, cryptoType);
+			keys.m_Public = std::make_shared<IdentityEx> (isDestination ? nullptr : publicKey, signingPublicKey.data (), type, cryptoType);
 
 			keys.CreateSigner ();
 			return keys;
@@ -798,9 +848,10 @@ namespace data
 			keys.m_TransientSigningPrivateKeyLen = verifier->GetPrivateKeyLen ();
 			keys.m_TransientSignatureLen = verifier->GetSignatureLen ();
 			keys.m_OfflineSignature.resize (pubKeyLen + m_Public->GetSignatureLen () + 6);
+			keys.m_SigningPrivateKey.resize (verifier->GetPrivateKeyLen ());
 			htobe32buf (keys.m_OfflineSignature.data (), expires); // expires
 			htobe16buf (keys.m_OfflineSignature.data () + 4, type); // type
-			GenerateSigningKeyPair (type, keys.m_SigningPrivateKey, keys.m_OfflineSignature.data () + 6); // public key
+			GenerateSigningKeyPair (type, keys.m_SigningPrivateKey.data (), keys.m_OfflineSignature.data () + 6); // public key
 			Sign (keys.m_OfflineSignature.data (), pubKeyLen + 6, keys.m_OfflineSignature.data () + 6 + pubKeyLen); // signature
 			// recreate signer
 			keys.m_Signer = nullptr;
