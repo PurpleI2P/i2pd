@@ -433,7 +433,7 @@ namespace data
 				{
 					// for post-quantum
 					uint8_t * signingKey = new uint8_t[keyLen];
-					memcpy (signingKey, m_StandardIdentity.signingKey, 384);
+					memcpy (signingKey, m_StandardIdentity, 384);
 					size_t excessLen = keyLen - 384;
 					memcpy (signingKey + 384, m_ExtendedBufferPtr + 4, excessLen); // right after signing and crypto key types
 					verifier->SetPublicKey (signingKey);

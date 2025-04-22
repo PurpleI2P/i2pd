@@ -59,8 +59,11 @@ namespace data
 	};
 
 	typedef std::function<bool(const Lease & l)> LeaseInspectFunc;
-
+#if OPENSSL_PQ
+	const size_t MAX_LS_BUFFER_SIZE = 8192;
+#else
 	const size_t MAX_LS_BUFFER_SIZE = 4096;
+#endif	
 	const size_t LEASE_SIZE = 44; // 32 + 4 + 8
 	const size_t LEASE2_SIZE = 40; // 32 + 4 + 4
 	const uint8_t MAX_NUM_LEASES = 16;

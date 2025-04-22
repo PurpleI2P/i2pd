@@ -450,29 +450,42 @@ namespace stream
 
 		if (flags & PACKET_FLAG_SIGNATURE_INCLUDED)
 		{
-			uint8_t signature[256];
+			bool verified = false;
 			auto signatureLen = m_TransientVerifier ? m_TransientVerifier->GetSignatureLen () : m_RemoteIdentity->GetSignatureLen ();
-			if(signatureLen <= sizeof(signature))
-			{
-				memcpy (signature, optionData, signatureLen);
-				memset (const_cast<uint8_t *>(optionData), 0, signatureLen);
-				bool verified = m_TransientVerifier ?
-					m_TransientVerifier->Verify (packet->GetBuffer (), packet->GetLength (), signature) :
-					m_RemoteIdentity->Verify (packet->GetBuffer (), packet->GetLength (), signature);
-				if (!verified)
-				{
-					LogPrint (eLogError, "Streaming: Signature verification failed, sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID);
-					Close ();
-					flags |= PACKET_FLAG_CLOSE;
-				}
-				memcpy (const_cast<uint8_t *>(optionData), signature, signatureLen);
-				optionData += signatureLen;
-			}
-			else
+			if (signatureLen > packet->GetLength ())
 			{
 				LogPrint (eLogError, "Streaming: Signature too big, ", signatureLen, " bytes");
 				return false;
+			}	
+			if(signatureLen <= 256)
+			{
+				// standard
+				uint8_t signature[256];
+				memcpy (signature, optionData, signatureLen);
+				memset (const_cast<uint8_t *>(optionData), 0, signatureLen);
+				verified = m_TransientVerifier ?
+					m_TransientVerifier->Verify (packet->GetBuffer (), packet->GetLength (), signature) :
+					m_RemoteIdentity->Verify (packet->GetBuffer (), packet->GetLength (), signature);
+				if (verified)
+					memcpy (const_cast<uint8_t *>(optionData), signature, signatureLen);
 			}
+			else
+			{
+				// post quantum
+				std::vector<uint8_t> signature(signatureLen);
+				memcpy (signature.data (), optionData, signatureLen);
+				memset (const_cast<uint8_t *>(optionData), 0, signatureLen);
+				verified = m_TransientVerifier ?
+					m_TransientVerifier->Verify (packet->GetBuffer (), packet->GetLength (), signature.data ()) :
+					m_RemoteIdentity->Verify (packet->GetBuffer (), packet->GetLength (), signature.data ());
+			}
+			if (verified)
+				optionData += signatureLen;
+			else
+			{
+				LogPrint (eLogError, "Streaming: Signature verification failed, sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID);
+				return false;
+			}	
 		}
 		if (immediateAckRequested)
 			SendQuickAck ();
