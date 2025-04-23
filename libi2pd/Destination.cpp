@@ -469,9 +469,21 @@ namespace client
 					if (buf[DATABASE_STORE_TYPE_OFFSET] == i2p::data::NETDB_STORE_TYPE_LEASESET)
 						leaseSet = std::make_shared<i2p::data::LeaseSet> (buf + offset, len - offset); // LeaseSet
 					else
+					{	
 						leaseSet = std::make_shared<i2p::data::LeaseSet2> (buf[DATABASE_STORE_TYPE_OFFSET], 
 							buf + offset, len - offset, true, from ? from->GetRemoteStaticKeyType () : GetPreferredCryptoType () ); // LeaseSet2
-					if (leaseSet->IsValid () && leaseSet->GetIdentHash () == key && !leaseSet->IsExpired ())
+						if (from)
+						{
+							uint8_t pub[32];
+							leaseSet->Encrypt (nullptr, pub);
+							if (memcmp (from->GetRemoteStaticKey (), pub, 32))
+							{
+								LogPrint (eLogError, "Destination: Remote LeaseSet static key mismatch");
+								leaseSet = nullptr;
+							}	
+						}	
+					}		
+					if (leaseSet && leaseSet->IsValid () && leaseSet->GetIdentHash () == key && !leaseSet->IsExpired ())
 					{
 						if (leaseSet->GetIdentHash () != GetIdentHash ())
 						{
