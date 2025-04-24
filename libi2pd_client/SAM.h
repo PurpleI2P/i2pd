@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -271,6 +271,10 @@ namespace client
 			void ReceiveDatagram ();
 			void HandleReceivedDatagram (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 
+			void ScheduleSessionCleanupTimer (std::shared_ptr<SAMSession> session);
+			void HandleSessionCleanupTimer (const boost::system::error_code& ecode,
+				std::shared_ptr<SAMSession> session, std::shared_ptr<boost::asio::deadline_timer> timer);	                                
+			
 		private:
 
 			bool m_IsSingleThread;

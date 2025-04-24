@@ -43,23 +43,21 @@ namespace client
 			m_Stream->AsyncClose ();
 			m_Stream = nullptr;
 		}
-		auto Session = m_Owner.FindSession(m_ID);
 		switch (m_SocketType)
 		{
 			case eSAMSocketTypeSession:
 				m_Owner.CloseSession (m_ID);
 			break;
 			case eSAMSocketTypeStream:
-			{
-				break;
-			}
+			break;
 			case eSAMSocketTypeAcceptor:
 			case eSAMSocketTypeForward:
 			{
-				if (Session)
+				auto session = m_Owner.FindSession(m_ID);
+				if (session)
 				{
-					if (m_IsAccepting && Session->GetLocalDestination ())
-						Session->GetLocalDestination ()->StopAcceptingStreams ();
+					if (m_IsAccepting && session->GetLocalDestination ())
+						session->GetLocalDestination ()->StopAcceptingStreams ();
 				}
 				break;
 			}
@@ -1479,17 +1477,39 @@ namespace client
 			session->StopLocalDestination ();
 			session->Close ();
 			if (m_IsSingleThread)
-			{
-				auto timer = std::make_shared<boost::asio::deadline_timer>(GetService ());
-				timer->expires_from_now (boost::posix_time::seconds(5)); // postpone destination clean for 5 seconds
-				timer->async_wait ([timer, session](const boost::system::error_code& ecode)
-				{
-					// session's destructor is called here
-				});
-			}
+				ScheduleSessionCleanupTimer (session); // let all session's streams close
 		}
 	}
 
+	void SAMBridge::ScheduleSessionCleanupTimer (std::shared_ptr<SAMSession> session)
+	{
+		auto timer = std::make_shared<boost::asio::deadline_timer>(GetService ());
+		timer->expires_from_now (boost::posix_time::seconds(5)); // postpone destination clean for 5 seconds
+		timer->async_wait (std::bind (&SAMBridge::HandleSessionCleanupTimer, this, std::placeholders::_1, session, timer));
+	}	
+		
+	void SAMBridge::HandleSessionCleanupTimer (const boost::system::error_code& ecode,
+		std::shared_ptr<SAMSession> session, std::shared_ptr<boost::asio::deadline_timer> timer)
+	{
+		if (ecode != boost::asio::error::operation_aborted && session)
+		{
+			auto dest = session->GetLocalDestination ();
+			if (dest)
+			{
+				auto streamingDest = dest->GetStreamingDestination ();
+				auto numStreams = streamingDest->GetNumStreams ();
+				if (numStreams > 0)
+				{
+					LogPrint (eLogInfo, "SAM: Session ", session->Name, " still has ", numStreams, " streams");
+					ScheduleSessionCleanupTimer (session);
+				}	
+				else
+					LogPrint (eLogDebug, "SAM: Session ", session->Name, " terminated");
+			}	
+		}	
+		// session's destructor is called here unless rescheduled
+	}	
+		
 	std::shared_ptr<SAMSession> SAMBridge::FindSession (const std::string& id) const
 	{
 		std::unique_lock<std::mutex> l(m_SessionsMutex);

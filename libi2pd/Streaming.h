@@ -326,6 +326,7 @@ namespace stream
 			void SendPing (std::shared_ptr<const i2p::data::LeaseSet> remote);
 			void DeleteStream (std::shared_ptr<Stream> stream);
 			bool DeleteStream (uint32_t recvStreamID);
+			size_t GetNumStreams () const { return m_Streams.size (); };
 			void SetAcceptor (const Acceptor& acceptor);
 			void ResetAcceptor ();
 			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };
