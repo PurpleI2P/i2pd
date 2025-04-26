@@ -512,7 +512,7 @@ namespace client
 					{
 						auto ls2 = std::make_shared<i2p::data::LeaseSet2> (buf + offset, len - offset,
 							request->requestedBlindedKey, m_LeaseSetPrivKey ? ((const uint8_t *)*m_LeaseSetPrivKey) : nullptr, 
-						    from ? from->GetRemoteStaticKeyType () : GetPreferredCryptoType ());
+						    GetPreferredCryptoType ());
 						if (ls2->IsValid () && !ls2->IsExpired ())
 						{
 							leaseSet = ls2;
