@@ -243,7 +243,8 @@ namespace config {
 				"https://www2.mk16.de/,"
 			    "https://i2p.ghativega.in/,"
 			    "https://i2p.novg.net/,"
-            	"https://reseed.stormycloud.org/"
+            	"https://reseed.stormycloud.org/,"
+			    "https://cubicchaos.net:8443/"                                                
 			),                                                            "Reseed URLs, separated by comma")
 			("reseed.yggurls", value<std::string>()->default_value(
 				"http://[324:71e:281a:9ed3::ace]:7070/,"
