@@ -82,6 +82,7 @@ namespace client
 			std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket&> > m_SSL;
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
 			boost::asio::ip::tcp::endpoint m_RemoteEndpoint;
+			bool m_IsReceiving;
 	};
 
 	class I2PClientTunnelConnectionHTTP: public I2PTunnelConnection
