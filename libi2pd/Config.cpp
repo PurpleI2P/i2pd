@@ -234,7 +234,6 @@ namespace config {
 				"https://reseed2.i2p.net/,"
 				"https://reseed.diva.exchange/,"
 				"https://reseed-fr.i2pd.xyz/,"
-				"https://reseed.memcpy.io/,"
 				"https://reseed.onion.im/,"
 				"https://i2pseed.creativecowpat.net:8443/,"
 				"https://reseed.i2pgit.org/,"
