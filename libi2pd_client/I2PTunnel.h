@@ -27,7 +27,9 @@ namespace i2p
 {
 namespace client
 {
-	const size_t I2P_TUNNEL_CONNECTION_BUFFER_SIZE = 16384;
+	constexpr size_t I2P_TUNNEL_CONNECTION_BUFFER_SIZE = 8192;
+	constexpr size_t I2P_TUNNEL_CONNECTION_STREAM_MAX_SEND_BUFFER_SIZE = 8*I2P_TUNNEL_CONNECTION_BUFFER_SIZE;
+	constexpr size_t I2P_TUNNEL_CONNECTION_STREAM_BUFFER_SIZE = 16384;
 	const int I2P_TUNNEL_CONNECTION_MAX_IDLE = 3600; // in seconds
 	const int I2P_TUNNEL_DESTINATION_REQUEST_TIMEOUT = 10; // in seconds
 	// for HTTP tunnels
@@ -77,7 +79,7 @@ namespace client
 			
 		private:
 
-			uint8_t m_Buffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE], m_StreamBuffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE];
+			uint8_t m_Buffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE], m_StreamBuffer[I2P_TUNNEL_CONNECTION_STREAM_BUFFER_SIZE];
 			std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
 			std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket&> > m_SSL;
 			std::shared_ptr<i2p::stream::Stream> m_Stream;

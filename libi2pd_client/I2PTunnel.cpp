@@ -152,7 +152,7 @@ namespace client
 	{
 		if (m_IsReceiving) return; // already receiving
 		size_t unsentSize = m_Stream ? m_Stream->GetSendBufferSize () : 0;
-		if (unsentSize >= I2P_TUNNEL_CONNECTION_BUFFER_SIZE) return; // buffer is full
+		if (unsentSize >= I2P_TUNNEL_CONNECTION_STREAM_MAX_SEND_BUFFER_SIZE) return; // buffer is full
 		m_IsReceiving = true;
 		if (m_SSL)
 			m_SSL->async_read_some (boost::asio::buffer(m_Buffer, I2P_TUNNEL_CONNECTION_BUFFER_SIZE - unsentSize),
@@ -216,7 +216,7 @@ namespace client
 			if (m_Stream->GetStatus () == i2p::stream::eStreamStatusNew ||
 				m_Stream->GetStatus () == i2p::stream::eStreamStatusOpen) // regular
 			{
-				m_Stream->AsyncReceive (boost::asio::buffer (m_StreamBuffer, I2P_TUNNEL_CONNECTION_BUFFER_SIZE),
+				m_Stream->AsyncReceive (boost::asio::buffer (m_StreamBuffer, I2P_TUNNEL_CONNECTION_STREAM_BUFFER_SIZE),
 					std::bind (&I2PTunnelConnection::HandleStreamReceive, shared_from_this (),
 					std::placeholders::_1, std::placeholders::_2),
 					I2P_TUNNEL_CONNECTION_MAX_IDLE);
@@ -224,7 +224,7 @@ namespace client
 			else // closed by peer
 			{
 				// get remaining data
-				auto len = m_Stream->ReadSome (m_StreamBuffer, I2P_TUNNEL_CONNECTION_BUFFER_SIZE);
+				auto len = m_Stream->ReadSome (m_StreamBuffer, I2P_TUNNEL_CONNECTION_STREAM_BUFFER_SIZE);
 				if (len > 0) // still some data
 					Write (m_StreamBuffer, len);
 				else // no more data
