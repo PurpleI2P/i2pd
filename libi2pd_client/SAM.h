@@ -29,6 +29,8 @@ namespace i2p
 namespace client
 {
 	const size_t SAM_SOCKET_BUFFER_SIZE = 8192;
+	const size_t SAM_STREAM_BUFFER_SIZE = 16384;
+	const size_t SAM_STREAM_MAX_SEND_BUFFER_SIZE = 8*SAM_SOCKET_BUFFER_SIZE;
 	const int SAM_SOCKET_CONNECTION_MAX_IDLE = 3600; // in seconds
 	const int SAM_SESSION_READINESS_CHECK_INTERVAL = 3; // in seconds
 	const size_t SAM_SESSION_MAX_ACCEPT_QUEUE_SIZE = 50;
@@ -170,12 +172,13 @@ namespace client
 			Socket_t m_Socket;
 			boost::asio::deadline_timer m_Timer;
 			char m_Buffer[SAM_SOCKET_BUFFER_SIZE + 1];
-			size_t m_BufferOffset;
-			uint8_t m_StreamBuffer[SAM_SOCKET_BUFFER_SIZE];
+			size_t m_BufferOffset; // for session only
+			uint8_t m_StreamBuffer[SAM_STREAM_BUFFER_SIZE];
 			SAMSocketType m_SocketType;
 			std::string m_ID; // nickname
 			bool m_IsSilent;
 			bool m_IsAccepting; // for eSAMSocketTypeAcceptor only
+			bool m_IsReceiving; // for eSAMSocketTypeStream only
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
 	};
 
