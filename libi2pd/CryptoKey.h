@@ -165,7 +165,7 @@ namespace crypto
 		switch (type)
 		{
 			case i2p::data::CRYPTO_KEY_TYPE_ELGAMAL: return 256;
-			case i2p::data::CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC: return 32;
+			case i2p::data::CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC: return 256; // actual size is 32, but we use 256 for compatibility with old keys files 
 			case i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD: return 32;
 			// ML-KEM hybrid
 			case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD:

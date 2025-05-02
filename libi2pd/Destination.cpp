@@ -728,22 +728,9 @@ namespace client
 		{
 			if (m_PublishReplyToken)
 			{
+				LogPrint (eLogWarning, "Destination: Publish confirmation was not received in ", PUBLISH_CONFIRMATION_TIMEOUT, " milliseconds or failed. will try again");
 				m_PublishReplyToken = 0;
-				if (GetIdentity ()->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ELGAMAL)
-				{
-					LogPrint (eLogWarning, "Destination: Publish confirmation was not received in ", PUBLISH_CONFIRMATION_TIMEOUT, " milliseconds or failed. will try again");
-					Publish ();
-				}
-				else
-				{
-					LogPrint (eLogWarning, "Destination: Publish confirmation was not received in ", PUBLISH_CONFIRMATION_TIMEOUT, " milliseconds from Java floodfill for crypto type ", (int)GetIdentity ()->GetCryptoKeyType ());
-					// Java floodfill never sends confirmation back for unknown crypto type
-					// assume it successive and try to verify
-					m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_VERIFICATION_TIMEOUT + PUBLISH_VERIFICATION_TIMEOUT_VARIANCE)); // always max
-					m_PublishVerificationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishVerificationTimer,
-			shared_from_this (), std::placeholders::_1));
-
-				}
+				Publish ();
 			}
 		}
 	}
