@@ -155,11 +155,11 @@ namespace client
 		if (unsentSize >= I2P_TUNNEL_CONNECTION_STREAM_MAX_SEND_BUFFER_SIZE) return; // buffer is full
 		m_IsReceiving = true;
 		if (m_SSL)
-			m_SSL->async_read_some (boost::asio::buffer(m_Buffer, I2P_TUNNEL_CONNECTION_BUFFER_SIZE - unsentSize),
+			m_SSL->async_read_some (boost::asio::buffer(m_Buffer, I2P_TUNNEL_CONNECTION_BUFFER_SIZE),
 				std::bind(&I2PTunnelConnection::HandleReceive, shared_from_this (),
 				std::placeholders::_1, std::placeholders::_2));
 		else
-			m_Socket->async_read_some (boost::asio::buffer(m_Buffer, I2P_TUNNEL_CONNECTION_BUFFER_SIZE - unsentSize),
+			m_Socket->async_read_some (boost::asio::buffer(m_Buffer, I2P_TUNNEL_CONNECTION_BUFFER_SIZE),
 				std::bind(&I2PTunnelConnection::HandleReceive, shared_from_this (),
 				std::placeholders::_1, std::placeholders::_2));
 	}
