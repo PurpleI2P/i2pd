@@ -151,15 +151,21 @@ namespace client
 	void I2PTunnelConnection::Receive ()
 	{
 		if (m_IsReceiving) return; // already receiving
+		size_t bufSize = I2P_TUNNEL_CONNECTION_BUFFER_SIZE;
 		size_t unsentSize = m_Stream ? m_Stream->GetSendBufferSize () : 0;
-		if (unsentSize >= I2P_TUNNEL_CONNECTION_STREAM_MAX_SEND_BUFFER_SIZE) return; // buffer is full
+		if (unsentSize)
+		{	
+			if (unsentSize >= I2P_TUNNEL_CONNECTION_STREAM_MAX_SEND_BUFFER_SIZE) return; // buffer is full
+			if (unsentSize > I2P_TUNNEL_CONNECTION_STREAM_MAX_SEND_BUFFER_SIZE - I2P_TUNNEL_CONNECTION_BUFFER_SIZE)
+				bufSize = I2P_TUNNEL_CONNECTION_STREAM_MAX_SEND_BUFFER_SIZE - unsentSize;
+		}	
 		m_IsReceiving = true;
 		if (m_SSL)
-			m_SSL->async_read_some (boost::asio::buffer(m_Buffer, I2P_TUNNEL_CONNECTION_BUFFER_SIZE),
+			m_SSL->async_read_some (boost::asio::buffer(m_Buffer, bufSize),
 				std::bind(&I2PTunnelConnection::HandleReceive, shared_from_this (),
 				std::placeholders::_1, std::placeholders::_2));
 		else
-			m_Socket->async_read_some (boost::asio::buffer(m_Buffer, I2P_TUNNEL_CONNECTION_BUFFER_SIZE),
+			m_Socket->async_read_some (boost::asio::buffer(m_Buffer, bufSize),
 				std::bind(&I2PTunnelConnection::HandleReceive, shared_from_this (),
 				std::placeholders::_1, std::placeholders::_2));
 	}

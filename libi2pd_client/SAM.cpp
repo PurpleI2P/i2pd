@@ -947,10 +947,16 @@ namespace client
 		if (m_SocketType == eSAMSocketTypeStream)
 		{
 			if (m_IsReceiving) return;
+			size_t bufSize = SAM_SOCKET_BUFFER_SIZE;
 			size_t unsentSize = m_Stream ? m_Stream->GetSendBufferSize () : 0;
-			if (unsentSize >= SAM_STREAM_MAX_SEND_BUFFER_SIZE) return; // buffer is full
+			if (unsentSize)
+			{	
+				if (unsentSize >= SAM_STREAM_MAX_SEND_BUFFER_SIZE) return; // buffer is full
+				if (unsentSize > SAM_STREAM_MAX_SEND_BUFFER_SIZE - SAM_SOCKET_BUFFER_SIZE)
+					bufSize = SAM_STREAM_MAX_SEND_BUFFER_SIZE - unsentSize;
+			}
 			m_IsReceiving = true;
-			m_Socket.async_read_some (boost::asio::buffer(m_Buffer, SAM_SOCKET_BUFFER_SIZE),
+			m_Socket.async_read_some (boost::asio::buffer(m_Buffer, bufSize),
 				std::bind(&SAMSocket::HandleReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 		}	
 		else
