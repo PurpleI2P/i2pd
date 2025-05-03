@@ -528,6 +528,7 @@ namespace transport
 		}
 		else
 		{
+			m_Establisher->CreateEphemeralKey ();
 			boost::asio::post (m_Server.GetEstablisherService (), 
 				[s = shared_from_this (), bytes_transferred] ()
 				{
@@ -566,7 +567,7 @@ namespace transport
 				SendSessionCreated ();
 		}
 		else
-			boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+			ReadSomethingAndTerminate (); // probing resistance
 	}	
 		
 	void NTCP2Session::HandleSessionRequestPaddingReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
@@ -918,7 +919,6 @@ namespace transport
 	{
 		SetTerminationTimeout (NTCP2_ESTABLISH_TIMEOUT);
 		SetLastActivityTimestamp (i2p::util::GetSecondsSinceEpoch ());
-		m_Establisher->CreateEphemeralKey ();
 		boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionRequestBuffer, 64), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionRequestReceived, shared_from_this (),
 			std::placeholders::_1, std::placeholders::_2));
@@ -1399,6 +1399,19 @@ namespace transport
 		boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ())); // let termination message go
 	}
 
+	void NTCP2Session::ReadSomethingAndTerminate ()
+	{
+		size_t len = m_Server.GetRng ()() % NTCP2_SESSION_REQUEST_MAX_SIZE;
+		if (len > 0 && m_Establisher)
+			boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionRequestBuffer, len), boost::asio::transfer_all (),
+				[s = shared_from_this()](const boost::system::error_code& ecode, size_t bytes_transferred)
+			    { 
+					s->Terminate ();
+				});
+		else
+			boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+	}	
+		
 	void NTCP2Session::SendI2NPMessages (std::list<std::shared_ptr<I2NPMessage> >& msgs)
 	{
 		if (m_IsTerminated || msgs.empty ()) 
