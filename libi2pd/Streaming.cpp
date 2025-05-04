@@ -642,7 +642,7 @@ namespace stream
 			if (wasInitial)
 				ScheduleResend ();
 		}
-		if (m_IsClientChoked && ackThrough >= m_DropWindowDelaySequenceNumber)
+		if (m_IsClientChoked && (ackThrough >= m_DropWindowDelaySequenceNumber || m_SentPackets.empty ()))
 			m_IsClientChoked = false;
 		if (m_IsWinDropped && ackThrough > m_DropWindowDelaySequenceNumber)
 		{
