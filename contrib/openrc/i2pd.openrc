@@ -3,14 +3,14 @@
 name="Invisible Internet Protocol daemon"
 description="i2p router written in C++"
 
-pidfile="/var/run/i2pd/i2pd.pid"
+pidfile="/run/i2pd/i2pd.pid"
 logfile="/var/log/i2pd/i2pd.log"
 mainconf="/etc/i2pd/i2pd.conf"
 tunconf="/etc/i2pd/tunnels.conf"
 tundir="/etc/i2pd/tunnels.conf.d"
 
 command="/usr/bin/i2pd"
-command_args="--service --daemon --log=file --logfile=$logfile --conf=$mainconf --tunconf=$tunconf --tunnelsdir=$tundir --pidfile=$pidfile"
+command_args="--daemon --service --conf=$mainconf --tunconf=$tunconf --tunnelsdir=$tundir --pidfile=$pidfile --log=file --logfile=$logfile "
 command_user="i2pd"
 required_dirs="/var/lib/i2pd"
 required_files="/etc/i2pd/i2pd.conf"
