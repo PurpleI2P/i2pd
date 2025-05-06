@@ -11,9 +11,9 @@ tundir="/etc/i2pd/tunnels.conf.d"
 
 command="/usr/bin/i2pd"
 command_args="--service --daemon --log=file --logfile=$logfile --conf=$mainconf --tunconf=$tunconf --tunnelsdir=$tundir --pidfile=$pidfile"
+command_user="i2pd"
 required_dirs="/var/lib/i2pd"
-required_files="$mainconf"
-start_stop_daemon_args="--chuid i2pd"
+required_files="/etc/i2pd/i2pd.conf"
 
 depend() {
   need mountall
