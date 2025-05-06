@@ -6,7 +6,7 @@ mainconf="/etc/i2pd/i2pd.conf"
 tunconf="/etc/i2pd/tunnels.conf"
 tundir="/etc/i2pd/tunnels.conf.d"
 
-name="i2pd"
+name="Invisible Internet Protocol daemon"
 command="/usr/bin/i2pd"
 command_args="--service --daemon --log=file --logfile=$logfile --conf=$mainconf --tunconf=$tunconf --tunnelsdir=$tundir --pidfile=$pidfile"
 description="i2p router written in C++"
