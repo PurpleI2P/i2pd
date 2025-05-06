@@ -1,15 +1,16 @@
 #!/sbin/openrc-run
 
+name="Invisible Internet Protocol daemon"
+description="i2p router written in C++"
+
 pidfile="/var/run/i2pd/i2pd.pid"
 logfile="/var/log/i2pd/i2pd.log"
 mainconf="/etc/i2pd/i2pd.conf"
 tunconf="/etc/i2pd/tunnels.conf"
 tundir="/etc/i2pd/tunnels.conf.d"
 
-name="Invisible Internet Protocol daemon"
 command="/usr/bin/i2pd"
 command_args="--service --daemon --log=file --logfile=$logfile --conf=$mainconf --tunconf=$tunconf --tunnelsdir=$tundir --pidfile=$pidfile"
-description="i2p router written in C++"
 required_dirs="/var/lib/i2pd"
 required_files="$mainconf"
 start_stop_daemon_args="--chuid i2pd"
