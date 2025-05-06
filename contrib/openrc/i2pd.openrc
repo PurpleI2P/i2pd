@@ -31,8 +31,8 @@ start_pre() {
     exit 1
   fi
 
-  checkpath -f -o i2pd:adm $logfile
-  checkpath -f -o i2pd:adm $pidfile
+  checkpath -f -o $command_user $logfile
+  checkpath -f -o $command_user $pidfile
 
   if [ -n "$DAEMON_OPTS" ]; then
     command_args="$command_args $DAEMON_OPTS"
