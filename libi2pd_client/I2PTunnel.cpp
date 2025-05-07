@@ -183,6 +183,29 @@ namespace client
 		}
 		else
 		{	
+			if (bytes_transferred < I2P_TUNNEL_CONNECTION_BUFFER_SIZE && !m_SSL)
+			{
+				boost::system::error_code ec;
+				size_t moreBytes = m_Socket->available(ec);
+				if (!ec && moreBytes && m_Stream)
+				{
+					// read more data from socket before sending to stream
+					if (bytes_transferred + moreBytes > I2P_TUNNEL_CONNECTION_BUFFER_SIZE)
+						moreBytes = I2P_TUNNEL_CONNECTION_BUFFER_SIZE - bytes_transferred;
+					if (m_Stream->GetSendBufferSize () < I2P_TUNNEL_CONNECTION_STREAM_MAX_SEND_BUFFER_SIZE)
+					{	
+						size_t remaining = I2P_TUNNEL_CONNECTION_STREAM_MAX_SEND_BUFFER_SIZE - m_Stream->GetSendBufferSize ();
+						if (remaining < moreBytes) moreBytes = remaining;
+					}		
+					else
+						moreBytes = 0;
+				}	
+				if (moreBytes)
+				{
+					moreBytes = boost::asio::read (*m_Socket, boost::asio::buffer(m_Buffer + bytes_transferred, moreBytes), boost::asio::transfer_all (), ec);
+					if (!ec) bytes_transferred += moreBytes;
+				}	
+			}	
 			WriteToStream (m_Buffer, bytes_transferred);
 			Receive (); // try to receive more while being sent to stream
 		}	
