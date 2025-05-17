@@ -29,6 +29,9 @@ namespace ukrainian // language namespace
 		return n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;
 	}
 
+	// Right to Left language?
+	static bool rtl = false;
+
 	static const LocaleStrings strings
 	{
 		{"%.2f KiB", "%.2f КіБ"},
@@ -215,7 +218,7 @@ namespace ukrainian // language namespace
 
 	std::shared_ptr<const i2p::i18n::Locale> GetLocale()
 	{
-		return std::make_shared<i2p::i18n::Locale>(language, strings, plurals, [] (int n)->int { return plural(n); });
+		return std::make_shared<i2p::i18n::Locale>(language, rtl, strings, plurals, [] (int n)->int { return plural(n); });
 	}
 
 } // language

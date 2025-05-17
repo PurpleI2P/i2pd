@@ -134,7 +134,7 @@ namespace http {
 	{
 		std::string state;
 		std::string_view stateText;
-		switch (eState) 
+		switch (eState)
 		{
 			case i2p::tunnel::eTunnelStateBuildReplyReceived :
 			case i2p::tunnel::eTunnelStatePending     : state = "building";    break;
@@ -146,7 +146,7 @@ namespace http {
 			default: state = "unknown"; break;
 		}
 		if (stateText.empty ()) stateText = tr(state);
-		
+
 		s << "<span class=\"tunnel " << state << "\"> " << stateText << ((explr) ? " (" + std::string(tr("exploratory")) + ")" : "") << "</span>, "; // TODO:
 		ShowTraffic(s, bytes);
 		s << "\r\n";
@@ -172,9 +172,12 @@ namespace http {
 		auto it = i2p::i18n::languages.find(currLang);
 		std::string langCode = it->second.ShortCode;
 
+		// Right to Left language option
+		bool rtl = i2p::client::context.GetLanguage ()->GetRTL();
+
 		s <<
 			"<!DOCTYPE html>\r\n"
-			"<html lang=\"" << langCode << "\">\r\n"
+			"<html lang=\"" << langCode << "\"" << (rtl ? " dir=\"rtl\"" : "") << ">\r\n"
 			"  <head>\r\n" /* TODO: Find something to parse html/template system. This is horrible. */
 			"  <meta charset=\"UTF-8\">\r\n"
 			"  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n"
@@ -1479,7 +1482,7 @@ namespace http {
 		reply.body = content;
 
 		m_SendBuffer = reply.to_string();
-		boost::asio::async_write (*m_Socket, boost::asio::buffer(m_SendBuffer), boost::asio::transfer_all (), 
+		boost::asio::async_write (*m_Socket, boost::asio::buffer(m_SendBuffer), boost::asio::transfer_all (),
 			std::bind (&HTTPConnection::Terminate, shared_from_this (), std::placeholders::_1));
 	}
 

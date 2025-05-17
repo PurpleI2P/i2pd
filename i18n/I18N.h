@@ -19,21 +19,27 @@ namespace i2p
 {
 namespace i18n
 {
-	typedef std::map<std::string_view, std::string_view> LocaleStrings; 
+	typedef std::map<std::string_view, std::string_view> LocaleStrings;
 	class Locale
 	{
 		public:
 			Locale (
 				const std::string& language,
+				const bool& rtl,
 				const LocaleStrings& strings,
 				const std::map<std::string, std::vector<std::string>>& plurals,
 				std::function<int(int)> formula
-			): m_Language (language), m_Strings (strings), m_Plurals (plurals), m_Formula (formula) { };
+			): m_Language (language), m_RTL (rtl), m_Strings (strings), m_Plurals (plurals), m_Formula (formula) { };
 
 			// Get activated language name for webconsole
 			std::string GetLanguage() const
 			{
 				return m_Language;
+			}
+
+			bool GetRTL() const
+			{
+				return m_RTL;
 			}
 
 			std::string_view GetString (std::string_view arg) const
@@ -65,6 +71,7 @@ namespace i18n
 
 		private:
 			const std::string m_Language;
+			const bool m_RTL;
 			const LocaleStrings m_Strings;
 			const std::map<std::string, std::vector<std::string>> m_Plurals;
 			std::function<int(int)> m_Formula;

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2021-2023, The PurpleI2P Project
+* Copyright (c) 2021-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -30,6 +30,8 @@ namespace i18n
 	namespace english    { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace french     { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace german     { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
+	namespace hebrew     { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
+	namespace hindi      { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace italian    { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace polish     { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace portuguese { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
@@ -53,6 +55,8 @@ namespace i18n
 		{ "english", {"English", "en", i2p::i18n::english::GetLocale} },
 		{ "french", {"Français", "fr", i2p::i18n::french::GetLocale} },
 		{ "german", {"Deutsch", "de", i2p::i18n::german::GetLocale} },
+		{ "hebrew", {"עִבְרִית‎", "he", i2p::i18n::hebrew::GetLocale} },
+		{ "hindi", {"हिन्दी", "hi", i2p::i18n::hindi::GetLocale} },
 		{ "italian", {"Italiano", "it", i2p::i18n::italian::GetLocale} },
 		{ "polish", {"Polski", "pl", i2p::i18n::polish::GetLocale} },
 		{ "portuguese", {"Português", "pt", i2p::i18n::portuguese::GetLocale} },

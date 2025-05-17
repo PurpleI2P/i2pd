@@ -29,6 +29,9 @@ namespace afrikaans // language namespace
 		return n != 1 ? 1 : 0;
 	}
 
+	// Right to Left language?
+	static bool rtl = false;
+
 	static const LocaleStrings strings
 	{
 		{"failed", "Het misluk"},
@@ -73,7 +76,7 @@ namespace afrikaans // language namespace
 
 	std::shared_ptr<const i2p::i18n::Locale> GetLocale()
 	{
-		return std::make_shared<i2p::i18n::Locale>(language, strings, plurals, [] (int n)->int { return plural(n); });
+		return std::make_shared<i2p::i18n::Locale>(language, rtl, strings, plurals, [] (int n)->int { return plural(n); });
 	}
 
 } // language
