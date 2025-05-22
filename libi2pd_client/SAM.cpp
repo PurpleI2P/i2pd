@@ -637,52 +637,94 @@ namespace client
 			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
 	}
 
-	void SAMSocket::ProcessStreamForward (char * buf, size_t len)
+	void SAMSocket::ProcessStreamForward(char* buf, size_t len)
 	{
-		LogPrint (eLogDebug, "SAM: Stream forward: ", buf);
+		LogPrint(eLogDebug, "SAM: Stream forward: ", buf);
+
 		std::map<std::string, std::string> params;
-		ExtractParams (buf, params);
-		std::string& id = params[SAM_PARAM_ID];
-		auto session = m_Owner.FindSession (id);
+		ExtractParams(buf, params);
+
+		const auto itId = params.find(SAM_PARAM_ID);
+		if (itId == params.end())
+		{
+			SendSessionI2PError("Missing ID");
+			return;
+		}
+		const std::string& id = itId->second;
+
+		auto session = m_Owner.FindSession(id);
 		if (!session)
 		{
-			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
+			SendMessageReply(SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
 			return;
 		}
-		if (session->GetLocalDestination ()->IsAcceptingStreams ())
+		if (session->GetLocalDestination()->IsAcceptingStreams())
 		{
-			SendSessionI2PError ("Already accepting");
+			SendSessionI2PError("Already accepting");
 			return;
 		}
-		auto it = params.find (SAM_PARAM_PORT);
-		if (it == params.end ())
+
+		const auto itPort = params.find(SAM_PARAM_PORT);
+		if (itPort == params.end())
 		{
-			SendSessionI2PError ("PORT is missing");
+			SendSessionI2PError("PORT is missing");
 			return;
 		}
-		auto port = std::stoi (it->second);
+
+		const std::string& portStr = itPort->second;
+		if (!std::all_of(portStr.begin(), portStr.end(), ::isdigit))
+		{
+			SendSessionI2PError("Port must be numeric");
+			return;
+		}
+
+		int port = std::stoi(portStr);
 		if (port <= 0 || port >= 0xFFFF)
 		{
-			SendSessionI2PError ("Invalid PORT");
+			SendSessionI2PError("Invalid port");
 			return;
 		}
-		boost::system::error_code ec;
-		auto ep = m_Socket.remote_endpoint (ec);
-		if (ec)
+
+		boost::asio::ip::tcp::endpoint ep;
+		const auto itHost = params.find(SAM_PARAM_HOST);
+
+		if (itHost != params.end())
 		{
-			SendSessionI2PError ("Socket error");
-			return;
+			boost::system::error_code ec;
+			auto addr = boost::asio::ip::make_address(itHost->second, ec);
+			if (ec)
+			{
+				SendSessionI2PError("Invalid IP Address in HOST");
+				return;
+			}
+			ep = boost::asio::ip::tcp::endpoint(addr, port);
 		}
-		ep.port (port);
+		else
+		{
+			boost::system::error_code ec;
+			ep = m_Socket.remote_endpoint(ec);
+			if (ec)
+			{
+				SendSessionI2PError("Socket error: cannot get remote endpoint");
+				return;
+			}
+			ep.port(port);
+		}
+
 		m_SocketType = eSAMSocketTypeForward;
 		m_ID = id;
 		m_IsAccepting = true;
-		std::string& silent = params[SAM_PARAM_SILENT];
-		if (silent == SAM_VALUE_TRUE) m_IsSilent = true;
-		session->GetLocalDestination ()->AcceptStreams (std::bind (&SAMSocket::HandleI2PForward,
-			shared_from_this (), std::placeholders::_1, ep));
-		SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
+
+		auto itSilent = params.find(SAM_PARAM_SILENT);
+		if (itSilent != params.end() && itSilent->second == SAM_VALUE_TRUE)
+			m_IsSilent = true;
+
+		session->GetLocalDestination()->AcceptStreams(
+			std::bind(&SAMSocket::HandleI2PForward, shared_from_this(), std::placeholders::_1, ep));
+
+		SendMessageReply(SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
 	}
+
 
 	size_t SAMSocket::ProcessDatagramSend (char * buf, size_t len, const char * data)
 	{
