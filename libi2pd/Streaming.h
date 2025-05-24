@@ -61,10 +61,10 @@ namespace stream
 	const int INITIAL_WINDOW_SIZE = 10;
 	const int MIN_WINDOW_SIZE = 3;
 	const int MAX_WINDOW_SIZE = 512;
-	const int MAX_WINDOW_SIZE_INC_PER_RTT = 16;
-	const double RTT_EWMA_ALPHA = 0.25;
-	const double SLOWRTT_EWMA_ALPHA = 0.05;
-	const double PREV_SPEED_KEEP_TIME_COEFF = 0.35; // 0.1 - 1 // how long will the window size stay around the previous drop level, less is longer
+	const int MAX_WINDOW_SIZE_INC_PER_RTT = 12;
+	const double RTT_EWMA_ALPHA = 0.1;
+	const double SLOWRTT_EWMA_ALPHA = 0.02;
+	const double PREV_SPEED_KEEP_TIME_COEFF = 0.2; // 0.1 - 1 // how long will the window size stay around the previous drop level, less is longer
 	const int MIN_RTO = 20; // in milliseconds
 	const int INITIAL_RTT = 1500; // in milliseconds
 	const int INITIAL_RTO = 9000; // in milliseconds
@@ -79,7 +79,7 @@ namespace stream
 	const uint64_t SEND_INTERVAL_VARIANCE = 2000; // in microseconds
 	const uint64_t REQUEST_IMMEDIATE_ACK_INTERVAL = 7500; // in milliseconds 
 	const uint64_t REQUEST_IMMEDIATE_ACK_INTERVAL_VARIANCE = 3200; // in milliseconds 	
-	const bool LOSS_BASED_CONTROL_ENABLED = 1; // 0/1
+	const bool LOSS_BASED_CONTROL_ENABLED = 0; // 0/1
 	const uint64_t STREAMING_DESTINATION_POOLS_CLEANUP_INTERVAL = 646; // in seconds
 	
 	struct Packet
@@ -281,7 +281,7 @@ namespace stream
 			bool m_IsTimeOutResend;
 			bool m_IsImmediateAckRequested;
 			bool m_IsRemoteLeaseChangeInProgress;
-			bool m_DoubleWinIncCounter;
+			bool m_IsBufferEmpty;
 			StreamingDestination& m_LocalDestination;
 			std::shared_ptr<const i2p::data::IdentityEx> m_RemoteIdentity;
 			std::shared_ptr<const i2p::crypto::Verifier> m_TransientVerifier; // in case of offline key
@@ -299,14 +299,16 @@ namespace stream
 			uint16_t m_Port;
 
 			SendBufferQueue m_SendBuffer;
-			double m_RTT, m_SlowRTT, m_SlowRTT2;
+			double m_RTT, m_MinRTT, m_SlowRTT, m_FastRTT;
 			float m_WindowSize, m_LastWindowDropSize, m_WindowDropTargetSize;
-			int m_WindowIncCounter, m_RTO, m_AckDelay, m_PrevRTTSample, m_WindowSizeTail;
+			int m_WindowIncCounter, m_RTO, m_AckDelay, m_PrevRTTSample;
 			double m_Jitter;
 			uint64_t m_MinPacingTime, m_PacingTime, m_PacingTimeRem, // microseconds
 				m_LastSendTime, m_LastACKRecieveTime, m_ACKRecieveInterval, m_RemoteLeaseChangeTime, m_LastWindowIncTime;	// milliseconds
 			uint64_t m_LastACKSendTime, m_PacketACKInterval, m_PacketACKIntervalRem; // for limit inbound speed
 			int m_NumResendAttempts, m_NumPacketsToSend;
+			uint64_t m_JitterAccum;
+			int m_JitterDiv;
 			size_t m_MTU;
 	};
 
