@@ -468,7 +468,7 @@ namespace transport
 			while (!m_SendQueue.empty () && m_SentPackets.size () <= m_WindowSize)
 			{
 				auto msg = m_SendQueue.front ();
-				if (!msg || msg->IsExpired (ts) || msg->GetEnqueueTime() + m_MsgLocalExpirationTimeout < mts)
+				if (!msg || msg->IsExpired (ts) || msg->GetEnqueueTime() + I2NP_MESSAGE_LOCAL_EXPIRATION_TIMEOUT_TRANSIT < mts)
 				{
 					// drop null or expired message
 					if (msg) msg->Drop ();

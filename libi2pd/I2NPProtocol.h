@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -155,6 +155,7 @@ namespace tunnel
 	const unsigned int I2NP_MESSAGE_LOCAL_EXPIRATION_TIMEOUT_FACTOR = 3; // multiples of RTT
 	const unsigned int I2NP_MESSAGE_LOCAL_EXPIRATION_TIMEOUT_MIN = 200000; // in microseconds
 	const unsigned int I2NP_MESSAGE_LOCAL_EXPIRATION_TIMEOUT_MAX = 2000000; // in microseconds
+	const unsigned int I2NP_MESSAGE_LOCAL_EXPIRATION_TIMEOUT_TRANSIT = 4000000; // in microseconds
 	const unsigned int I2NP_MESSAGE_EXPIRATION_TIMEOUT = 8000; // in milliseconds (as initial RTT)
 	const unsigned int I2NP_MESSAGE_CLOCK_SKEW = 60*1000; // 1 minute in milliseconds
 
