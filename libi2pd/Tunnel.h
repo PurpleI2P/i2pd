@@ -81,12 +81,12 @@ namespace tunnel
 			/** function for visiting a hops stored in a tunnel */
 			typedef std::function<void(std::shared_ptr<const i2p::data::IdentityEx>)> TunnelHopVisitor;
 
-			Tunnel (std::shared_ptr<const TunnelConfig> config);
+			Tunnel (std::shared_ptr<TunnelConfig> config);
 			~Tunnel ();
 
 			void Build (uint32_t replyMsgID, std::shared_ptr<OutboundTunnel> outboundTunnel = nullptr);
 
-			std::shared_ptr<const TunnelConfig> GetTunnelConfig () const { return m_Config; }
+			std::shared_ptr<TunnelConfig> GetTunnelConfig () const { return m_Config; }
 			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > GetPeers () const;
 			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > GetInvertedPeers () const;
 			bool IsShortBuildMessage () const { return m_IsShortBuildMessage; };
@@ -125,7 +125,7 @@ namespace tunnel
 
 		private:
 
-			std::shared_ptr<const TunnelConfig> m_Config;
+			std::shared_ptr<TunnelConfig> m_Config;
 			std::vector<TunnelHop> m_Hops;
 			bool m_IsShortBuildMessage;
 			std::shared_ptr<TunnelPool> m_Pool; // pool, tunnel belongs to, or null
@@ -139,7 +139,7 @@ namespace tunnel
 	{
 		public:
 
-			OutboundTunnel (std::shared_ptr<const TunnelConfig> config):
+			OutboundTunnel (std::shared_ptr<TunnelConfig> config):
 				Tunnel (config), m_Gateway (*this), m_EndpointIdentHash (config->GetLastIdentHash ()) {};
 
 			void SendTunnelDataMsgTo (const uint8_t * gwHash, uint32_t gwTunnel, std::shared_ptr<i2p::I2NPMessage> msg);
@@ -164,7 +164,7 @@ namespace tunnel
 	{
 		public:
 
-			InboundTunnel (std::shared_ptr<const TunnelConfig> config): Tunnel (config), m_Endpoint (true) {};
+			InboundTunnel (std::shared_ptr<TunnelConfig> config): Tunnel (config), m_Endpoint (true) {};
 			void HandleTunnelDataMsg (std::shared_ptr<I2NPMessage>&& msg) override;
 			virtual size_t GetNumReceivedBytes () const { return m_Endpoint.GetNumReceivedBytes (); };
 			bool IsInbound() const override { return true; }

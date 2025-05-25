@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -77,28 +77,35 @@ namespace tunnel
 		uint64_t GetGarlicKey (uint8_t * key) const override;
 	};
 
+	struct PhonyTunnelHopConfig: public ECIESTunnelHopConfig
+	{
+		PhonyTunnelHopConfig (): ECIESTunnelHopConfig (nullptr) {}
+		uint8_t GetRetCode (const uint8_t * records) const override { return 0; }
+		bool DecryptBuildResponseRecord (uint8_t * records) const override { return true; }
+		void DecryptRecord (uint8_t * records, int index) const override {} // do nothing
+	};
+
+	struct LongPhonyTunnelHopConfig: public PhonyTunnelHopConfig
+	{
+		void CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID) override;
+	};	
+
+	struct ShortPhonyTunnelHopConfig: public PhonyTunnelHopConfig
+	{
+		void CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID) override;
+	};
+	
 	class TunnelConfig
 	{
 		public:
 
 			TunnelConfig (const std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers,
-				bool isShort, i2p::data::RouterInfo::CompatibleTransports farEndTransports = i2p::data::RouterInfo::eAllTransports): // inbound
-				m_IsShort (isShort), m_FarEndTransports (farEndTransports)
-			{
-				CreatePeers (peers);
-				m_LastHop->SetNextIdent (i2p::context.GetIdentHash ());
-			}
+				bool isShort, i2p::data::RouterInfo::CompatibleTransports farEndTransports = i2p::data::RouterInfo::eAllTransports); // inbound
 
 			TunnelConfig (const std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers,
 				uint32_t replyTunnelID, const i2p::data::IdentHash& replyIdent, bool isShort,
-				i2p::data::RouterInfo::CompatibleTransports farEndTransports = i2p::data::RouterInfo::eAllTransports): // outbound
-				m_IsShort (isShort), m_FarEndTransports (farEndTransports)
-			{
-				CreatePeers (peers);
-				m_FirstHop->isGateway = false;
-				m_LastHop->SetReplyHop (replyTunnelID, replyIdent);
-			}
-
+				i2p::data::RouterInfo::CompatibleTransports farEndTransports = i2p::data::RouterInfo::eAllTransports); // outbound
+				
 			virtual ~TunnelConfig ()
 			{
 				TunnelHopConfig * hop = m_FirstHop;
@@ -182,6 +189,9 @@ namespace tunnel
 			}
 
 			size_t GetRecordSize () const { return m_IsShort ? SHORT_TUNNEL_BUILD_RECORD_SIZE : TUNNEL_BUILD_RECORD_SIZE; };
+
+			void CreatePhonyHop ();
+			void DeletePhonyHop ();
 			
 		protected:
 

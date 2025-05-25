@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -219,6 +219,42 @@ namespace tunnel
 		return tag;
 	}
 
+	void LongPhonyTunnelHopConfig::CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID)
+	{
+		uint8_t * record = records + recordIndex*TUNNEL_BUILD_RECORD_SIZE;
+		memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)i2p::context.GetIdentHash (), 16);
+		memcpy (record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, i2p::transport::transports.GetNextX25519KeysPair ()->GetPublicKey (), 32);
+		RAND_bytes (record + 48, TUNNEL_BUILD_RECORD_SIZE - 48);
+	}
+
+	void ShortPhonyTunnelHopConfig::CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID)
+	{
+		uint8_t * record = records + recordIndex*SHORT_TUNNEL_BUILD_RECORD_SIZE;
+		memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)i2p::context.GetIdentHash (), 16);
+		memcpy (record + SHORT_REQUEST_RECORD_ENCRYPTED_OFFSET, i2p::transport::transports.GetNextX25519KeysPair ()->GetPublicKey (), 32);
+		RAND_bytes (record + 48, SHORT_TUNNEL_BUILD_RECORD_SIZE - 48);
+	}
+
+	TunnelConfig::TunnelConfig (const std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers,
+		bool isShort, i2p::data::RouterInfo::CompatibleTransports farEndTransports):
+		m_IsShort (isShort), m_FarEndTransports (farEndTransports)
+	{
+		// inbound
+		CreatePeers (peers);
+		m_LastHop->SetNextIdent (i2p::context.GetIdentHash ());
+	}
+
+	TunnelConfig::TunnelConfig (const std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers,
+		uint32_t replyTunnelID, const i2p::data::IdentHash& replyIdent, bool isShort,
+		i2p::data::RouterInfo::CompatibleTransports farEndTransports):
+		m_IsShort (isShort), m_FarEndTransports (farEndTransports)
+	{
+		// outbound
+		CreatePeers (peers);
+		m_FirstHop->isGateway = false;
+		m_LastHop->SetReplyHop (replyTunnelID, replyIdent);
+	}
+	
 	void TunnelConfig::CreatePeers (const std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers)
 	{
 		TunnelHopConfig * prev = nullptr;
@@ -245,5 +281,35 @@ namespace tunnel
 		}
 		m_LastHop = prev;
 	}
+
+	void TunnelConfig::CreatePhonyHop ()
+	{
+		if (m_LastHop && m_LastHop->ident)
+		{	
+			TunnelHopConfig * hop = nullptr;
+			if (m_IsShort)
+				hop = new ShortPhonyTunnelHopConfig ();
+			else
+				hop = new LongPhonyTunnelHopConfig ();
+			if (hop)
+			{	
+				hop->prev = m_LastHop;
+				m_LastHop->next = hop;
+				m_LastHop = hop;
+			}	
+		}	
+	}	
+
+	void TunnelConfig::DeletePhonyHop ()
+	{
+		if (m_LastHop && !m_LastHop->ident)
+		{
+			if (m_LastHop->prev) m_LastHop->prev->next = nullptr;
+			else m_FirstHop = nullptr;
+			auto tmp = m_LastHop;
+			m_LastHop = m_LastHop->prev;
+			delete tmp;
+		}	
+	}	
 }
 }

@@ -29,7 +29,7 @@ namespace i2p
 {
 namespace tunnel
 {
-	Tunnel::Tunnel (std::shared_ptr<const TunnelConfig> config):
+	Tunnel::Tunnel (std::shared_ptr<TunnelConfig> config):
 		TunnelBase (config->GetTunnelID (), config->GetNextTunnelID (), config->GetNextIdentHash ()),
 		m_Config (config), m_IsShortBuildMessage (false), m_Pool (nullptr),
 		m_State (eTunnelStatePending), m_FarEndTransports (i2p::data::RouterInfo::eAllTransports),
@@ -44,7 +44,13 @@ namespace tunnel
 	void Tunnel::Build (uint32_t replyMsgID, std::shared_ptr<OutboundTunnel> outboundTunnel)
 	{
 		auto numHops = m_Config->GetNumHops ();
-		const int numRecords = numHops <= STANDARD_NUM_RECORDS ? STANDARD_NUM_RECORDS : MAX_NUM_RECORDS;
+		bool insertPhonyRecord = m_Config->IsInbound() && numHops < MAX_NUM_RECORDS;	
+		if (insertPhonyRecord) 
+		{	
+			m_Config->CreatePhonyHop ();
+			numHops++;
+		}	
+		int numRecords = numHops <= STANDARD_NUM_RECORDS ? STANDARD_NUM_RECORDS : MAX_NUM_RECORDS;
 		auto msg = numRecords <= STANDARD_NUM_RECORDS ? NewI2NPShortMessage () : NewI2NPMessage ();
 		*msg->GetPayload () = numRecords;
 		const size_t recordSize = m_Config->IsShort () ? SHORT_TUNNEL_BUILD_RECORD_SIZE : TUNNEL_BUILD_RECORD_SIZE;
@@ -52,8 +58,7 @@ namespace tunnel
 		// shuffle records
 		std::vector<int> recordIndicies;
 		for (int i = 0; i < numRecords; i++) recordIndicies.push_back(i);
-		std::shuffle (recordIndicies.begin(), recordIndicies.end(), m_Pool ? m_Pool->GetRng () : std::mt19937(std::random_device()()));
-
+		std::shuffle (recordIndicies.begin(), recordIndicies.end(), m_Pool ? m_Pool->GetRng () : std::mt19937(std::random_device()()));	
 		// create real records
 		uint8_t * records = msg->GetPayload () + 1;
 		TunnelHopConfig * hop = m_Config->GetFirstHop ();
@@ -61,7 +66,7 @@ namespace tunnel
 		while (hop)
 		{
 			uint32_t msgID;
-			if (hop->next) // we set replyMsgID for last hop only
+			if (hop->next && hop->next->ident) // we set replyMsgID for last non-phony hop only
 				RAND_bytes ((uint8_t *)&msgID, 4);
 			else
 				msgID = replyMsgID;
@@ -89,6 +94,9 @@ namespace tunnel
 			}
 			hop = hop->prev;
 		}
+		// delete phony hop after encryption
+		if (insertPhonyRecord) m_Config->DeletePhonyHop ();
+		
 		msg->FillI2NPMessageHeader (m_Config->IsShort () ? eI2NPShortTunnelBuild : eI2NPVariableTunnelBuild);
 		auto s = shared_from_this ();
 		msg->onDrop = [s]()
