@@ -268,7 +268,7 @@ namespace stream
 			if (receivedSeqn <= m_LastReceivedSequenceNumber)
 			{
 				// we have received duplicate
-				LogPrint (eLogWarning, "Streaming: Duplicate message ", receivedSeqn, " on sSID=", m_SendStreamID);
+				LogPrint (eLogInfo, "Streaming: Duplicate message ", receivedSeqn, " on sSID=", m_SendStreamID);
 				if (receivedSeqn <= m_PreviousReceivedSequenceNumber || receivedSeqn == m_LastReceivedSequenceNumber)
  				{
  					m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNextOutboundTunnel (m_CurrentOutboundTunnel);
@@ -287,7 +287,7 @@ namespace stream
 			}
 			else
 			{
-				LogPrint (eLogWarning, "Streaming: Missing messages on sSID=", m_SendStreamID, ": from ", m_LastReceivedSequenceNumber + 1, " to ", receivedSeqn - 1);
+				LogPrint (eLogInfo, "Streaming: Missing messages on sSID=", m_SendStreamID, ": from ", m_LastReceivedSequenceNumber + 1, " to ", receivedSeqn - 1);
 				// save message and wait for missing message again
 				SavePacket (packet);
 				if (m_LastReceivedSequenceNumber >= 0)
@@ -1828,7 +1828,7 @@ namespace stream
 				if (it1 != m_IncomingStreams.end ())
 				{
 					// already pending
-					LogPrint(eLogWarning, "Streaming: Incoming streaming with rSID=", receiveStreamID, " already exists");
+					LogPrint(eLogInfo, "Streaming: Incoming streaming with rSID=", receiveStreamID, " already exists");
 					it1->second->ResetRoutingPath (); // Ack was not delivered, changing path
 					DeletePacket (packet); // drop it, because previous should be connected
 					return;
