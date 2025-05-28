@@ -496,7 +496,7 @@ namespace data
 		m_Public = std::make_shared<IdentityEx>(Identity (keys));
 		memcpy (m_PrivateKey, keys.privateKey, 256); // 256
 		size_t keyLen = m_Public->GetSigningPrivateKeyLen ();
-		if (keyLen > 128) m_SigningPrivateKey.resize (keyLen);
+		m_SigningPrivateKey.resize (keyLen);
 		memcpy (m_SigningPrivateKey.data (), keys.signingPrivateKey, keyLen);
 		m_OfflineSignature.resize (0);
 		m_TransientSignatureLen = 0;
