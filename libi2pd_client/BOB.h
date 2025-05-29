@@ -14,12 +14,15 @@
 #include <memory>
 #include <map>
 #include <string>
+#include <optional>
 #include <boost/asio.hpp>
 #include "util.h"
 #include "I2PTunnel.h"
 #include "I2PService.h"
 #include "Identity.h"
 #include "LeaseSet.h"
+#include "SOCKS.h"
+#include "HTTPProxy.h"
 
 namespace i2p
 {
@@ -48,7 +51,9 @@ namespace client
 	const char BOB_COMMAND_OPTION[] = "option";
 	const char BOB_COMMAND_STATUS[] = "status";
 	const char BOB_COMMAND_HELP[] = "help";
+	const char BOB_COMMAND_SETTUNNELTYPE[] = "settunneltype";
 
+	
 	const char BOB_HELP_ZAP[] = "zap - Shuts down BOB.";
 	const char BOB_HELP_QUIT[] = "quit - Quits this session with BOB.";
 	const char BOB_HELP_START[] = "start - Starts the current nicknamed tunnel.";
@@ -70,6 +75,7 @@ namespace client
 	const char BOB_HELP_OPTION[] = "option <KEY>=<VALUE> - Set an option. NOTE: Don't use any spaces.";
 	const char BOB_HELP_STATUS[] = "status <NICKNAME> - Display status of a nicknamed tunnel.";
 	const char BOB_HELP_HELP [] = "help <COMMAND> - Get help on a command.";
+	const char BOB_HELP_SETTUNNELTYPE[] = "settunneltype <socks|httpproxy> - Sets socks or http proxy tunnel type.";
 
 	class BOBI2PTunnelIncomingConnection: public I2PTunnelConnection
 	{
@@ -232,6 +238,7 @@ namespace client
 			void OptionCommandHandler (const char * operand, size_t len);
 			void StatusCommandHandler (const char * operand, size_t len);
 			void HelpCommandHandler (const char * operand, size_t len);
+			void SetTunnelTypeCommandHandler (const char * operand, size_t len);
 
 		private:
 
@@ -258,6 +265,13 @@ namespace client
 			i2p::data::PrivateKeys m_Keys;
 			std::map<std::string, std::string> m_Options;
 			std::shared_ptr<BOBDestination> m_CurrentDestination;
+
+			enum class TunnelType
+			{
+				SOCKS = 0,
+				HTTP_PROXY = 1
+			};
+			std::optional<TunnelType> m_tunnelType; 
 	};
 	typedef void (BOBCommandSession::*BOBCommandHandler)(const char * operand, size_t len);
 
@@ -275,6 +289,9 @@ namespace client
 			void AddDestination (const std::string& name, std::shared_ptr<BOBDestination> dest);
 			void DeleteDestination (const std::string& name);
 			std::shared_ptr<BOBDestination> FindDestination (const std::string& name);
+			void SetProxy (const std::string& name, std::unique_ptr<I2PService> proxy);
+			const I2PService* GetProxy(const std::string& name) const;
+			void RemoveProxy(const std::string& name);
 
 		private:
 
@@ -287,6 +304,7 @@ namespace client
 			std::map<std::string, std::shared_ptr<BOBDestination> > m_Destinations;
 			std::map<std::string, BOBCommandHandler> m_CommandHandlers;
 			std::map<std::string, std::string> m_HelpStrings;
+			std::map<std::string, std::unique_ptr<I2PService>> m_proxy;
 
 		public:
 
