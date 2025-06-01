@@ -1,6 +1,34 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.57.0] - 2025-06-02
+### Added
+- Local domain sockets for I2PControl
+- "keys=shareddest" tunnel param to run on shared local destination
+- HTTP and SOCKS proxy through BOB
+- Localization to Hebrew and Hindi
+- NTCP2 probing resistance
+- Support SAM v1 datagram sessions without port
+- OpenIndiana support
+### Changed
+- Don't request LeaseSet until I2CP destination is ready
+- Keep receiving new data from I2PTunnel/SAM socket while previous is being sent to stream
+- Insert phony record to inbound tunnel build message with real x25519 ephemeral key
+- Set min peer test version to 0.9.62
+- Increase I2NP message expiration timeout in SSU2
+- Cleanup ECIESx25519 new session reply keys on Alice side
+- Reduced router profile persist interval to 22 minutes
+- SSU2 max padding size to 32 bytes
+- Send SSU2 path challenge of 8 bytes. Add datetime and address blocks
+- Don't delete trusted routers from netdb
+- Disable loss-control in streaming
+- Reseeds list
+### Fixed
+- Crash after SAM stream disconnect
+- FORWARD session host handling in SAM
+- x86 build for Haiku
+- SSU2 session's remote endpoint after receiving path response
+
 ## [2.56.0] - 2025-02-11
 ### Added
 - Config params for shared local destination
