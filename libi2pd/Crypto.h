@@ -33,9 +33,9 @@
 #	if (!defined(LIBRESSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER != 0x030000000)) // 3.0.0, regression in SipHash, not implemented in LibreSSL
 #		define OPENSSL_SIPHASH 1
 #	endif
-//#	if (OPENSSL_VERSION_NUMBER >= 0x030500000) // 3.5.0
-//#		define OPENSSL_PQ 1
-//#	endif
+#	if (OPENSSL_VERSION_NUMBER >= 0x030500000) // 3.5.0
+#		define OPENSSL_PQ 1
+#	endif
 #endif
 
 namespace i2p
