@@ -1416,6 +1416,7 @@ namespace stream
 			m_SendTimer.cancel (); // if no ack's in RTO, disable fast retransmit
 			m_IsTimeOutResend = true;
 			m_IsNAcked = false;
+			m_IsClientChoked = false;
 			m_IsResendNeeded = false;
 			m_NumPacketsToSend = 1;
 			ResendPacket (); // send one packet per RTO, waiting for ack
@@ -1538,7 +1539,7 @@ namespace stream
 		}
 		else if (!m_IsClientChoked)
 			SendBuffer ();
-		if (!m_IsNAcked && !m_IsResendNeeded) ScheduleResend ();
+		if (!m_IsNAcked && !m_IsResendNeeded && !m_IsClientChoked) ScheduleResend ();
 		if (m_IsClientChoked) ScheduleSend ();
 	}
 
