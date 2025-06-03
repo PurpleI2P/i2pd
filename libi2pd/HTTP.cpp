@@ -55,7 +55,7 @@ namespace http
 	
 	static void strsplit(std::string_view line, std::vector<std::string_view> &tokens, char delim, std::size_t limit = 0) 
 	{	
-		size_t count = 0, pos;
+		size_t count = 1, pos;
 		while ((pos = line.find (delim)) != line.npos)
 		{
 			count++;
