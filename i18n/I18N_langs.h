@@ -29,6 +29,7 @@ namespace i18n
 	namespace czech      { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace english    { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace french     { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
+	namespace filipino   { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace german     { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace hebrew     { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace hindi      { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
@@ -43,6 +44,8 @@ namespace i18n
 	namespace ukrainian  { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace uzbek      { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 
+	namespace uzbek      { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
+
 	/**
 	 * That map contains international language name lower-case, name in it's language and it's code
 	 */
@@ -54,6 +57,7 @@ namespace i18n
 		{ "czech", {"čeština", "cs", i2p::i18n::czech::GetLocale} },
 		{ "english", {"English", "en", i2p::i18n::english::GetLocale} },
 		{ "french", {"Français", "fr", i2p::i18n::french::GetLocale} },
+		{ "filipino", {"Filipino", "fil", i2p::i18n::filipino::GetLocale} },
 		{ "german", {"Deutsch", "de", i2p::i18n::german::GetLocale} },
 		{ "hebrew", {"עִבְרִית‎", "he", i2p::i18n::hebrew::GetLocale} },
 		{ "hindi", {"हिन्दी", "hi", i2p::i18n::hindi::GetLocale} },
