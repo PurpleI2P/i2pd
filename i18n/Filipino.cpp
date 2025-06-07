@@ -26,7 +26,7 @@ namespace filipino // language namespace
 	// See for language plural forms here:
 	// https://localization-guide.readthedocs.io/en/latest/l10n/pluralforms.html
 	static int plural (int n) {
-		return n > 1;
+		return n != 1 && n != 2 && n != 3 && (n % 10 == 4 || n % 10 == 6 || n % 10 == 9);
 	}
 
 	// Right to Left language?
@@ -209,11 +209,11 @@ namespace filipino // language namespace
 
 	static std::map<std::string, std::vector<std::string>> plurals
 	{
-		{"%d days",    {"%d araw", "%d araw", "%d araw"}},
-		{"%d hours",   {"%d oras", "%d oras", "%d oras"}},
-		{"%d minutes", {"%d minuto", "%d minuto", "%d minuto"}},
-		{"%d seconds", {"%d segundo", "%d segundo", "%d segundo"}},
-		{"", {"", "", ""}},
+		{"%d days",    {"%d araw", "%d (na) araw"}},
+		{"%d hours",   {"%d oras", "%d (na) oras"}},
+		{"%d minutes", {"%d minuto", "%d (na) minuto"}},
+		{"%d seconds", {"%d segundo", "%d (na) segundo"}},
+		{"", {"", ""}},
 	};
 
 	std::shared_ptr<const i2p::i18n::Locale> GetLocale()
