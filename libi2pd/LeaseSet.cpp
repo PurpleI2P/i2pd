@@ -417,7 +417,7 @@ namespace data
 				if (keyType <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) // skip PQ keys if not supported
 #endif			
 				{	
-					if (keyType == preferredKeyType || !m_Encryptor || (keyType > m_EncryptionType && keyType < preferredKeyType))
+					if (keyType <= preferredKeyType && (!m_Encryptor || keyType > m_EncryptionType))
 					{
 						auto encryptor = i2p::data::IdentityEx::CreateEncryptor (keyType, buf + offset);
 						if (encryptor)
