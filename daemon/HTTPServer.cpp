@@ -661,7 +661,7 @@ namespace http {
 					else
 					{
 						ls.reset (new i2p::data::LeaseSet2 (storeType));
-						ls->Update (leaseSet->GetBuffer(), leaseSet->GetBufferLen(), false);
+						ls->Update (leaseSet->GetBuffer(), leaseSet->GetBufferLen(), nullptr, false);
 					}
 					if (!ls) return;
 					s << "<div class=\"leaseset listitem";

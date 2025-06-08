@@ -76,7 +76,7 @@ namespace data
 
 			LeaseSet (const uint8_t * buf, size_t len, bool storeLeases = true);
 			virtual ~LeaseSet () { delete[] m_EncryptionKey; delete[] m_Buffer; };
-			virtual void Update (const uint8_t * buf, size_t len, bool verifySignature = true);
+			virtual void Update (const uint8_t * buf, size_t len, std::shared_ptr<LocalDestination> dest, bool verifySignature);
 			virtual bool IsNewer (const uint8_t * buf, size_t len) const;
 			void PopulateLeases (); // from buffer
 
@@ -155,15 +155,17 @@ namespace data
 		public:
 
 			LeaseSet2 (uint8_t storeType): LeaseSet (true), m_StoreType (storeType) {}; // for update
-			LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len, bool storeLeases = true, CryptoKeyType preferredCrypto = CRYPTO_KEY_TYPE_ECIES_X25519_AEAD);
-			LeaseSet2 (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key, const uint8_t * secret = nullptr, CryptoKeyType preferredCrypto = CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // store type 5, called from local netdb only
-			uint8_t GetStoreType () const { return m_StoreType; };
-			uint32_t GetPublishedTimestamp () const { return m_PublishedTimestamp; };
+			LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len, bool storeLeases = true, 
+				std::shared_ptr<LocalDestination> dest = nullptr, CryptoKeyType preferredCrypto = CRYPTO_KEY_TYPE_ECIES_X25519_AEAD);
+			LeaseSet2 (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key, 
+				std::shared_ptr<LocalDestination> dest = nullptr, const uint8_t * secret = nullptr, CryptoKeyType preferredCrypto = CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // store type 5, called from local netdb only
+			uint8_t GetStoreType () const override { return m_StoreType; };
+			uint32_t GetPublishedTimestamp () const override { return m_PublishedTimestamp; };
 			bool IsPublic () const { return m_IsPublic; };
-			bool IsPublishedEncrypted () const { return m_IsPublishedEncrypted; };
-			std::shared_ptr<const i2p::crypto::Verifier> GetTransientVerifier () const { return m_TransientVerifier; };
-			void Update (const uint8_t * buf, size_t len, bool verifySignature);
-			bool IsNewer (const uint8_t * buf, size_t len) const;
+			bool IsPublishedEncrypted () const override { return m_IsPublishedEncrypted; };
+			std::shared_ptr<const i2p::crypto::Verifier> GetTransientVerifier () const override { return m_TransientVerifier; };
+			void Update (const uint8_t * buf, size_t len, std::shared_ptr<LocalDestination> dest, bool verifySignature) override;
+			bool IsNewer (const uint8_t * buf, size_t len) const override;
 
 			// implements RoutingDestination
 			void Encrypt (const uint8_t * data, uint8_t * encrypted) const;
@@ -171,15 +173,17 @@ namespace data
 
 		private:
 
-			void ReadFromBuffer (const uint8_t * buf, size_t len, bool readIdentity = true, bool verifySignature = true);
-			void ReadFromBufferEncrypted (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key, const uint8_t * secret);
-			size_t ReadStandardLS2TypeSpecificPart (const uint8_t * buf, size_t len);
+			void ReadFromBuffer (const uint8_t * buf, size_t len, std::shared_ptr<LocalDestination> dest,
+				bool readIdentity = true, bool verifySignature = true);
+			void ReadFromBufferEncrypted (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key, 
+				std::shared_ptr<LocalDestination> dest, const uint8_t * secret);
+			size_t ReadStandardLS2TypeSpecificPart (const uint8_t * buf, size_t len, std::shared_ptr<LocalDestination> dest);
 			size_t ReadMetaLS2TypeSpecificPart (const uint8_t * buf, size_t len);
 
 			template<typename Verifier>
 			bool VerifySignature (Verifier& verifier, const uint8_t * buf, size_t len, size_t signatureOffset);
 
-			uint64_t ExtractExpirationTimestamp (const uint8_t * buf, size_t len) const;
+			uint64_t ExtractExpirationTimestamp (const uint8_t * buf, size_t len) const override;
 			uint64_t ExtractPublishedTimestamp (const uint8_t * buf, size_t len, uint64_t& expiration) const;
 			size_t ExtractClientAuthData (const uint8_t * buf, size_t len, const uint8_t * secret, const uint8_t * subcredential, uint8_t * authCookie) const; // subcredential is subcredential + timestamp, return length of autData without flag
 

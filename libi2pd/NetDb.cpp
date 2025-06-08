@@ -361,7 +361,7 @@ namespace data
 			{
 				if(it->second->GetExpirationTime() < expires)
 				{
-					it->second->Update (buf, len, false); // signature is verified already
+					it->second->Update (buf, len, nullptr, false); // signature is verified already
 					if (CheckLogLevel (eLogInfo))
 						LogPrint (eLogInfo, "NetDb: LeaseSet updated: ", ident.ToBase32());
 					updated = true;

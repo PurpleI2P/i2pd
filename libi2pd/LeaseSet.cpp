@@ -36,7 +36,7 @@ namespace data
 		ReadFromBuffer ();
 	}
 
-	void LeaseSet::Update (const uint8_t * buf, size_t len, bool verifySignature)
+	void LeaseSet::Update (const uint8_t * buf, size_t len, std::shared_ptr<LocalDestination> dest, bool verifySignature)
 	{
 		SetBuffer (buf, len);
 		ReadFromBuffer (false, verifySignature);
@@ -281,28 +281,29 @@ namespace data
 			LogPrint (eLogError, "LeaseSet2: Actual buffer size ", int(len) , " exceeds full buffer size ", int(m_BufferLen));
 	}
 
-	LeaseSet2::LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len, bool storeLeases, CryptoKeyType preferredCrypto):
+	LeaseSet2::LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len, 
+	    bool storeLeases, std::shared_ptr<LocalDestination> dest, CryptoKeyType preferredCrypto):
 		LeaseSet (storeLeases), m_StoreType (storeType), m_EncryptionType (preferredCrypto)
 	{
 		SetBuffer (buf, len);
 		if (storeType == NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
-			ReadFromBufferEncrypted (buf, len, nullptr, nullptr);
+			ReadFromBufferEncrypted (buf, len, nullptr, dest, nullptr);
 		else
-			ReadFromBuffer (buf, len);
+			ReadFromBuffer (buf, len, dest);
 	}
 
 	LeaseSet2::LeaseSet2 (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key,
-		const uint8_t * secret, CryptoKeyType preferredCrypto):
+		std::shared_ptr<LocalDestination> dest, const uint8_t * secret, CryptoKeyType preferredCrypto):
 		LeaseSet (true), m_StoreType (NETDB_STORE_TYPE_ENCRYPTED_LEASESET2), m_EncryptionType (preferredCrypto)
 	{
-		ReadFromBufferEncrypted (buf, len, key, secret);
+		ReadFromBufferEncrypted (buf, len, key, dest, secret);
 	}
 
-	void LeaseSet2::Update (const uint8_t * buf, size_t len, bool verifySignature)
+	void LeaseSet2::Update (const uint8_t * buf, size_t len, std::shared_ptr<LocalDestination> dest, bool verifySignature)
 	{
 		SetBuffer (buf, len);
 		if (GetStoreType () != NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
-			ReadFromBuffer (buf, len, false, verifySignature);
+			ReadFromBuffer (buf, len, dest, false, verifySignature);
 		// TODO: implement encrypted
 	}
 
@@ -312,7 +313,8 @@ namespace data
 		return ExtractPublishedTimestamp (buf, len, expiration) > m_PublishedTimestamp;
 	}
 
-	void LeaseSet2::ReadFromBuffer (const uint8_t * buf, size_t len, bool readIdentity, bool verifySignature)
+	void LeaseSet2::ReadFromBuffer (const uint8_t * buf, size_t len, std::shared_ptr<LocalDestination> dest,
+		bool readIdentity, bool verifySignature)
 	{
 		// standard LS2 header
 		std::shared_ptr<const IdentityEx> identity;
@@ -350,7 +352,7 @@ namespace data
 		switch (m_StoreType)
 		{
 			case NETDB_STORE_TYPE_STANDARD_LEASESET2:
-				s = ReadStandardLS2TypeSpecificPart (buf + offset, len - offset);
+				s = ReadStandardLS2TypeSpecificPart (buf + offset, len - offset, dest);
 			break;
 			case NETDB_STORE_TYPE_META_LEASESET2:
 				s = ReadMetaLS2TypeSpecificPart (buf + offset, len - offset);
@@ -392,7 +394,8 @@ namespace data
 		return verified;
 	}
 
-	size_t LeaseSet2::ReadStandardLS2TypeSpecificPart (const uint8_t * buf, size_t len)
+	size_t LeaseSet2::ReadStandardLS2TypeSpecificPart (const uint8_t * buf, size_t len,
+		std::shared_ptr<LocalDestination> dest)
 	{
 		size_t offset = 0;
 		// properties
@@ -417,7 +420,8 @@ namespace data
 				if (keyType <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) // skip PQ keys if not supported
 #endif			
 				{	
-					if (keyType <= preferredKeyType && (!m_Encryptor || keyType > m_EncryptionType))
+					if ((keyType == preferredKeyType || !m_Encryptor || keyType > m_EncryptionType) &&
+					    (!dest || dest->SupportsEncryptionType (keyType)))
 					{
 						auto encryptor = i2p::data::IdentityEx::CreateEncryptor (keyType, buf + offset);
 						if (encryptor)
@@ -498,7 +502,8 @@ namespace data
 		return offset;
 	}
 
-	void LeaseSet2::ReadFromBufferEncrypted (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key, const uint8_t * secret)
+	void LeaseSet2::ReadFromBufferEncrypted (const uint8_t * buf, size_t len, 
+		std::shared_ptr<const BlindedPublicKey> key, std::shared_ptr<LocalDestination> dest, const uint8_t * secret)
 	{
 		size_t offset = 0;
 		// blinded key
@@ -601,7 +606,7 @@ namespace data
 				m_StoreType = innerPlainText[0];
 				SetBuffer (innerPlainText.data () + 1, lenInnerPlaintext - 1);
 				// parse and verify Layer 2
-				ReadFromBuffer (innerPlainText.data () + 1, lenInnerPlaintext - 1);
+				ReadFromBuffer (innerPlainText.data () + 1, lenInnerPlaintext - 1, dest);
 			}
 			else
 				LogPrint (eLogError, "LeaseSet2: Unexpected LeaseSet type ", (int)innerPlainText[0], " inside encrypted LeaseSet");
