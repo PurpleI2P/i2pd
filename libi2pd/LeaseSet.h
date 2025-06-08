@@ -168,8 +168,8 @@ namespace data
 			bool IsNewer (const uint8_t * buf, size_t len) const override;
 
 			// implements RoutingDestination
-			void Encrypt (const uint8_t * data, uint8_t * encrypted) const;
-			CryptoKeyType GetEncryptionType () const { return m_EncryptionType; };
+			void Encrypt (const uint8_t * data, uint8_t * encrypted) const override;
+			CryptoKeyType GetEncryptionType () const override { return m_EncryptionType; };
 
 		private:
 
