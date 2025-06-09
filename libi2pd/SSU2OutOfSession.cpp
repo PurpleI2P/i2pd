@@ -90,6 +90,9 @@ namespace transport
 				if (htobe64 (((uint64_t)nonce << 32) | nonce) == GetSourceConnID ())
 				{
 					m_PeerTestResendTimer.cancel (); // cancel delayed msg 6 if any
+					if (GetServer ().IsForcedFirewalled (GetRemoteEndpoint ().address().is_v4())) 
+						// we assume that msg 5 was not received if forced firewalled
+						return; 
 					m_IsConnectedRecently = GetServer ().IsConnectedRecently (GetRemoteEndpoint ());
 					if (GetAddress ())
 					{

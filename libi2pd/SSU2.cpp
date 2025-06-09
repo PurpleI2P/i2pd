@@ -25,7 +25,8 @@ namespace transport
 		m_TerminationTimer (GetService ()), m_CleanupTimer (GetService ()), m_ResendTimer (GetService ()),
 		m_IntroducersUpdateTimer (GetService ()), m_IntroducersUpdateTimerV6 (GetService ()),
 		m_IsPublished (true), m_IsSyncClockFromPeers (true), m_PendingTimeOffset (0),
-		m_Rng(i2p::util::GetMonotonicMicroseconds ()%1000000LL), m_IsThroughProxy (false)
+		m_Rng(i2p::util::GetMonotonicMicroseconds ()%1000000LL), m_IsForcedFirewalled4 (false),
+		m_IsForcedFirewalled6 (false), m_IsThroughProxy (false)
 	{
 	}
 
@@ -79,6 +80,7 @@ namespace transport
 						if (address->IsV4 ())
 						{
 							found = true;
+							i2p::config::GetOption ("ssu2.firewalled4",  m_IsForcedFirewalled4);
 							LogPrint (eLogDebug, "SSU2: Opening IPv4 socket at Start");
 							OpenSocket (boost::asio::ip::udp::endpoint (m_AddressV4, port));
 							boost::asio::post (m_ReceiveService.GetService (),
@@ -91,6 +93,7 @@ namespace transport
 						if (address->IsV6 ())
 						{
 							found = true;
+							i2p::config::GetOption ("ssu2.firewalled6",  m_IsForcedFirewalled6);
 							LogPrint (eLogDebug, "SSU2: Opening IPv6 socket at Start");
 							OpenSocket (boost::asio::ip::udp::endpoint (m_AddressV6, port));
 							boost::asio::post (m_ReceiveService.GetService (),

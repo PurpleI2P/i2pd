@@ -79,6 +79,7 @@ namespace transport
 			bool UsesProxy () const { return m_IsThroughProxy; };
 			bool IsSupported (const boost::asio::ip::address& addr) const;
 			uint16_t GetPort (bool v4) const;
+			bool IsForcedFirewalled (bool v4) const { return v4 ? m_IsForcedFirewalled4 : m_IsForcedFirewalled6; }
 			bool IsConnectedRecently (const boost::asio::ip::udp::endpoint& ep, bool max = true);
 			void AddConnectedRecently (const boost::asio::ip::udp::endpoint& ep, uint64_t ts);
 			std::mt19937& GetRng () { return m_Rng; }
@@ -208,6 +209,7 @@ namespace transport
 			i2p::crypto::AEADChaCha20Poly1305Encryptor m_Encryptor;
 			i2p::crypto::AEADChaCha20Poly1305Decryptor m_Decryptor;
 			i2p::crypto::ChaCha20Context m_ChaCha20;
+			bool m_IsForcedFirewalled4, m_IsForcedFirewalled6;
 		
 			// proxy
 			bool m_IsThroughProxy;

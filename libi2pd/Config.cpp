@@ -305,6 +305,8 @@ namespace config {
 			("ssu2.mtu4", value<uint16_t>()->default_value(0),            "MTU for ipv4 address (default: detect)")
 			("ssu2.mtu6", value<uint16_t>()->default_value(0),            "MTU for ipv6 address (default: detect)")
 			("ssu2.proxy", value<std::string>()->default_value(""),       "Socks5 proxy URL for SSU2 transport")
+			("ssu2.firewalled4", value<bool>()->default_value(false),     "Set ipv4 network status to Firewalled even if OK (default: disabled)")
+			("ssu2.firewalled6", value<bool>()->default_value(false),     "Set ipv6 network status to Firewalled even if OK (default: disabled)")
 		;
 
 		options_description nettime("Time sync options");
