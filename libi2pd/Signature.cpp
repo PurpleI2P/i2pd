@@ -42,22 +42,19 @@ namespace crypto
 	
 	bool DSAVerifier::Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
 	{
-		// calculate SHA1 digest
-		uint8_t digest[20], sign[48];
-		SHA1 (buf, len, digest);
 		// signature
 		DSA_SIG * sig = DSA_SIG_new();
 		DSA_SIG_set0 (sig, BN_bin2bn (signature, DSA_SIGNATURE_LENGTH/2, NULL), BN_bin2bn (signature + DSA_SIGNATURE_LENGTH/2, DSA_SIGNATURE_LENGTH/2, NULL));
 		// to DER format
+		uint8_t sign[DSA_SIGNATURE_LENGTH + 8];
 		uint8_t * s = sign;
 		auto l = i2d_DSA_SIG (sig, &s);
 		DSA_SIG_free(sig);
 		// verify
-		auto ctx = EVP_PKEY_CTX_new (m_PublicKey, NULL);
-        EVP_PKEY_verify_init(ctx);
-        EVP_PKEY_CTX_set_signature_md(ctx, EVP_sha1());
-        bool ret = EVP_PKEY_verify(ctx, sign, l, digest, 20);
-		EVP_PKEY_CTX_free(ctx);
+		EVP_MD_CTX * ctx = EVP_MD_CTX_create ();
+		EVP_DigestVerifyInit (ctx, NULL, EVP_sha1(), NULL, m_PublicKey);
+		auto ret = EVP_DigestVerify (ctx, sign, l, buf, len);
+		EVP_MD_CTX_destroy (ctx);
 		return ret;
 	}
 
@@ -76,13 +73,13 @@ namespace crypto
 
 	void DSASigner::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{
-		uint8_t digest[20], sign[48];
-		SHA1 (buf, len, digest);
-		auto ctx = EVP_PKEY_CTX_new (m_PrivateKey, NULL);
-        EVP_PKEY_sign_init(ctx);
-        EVP_PKEY_CTX_set_signature_md(ctx, EVP_sha1());
-		size_t l = 48;
-        EVP_PKEY_sign(ctx, sign, &l, digest, 20);
+		uint8_t sign[DSA_SIGNATURE_LENGTH + 8];
+		size_t l = DSA_SIGNATURE_LENGTH + 8;
+		EVP_MD_CTX * ctx = EVP_MD_CTX_create ();
+		EVP_DigestSignInit (ctx, NULL, EVP_sha1(), NULL, m_PrivateKey);
+		EVP_DigestSign (ctx, sign, &l, buf, len);
+		EVP_MD_CTX_destroy (ctx);
+		// decode r and s
 		const uint8_t * s1 = sign;
     	DSA_SIG * sig = d2i_DSA_SIG (NULL, &s1, l);
 		const BIGNUM * r, * s;
@@ -90,7 +87,6 @@ namespace crypto
 		bn2buf (r, signature, DSA_SIGNATURE_LENGTH/2);
 		bn2buf (s, signature + DSA_SIGNATURE_LENGTH/2, DSA_SIGNATURE_LENGTH/2);
 		DSA_SIG_free(sig);
-		EVP_PKEY_CTX_free(ctx);
 	}
 	
 	void CreateDSARandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
@@ -221,40 +217,20 @@ namespace crypto
 
 	bool ECDSAVerifier::Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
 	{
-		bool ret = false;
-		EVP_PKEY_CTX * ctx = EVP_PKEY_CTX_new (m_PublicKey, NULL);
-		if (!ctx)
-		{
-			LogPrint (eLogError, "ECDSA can't create verification context");
-			return false;
-		}
-		// digest
-		unsigned int digestLen = EVP_MD_size(m_Hash);
-		std::vector<uint8_t> digest(digestLen), sign(GetSignatureLen () + 8);
-		EVP_MD_CTX * mdCtx = EVP_MD_CTX_create ();
-		EVP_DigestInit (mdCtx, m_Hash);
-		EVP_DigestUpdate (mdCtx, buf, len);
-		EVP_DigestFinal (mdCtx, digest.data (), &digestLen);
-		EVP_MD_CTX_destroy (mdCtx);
 		// signature
 		ECDSA_SIG * sig = ECDSA_SIG_new();
 		ECDSA_SIG_set0 (sig, BN_bin2bn (signature, GetSignatureLen ()/2, NULL), 
 			BN_bin2bn (signature + GetSignatureLen ()/2, GetSignatureLen ()/2, NULL));
 		// to DER format
+		std::vector<uint8_t> sign(GetSignatureLen () + 8);
 		uint8_t * s = sign.data ();
 		auto l = i2d_ECDSA_SIG (sig, &s);
 		ECDSA_SIG_free(sig);
-		//verify
-		if (EVP_PKEY_verify_init (ctx) > 0 && EVP_PKEY_public_check (ctx) > 0)
-		{
-			if (EVP_PKEY_CTX_set_signature_md (ctx, m_Hash) > 0)
-				ret = EVP_PKEY_verify (ctx, sign.data (), l, digest.data (), digestLen);
-			else
-				LogPrint (eLogError, "ECDSA can't set signature md");
-		}	
-		else	
-			LogPrint (eLogError, "ECDSA invalid public key");
-		EVP_PKEY_CTX_free (ctx);
+		// verify
+		EVP_MD_CTX * ctx = EVP_MD_CTX_create ();
+		EVP_DigestVerifyInit (ctx, NULL, m_Hash, NULL, m_PublicKey);
+		auto ret = EVP_DigestVerify (ctx, sign.data (), l, buf, len);
+		EVP_MD_CTX_destroy (ctx);
 		return ret;
 	}	
 
@@ -291,40 +267,20 @@ namespace crypto
 
 	void ECDSASigner::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{
-		unsigned int digestLen = EVP_MD_size(m_Hash);
-		std::vector<uint8_t> digest(digestLen), sign(m_KeyLen + 8);
-		EVP_MD_CTX * mdCtx = EVP_MD_CTX_create ();
-		EVP_DigestInit (mdCtx, m_Hash);
-		EVP_DigestUpdate (mdCtx, buf, len);
-		EVP_DigestFinal (mdCtx, digest.data (), &digestLen);
-		EVP_MD_CTX_destroy (mdCtx);
-		
-		EVP_PKEY_CTX * ctx = EVP_PKEY_CTX_new (m_PrivateKey, NULL);
-		if (!ctx)
-		{
-			LogPrint (eLogError, "ECDSA can't create signing context");
-			return;
-		}	
-		if (EVP_PKEY_sign_init (ctx) > 0 && EVP_PKEY_private_check (ctx) > 0)
-		{
-			if (EVP_PKEY_CTX_set_signature_md (ctx, m_Hash) > 0)
-			{
-				size_t l = sign.size ();
-				EVP_PKEY_sign (ctx, sign.data (), &l, digest.data (), digest.size ());
-				const uint8_t * s1 = sign.data ();
-    			ECDSA_SIG * sig = d2i_ECDSA_SIG (NULL, &s1, l);
-				const BIGNUM * r, * s;
-				ECDSA_SIG_get0 (sig, &r, &s);
-				bn2buf (r, signature, m_KeyLen/2);
-				bn2buf (s, signature + m_KeyLen/2, m_KeyLen/2);
-				ECDSA_SIG_free(sig);
-			}	
-			else
-				LogPrint (eLogError, "ECDSA can't set signature md");
-		}	
-		else	
-			LogPrint (eLogError, "ECDSA invalid private key");
-		EVP_PKEY_CTX_free (ctx);
+		std::vector<uint8_t> sign(m_KeyLen + 8);
+		size_t l = sign.size ();
+		EVP_MD_CTX * ctx = EVP_MD_CTX_create ();
+		EVP_DigestSignInit (ctx, NULL, m_Hash, NULL, m_PrivateKey);
+		EVP_DigestSign (ctx, sign.data(), &l, buf, len);
+		EVP_MD_CTX_destroy (ctx);
+		// decode r and s	
+		const uint8_t * s1 = sign.data ();
+		ECDSA_SIG * sig = d2i_ECDSA_SIG (NULL, &s1, l);
+		const BIGNUM * r, * s;
+		ECDSA_SIG_get0 (sig, &r, &s);
+		bn2buf (r, signature, m_KeyLen/2);
+		bn2buf (s, signature + m_KeyLen/2, m_KeyLen/2);
+		ECDSA_SIG_free(sig);
 	}	
 		
 	void CreateECDSARandomKeys (int curve, size_t keyLen, uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
