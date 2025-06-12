@@ -91,7 +91,116 @@ namespace crypto
 
 	void CreateDSARandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey);
 
-	// ECDSA	
+	// ECDSA
+	constexpr size_t ECDSAP256_KEY_LENGTH = 64;
+	constexpr size_t ECDSAP384_KEY_LENGTH = 96;
+	constexpr size_t ECDSAP521_KEY_LENGTH = 132;
+	
+#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+	class ECDSAVerifier: public Verifier
+	{
+		public:
+
+			ECDSAVerifier (int curve, size_t keyLen, const EVP_MD * hash);
+			~ECDSAVerifier ();
+		
+			void SetPublicKey (const uint8_t * signingKey);
+			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
+		
+			size_t GetPublicKeyLen () const { return m_KeyLen; };
+			size_t GetSignatureLen () const { return m_KeyLen; }; // signature length = key length
+
+		private:
+
+			int m_Curve;
+			size_t m_KeyLen;
+			const EVP_MD * m_Hash;
+			EVP_PKEY * m_PublicKey;
+	};		
+
+	class ECDSASigner: public Signer
+	{
+		public:
+
+			ECDSASigner (int curve, size_t keyLen, const EVP_MD * hash, const uint8_t * signingPrivateKey);
+			~ECDSASigner ();
+
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
+			
+		private:
+
+			size_t m_KeyLen;
+			const EVP_MD * m_Hash;
+			EVP_PKEY * m_PrivateKey;
+	};			
+	
+	void CreateECDSARandomKeys (int curve, size_t keyLen, uint8_t * signingPrivateKey, uint8_t * signingPublicKey);
+
+// ECDSA_SHA256_P256	
+	class ECDSAP256Verifier: public ECDSAVerifier
+	{
+		public:
+			
+			ECDSAP256Verifier (): ECDSAVerifier (NID_X9_62_prime256v1, ECDSAP256_KEY_LENGTH, EVP_sha256()) {};
+	};	
+
+	class ECDSAP256Signer: public ECDSASigner
+	{
+		public:
+
+			ECDSAP256Signer (const uint8_t * signingPrivateKey):
+				ECDSASigner (NID_X9_62_prime256v1, ECDSAP256_KEY_LENGTH, EVP_sha256(), signingPrivateKey) {};
+	};	
+	
+	inline void CreateECDSAP256RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
+	{
+		CreateECDSARandomKeys (NID_X9_62_prime256v1, ECDSAP256_KEY_LENGTH, signingPrivateKey, signingPublicKey);
+	}
+
+// ECDSA_SHA384_P384
+	class ECDSAP384Verifier: public ECDSAVerifier
+	{
+		public:
+			
+			ECDSAP384Verifier (): ECDSAVerifier (NID_secp384r1, ECDSAP384_KEY_LENGTH, EVP_sha384()) {};
+	};	
+
+	class ECDSAP384Signer: public ECDSASigner
+	{
+		public:
+
+			ECDSAP384Signer (const uint8_t * signingPrivateKey):
+				ECDSASigner (NID_secp384r1, ECDSAP384_KEY_LENGTH, EVP_sha384(), signingPrivateKey) {};
+	};	
+	
+	inline void CreateECDSAP384RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
+	{
+		CreateECDSARandomKeys (NID_secp384r1, ECDSAP384_KEY_LENGTH, signingPrivateKey, signingPublicKey);
+	}
+
+// ECDSA_SHA512_P521
+	class ECDSAP521Verifier: public ECDSAVerifier
+	{
+		public:
+			
+			ECDSAP521Verifier (): ECDSAVerifier (NID_secp521r1, ECDSAP521_KEY_LENGTH, EVP_sha512()) {};
+	};	
+
+	class ECDSAP521Signer: public ECDSASigner
+	{
+		public:
+
+			ECDSAP521Signer (const uint8_t * signingPrivateKey):
+				ECDSASigner (NID_secp521r1, ECDSAP521_KEY_LENGTH, EVP_sha512(), signingPrivateKey) {};
+	};	
+	
+	inline void CreateECDSAP521RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
+	{
+		CreateECDSARandomKeys (NID_secp521r1, ECDSAP521_KEY_LENGTH, signingPrivateKey, signingPublicKey);
+	}
+	
+#else
+	
 	struct SHA256Hash
 	{
 		static void CalculateHash (const uint8_t * buf, size_t len, uint8_t * digest)
@@ -217,7 +326,6 @@ namespace crypto
 	}
 
 // ECDSA_SHA256_P256
-	const size_t ECDSAP256_KEY_LENGTH = 64;
 	typedef ECDSAVerifier<SHA256Hash, NID_X9_62_prime256v1, ECDSAP256_KEY_LENGTH> ECDSAP256Verifier;
 	typedef ECDSASigner<SHA256Hash, NID_X9_62_prime256v1, ECDSAP256_KEY_LENGTH> ECDSAP256Signer;
 
@@ -227,7 +335,6 @@ namespace crypto
 	}
 
 // ECDSA_SHA384_P384
-	const size_t ECDSAP384_KEY_LENGTH = 96;
 	typedef ECDSAVerifier<SHA384Hash, NID_secp384r1, ECDSAP384_KEY_LENGTH> ECDSAP384Verifier;
 	typedef ECDSASigner<SHA384Hash, NID_secp384r1, ECDSAP384_KEY_LENGTH> ECDSAP384Signer;
 
@@ -237,7 +344,6 @@ namespace crypto
 	}
 
 // ECDSA_SHA512_P521
-	const size_t ECDSAP521_KEY_LENGTH = 132;
 	typedef ECDSAVerifier<SHA512Hash, NID_secp521r1, ECDSAP521_KEY_LENGTH> ECDSAP521Verifier;
 	typedef ECDSASigner<SHA512Hash, NID_secp521r1, ECDSAP521_KEY_LENGTH> ECDSAP521Signer;
 
@@ -245,7 +351,8 @@ namespace crypto
 	{
 		CreateECDSARandomKeys (NID_secp521r1, ECDSAP521_KEY_LENGTH, signingPrivateKey, signingPublicKey);
 	}
-
+	
+#endif
 
 	// EdDSA
 	class EDDSA25519Verifier: public Verifier

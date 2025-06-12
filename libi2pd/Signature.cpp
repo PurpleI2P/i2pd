@@ -10,6 +10,7 @@
 #include <openssl/evp.h>
 #if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
 #include <openssl/core_names.h>
+#include <openssl/param_build.h>
 #endif
 #include "Log.h"
 #include "Signature.h"
@@ -174,7 +175,178 @@ namespace crypto
 		DSA_free (dsa);
 	}
 #endif	
-	
+
+#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+	ECDSAVerifier::ECDSAVerifier (int curve, size_t keyLen, const EVP_MD * hash):
+		m_Curve(curve), m_KeyLen (keyLen), m_Hash (hash), m_PublicKey (nullptr)
+	{
+	}
+
+	ECDSAVerifier::~ECDSAVerifier ()
+	{
+		if (m_PublicKey)
+			EVP_PKEY_free (m_PublicKey);
+	}	
+
+	void ECDSAVerifier::SetPublicKey (const uint8_t * signingKey)
+	{
+		if (m_PublicKey)
+		{	
+			EVP_PKEY_free (m_PublicKey);
+			m_PublicKey = nullptr;
+		}	
+		auto plen = GetPublicKeyLen ();
+		std::vector<uint8_t> pub(plen + 1);
+		pub[0] = POINT_CONVERSION_UNCOMPRESSED;
+		memcpy (pub.data() + 1, signingKey, plen); // 0x04|x|y
+		OSSL_PARAM_BLD * paramBld = OSSL_PARAM_BLD_new ();	
+		OSSL_PARAM_BLD_push_utf8_string (paramBld, OSSL_PKEY_PARAM_GROUP_NAME, OBJ_nid2ln(m_Curve), 0);
+		OSSL_PARAM_BLD_push_octet_string (paramBld, OSSL_PKEY_PARAM_PUB_KEY, pub.data (), pub.size ());
+		OSSL_PARAM * params = OSSL_PARAM_BLD_to_param(paramBld);
+
+		EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_from_name (NULL, "EC", NULL);
+		if (ctx)
+		{
+			if (EVP_PKEY_fromdata_init (ctx) <= 0 ||
+				EVP_PKEY_fromdata (ctx, &m_PublicKey, EVP_PKEY_PUBLIC_KEY, params) <= 0)
+					LogPrint (eLogError, "ECDSA can't create PKEY from params");
+			EVP_PKEY_CTX_free (ctx);
+		}
+		else
+			LogPrint (eLogError, "ECDSA can't create PKEY context");
+		
+		OSSL_PARAM_free (params);	
+		OSSL_PARAM_BLD_free (paramBld);
+	}	
+
+	bool ECDSAVerifier::Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
+	{
+		bool ret = false;
+		EVP_PKEY_CTX * ctx = EVP_PKEY_CTX_new (m_PublicKey, NULL);
+		if (!ctx)
+		{
+			LogPrint (eLogError, "ECDSA can't create verification context");
+			return false;
+		}
+		// digest
+		unsigned int digestLen = EVP_MD_size(m_Hash);
+		std::vector<uint8_t> digest(digestLen), sign(GetSignatureLen () + 8);
+		EVP_MD_CTX * mdCtx = EVP_MD_CTX_create ();
+		EVP_DigestInit (mdCtx, m_Hash);
+		EVP_DigestUpdate (mdCtx, buf, len);
+		EVP_DigestFinal (mdCtx, digest.data (), &digestLen);
+		EVP_MD_CTX_destroy (mdCtx);
+		// signature
+		ECDSA_SIG * sig = ECDSA_SIG_new();
+		ECDSA_SIG_set0 (sig, BN_bin2bn (signature, GetSignatureLen ()/2, NULL), 
+			BN_bin2bn (signature + GetSignatureLen ()/2, GetSignatureLen ()/2, NULL));
+		// to DER format
+		uint8_t * s = sign.data ();
+		auto l = i2d_ECDSA_SIG (sig, &s);
+		ECDSA_SIG_free(sig);
+		//verify
+		if (EVP_PKEY_verify_init (ctx) > 0 && EVP_PKEY_public_check (ctx) > 0)
+		{
+			if (EVP_PKEY_CTX_set_signature_md (ctx, m_Hash) > 0)
+				ret = EVP_PKEY_verify (ctx, sign.data (), l, digest.data (), digestLen);
+			else
+				LogPrint (eLogError, "ECDSA can't set signature md");
+		}	
+		else	
+			LogPrint (eLogError, "ECDSA invalid public key");
+		EVP_PKEY_CTX_free (ctx);
+		return ret;
+	}	
+
+	ECDSASigner::ECDSASigner (int curve, size_t keyLen, const EVP_MD * hash, const uint8_t * signingPrivateKey):
+		m_KeyLen (keyLen), m_Hash(hash), m_PrivateKey (nullptr)
+	{
+		BIGNUM * priv = BN_bin2bn (signingPrivateKey, keyLen/2, NULL);
+		OSSL_PARAM_BLD * paramBld = OSSL_PARAM_BLD_new ();	
+		OSSL_PARAM_BLD_push_utf8_string (paramBld, OSSL_PKEY_PARAM_GROUP_NAME, OBJ_nid2ln(curve), 0);
+		OSSL_PARAM_BLD_push_BN (paramBld, OSSL_PKEY_PARAM_PRIV_KEY, priv);	
+		OSSL_PARAM * params = OSSL_PARAM_BLD_to_param(paramBld);	
+		
+		EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_from_name (NULL, "EC", NULL);
+		if (ctx)
+		{
+			if (EVP_PKEY_fromdata_init (ctx) <= 0 ||
+				EVP_PKEY_fromdata (ctx, &m_PrivateKey, EVP_PKEY_KEYPAIR, params) <= 0)
+					LogPrint (eLogError, "ECDSA can't create PKEY from params");
+			EVP_PKEY_CTX_free (ctx);
+		}
+		else
+			LogPrint (eLogError, "ECDSA can't create PKEY context");
+
+		OSSL_PARAM_free (params);	
+		OSSL_PARAM_BLD_free (paramBld);	
+		BN_free (priv);	
+	}
+		
+	ECDSASigner::~ECDSASigner ()
+	{
+		if (m_PrivateKey)
+			EVP_PKEY_free (m_PrivateKey);
+	}
+
+	void ECDSASigner::Sign (const uint8_t * buf, int len, uint8_t * signature) const
+	{
+		unsigned int digestLen = EVP_MD_size(m_Hash);
+		std::vector<uint8_t> digest(digestLen), sign(m_KeyLen + 8);
+		EVP_MD_CTX * mdCtx = EVP_MD_CTX_create ();
+		EVP_DigestInit (mdCtx, m_Hash);
+		EVP_DigestUpdate (mdCtx, buf, len);
+		EVP_DigestFinal (mdCtx, digest.data (), &digestLen);
+		EVP_MD_CTX_destroy (mdCtx);
+		
+		EVP_PKEY_CTX * ctx = EVP_PKEY_CTX_new (m_PrivateKey, NULL);
+		if (!ctx)
+		{
+			LogPrint (eLogError, "ECDSA can't create signing context");
+			return;
+		}	
+		if (EVP_PKEY_sign_init (ctx) > 0 && EVP_PKEY_private_check (ctx) > 0)
+		{
+			if (EVP_PKEY_CTX_set_signature_md (ctx, m_Hash) > 0)
+			{
+				size_t l = sign.size ();
+				EVP_PKEY_sign (ctx, sign.data (), &l, digest.data (), digest.size ());
+				const uint8_t * s1 = sign.data ();
+    			ECDSA_SIG * sig = d2i_ECDSA_SIG (NULL, &s1, l);
+				const BIGNUM * r, * s;
+				ECDSA_SIG_get0 (sig, &r, &s);
+				bn2buf (r, signature, m_KeyLen/2);
+				bn2buf (s, signature + m_KeyLen/2, m_KeyLen/2);
+				ECDSA_SIG_free(sig);
+			}	
+			else
+				LogPrint (eLogError, "ECDSA can't set signature md");
+		}	
+		else	
+			LogPrint (eLogError, "ECDSA invalid private key");
+		EVP_PKEY_CTX_free (ctx);
+	}	
+		
+	void CreateECDSARandomKeys (int curve, size_t keyLen, uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
+	{
+		EVP_PKEY * pkey = EVP_EC_gen (OBJ_nid2ln(curve));
+		// private
+		BIGNUM * priv = BN_new ();
+		EVP_PKEY_get_bn_param (pkey, OSSL_PKEY_PARAM_PRIV_KEY, &priv);
+		bn2buf (priv, signingPrivateKey, keyLen/2);
+		BN_free (priv);
+		// public
+		BIGNUM * x = BN_new (), * y = BN_new ();
+		EVP_PKEY_get_bn_param (pkey, OSSL_PKEY_PARAM_EC_PUB_X, &x);
+		EVP_PKEY_get_bn_param (pkey, OSSL_PKEY_PARAM_EC_PUB_Y, &y);
+		bn2buf (x, signingPublicKey, keyLen/2);
+		bn2buf (y, signingPublicKey + keyLen/2, keyLen/2);
+		BN_free (x); BN_free (y);
+		EVP_PKEY_free (pkey);
+	}	
+		
+#endif		
+		
 #if OPENSSL_EDDSA
 	EDDSA25519Verifier::EDDSA25519Verifier ():
 		m_Pkey (nullptr)
