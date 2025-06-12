@@ -51,11 +51,24 @@ namespace data
 					auto pkey = X509_get_pubkey (cert);
 					if (pkey)
 					{	
-						if (!m_SigningKeys.emplace (cn, std::make_pair(pkey, (int)m_SigningKeys.size () + 1)).second)
-						{
-							EVP_PKEY_free (pkey);
-							LogPrint (eLogError, "Family: Duplicated family name ", cn);
-						}	
+						int curve = 0;
+#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+						char groupName[20];
+						if (EVP_PKEY_get_group_name(pkey, groupName, sizeof(groupName), NULL) == 1)
+							curve = OBJ_txt2nid (groupName);
+						else
+							curve = -1;
+#endif						
+						if (!curve || curve == NID_X9_62_prime256v1)
+						{	
+							if (!m_SigningKeys.emplace (cn, std::make_pair(pkey, (int)m_SigningKeys.size () + 1)).second)
+							{
+								EVP_PKEY_free (pkey);
+								LogPrint (eLogError, "Family: Duplicated family name ", cn);
+							}
+						}
+						else
+							LogPrint (eLogWarning, "Family: elliptic curve ", curve, " is not supported");
 					}	
 				}
 			}
@@ -106,11 +119,17 @@ namespace data
 			memcpy (buf + len, (const uint8_t *)ident, 32);
 			len += 32;
 			auto signatureBufLen = Base64ToByteStream (signature, signatureBuf, 64);
-			if (signatureBufLen)
+			if (signatureBufLen == 64)
 			{
+				ECDSA_SIG * sig = ECDSA_SIG_new();
+				ECDSA_SIG_set0 (sig, BN_bin2bn (signatureBuf, 32, NULL), BN_bin2bn (signatureBuf + 32, 32, NULL));
+				uint8_t sign[72];
+				uint8_t * s = sign;
+				auto l = i2d_ECDSA_SIG (sig, &s);
+				ECDSA_SIG_free(sig);
 				EVP_MD_CTX * ctx = EVP_MD_CTX_create ();
-				EVP_DigestVerifyInit (ctx, NULL, NULL, NULL, it->second.first);
-				auto ret = EVP_DigestVerify (ctx, signatureBuf, signatureBufLen, buf, len);
+				EVP_DigestVerifyInit (ctx, NULL, EVP_sha256(), NULL, it->second.first);
+				auto ret = EVP_DigestVerify (ctx, sign, l, buf, len) == 1;
 				EVP_MD_CTX_destroy (ctx);
 				return ret;
 			}	
@@ -137,29 +156,40 @@ namespace data
 		{
 			SSL * ssl = SSL_new (ctx);
 			EVP_PKEY * pkey = SSL_get_privatekey (ssl);
-			EC_KEY * ecKey = EVP_PKEY_get1_EC_KEY (pkey);
-			if (ecKey)
+			int curve = 0;
+#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+			char groupName[20];
+			if (EVP_PKEY_get_group_name(pkey, groupName, sizeof(groupName), NULL) == 1)
+				curve = OBJ_txt2nid (groupName);
+			else
+				curve = -1;
+#endif	
+			if (!curve || curve == NID_X9_62_prime256v1)
 			{
-				auto group = EC_KEY_get0_group (ecKey);
-				if (group)
-				{
-					int curve = EC_GROUP_get_curve_name (group);
-					if (curve == NID_X9_62_prime256v1)
-					{
-						uint8_t signingPrivateKey[32], buf[50], signature[64];
-						i2p::crypto::bn2buf (EC_KEY_get0_private_key (ecKey), signingPrivateKey, 32);
-						i2p::crypto::ECDSAP256Signer signer (signingPrivateKey);
-						size_t len = family.length ();
-						memcpy (buf, family.c_str (), len);
-						memcpy (buf + len, (const uint8_t *)ident, 32);
-						len += 32;
-						signer.Sign (buf, len, signature);
-						sig = ByteStreamToBase64 (signature, 64);
-					}
-					else
-						LogPrint (eLogWarning, "Family: elliptic curve ", curve, " is not supported");
-				}
-			}
+				uint8_t buf[100], sign[72], signature[64];
+				size_t len = family.length ();
+				memcpy (buf, family.c_str (), len);
+				memcpy (buf + len, (const uint8_t *)ident, 32);
+				len += 32;
+
+				size_t l = 72;
+				EVP_MD_CTX * mdctx = EVP_MD_CTX_create ();
+				EVP_DigestSignInit (mdctx, NULL, EVP_sha256(), NULL, pkey);
+				EVP_DigestSign (mdctx, sign, &l, buf, len);
+				EVP_MD_CTX_destroy (mdctx);
+
+				const uint8_t * s1 = sign;
+				ECDSA_SIG * sig1 = d2i_ECDSA_SIG (NULL, &s1, l);
+				const BIGNUM * r, * s;
+				ECDSA_SIG_get0 (sig1, &r, &s);
+				i2p::crypto::bn2buf (r, signature, 32);
+				i2p::crypto::bn2buf (s, signature + 32, 32);
+				ECDSA_SIG_free(sig1);
+				sig = ByteStreamToBase64 (signature, 64);
+			}	
+			else
+				LogPrint (eLogWarning, "Family: elliptic curve ", curve, " is not supported");
+
 			SSL_free (ssl);
 		}
 		else
