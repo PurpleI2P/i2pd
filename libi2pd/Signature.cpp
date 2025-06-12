@@ -347,7 +347,6 @@ namespace crypto
 		
 #endif		
 		
-#if OPENSSL_EDDSA
 	EDDSA25519Verifier::EDDSA25519Verifier ():
 		m_Pkey (nullptr)
 	{
@@ -379,37 +378,6 @@ namespace crypto
 		return false;
 	}
 
-#else
-	EDDSA25519Verifier::EDDSA25519Verifier ()
-	{
-	}
-
-	EDDSA25519Verifier::~EDDSA25519Verifier ()
-	{
-	}
-
-	void EDDSA25519Verifier::SetPublicKey (const uint8_t * signingKey)
-	{
-		memcpy (m_PublicKeyEncoded, signingKey, EDDSA25519_PUBLIC_KEY_LENGTH);
-		BN_CTX * ctx = BN_CTX_new ();
-		m_PublicKey = GetEd25519 ()->DecodePublicKey (m_PublicKeyEncoded, ctx);
-		BN_CTX_free (ctx);
-	}
-
-	bool EDDSA25519Verifier::Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
-	{
-		uint8_t digest[64];
-		SHA512_CTX ctx;
-		SHA512_Init (&ctx);
-		SHA512_Update (&ctx, signature, EDDSA25519_SIGNATURE_LENGTH/2); // R
-		SHA512_Update (&ctx, m_PublicKeyEncoded, EDDSA25519_PUBLIC_KEY_LENGTH); // public key
-		SHA512_Update (&ctx, buf, len); // data
-		SHA512_Final (digest, &ctx);
-
-		return GetEd25519 ()->Verify (m_PublicKey, digest, signature);
-	}
-#endif
-
 	EDDSA25519SignerCompat::EDDSA25519SignerCompat (const uint8_t * signingPrivateKey, const uint8_t * signingPublicKey)
 	{
 		// expand key
@@ -439,7 +407,6 @@ namespace crypto
 		GetEd25519 ()->Sign (m_ExpandedPrivateKey, m_PublicKeyEncoded, buf, len, signature);
 	}
 
-#if OPENSSL_EDDSA
 	EDDSA25519Signer::EDDSA25519Signer (const uint8_t * signingPrivateKey, const uint8_t * signingPublicKey):
 		m_Pkey (nullptr), m_Fallback (nullptr)
 	{
@@ -481,7 +448,6 @@ namespace crypto
 		else
 			LogPrint (eLogError, "EdDSA signing key is not set");
 	}
-#endif
 
 #if (OPENSSL_VERSION_NUMBER >= 0x030000000)
 	static const OSSL_PARAM EDDSA25519phParams[] =

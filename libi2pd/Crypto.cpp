@@ -16,9 +16,7 @@
 #include <openssl/crypto.h>
 #include "TunnelBase.h"
 #include <openssl/ssl.h>
-#if OPENSSL_HKDF
 #include <openssl/kdf.h>
-#endif
 #if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
 #include <openssl/param_build.h>
 #include <openssl/core_names.h>
@@ -784,7 +782,6 @@ namespace crypto
 	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, const std::string& info,
 		uint8_t * out, size_t outLen)
 	{
-#if OPENSSL_HKDF
 		EVP_PKEY_CTX * pctx = EVP_PKEY_CTX_new_id (EVP_PKEY_HKDF, nullptr);
 		EVP_PKEY_derive_init (pctx);
 		EVP_PKEY_CTX_set_hkdf_md (pctx, EVP_sha256());
@@ -805,18 +802,6 @@ namespace crypto
 			EVP_PKEY_CTX_add1_hkdf_info (pctx, (const uint8_t *)info.c_str (), info.length ());
 		EVP_PKEY_derive (pctx, out, &outLen);
 		EVP_PKEY_CTX_free (pctx);
-#else
-		uint8_t prk[32]; unsigned int len;
-		HMAC(EVP_sha256(), salt, 32, key, keyLen, prk, &len);
-		auto l = info.length ();
-		memcpy (out, info.c_str (), l); out[l] = 0x01;
-		HMAC(EVP_sha256(), prk, 32, out, l + 1, out, &len);
-		if (outLen > 32) // 64
-		{
-			memcpy (out + 32, info.c_str (), l); out[l + 32] = 0x02;
-			HMAC(EVP_sha256(), prk, 32, out, l + 33, out + 32, &len);
-		}
-#endif
 	}
 
 // Noise

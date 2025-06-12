@@ -369,18 +369,12 @@ namespace crypto
 			size_t GetSignatureLen () const { return EDDSA25519_SIGNATURE_LENGTH; };
 
 		private:
-
-#if OPENSSL_EDDSA	
 			
 			EVP_PKEY * m_Pkey;
 			
 		protected:
 
 			EVP_PKEY * GetPkey () const { return m_Pkey; };
-#else
-			EDDSAPoint m_PublicKey;
-			uint8_t m_PublicKeyEncoded[EDDSA25519_PUBLIC_KEY_LENGTH];
-#endif
 	};
 
 #if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
@@ -409,7 +403,6 @@ namespace crypto
 			uint8_t m_PublicKeyEncoded[EDDSA25519_PUBLIC_KEY_LENGTH];
 	};
 
-#if OPENSSL_EDDSA
 	class EDDSA25519Signer: public Signer
 	{
 		public:
@@ -429,11 +422,6 @@ namespace crypto
 			EVP_PKEY * m_Pkey;
 			EDDSA25519SignerCompat * m_Fallback;
 	};
-#else
-
-	typedef EDDSA25519SignerCompat EDDSA25519Signer;
-
-#endif
 
 #if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
 	class EDDSA25519phSigner: public EDDSA25519Signer
@@ -449,7 +437,6 @@ namespace crypto
 	
 	inline void CreateEDDSA25519RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
 	{
-#if OPENSSL_EDDSA
 		EVP_PKEY *pkey = NULL;
 		EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id (EVP_PKEY_ED25519, NULL);
 		EVP_PKEY_keygen_init (pctx);
@@ -460,11 +447,6 @@ namespace crypto
 		len = EDDSA25519_PRIVATE_KEY_LENGTH;
 		EVP_PKEY_get_raw_private_key (pkey, signingPrivateKey, &len);
 		EVP_PKEY_free (pkey);
-#else
-		RAND_bytes (signingPrivateKey, EDDSA25519_PRIVATE_KEY_LENGTH);
-		EDDSA25519Signer signer (signingPrivateKey);
-		memcpy (signingPublicKey, signer.GetPublicKey (), EDDSA25519_PUBLIC_KEY_LENGTH);
-#endif
 	}
 
 
