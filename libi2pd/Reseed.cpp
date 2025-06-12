@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -14,6 +14,9 @@
 #include <boost/algorithm/string.hpp>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+#include <openssl/core_names.h>
+#endif
 #include <zlib.h>
 
 #include "Crypto.h"
@@ -480,15 +483,31 @@ namespace data
 					if (terminator) terminator[0] = 0;
 				}
 				// extract RSA key (we need n only, e = 65537)
-				const RSA * key = EVP_PKEY_get0_RSA (X509_get_pubkey (cert));
-				const BIGNUM * n, * e, * d;
+				EVP_PKEY * pubKey = X509_get_pubkey (cert);
+				const BIGNUM * n = nullptr;
+#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+				BIGNUM * n1 = BN_new ();
+				if (EVP_PKEY_get_bn_param (pubKey, OSSL_PKEY_PARAM_RSA_N, &n1) > 0)
+					n = n1;
+#else				
+				const RSA * key = EVP_PKEY_get0_RSA (pubKey);
+				const BIGNUM * e, * d;
 				RSA_get0_key(key, &n, &e, &d);
-				PublicKey value;
-				i2p::crypto::bn2buf (n, value, 512);
-				if (cn)
-					m_SigningKeys[cn] = value;
+#endif				
+				if (n)
+				{	
+					PublicKey value;
+					i2p::crypto::bn2buf (n, value, 512);
+					if (cn)
+						m_SigningKeys[cn] = value;
+					else
+						LogPrint (eLogError, "Reseed: Can't find CN field in ", filename);
+				}
 				else
-					LogPrint (eLogError, "Reseed: Can't find CN field in ", filename);
+					LogPrint (eLogError, "Reseed: Can't extract RSA key from ", filename);
+#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+				BN_free (n1);
+#endif				
 			}
 			SSL_free (ssl);
 		}
