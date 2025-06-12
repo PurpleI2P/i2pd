@@ -263,7 +263,7 @@ namespace crypto
 				auto s = BN_bin2bn (signature + GetSignatureLen ()/2, GetSignatureLen ()/2, NULL);
 				ECDSA_SIG_set0(sig, r, s);
 				// ECDSA verification
-				int ret = ECDSA_do_verify (digest, Hash::hashLen, sig, m_PublicKey);
+				int ret = ECDSA_do_verify (digest, Hash::hashLen, sig, m_PublicKey) == 1;
 				ECDSA_SIG_free(sig);
 				return ret;
 			}

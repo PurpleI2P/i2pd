@@ -58,9 +58,7 @@ int main ()
 	uint8_t s[64];	
 	i2p::crypto::EDDSA25519Signer signer (key);
 	signer.Sign (msg, 1023, s);
-#if OPENSSL_EDDSA
     assert(memcmp (s, sig, 64) == 0);
-#endif
 	
 	i2p::crypto::EDDSA25519Verifier verifier;
 	verifier.SetPublicKey (pub);

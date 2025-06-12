@@ -53,7 +53,7 @@ namespace crypto
 		// verify
 		EVP_MD_CTX * ctx = EVP_MD_CTX_create ();
 		EVP_DigestVerifyInit (ctx, NULL, EVP_sha1(), NULL, m_PublicKey);
-		auto ret = EVP_DigestVerify (ctx, sign, l, buf, len);
+		auto ret = EVP_DigestVerify (ctx, sign, l, buf, len) == 1;
 		EVP_MD_CTX_destroy (ctx);
 		return ret;
 	}
@@ -132,7 +132,7 @@ namespace crypto
 		DSA_SIG * sig = DSA_SIG_new();
 		DSA_SIG_set0 (sig, BN_bin2bn (signature, DSA_SIGNATURE_LENGTH/2, NULL), BN_bin2bn (signature + DSA_SIGNATURE_LENGTH/2, DSA_SIGNATURE_LENGTH/2, NULL));
 		// DSA verification
-		int ret = DSA_do_verify (digest, 20, sig, m_PublicKey);
+		int ret = DSA_do_verify (digest, 20, sig, m_PublicKey) == 1;
 		DSA_SIG_free(sig);
 		return ret;
 	}
@@ -229,7 +229,7 @@ namespace crypto
 		// verify
 		EVP_MD_CTX * ctx = EVP_MD_CTX_create ();
 		EVP_DigestVerifyInit (ctx, NULL, m_Hash, NULL, m_PublicKey);
-		auto ret = EVP_DigestVerify (ctx, sign.data (), l, buf, len);
+		auto ret = EVP_DigestVerify (ctx, sign.data (), l, buf, len) == 1;
 		EVP_MD_CTX_destroy (ctx);
 		return ret;
 	}	
@@ -325,7 +325,7 @@ namespace crypto
 		{	
 			EVP_MD_CTX * ctx = EVP_MD_CTX_create ();
 			EVP_DigestVerifyInit (ctx, NULL, NULL, NULL, m_Pkey);
-			auto ret = EVP_DigestVerify (ctx, signature, 64, buf, len);
+			auto ret = EVP_DigestVerify (ctx, signature, 64, buf, len) == 1;
 			EVP_MD_CTX_destroy (ctx);	
 			return ret;	
 		}	
@@ -509,7 +509,7 @@ namespace crypto
 						OSSL_PARAM_END
 					};		
 					EVP_PKEY_verify_message_init (vctx, sig, params);
-					ret = EVP_PKEY_verify (vctx, signature, GetSignatureLen (), buf, len);
+					ret = EVP_PKEY_verify (vctx, signature, GetSignatureLen (), buf, len) == 1;
 					EVP_SIGNATURE_free (sig);
 				}	
 				EVP_PKEY_CTX_free (vctx);
