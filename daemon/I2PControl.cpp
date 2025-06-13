@@ -437,48 +437,54 @@ namespace client
 	void I2PControlService::CreateCertificate (const char *crt_path, const char *key_path)
 	{
 		FILE *f = NULL;
+#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+		EVP_PKEY *  pkey = EVP_RSA_gen(4096); // e = 65537
+#else		
 		EVP_PKEY * pkey = EVP_PKEY_new ();
 		RSA * rsa = RSA_new ();
 		BIGNUM * e = BN_dup (i2p::crypto::GetRSAE ());
 		RSA_generate_key_ex (rsa, 4096, e, NULL);
-		BN_free (e);
-		if (rsa)
-		{
-			EVP_PKEY_assign_RSA (pkey, rsa);
-			X509 * x509 = X509_new ();
-			ASN1_INTEGER_set (X509_get_serialNumber (x509), 1);
-			X509_gmtime_adj (X509_getm_notBefore (x509), 0);
-			X509_gmtime_adj (X509_getm_notAfter (x509), I2P_CONTROL_CERTIFICATE_VALIDITY*24*60*60); // expiration
-			X509_set_pubkey (x509, pkey); // public key
-			X509_NAME * name = X509_get_subject_name (x509);
-			X509_NAME_add_entry_by_txt (name, "C",  MBSTRING_ASC, (unsigned char *)"A1", -1, -1, 0); // country (Anonymous proxy)
-			X509_NAME_add_entry_by_txt (name, "O",  MBSTRING_ASC, (unsigned char *)I2P_CONTROL_CERTIFICATE_ORGANIZATION, -1, -1, 0); // organization
-			X509_NAME_add_entry_by_txt (name, "CN", MBSTRING_ASC, (unsigned char *)I2P_CONTROL_CERTIFICATE_COMMON_NAME, -1, -1, 0); // common name
-			X509_set_issuer_name (x509, name); // set issuer to ourselves
-			X509_sign (x509, pkey, EVP_sha1 ()); // sign, last param must be NULL for EdDSA
-
-			// save cert
-			if ((f = fopen (crt_path, "wb")) != NULL) {
-				LogPrint (eLogInfo, "I2PControl: Saving new cert to ", crt_path);
-				PEM_write_X509 (f, x509);
-				fclose (f);
-			} else {
-				LogPrint (eLogError, "I2PControl: Can't write cert: ", strerror(errno));
-			}
-
-			// save key
-			if ((f = fopen (key_path, "wb")) != NULL) {
-				LogPrint (eLogInfo, "I2PControl: saving cert key to ", key_path);
-				PEM_write_PrivateKey (f, pkey, NULL, NULL, 0, NULL, NULL);
-				fclose (f);
-			} else {
-				LogPrint (eLogError, "I2PControl: Can't write key: ", strerror(errno));
-			}
-
-			X509_free (x509);
-		} else {
+		BN_free (e);	
+		if (rsa) EVP_PKEY_assign_RSA (pkey, rsa);
+		else
+		{	
 			LogPrint (eLogError, "I2PControl: Can't create RSA key for certificate");
+			EVP_PKEY_free (pkey);
+			return;
+		}	
+#endif			
+		X509 * x509 = X509_new ();
+		ASN1_INTEGER_set (X509_get_serialNumber (x509), 1);
+		X509_gmtime_adj (X509_getm_notBefore (x509), 0);
+		X509_gmtime_adj (X509_getm_notAfter (x509), I2P_CONTROL_CERTIFICATE_VALIDITY*24*60*60); // expiration
+		X509_set_pubkey (x509, pkey); // public key
+		X509_NAME * name = X509_get_subject_name (x509);
+		X509_NAME_add_entry_by_txt (name, "C",  MBSTRING_ASC, (unsigned char *)"A1", -1, -1, 0); // country (Anonymous proxy)
+		X509_NAME_add_entry_by_txt (name, "O",  MBSTRING_ASC, (unsigned char *)I2P_CONTROL_CERTIFICATE_ORGANIZATION, -1, -1, 0); // organization
+		X509_NAME_add_entry_by_txt (name, "CN", MBSTRING_ASC, (unsigned char *)I2P_CONTROL_CERTIFICATE_COMMON_NAME, -1, -1, 0); // common name
+		X509_set_issuer_name (x509, name); // set issuer to ourselves
+		X509_sign (x509, pkey, EVP_sha1 ()); // sign, last param must be NULL for EdDSA
+
+		// save cert
+		if ((f = fopen (crt_path, "wb")) != NULL) 
+		{
+			LogPrint (eLogInfo, "I2PControl: Saving new cert to ", crt_path);
+			PEM_write_X509 (f, x509);
+			fclose (f);
+		} 
+		else
+			LogPrint (eLogError, "I2PControl: Can't write cert: ", strerror(errno));
+		X509_free (x509);
+		
+		// save key
+		if ((f = fopen (key_path, "wb")) != NULL) 
+		{
+			LogPrint (eLogInfo, "I2PControl: saving cert key to ", key_path);
+			PEM_write_PrivateKey (f, pkey, NULL, NULL, 0, NULL, NULL);
+			fclose (f);
 		}
+		else
+			LogPrint (eLogError, "I2PControl: Can't write key: ", strerror(errno));
 		EVP_PKEY_free (pkey);
 	}
 }
