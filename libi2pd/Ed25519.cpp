@@ -1,12 +1,12 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
 * See full license text in LICENSE file at top of project tree
 */
 
-#include <openssl/sha.h>
+#include <openssl/evp.h>
 #include "Log.h"
 #include "Crypto.h"
 #include "Ed25519.h"
@@ -134,22 +134,27 @@ namespace crypto
 	{
 		BN_CTX * bnCtx = BN_CTX_new ();
 		// calculate r
-		SHA512_CTX ctx;
-		SHA512_Init (&ctx);
-		SHA512_Update (&ctx, expandedPrivateKey + EDDSA25519_PRIVATE_KEY_LENGTH, EDDSA25519_PRIVATE_KEY_LENGTH); // right half of expanded key
-		SHA512_Update (&ctx, buf, len); // data
+		EVP_MD_CTX * ctx = EVP_MD_CTX_create ();
+		EVP_DigestInit_ex (ctx, EVP_sha512(), NULL);
+		EVP_DigestUpdate (ctx, expandedPrivateKey + EDDSA25519_PRIVATE_KEY_LENGTH, EDDSA25519_PRIVATE_KEY_LENGTH); // right half of expanded key
+		EVP_DigestUpdate (ctx, buf, len); // data
 		uint8_t digest[64];
-		SHA512_Final (digest, &ctx);
+		unsigned int dl = 64;
+		EVP_DigestFinal_ex (ctx, digest, &dl);
+		EVP_MD_CTX_destroy (ctx);
 		BIGNUM * r = DecodeBN<32> (digest); // DecodeBN<64> (digest); // for test vectors
 		// calculate R
 		uint8_t R[EDDSA25519_SIGNATURE_LENGTH/2]; // we must use separate buffer because signature might be inside buf
 		EncodePoint (Normalize (MulB (digest, bnCtx), bnCtx), R); // EncodePoint (Mul (B, r, bnCtx), R); // for test vectors
 		// calculate S
-		SHA512_Init (&ctx);
-		SHA512_Update (&ctx, R, EDDSA25519_SIGNATURE_LENGTH/2); // R
-		SHA512_Update (&ctx, publicKeyEncoded, EDDSA25519_PUBLIC_KEY_LENGTH); // public key
-		SHA512_Update (&ctx, buf, len); // data
-		SHA512_Final (digest, &ctx);
+		ctx = EVP_MD_CTX_create ();
+		EVP_DigestInit_ex (ctx, EVP_sha512(), NULL);
+		EVP_DigestUpdate (ctx, R, EDDSA25519_SIGNATURE_LENGTH/2); // R
+		EVP_DigestUpdate (ctx, publicKeyEncoded, EDDSA25519_PUBLIC_KEY_LENGTH); // public key
+		EVP_DigestUpdate (ctx, buf, len); // data
+		dl = 64;
+		EVP_DigestFinal_ex (ctx, digest, &dl);
+		EVP_MD_CTX_destroy (ctx);
 		BIGNUM * h = DecodeBN<64> (digest);
 		// S = (r + h*a) % l
 		BIGNUM * a = DecodeBN<EDDSA25519_PRIVATE_KEY_LENGTH> (expandedPrivateKey); // left half of expanded key
@@ -169,13 +174,15 @@ namespace crypto
 		uint8_t T[80];
 		RAND_bytes (T, 80);
 		// calculate r = H*(T || publickey || data)
-		SHA512_CTX ctx;
-		SHA512_Init (&ctx);
-		SHA512_Update (&ctx, T, 80);
-		SHA512_Update (&ctx, publicKeyEncoded, 32);
-		SHA512_Update (&ctx, buf, len); // data
+		EVP_MD_CTX * ctx = EVP_MD_CTX_create ();
+		EVP_DigestInit_ex (ctx, EVP_sha512(), NULL);
+		EVP_DigestUpdate (ctx, T, 80);
+		EVP_DigestUpdate (ctx, publicKeyEncoded, 32);
+		EVP_DigestUpdate (ctx, buf, len); // data
 		uint8_t digest[64];
-		SHA512_Final (digest, &ctx);
+		unsigned int dl = 64;
+		EVP_DigestFinal_ex (ctx, digest, &dl);
+		EVP_MD_CTX_destroy (ctx);
 		BIGNUM * r = DecodeBN<64> (digest);
 		BN_mod (r, r, l, bnCtx); // % l
 		EncodeBN (r, digest, 32);
@@ -183,11 +190,14 @@ namespace crypto
 		uint8_t R[EDDSA25519_SIGNATURE_LENGTH/2]; // we must use separate buffer because signature might be inside buf
 		EncodePoint (Normalize (MulB (digest, bnCtx), bnCtx), R);
 		// calculate S
-		SHA512_Init (&ctx);
-		SHA512_Update (&ctx, R, EDDSA25519_SIGNATURE_LENGTH/2); // R
-		SHA512_Update (&ctx, publicKeyEncoded, EDDSA25519_PUBLIC_KEY_LENGTH); // public key
-		SHA512_Update (&ctx, buf, len); // data
-		SHA512_Final (digest, &ctx);
+		ctx = EVP_MD_CTX_create ();
+		EVP_DigestInit_ex (ctx, EVP_sha512(), NULL);
+		EVP_DigestUpdate (ctx, R, EDDSA25519_SIGNATURE_LENGTH/2); // R
+		EVP_DigestUpdate (ctx, publicKeyEncoded, EDDSA25519_PUBLIC_KEY_LENGTH); // public key
+		EVP_DigestUpdate (ctx, buf, len); // data
+		dl = 64;
+		EVP_DigestFinal_ex (ctx, digest, &dl);
+		EVP_MD_CTX_destroy (ctx);
 		BIGNUM * h = DecodeBN<64> (digest);
 		// S = (r + h*a) % l
 		BIGNUM * a = DecodeBN<EDDSA25519_PRIVATE_KEY_LENGTH> (privateKey);
