@@ -397,6 +397,7 @@ namespace stream
 			optionData += 2;
 		}
 
+		bool sessionVerified = false;
 		if (flags & PACKET_FLAG_FROM_INCLUDED)
 		{
 			if (m_RemoteLeaseSet) m_RemoteIdentity = m_RemoteLeaseSet->GetIdentity ();
@@ -409,7 +410,29 @@ namespace stream
 			}
 			optionData += m_RemoteIdentity->GetFullLen ();
 			if (!m_RemoteLeaseSet)
-				LogPrint (eLogDebug, "Streaming: Incoming stream from ", m_RemoteIdentity->GetIdentHash ().ToBase64 (), ", sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID);
+			{	
+				LogPrint (eLogDebug, "Streaming: Incoming stream from ", m_RemoteIdentity->GetIdentHash ().ToBase32 (), ", sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID);
+				if (packet->from)
+				{
+					// stream came from ratchets session and static key must match one from LeaseSet
+					m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());
+					if (!m_RemoteLeaseSet)
+					{
+						LogPrint (eLogInfo, "Streaming: Incoming stream from ", m_RemoteIdentity->GetIdentHash ().ToBase32 (), 
+							" without LeaseSet. sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID);
+						return false;
+					}	
+					uint8_t staticKey[32];
+					m_RemoteLeaseSet->Encrypt (nullptr, staticKey);
+					if (memcmp (packet->from->GetRemoteStaticKey (), staticKey, 32))
+					{
+						LogPrint (eLogError, "Streaming: Remote LeaseSet static key mismatch for incoming stream from ", 
+							m_RemoteIdentity->GetIdentHash ().ToBase32 ());
+						return false;
+					}	
+					sessionVerified = true;
+				}	
+			}	
 		}
 
 		if (flags & PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED)
@@ -451,35 +474,39 @@ namespace stream
 
 		if (flags & PACKET_FLAG_SIGNATURE_INCLUDED)
 		{
-			bool verified = false;
 			auto signatureLen = m_TransientVerifier ? m_TransientVerifier->GetSignatureLen () : m_RemoteIdentity->GetSignatureLen ();
 			if (signatureLen > packet->GetLength ())
 			{
 				LogPrint (eLogError, "Streaming: Signature too big, ", signatureLen, " bytes");
 				return false;
 			}	
-			if(signatureLen <= 256)
-			{
-				// standard
-				uint8_t signature[256];
-				memcpy (signature, optionData, signatureLen);
-				memset (const_cast<uint8_t *>(optionData), 0, signatureLen);
-				verified = m_TransientVerifier ?
-					m_TransientVerifier->Verify (packet->GetBuffer (), packet->GetLength (), signature) :
-					m_RemoteIdentity->Verify (packet->GetBuffer (), packet->GetLength (), signature);
-				if (verified)
-					memcpy (const_cast<uint8_t *>(optionData), signature, signatureLen);
-			}
-			else
-			{
-				// post quantum
-				std::vector<uint8_t> signature(signatureLen);
-				memcpy (signature.data (), optionData, signatureLen);
-				memset (const_cast<uint8_t *>(optionData), 0, signatureLen);
-				verified = m_TransientVerifier ?
-					m_TransientVerifier->Verify (packet->GetBuffer (), packet->GetLength (), signature.data ()) :
-					m_RemoteIdentity->Verify (packet->GetBuffer (), packet->GetLength (), signature.data ());
-			}
+			bool verified = sessionVerified;
+			if (!verified) // packet was not verified through session
+			{	
+				// verify actual signature
+				if (signatureLen <= 256)
+				{
+					// standard
+					uint8_t signature[256];
+					memcpy (signature, optionData, signatureLen);
+					memset (const_cast<uint8_t *>(optionData), 0, signatureLen);
+					verified = m_TransientVerifier ?
+						m_TransientVerifier->Verify (packet->GetBuffer (), packet->GetLength (), signature) :
+						m_RemoteIdentity->Verify (packet->GetBuffer (), packet->GetLength (), signature);
+					if (verified)
+						memcpy (const_cast<uint8_t *>(optionData), signature, signatureLen);
+				}
+				else
+				{
+					// post quantum
+					std::vector<uint8_t> signature(signatureLen);
+					memcpy (signature.data (), optionData, signatureLen);
+					memset (const_cast<uint8_t *>(optionData), 0, signatureLen);
+					verified = m_TransientVerifier ?
+						m_TransientVerifier->Verify (packet->GetBuffer (), packet->GetLength (), signature.data ()) :
+						m_RemoteIdentity->Verify (packet->GetBuffer (), packet->GetLength (), signature.data ());
+				}
+			}	
 			if (verified)
 				optionData += signatureLen;
 			else
@@ -812,7 +839,7 @@ namespace stream
 			{
 				// initial packet
 				m_Status = eStreamStatusOpen;
-				if (!m_RemoteLeaseSet) m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());;
+				if (!m_RemoteLeaseSet) m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());
 				if (m_RemoteLeaseSet)
 				{
 					m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true, !m_IsIncoming);
@@ -2054,14 +2081,18 @@ namespace stream
 		}
 	}
 
-	void StreamingDestination::HandleDataMessagePayload (const uint8_t * buf, size_t len)
+	void StreamingDestination::HandleDataMessagePayload (const uint8_t * buf, size_t len,
+		i2p::garlic::ECIESX25519AEADRatchetSession * from)
 	{
 		// unzip it
 		Packet * uncompressed = NewPacket ();
 		uncompressed->offset = 0;
 		uncompressed->len = m_Inflator.Inflate (buf, len, uncompressed->buf, MAX_PACKET_SIZE);
 		if (uncompressed->len)
+		{
+			uncompressed->from = from;
 			HandleNextPacket (uncompressed);
+		}	
 		else
 			DeletePacket (uncompressed);
 	}

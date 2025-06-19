@@ -27,6 +27,7 @@
 #include "Garlic.h"
 #include "Tunnel.h"
 #include "util.h" // MemoryPool
+#include "ECIESX25519AEADRatchetSession.h"
 
 namespace i2p
 {
@@ -88,8 +89,9 @@ namespace stream
 		uint8_t buf[MAX_PACKET_SIZE];
 		uint64_t sendTime;
 		bool resent;
+		i2p::garlic::ECIESX25519AEADRatchetSession * from;
 
-		Packet (): len (0), offset (0), sendTime (0), resent (false) {};
+		Packet (): len (0), offset (0), sendTime (0), resent (false), from (nullptr) {};
 		uint8_t * GetBuffer () { return buf + offset; };
 		size_t GetLength () const { return len > offset ? len - offset : 0; };
 
@@ -340,7 +342,7 @@ namespace stream
 			void SetOwner (std::shared_ptr<i2p::client::ClientDestination> owner) { m_Owner = owner; };
 			uint16_t GetLocalPort () const { return m_LocalPort; };
 
-			void HandleDataMessagePayload (const uint8_t * buf, size_t len);
+			void HandleDataMessagePayload (const uint8_t * buf, size_t len, i2p::garlic::ECIESX25519AEADRatchetSession * from);
 			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len, uint16_t toPort, bool checksum = true, bool gzip = false);
 
 			Packet * NewPacket () { return m_PacketsPool.Acquire(); }

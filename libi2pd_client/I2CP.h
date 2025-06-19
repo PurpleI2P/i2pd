@@ -117,7 +117,7 @@ namespace client
 			void CleanupDestination () override;
 			i2p::data::CryptoKeyType GetPreferredCryptoType () const override;
 			// I2CP
-			void HandleDataMessage (const uint8_t * buf, size_t len) override;
+			void HandleDataMessage (const uint8_t * buf, size_t len, i2p::garlic::ECIESX25519AEADRatchetSession * from) override;
 			void CreateNewLeaseSet (const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels) override;
 			
 		private:

@@ -174,7 +174,7 @@ namespace client
 			virtual void CleanupDestination () {}; // additional clean up in derived classes
 			virtual i2p::data::CryptoKeyType GetPreferredCryptoType () const = 0;
 			// I2CP
-			virtual void HandleDataMessage (const uint8_t * buf, size_t len) = 0;
+			virtual void HandleDataMessage (const uint8_t * buf, size_t len, i2p::garlic::ECIESX25519AEADRatchetSession * from) = 0;
 			virtual void CreateNewLeaseSet (const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels) = 0;
 			
 		private:
@@ -288,7 +288,7 @@ namespace client
 			void CleanupDestination () override;
 			i2p::data::CryptoKeyType GetPreferredCryptoType () const override { return m_PreferredCryptoType; }
 			// I2CP
-			void HandleDataMessage (const uint8_t * buf, size_t len) override;
+			void HandleDataMessage (const uint8_t * buf, size_t len, i2p::garlic::ECIESX25519AEADRatchetSession * from) override;
 			void CreateNewLeaseSet (const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels) override;
 						
 		private:

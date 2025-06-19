@@ -86,7 +86,8 @@ namespace client
 		return i2p::data::CRYPTO_KEY_TYPE_ELGAMAL;
 	}	
 		
-	void I2CPDestination::HandleDataMessage (const uint8_t * buf, size_t len)
+	void I2CPDestination::HandleDataMessage (const uint8_t * buf, size_t len, 
+		i2p::garlic::ECIESX25519AEADRatchetSession * from)
 	{
 		uint32_t length = bufbe32toh (buf);
 		if (length > len - 4) length = len - 4;

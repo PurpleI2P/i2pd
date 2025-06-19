@@ -388,7 +388,7 @@ namespace client
 		switch (typeID)
 		{
 			case eI2NPData:
-				HandleDataMessage (payload, len);
+				HandleDataMessage (payload, len, from);
 			break;
 			case eI2NPDeliveryStatus:
 				HandleDeliveryStatusMessage (bufbe32toh (payload + DELIVERY_STATUS_MSGID_OFFSET));
@@ -1158,7 +1158,8 @@ namespace client
 		LogPrint(eLogDebug, "Destination: -> Stopping done");
 	}
 
-	void ClientDestination::HandleDataMessage (const uint8_t * buf, size_t len)
+	void ClientDestination::HandleDataMessage (const uint8_t * buf, size_t len,
+		i2p::garlic::ECIESX25519AEADRatchetSession * from)
 	{
 		uint32_t length = bufbe32toh (buf);
 		if(length > len - 4)
@@ -1183,7 +1184,7 @@ namespace client
 					m_LastPort = toPort;
 				}
 				if (m_LastStreamingDestination)
-					m_LastStreamingDestination->HandleDataMessagePayload (buf, length);
+					m_LastStreamingDestination->HandleDataMessagePayload (buf, length, from);
 				else
 					LogPrint (eLogError, "Destination: Missing streaming destination");
 			}
