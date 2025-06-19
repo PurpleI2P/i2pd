@@ -412,26 +412,21 @@ namespace stream
 			if (!m_RemoteLeaseSet)
 			{	
 				LogPrint (eLogDebug, "Streaming: Incoming stream from ", m_RemoteIdentity->GetIdentHash ().ToBase32 (), ", sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID);
-				if (packet->from)
-				{
-					// stream came from ratchets session and static key must match one from LeaseSet
+				if (packet->from) // try to obtain LeaseSet if came from ratchets session	
 					m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());
-					if (!m_RemoteLeaseSet)
-					{
-						LogPrint (eLogInfo, "Streaming: Incoming stream from ", m_RemoteIdentity->GetIdentHash ().ToBase32 (), 
-							" without LeaseSet. sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID);
-						return false;
-					}	
-					uint8_t staticKey[32];
-					m_RemoteLeaseSet->Encrypt (nullptr, staticKey);
-					if (memcmp (packet->from->GetRemoteStaticKey (), staticKey, 32))
-					{
-						LogPrint (eLogError, "Streaming: Remote LeaseSet static key mismatch for incoming stream from ", 
-							m_RemoteIdentity->GetIdentHash ().ToBase32 ());
-						return false;
-					}	
-					sessionVerified = true;
+			}	
+			if (packet->from && m_RemoteLeaseSet)
+			{
+				// stream came from ratchets session and static key must match one from LeaseSet
+				uint8_t staticKey[32];
+				m_RemoteLeaseSet->Encrypt (nullptr, staticKey);
+				if (memcmp (packet->from->GetRemoteStaticKey (), staticKey, 32))
+				{
+					LogPrint (eLogError, "Streaming: Remote LeaseSet static key mismatch for stream from ", 
+						m_RemoteIdentity->GetIdentHash ().ToBase32 ());
+					return false;
 				}	
+				sessionVerified = true;
 			}	
 		}
 
