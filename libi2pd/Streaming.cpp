@@ -187,7 +187,7 @@ namespace stream
 		if (!m_SendStreamID)
 		{	
 			m_SendStreamID = packet->GetReceiveStreamID ();
-			if (!m_RemoteIdentity && packet->GetNACKCount () == 8 && // first incoming packet
+			if (!m_RemoteIdentity && !packet->from && packet->GetNACKCount () == 8 && // first incoming packet
 			    memcmp (packet->GetNACKs (), m_LocalDestination.GetOwner ()->GetIdentHash (), 32))
 			{
 				LogPrint (eLogWarning, "Streaming: Destination mismatch for ", m_LocalDestination.GetOwner ()->GetIdentHash ().ToBase32 ());
