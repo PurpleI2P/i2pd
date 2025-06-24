@@ -444,27 +444,44 @@ namespace stream
 				LogPrint (eLogInfo, "Streaming: offline signature without identity");
 				return false;
 			}
-			// if we have it in LeaseSet already we don't need to parse it again
-			if (m_RemoteLeaseSet) m_TransientVerifier = m_RemoteLeaseSet->GetTransientVerifier ();
-			if (m_TransientVerifier)
+			if (sessionVerified)
 			{
-				// skip option data
-				optionData += 6; // timestamp and key type
-				optionData += m_TransientVerifier->GetPublicKeyLen (); // public key
+				// skip offline signature
+				optionData += 4; // timestamp 
+				uint16_t keyType = bufbe16toh (optionData); optionData += 2; // key type
+				std::unique_ptr<i2p::crypto::Verifier> transientVerifier (i2p::data::IdentityEx::CreateVerifier (keyType));
+				if (!transientVerifier)
+				{
+					LogPrint (eLogInfo, "Streaming: Unknown offline signature key type ", (int)keyType);
+					return false;
+				}
+				optionData += transientVerifier->GetPublicKeyLen (); // public key
 				optionData += m_RemoteIdentity->GetSignatureLen (); // signature
 			}
 			else
-			{
-				// transient key
-				size_t offset = 0;
-				m_TransientVerifier = i2p::data::ProcessOfflineSignature (m_RemoteIdentity, optionData, optionSize - (optionData - packet->GetOptionData ()), offset);
-				optionData += offset;
-				if (!m_TransientVerifier)
+			{	
+				// if we have it in LeaseSet already we don't need to parse it again
+				if (m_RemoteLeaseSet) m_TransientVerifier = m_RemoteLeaseSet->GetTransientVerifier ();
+				if (m_TransientVerifier)
 				{
-					LogPrint (eLogError, "Streaming: offline signature failed");
-					return false;
+					// skip option data
+					optionData += 6; // timestamp and key type
+					optionData += m_TransientVerifier->GetPublicKeyLen (); // public key
+					optionData += m_RemoteIdentity->GetSignatureLen (); // signature
 				}
-			}
+				else
+				{
+					// transient key
+					size_t offset = 0;
+					m_TransientVerifier = i2p::data::ProcessOfflineSignature (m_RemoteIdentity, optionData, optionSize - (optionData - packet->GetOptionData ()), offset);
+					optionData += offset;
+					if (!m_TransientVerifier)
+					{
+						LogPrint (eLogError, "Streaming: offline signature failed");
+						return false;
+					}
+				}
+			}	
 		}
 
 		if (flags & PACKET_FLAG_SIGNATURE_INCLUDED)
