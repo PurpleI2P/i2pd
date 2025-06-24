@@ -1190,18 +1190,14 @@ namespace client
 			}
 			break;
 			case PROTOCOL_TYPE_DATAGRAM:
+			case PROTOCOL_TYPE_RAW:	
+			case PROTOCOL_TYPE_DATAGRAM2:
+			case PROTOCOL_TYPE_DATAGRAM3:	
 				// datagram protocol
 				if (m_DatagramDestination)
-					m_DatagramDestination->HandleDataMessagePayload (fromPort, toPort, buf, length);
+					m_DatagramDestination->HandleDataMessagePayload (fromPort, toPort, buf, length, buf[9], from);
 				else
 					LogPrint (eLogError, "Destination: Missing datagram destination");
-			break;
-			case PROTOCOL_TYPE_RAW:
-				// raw datagram
-				if (m_DatagramDestination)
-					m_DatagramDestination->HandleDataMessagePayload (fromPort, toPort, buf, length, true);
-				else
-					LogPrint (eLogError, "Destination: Missing raw datagram destination");
 			break;
 			default:
 				LogPrint (eLogError, "Destination: Data: Unexpected protocol ", buf[9]);

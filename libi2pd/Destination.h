@@ -37,6 +37,8 @@ namespace client
 	const uint8_t PROTOCOL_TYPE_STREAMING = 6;
 	const uint8_t PROTOCOL_TYPE_DATAGRAM = 17;
 	const uint8_t PROTOCOL_TYPE_RAW = 18;
+	const uint8_t PROTOCOL_TYPE_DATAGRAM2 = 19;
+	const uint8_t PROTOCOL_TYPE_DATAGRAM3 = 20;
 	const int PUBLISH_CONFIRMATION_TIMEOUT = 1800; // in milliseconds
 	const int PUBLISH_VERIFICATION_TIMEOUT = 5; // in seconds after successful publish
 	const int PUBLISH_VERIFICATION_TIMEOUT_VARIANCE = 3; // in seconds

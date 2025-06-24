@@ -126,6 +126,34 @@ namespace datagram
 			LogPrint (eLogWarning, "DatagramDestination: no receiver for raw datagram");
 	}
 
+	void DatagramDestination::HandleDatagram3 (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len,
+		i2p::garlic::ECIESX25519AEADRatchetSession * from)
+	{
+		if (from)
+		{
+			i2p::data::IdentHash ident(buf);
+			auto ls = m_Owner->FindLeaseSet (ident);	
+			if (ls)
+			{	
+				uint8_t staticKey[32];
+				ls->Encrypt (nullptr, staticKey);
+				if (!memcmp (from->GetRemoteStaticKey (), staticKey, 32))
+				{
+					auto session = ObtainSession (ident);
+					session->SetRemoteLeaseSet (ls);
+					session->Ack ();
+					// TODO:
+				}	
+				else
+					LogPrint (eLogError, "Datagram: Remote LeaseSet static key mismatch for datagram3 from ", ident.ToBase32 ());
+			}
+			else
+				LogPrint (eLogError, "Datagram: No remote LeaseSet for ", ident.ToBase32 ());
+		}
+		else
+			LogPrint (eLogInfo, "Datagram: datagram3 received from non-ratchets session");
+	}	
+		
 	void DatagramDestination::SetReceiver (const Receiver& receiver, uint16_t port)
 	{
 		std::lock_guard<std::mutex> lock(m_ReceiversMutex);
@@ -194,17 +222,31 @@ namespace datagram
 		return r;
 	}
 
-	void DatagramDestination::HandleDataMessagePayload (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len, bool isRaw)
+	void DatagramDestination::HandleDataMessagePayload (uint16_t fromPort, uint16_t toPort, 
+		const uint8_t * buf, size_t len, uint8_t protocolType, i2p::garlic::ECIESX25519AEADRatchetSession * from)
 	{
 		// unzip it
 		uint8_t uncompressed[MAX_DATAGRAM_SIZE];
 		size_t uncompressedLen = m_Inflator.Inflate (buf, len, uncompressed, MAX_DATAGRAM_SIZE);
 		if (uncompressedLen)
 		{
-			if (isRaw)
-				HandleRawDatagram (fromPort, toPort, uncompressed, uncompressedLen);
-			else
-				HandleDatagram (fromPort, toPort, uncompressed, uncompressedLen);
+			switch (protocolType)
+			{	
+			 	case i2p::client::PROTOCOL_TYPE_RAW:
+					HandleRawDatagram (fromPort, toPort, uncompressed, uncompressedLen);
+				break;
+				case i2p::client::PROTOCOL_TYPE_DATAGRAM3:
+					HandleDatagram3 (fromPort, toPort, uncompressed, uncompressedLen, from);	
+				break;
+				case i2p::client::PROTOCOL_TYPE_DATAGRAM:
+					HandleDatagram (fromPort, toPort, uncompressed, uncompressedLen);
+				break;
+				case i2p::client::PROTOCOL_TYPE_DATAGRAM2:
+					// TODO:
+				break;
+				default:
+					LogPrint (eLogInfo, "Datagram: unknown protocol type ", protocolType);
+			};
 		}
 		else
 			LogPrint (eLogWarning, "Datagram: decompression failed");

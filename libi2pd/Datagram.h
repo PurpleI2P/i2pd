@@ -20,6 +20,7 @@
 #include "LeaseSet.h"
 #include "I2NPProtocol.h"
 #include "Garlic.h"
+#include "ECIESX25519AEADRatchetSession.h"
 
 namespace i2p
 {
@@ -64,8 +65,9 @@ namespace datagram
 			/** get the last time in milliseconds for when we used this datagram session */
 			uint64_t LastActivity() const { return m_LastUse; }
 
-		bool IsRatchets () const { return m_RoutingSession && m_RoutingSession->IsRatchets (); }
-
+			bool IsRatchets () const { return m_RoutingSession && m_RoutingSession->IsRatchets (); }
+			void SetRemoteLeaseSet (std::shared_ptr<const i2p::data::LeaseSet> ls) { m_RemoteLeaseSet = ls; }
+			
 		struct Info
 		{
 			std::shared_ptr<const i2p::data::IdentHash> IBGW;
@@ -124,8 +126,8 @@ namespace datagram
 			void SendRawDatagram (std::shared_ptr<DatagramSession> session, const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort);
 			void FlushSendQueue (std::shared_ptr<DatagramSession> session);
 
-			void HandleDataMessagePayload (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len, bool isRaw = false);
-
+			void HandleDataMessagePayload (uint16_t fromPort, uint16_t toPort, 
+			 	const uint8_t * buf, size_t len, uint8_t protocolType, i2p::garlic::ECIESX25519AEADRatchetSession * from);
 
 			void SetReceiver (const Receiver& receiver, uint16_t port);
 			void ResetReceiver (uint16_t port);
@@ -147,6 +149,8 @@ namespace datagram
 
 			void HandleDatagram (uint16_t fromPort, uint16_t toPort, uint8_t *const& buf, size_t len);
 			void HandleRawDatagram (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
+			void HandleDatagram3 (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len,
+				i2p::garlic::ECIESX25519AEADRatchetSession * from);
 
 			Receiver FindReceiver(uint16_t port);
 			RawReceiver FindRawReceiver(uint16_t port);
