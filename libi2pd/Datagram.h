@@ -45,6 +45,8 @@ namespace datagram
 	const uint64_t DATAGRAM_MAX_FLUSH_INTERVAL = 5; // in milliseconds
 	const int DATAGRAM_SESSION_ACK_REQUEST_INTERVAL = 5500; // in milliseconds
 
+	constexpr uint16_t DATAGRAM3_FLAG_OPTIONS = 0x10;
+	
 	class DatagramSession : public std::enable_shared_from_this<DatagramSession>
 	{
 

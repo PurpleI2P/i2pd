@@ -129,6 +129,11 @@ namespace datagram
 	void DatagramDestination::HandleDatagram3 (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len,
 		i2p::garlic::ECIESX25519AEADRatchetSession * from)
 	{
+		if (len < 34)
+		{
+			LogPrint (eLogWarning, "Datagram: datagram3 is too short ", len);
+			return;
+		}	
 		if (from)
 		{
 			i2p::data::IdentHash ident(buf);
@@ -142,7 +147,22 @@ namespace datagram
 					auto session = ObtainSession (ident);
 					session->SetRemoteLeaseSet (ls);
 					session->Ack ();
-					// TODO:
+					auto r = FindReceiver(toPort);
+					if (r)
+					{
+						uint16_t flags = bufbe16toh (buf + 32);
+						size_t offset = 34;
+						if (flags & DATAGRAM3_FLAG_OPTIONS)
+							offset += bufbe16toh (buf + offset) + 2;
+						if (offset > len)
+						{
+							LogPrint (eLogWarning, "Datagram: datagram3 is too short ", len, " expected ", offset);
+							return;
+						}	
+						r(*ls->GetIdentity (), fromPort, toPort, buf + offset, len - offset);
+					}	
+					else
+						LogPrint (eLogWarning, "Datagram: no receiver for port ", toPort);
 				}	
 				else
 					LogPrint (eLogError, "Datagram: Remote LeaseSet static key mismatch for datagram3 from ", ident.ToBase32 ());
