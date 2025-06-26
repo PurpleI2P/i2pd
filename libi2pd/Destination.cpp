@@ -489,7 +489,9 @@ namespace client
 						if (leaseSet->GetIdentHash () != GetIdentHash ())
 						{
 							LogPrint (eLogDebug, "Destination: New remote LeaseSet added");
-							m_RemoteLeaseSets[key] = leaseSet;
+							m_RemoteLeaseSets.insert_or_assign (key, leaseSet);
+							if (from)
+								from->SetDestination (key);
 						}
 						else
 							LogPrint (eLogDebug, "Destination: Own remote LeaseSet dropped");
