@@ -625,7 +625,7 @@ namespace client
 	void I2CPSession::GetDateMessageHandler (const uint8_t * buf, size_t len)
 	{
 		constexpr std::string_view version(I2P_VERSION);
-		std::array<uint8_t, version.size() + 8> payload;
+		std::array<uint8_t, version.size() + 8 + 1> payload;
 		// set date
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		htobe64buf (payload.data(), ts);
