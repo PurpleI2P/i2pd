@@ -624,17 +624,14 @@ namespace client
 
 	void I2CPSession::GetDateMessageHandler (const uint8_t * buf, size_t len)
 	{
-		// get version
-		auto version = ExtractString (buf, len);
-		auto l = version.length () + 1 + 8;
-		uint8_t * payload = new uint8_t[l];
+		constexpr std::string_view version(I2P_VERSION);
+		std::array<uint8_t, version.size() + 8> payload;
 		// set date
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-		htobe64buf (payload, ts);
-		// echo vesrion back
-		PutString (payload + 8, l - 8, version);
-		SendI2CPMessage (I2CP_SET_DATE_MESSAGE, payload, l);
-		delete[] payload;
+		htobe64buf (payload.data(), ts);
+		// send our version back
+		PutString (payload.data() + 8, payload.size() - 8, version);
+		SendI2CPMessage (I2CP_SET_DATE_MESSAGE, payload.data(), payload.size());
 	}
 
 	void I2CPSession::CreateSessionMessageHandler (const uint8_t * buf, size_t len)
