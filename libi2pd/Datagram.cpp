@@ -58,25 +58,35 @@ namespace datagram
 	{
 		if (session)
 		{
-			if (m_Owner->GetIdentity ()->GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
+			if (session->GetVersion () == eDatagramV3)
 			{
-				uint8_t hash[32];
-				SHA256(payload, len, hash);
-				m_Owner->Sign (hash, 32, m_Signature.data ());
+				constexpr uint8_t flags[] = { 0x00, 0x03 }; // datagram3, no options
+				auto msg = CreateDataMessage ({{m_Owner->GetIdentity ()->GetIdentHash (), 32}, 
+					{flags, 2}, {payload, len}}, fromPort, toPort, i2p::client::PROTOCOL_TYPE_DATAGRAM3, false); // datagram3
+				session->SendMsg(msg);
 			}
 			else
-				m_Owner->Sign (payload, len, m_Signature.data ());
+			{	
+				if (m_Owner->GetIdentity ()->GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
+				{
+					uint8_t hash[32];
+					SHA256(payload, len, hash);
+					m_Owner->Sign (hash, 32, m_Signature.data ());
+				}
+				else
+					m_Owner->Sign (payload, len, m_Signature.data ());
 
-			auto msg = CreateDataMessage ({{m_From.data (), m_From.size ()}, {m_Signature.data (), m_Signature.size ()}, {payload, len}},
-				fromPort, toPort, false, !session->IsRatchets ()); // datagram
-			session->SendMsg(msg);
+				auto msg = CreateDataMessage ({{m_From.data (), m_From.size ()}, {m_Signature.data (), m_Signature.size ()}, {payload, len}},
+					fromPort, toPort, i2p::client::PROTOCOL_TYPE_DATAGRAM, !session->IsRatchets ()); // datagram1
+				session->SendMsg(msg);
+			}	
 		}
 	}
 
 	void DatagramDestination::SendRawDatagram (std::shared_ptr<DatagramSession> session, const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort)
 	{
 		if (session)
-			session->SendMsg(CreateDataMessage ({{payload, len}}, fromPort, toPort, true, !session->IsRatchets ())); // raw
+			session->SendMsg(CreateDataMessage ({{payload, len}}, fromPort, toPort, i2p::client::PROTOCOL_TYPE_RAW, !session->IsRatchets ())); // raw
 	}
 
 	void DatagramDestination::FlushSendQueue (std::shared_ptr<DatagramSession> session)
@@ -145,6 +155,7 @@ namespace datagram
 				if (!memcmp (from->GetRemoteStaticKey (), staticKey, 32))
 				{
 					auto session = ObtainSession (ident);
+					session->SetVersion (eDatagramV3);
 					session->SetRemoteLeaseSet (ls);
 					session->Ack ();
 					auto r = FindReceiver(toPort);
@@ -274,7 +285,7 @@ namespace datagram
 
 	std::shared_ptr<I2NPMessage> DatagramDestination::CreateDataMessage (
 		const std::vector<std::pair<const uint8_t *, size_t> >& payloads,
-		uint16_t fromPort, uint16_t toPort, bool isRaw, bool checksum)
+		uint16_t fromPort, uint16_t toPort, uint8_t protocolType, bool checksum)
 	{
 		size_t size;
 		auto msg = m_I2NPMsgsPool.AcquireShared ();
@@ -290,8 +301,8 @@ namespace datagram
 		{
 			htobe32buf (msg->GetPayload (), size); // length
 			htobe16buf (buf + 4, fromPort); // source port
-			htobe16buf (buf + 6, toPort); // destination port
-			buf[9] = isRaw ? i2p::client::PROTOCOL_TYPE_RAW : i2p::client::PROTOCOL_TYPE_DATAGRAM; // raw or datagram protocol
+			htobe16buf (buf + 6, toPort); // destination port	
+			buf[9] = protocolType; // raw or datagram protocol
 			msg->len += size + 4;
 			msg->FillI2NPMessageHeader (eI2NPData, 0, checksum);
 		}
@@ -350,8 +361,7 @@ namespace datagram
 	DatagramSession::DatagramSession(std::shared_ptr<i2p::client::ClientDestination> localDestination,
 		const i2p::data::IdentHash & remoteIdent) :
 		m_LocalDestination(localDestination), m_RemoteIdent(remoteIdent),
-		m_LastUse (0), m_LastFlush (0),
-		m_RequestingLS(false)
+		m_LastUse (0), m_LastFlush (0), m_RequestingLS (false), m_Version (eDatagramV1)
 	{
 	}
 

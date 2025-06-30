@@ -45,6 +45,13 @@ namespace datagram
 	const uint64_t DATAGRAM_MAX_FLUSH_INTERVAL = 5; // in milliseconds
 	const int DATAGRAM_SESSION_ACK_REQUEST_INTERVAL = 5500; // in milliseconds
 
+	enum DatagramVersion
+	{
+		eDatagramV1 = 1,
+		eDatagramV2 = 2,
+		eDatagramV3 = 3,
+	};	
+	
 	constexpr uint16_t DATAGRAM3_FLAG_OPTIONS = 0x10;
 	
 	class DatagramSession : public std::enable_shared_from_this<DatagramSession>
@@ -69,6 +76,9 @@ namespace datagram
 
 			bool IsRatchets () const { return m_RoutingSession && m_RoutingSession->IsRatchets (); }
 			void SetRemoteLeaseSet (std::shared_ptr<const i2p::data::LeaseSet> ls) { m_RemoteLeaseSet = ls; }
+
+			DatagramVersion GetVersion () const { return m_Version; }
+			void SetVersion (DatagramVersion version) { m_Version = version; }
 			
 		struct Info
 		{
@@ -104,6 +114,7 @@ namespace datagram
 			std::vector<std::shared_ptr<I2NPMessage> > m_SendQueue;
 			uint64_t m_LastUse, m_LastFlush; // milliseconds
 			bool m_RequestingLS;
+			DatagramVersion m_Version;
 	};
 
 	typedef std::shared_ptr<DatagramSession> DatagramSession_ptr;
@@ -147,7 +158,7 @@ namespace datagram
 			std::shared_ptr<DatagramSession> ObtainSession(const i2p::data::IdentHash & ident);
 
 			std::shared_ptr<I2NPMessage> CreateDataMessage (const std::vector<std::pair<const uint8_t *, size_t> >& payloads,
-				uint16_t fromPort, uint16_t toPort, bool isRaw = false, bool checksum = true);
+				uint16_t fromPort, uint16_t toPort, uint8_t protocolType, bool checksum = true);
 
 			void HandleDatagram (uint16_t fromPort, uint16_t toPort, uint8_t *const& buf, size_t len);
 			void HandleRawDatagram (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
