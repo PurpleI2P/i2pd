@@ -95,26 +95,50 @@ namespace datagram
 			session->FlushSendQueue ();
 	}
 
-	void DatagramDestination::HandleDatagram (uint16_t fromPort, uint16_t toPort,uint8_t * const &buf, size_t len)
+	void DatagramDestination::HandleDatagram (uint16_t fromPort, uint16_t toPort,
+		const uint8_t * buf, size_t len, i2p::garlic::ECIESX25519AEADRatchetSession * from)
 	{
 		i2p::data::IdentityEx identity;
 		size_t identityLen = identity.FromBuffer (buf, len);
+		if (!identityLen) return;
 		const uint8_t * signature = buf + identityLen;
 		size_t headerLen = identityLen + identity.GetSignatureLen ();
 
+		std::shared_ptr<i2p::data::LeaseSet> ls;
 		bool verified = false;
-		if (identity.GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
+		if (from)
 		{
-			uint8_t hash[32];
-			SHA256(buf + headerLen, len - headerLen, hash);
-			verified = identity.Verify (hash, 32, signature);
-		}
-		else
-			verified = identity.Verify (buf + headerLen, len - headerLen, signature);
+			ls = m_Owner->FindLeaseSet (identity.GetIdentHash ());	
+			if (ls)
+			{	
+				uint8_t staticKey[32];
+				ls->Encrypt (nullptr, staticKey);
+				if (!memcmp (from->GetRemoteStaticKey (), staticKey, 32))
+					verified = true;
+				else
+				{	
+					LogPrint (eLogError, "Datagram: Remote LeaseSet static key mismatch for datagram from ", 
+						identity.GetIdentHash ().ToBase32 ());
+					return;
+				}	
+			}	
+		}	
+		if (!verified)
+		{	
+			if (identity.GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
+			{
+				uint8_t hash[32];
+				SHA256(buf + headerLen, len - headerLen, hash);
+				verified = identity.Verify (hash, 32, signature);
+			}
+			else
+				verified = identity.Verify (buf + headerLen, len - headerLen, signature);
+		}	
 
 		if (verified)
 		{
 			auto session = ObtainSession (identity.GetIdentHash());
+			if (ls) session->SetRemoteLeaseSet (ls);
 			session->Ack();
 			auto r = FindReceiver(toPort);
 			if(r)
@@ -270,7 +294,7 @@ namespace datagram
 					HandleDatagram3 (fromPort, toPort, uncompressed, uncompressedLen, from);	
 				break;
 				case i2p::client::PROTOCOL_TYPE_DATAGRAM:
-					HandleDatagram (fromPort, toPort, uncompressed, uncompressedLen);
+					HandleDatagram (fromPort, toPort, uncompressed, uncompressedLen, from);
 				break;
 				case i2p::client::PROTOCOL_TYPE_DATAGRAM2:
 					// TODO:

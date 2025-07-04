@@ -160,7 +160,8 @@ namespace datagram
 			std::shared_ptr<I2NPMessage> CreateDataMessage (const std::vector<std::pair<const uint8_t *, size_t> >& payloads,
 				uint16_t fromPort, uint16_t toPort, uint8_t protocolType, bool checksum = true);
 
-			void HandleDatagram (uint16_t fromPort, uint16_t toPort, uint8_t *const& buf, size_t len);
+			void HandleDatagram (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len,
+				i2p::garlic::ECIESX25519AEADRatchetSession * from);
 			void HandleRawDatagram (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			void HandleDatagram3 (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len,
 				i2p::garlic::ECIESX25519AEADRatchetSession * from);
