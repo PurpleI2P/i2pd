@@ -152,7 +152,7 @@ namespace client
 			void SendStreamI2PError(const std::string & msg);	
 			void SendStreamCantReachPeer(const std::string & msg);
 			size_t ProcessDatagramSend (char * buf, size_t len, const char * data); // from SAM 1.0
-			const std::map<std::string_view, std::string_view> ExtractParams (char * buf);
+			const std::map<std::string_view, std::string_view> ExtractParams (std::string_view buf);
 
 			void Connect (std::shared_ptr<const i2p::data::LeaseSet> remote, std::shared_ptr<SAMSession> session = nullptr);
 			void HandleConnectLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet);

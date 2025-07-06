@@ -968,24 +968,28 @@ namespace client
 		SendMessageReply (m_Buffer, l, false);
 	}
 
-	const std::map<std::string_view, std::string_view> SAMSocket::ExtractParams (char * buf)
+	const std::map<std::string_view, std::string_view> SAMSocket::ExtractParams (std::string_view buf)
 	{
 		std::map<std::string_view, std::string_view> params;
-		char * separator;
-		do
-		{
-			separator = strchr (buf, ' ');
-			if (separator) *separator = 0;
-			char * value = strchr (buf, '=');
-			if (value)
-			{
-				*value = 0;
-				value++;
-				params.emplace (buf, value);
+		size_t pos = 0;
+		while (pos < buf.length ())
+		{	
+			std::string_view field;
+			auto separator = buf.find (' ', pos);
+			if (separator != std::string_view::npos)
+			{	
+				field = buf.substr (pos, separator - pos);
+				pos = separator + 1;
 			}
-			buf = separator + 1;
+			else
+			{
+				field = buf.substr (pos);
+				pos = buf.length ();
+			}
+			auto value = field.find ('=');
+			if (value != std::string_view::npos)
+				params.emplace (field.substr (0, value), field.substr (value + 1));	
 		}
-		while (separator);
 		return params;
 	}
 
