@@ -1460,7 +1460,13 @@ namespace client
 	std::shared_ptr<SAMSession> SAMBridge::CreateSession (std::string_view id, SAMSessionType type,
 		std::string_view destination, const std::map<std::string_view, std::string_view>& params)
 	{
+#if __GNUC__ < 10 // TODO: remove when older versions discontinued
+		std::map<std::string, std::string> p;
+		for (auto it: params)
+			p.emplace (std::string (it.first), std::string (it.second));
+#else		
 		std::map<std::string, std::string> p(params.begin (), params.end ()); 
+#endif	
 		std::shared_ptr<ClientDestination> localDestination = nullptr;
 		if (destination != "")
 		{
