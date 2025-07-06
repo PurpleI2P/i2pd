@@ -139,14 +139,14 @@ namespace client
 			void HandleI2PDatagramReceive (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			void HandleI2PRawDatagramReceive (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 
-			void ProcessSessionCreate (char * buf, size_t len);
+			void ProcessSessionCreate (std::string_view buf);
 			void ProcessStreamConnect (char * buf, size_t len, size_t rem);
-			void ProcessStreamAccept (char * buf, size_t len);
-			void ProcessStreamForward (char * buf, size_t len);
-			void ProcessDestGenerate (char * buf, size_t len);
-			void ProcessNamingLookup (char * buf, size_t len);
-			void ProcessSessionAdd (char * buf, size_t len);
-			void ProcessSessionRemove (char * buf, size_t len);
+			void ProcessStreamAccept (std::string_view buf);
+			void ProcessStreamForward (std::string_view buf);
+			void ProcessDestGenerate (std::string_view buf);
+			void ProcessNamingLookup (std::string_view buf);
+			void ProcessSessionAdd (std::string_view buf);
+			void ProcessSessionRemove (std::string_view buf);
 			void SendReplyWithMessage (const char * reply, const std::string & msg);
 			void SendSessionI2PError(const std::string & msg);
 			void SendStreamI2PError(const std::string & msg);	

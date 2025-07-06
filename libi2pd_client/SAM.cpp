@@ -257,21 +257,21 @@ namespace client
 						separator = eol;
 
 					if (!strcmp (m_Buffer, SAM_SESSION_CREATE))
-						ProcessSessionCreate (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
+						ProcessSessionCreate (separator + 1);
 					else if (!strcmp (m_Buffer, SAM_STREAM_CONNECT))
 						ProcessStreamConnect (separator + 1, bytes_transferred - (separator - m_Buffer) - 1, bytes_transferred - (eol - m_Buffer) - 1);
 					else if (!strcmp (m_Buffer, SAM_STREAM_ACCEPT))
-						ProcessStreamAccept (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
+						ProcessStreamAccept (separator + 1);
 					else if (!strcmp (m_Buffer, SAM_STREAM_FORWARD))
-						ProcessStreamForward (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
+						ProcessStreamForward (separator + 1);
 					else if (!strcmp (m_Buffer, SAM_DEST_GENERATE))
-						ProcessDestGenerate (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
+						ProcessDestGenerate (separator + 1);
 					else if (!strcmp (m_Buffer, SAM_NAMING_LOOKUP))
-						ProcessNamingLookup (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
+						ProcessNamingLookup (separator + 1);
 					else if (!strcmp (m_Buffer, SAM_SESSION_ADD))
-						ProcessSessionAdd (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
+						ProcessSessionAdd (separator + 1);
 					else if (!strcmp (m_Buffer, SAM_SESSION_REMOVE))
-						ProcessSessionRemove (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
+						ProcessSessionRemove (separator + 1);
 					else if (!strcmp (m_Buffer, SAM_DATAGRAM_SEND) || !strcmp (m_Buffer, SAM_RAW_SEND))
 					{
 						size_t len = bytes_transferred - (separator - m_Buffer) - 1;
@@ -327,7 +327,7 @@ namespace client
 		return true;
 	}
 
-	void SAMSocket::ProcessSessionCreate (char * buf, size_t len)
+	void SAMSocket::ProcessSessionCreate (std::string_view buf)
 	{
 		LogPrint (eLogDebug, "SAM: Session create: ", buf);
 		auto params = ExtractParams (buf);
@@ -592,7 +592,7 @@ namespace client
 		}
 	}
 
-	void SAMSocket::ProcessStreamAccept (char * buf, size_t len)
+	void SAMSocket::ProcessStreamAccept (std::string_view buf)
 	{
 		LogPrint (eLogDebug, "SAM: Stream accept: ", buf);
 		if ( m_SocketType != eSAMSocketTypeUnknown)
@@ -642,7 +642,7 @@ namespace client
 			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
 	}
 
-	void SAMSocket::ProcessStreamForward(char* buf, size_t len)
+	void SAMSocket::ProcessStreamForward (std::string_view buf)
 	{
 		LogPrint(eLogDebug, "SAM: Stream forward: ", buf);
 		
@@ -768,7 +768,7 @@ namespace client
 		return offset + size;
 	}
 
-	void SAMSocket::ProcessDestGenerate (char * buf, size_t len)
+	void SAMSocket::ProcessDestGenerate (std::string_view buf)
 	{
 		LogPrint (eLogDebug, "SAM: Dest generate");
 		auto params = ExtractParams (buf);
@@ -804,7 +804,7 @@ namespace client
 		SendMessageReply (m_Buffer, l, false);
 	}
 
-	void SAMSocket::ProcessNamingLookup (char * buf, size_t len)
+	void SAMSocket::ProcessNamingLookup (std::string_view buf)
 	{
 		LogPrint (eLogDebug, "SAM: Naming lookup: ", buf);
 		auto params = ExtractParams (buf);
@@ -846,7 +846,7 @@ namespace client
 		}
 	}
 
-	void SAMSocket::ProcessSessionAdd (char * buf, size_t len)
+	void SAMSocket::ProcessSessionAdd (std::string_view buf)
 	{
 		auto session = m_Owner.FindSession(m_ID);
 		if (session && session->Type == eSAMSessionTypeMaster)
@@ -890,7 +890,7 @@ namespace client
 			SendSessionI2PError ("Wrong session type");
 	}
 
-	void SAMSocket::ProcessSessionRemove (char * buf, size_t len)
+	void SAMSocket::ProcessSessionRemove (std::string_view buf)
 	{
 		auto session = m_Owner.FindSession(m_ID);
 		if (session && session->Type == eSAMSessionTypeMaster)
