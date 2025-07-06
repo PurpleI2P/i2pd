@@ -11,6 +11,7 @@
 
 #include <inttypes.h>
 #include <string>
+#include <string_view>
 #include <map>
 #include <list>
 #include <set>
@@ -116,7 +117,7 @@ namespace client
 
 			void Terminate (const char* reason);
 
-			bool IsSession(const std::string & id) const;
+			bool IsSession(std::string_view id) const;
 
 		private:
 
@@ -151,7 +152,7 @@ namespace client
 			void SendStreamI2PError(const std::string & msg);	
 			void SendStreamCantReachPeer(const std::string & msg);
 			size_t ProcessDatagramSend (char * buf, size_t len, const char * data); // from SAM 1.0
-			void ExtractParams (char * buf, std::map<std::string, std::string>& params);
+			const std::map<std::string_view, std::string_view> ExtractParams (char * buf);
 
 			void Connect (std::shared_ptr<const i2p::data::LeaseSet> remote, std::shared_ptr<SAMSession> session = nullptr);
 			void HandleConnectLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet);
@@ -199,7 +200,7 @@ namespace client
 		std::shared_ptr<boost::asio::ip::udp::endpoint> UDPEndpoint; // TODO: move
 		std::list<std::pair<std::shared_ptr<SAMSocket>, uint64_t> > acceptQueue; // socket, receive time in seconds
 		
-		SAMSession (SAMBridge & parent, const std::string & name, SAMSessionType type);
+		SAMSession (SAMBridge & parent, std::string_view name, SAMSessionType type);
 		virtual ~SAMSession () {};
 
 		virtual std::shared_ptr<ClientDestination> GetLocalDestination () = 0;
@@ -213,7 +214,7 @@ namespace client
 	{
 		std::shared_ptr<ClientDestination> localDestination;
 
-		SAMSingleSession (SAMBridge & parent, const std::string & name, SAMSessionType type, std::shared_ptr<ClientDestination> dest);
+		SAMSingleSession (SAMBridge & parent, std::string_view name, SAMSessionType type, std::shared_ptr<ClientDestination> dest);
 		~SAMSingleSession ();
 
 		std::shared_ptr<ClientDestination> GetLocalDestination () { return localDestination; };
@@ -222,8 +223,8 @@ namespace client
 
 	struct SAMMasterSession: public SAMSingleSession
 	{
-		std::set<std::string> subsessions;
-		SAMMasterSession (SAMBridge & parent, const std::string & name, std::shared_ptr<ClientDestination> dest):
+		std::set<std::string, std::less<> > subsessions;
+		SAMMasterSession (SAMBridge & parent, std::string_view name, std::shared_ptr<ClientDestination> dest):
 			SAMSingleSession (parent, name, eSAMSessionTypeMaster, dest) {};
 		void Close ();
 	};
@@ -233,7 +234,7 @@ namespace client
 		std::shared_ptr<SAMMasterSession> masterSession;
 		uint16_t inPort;
 
-		SAMSubSession (std::shared_ptr<SAMMasterSession> master, const std::string& name, SAMSessionType type, uint16_t port);
+		SAMSubSession (std::shared_ptr<SAMMasterSession> master, std::string_view name, SAMSessionType type, uint16_t port);
 		// implements SAMSession
 		std::shared_ptr<ClientDestination> GetLocalDestination ();
 		void StopLocalDestination ();
@@ -250,13 +251,13 @@ namespace client
 			void Stop ();
 
 			auto& GetService () { return GetIOService (); };
-			std::shared_ptr<SAMSession> CreateSession (const std::string& id, SAMSessionType type, const std::string& destination, // empty string means transient
-				const std::map<std::string, std::string> * params);
+			std::shared_ptr<SAMSession> CreateSession (std::string_view id, SAMSessionType type, std::string_view destination, // empty string means transient
+				const std::map<std::string_view, std::string_view>& params);
 			bool AddSession (std::shared_ptr<SAMSession> session);
-			void CloseSession (const std::string& id);
-			std::shared_ptr<SAMSession> FindSession (const std::string& id) const;
+			void CloseSession (std::string_view id);
+			std::shared_ptr<SAMSession> FindSession (std::string_view id) const;
 
-			std::list<std::shared_ptr<SAMSocket> > ListSockets(const std::string & id) const;
+			std::list<std::shared_ptr<SAMSocket> > ListSockets(std::string_view id) const;
 
 			/** send raw data to remote endpoint from our UDP Socket */
 			void SendTo (const std::vector<boost::asio::const_buffer>& bufs, const boost::asio::ip::udp::endpoint& ep);
@@ -264,7 +265,7 @@ namespace client
 			void AddSocket(std::shared_ptr<SAMSocket> socket);
 			void RemoveSocket(const std::shared_ptr<SAMSocket> & socket);
 
-			bool ResolveSignatureType (const std::string& name, i2p::data::SigningKeyType& type) const;
+			bool ResolveSignatureType (std::string_view name, i2p::data::SigningKeyType& type) const;
 
 		private:
 
@@ -285,11 +286,11 @@ namespace client
 			boost::asio::ip::udp::endpoint m_DatagramEndpoint, m_SenderEndpoint;
 			boost::asio::ip::udp::socket m_DatagramSocket;
 			mutable std::mutex m_SessionsMutex;
-			std::map<std::string, std::shared_ptr<SAMSession> > m_Sessions;
+			std::map<std::string, std::shared_ptr<SAMSession>, std::less<>> m_Sessions;
 			mutable std::mutex m_OpenSocketsMutex;
 			std::list<std::shared_ptr<SAMSocket> > m_OpenSockets;
 			uint8_t m_DatagramReceiveBuffer[i2p::datagram::MAX_DATAGRAM_SIZE+1];
-			std::map<std::string, i2p::data::SigningKeyType> m_SignatureTypes;
+			const std::map<std::string_view, i2p::data::SigningKeyType> m_SignatureTypes;
 
 		public:
 
