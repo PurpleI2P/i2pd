@@ -257,21 +257,21 @@ namespace client
 						separator = eol;
 
 					if (!strcmp (m_Buffer, SAM_SESSION_CREATE))
-						ProcessSessionCreate (separator + 1);
+						ProcessSessionCreate ({ separator + 1, bytes_transferred - (separator - m_Buffer) - 1 });
 					else if (!strcmp (m_Buffer, SAM_STREAM_CONNECT))
 						ProcessStreamConnect (separator + 1, bytes_transferred - (separator - m_Buffer) - 1, bytes_transferred - (eol - m_Buffer) - 1);
 					else if (!strcmp (m_Buffer, SAM_STREAM_ACCEPT))
-						ProcessStreamAccept (separator + 1);
+						ProcessStreamAccept ({ separator + 1, bytes_transferred - (separator - m_Buffer) - 1 });
 					else if (!strcmp (m_Buffer, SAM_STREAM_FORWARD))
-						ProcessStreamForward (separator + 1);
+						ProcessStreamForward ({ separator + 1, bytes_transferred - (separator - m_Buffer) - 1 });
 					else if (!strcmp (m_Buffer, SAM_DEST_GENERATE))
-						ProcessDestGenerate (separator + 1);
+						ProcessDestGenerate ({ separator + 1, bytes_transferred - (separator - m_Buffer) - 1 });
 					else if (!strcmp (m_Buffer, SAM_NAMING_LOOKUP))
-						ProcessNamingLookup (separator + 1);
+						ProcessNamingLookup ({ separator + 1, bytes_transferred - (separator - m_Buffer) - 1 });
 					else if (!strcmp (m_Buffer, SAM_SESSION_ADD))
-						ProcessSessionAdd (separator + 1);
+						ProcessSessionAdd ({ separator + 1, bytes_transferred - (separator - m_Buffer) - 1 });
 					else if (!strcmp (m_Buffer, SAM_SESSION_REMOVE))
-						ProcessSessionRemove (separator + 1);
+						ProcessSessionRemove ({ separator + 1, bytes_transferred - (separator - m_Buffer) - 1 });
 					else if (!strcmp (m_Buffer, SAM_DATAGRAM_SEND) || !strcmp (m_Buffer, SAM_RAW_SEND))
 					{
 						size_t len = bytes_transferred - (separator - m_Buffer) - 1;
@@ -303,7 +303,6 @@ namespace client
 					Terminate ("malformed message");
 				}
 			}
-
 			else
 			{
 				LogPrint (eLogWarning, "SAM: Incomplete message ", bytes_transferred);
