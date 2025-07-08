@@ -596,6 +596,9 @@ namespace client
 					std::string address = section.second.get<std::string> (I2P_CLIENT_TUNNEL_ADDRESS, "127.0.0.1");
 					uint16_t destinationPort = section.second.get<uint16_t> (I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
 					i2p::data::SigningKeyType sigType = section.second.get (I2P_CLIENT_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
+#if !OPENSSL_PQ
+					if (sigType >= i2p::data::SIGNING_KEY_TYPE_MLDSA44) sigType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519;
+#endif				
 					i2p::data::CryptoKeyType cryptoType = section.second.get (I2P_CLIENT_TUNNEL_CRYPTO_TYPE, i2p::data::CRYPTO_KEY_TYPE_ELGAMAL);
 					// I2CP
 					std::map<std::string, std::string> options;
@@ -752,6 +755,9 @@ namespace client
 					std::string webircpass = section.second.get<std::string> (I2P_SERVER_TUNNEL_WEBIRC_PASSWORD, "");
 					bool gzip = section.second.get (I2P_SERVER_TUNNEL_GZIP, false);
 					i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
+#if !OPENSSL_PQ
+					if (sigType >= i2p::data::SIGNING_KEY_TYPE_MLDSA44) sigType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519;
+#endif
 					i2p::data::CryptoKeyType cryptoType = section.second.get (I2P_CLIENT_TUNNEL_CRYPTO_TYPE, i2p::data::CRYPTO_KEY_TYPE_ELGAMAL);
 
 					std::string address = section.second.get<std::string> (I2P_SERVER_TUNNEL_ADDRESS, "");
@@ -911,6 +917,9 @@ namespace client
 			if (httpAddresshelper)
 				i2p::config::GetOption("addressbook.enabled", httpAddresshelper); // addresshelper is not supported without address book
 			i2p::data::SigningKeyType sigType; i2p::config::GetOption("httpproxy.signaturetype", sigType);
+#if !OPENSSL_PQ
+			if (sigType >= i2p::data::SIGNING_KEY_TYPE_MLDSA44) sigType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519;
+#endif			
 			LogPrint(eLogInfo, "Clients: Starting HTTP Proxy at ", httpProxyAddr, ":", httpProxyPort);
 			if (httpProxyKeys == "shareddest")
 			{
@@ -960,6 +969,9 @@ namespace client
 			std::string socksOutProxyAddr;     i2p::config::GetOption("socksproxy.outproxy",         socksOutProxyAddr);
 			uint16_t    socksOutProxyPort;     i2p::config::GetOption("socksproxy.outproxyport",     socksOutProxyPort);
 			i2p::data::SigningKeyType sigType; i2p::config::GetOption("socksproxy.signaturetype",    sigType);
+#if !OPENSSL_PQ
+			if (sigType >= i2p::data::SIGNING_KEY_TYPE_MLDSA44) sigType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519;
+#endif			
 			LogPrint(eLogInfo, "Clients: Starting SOCKS Proxy at ", socksProxyAddr, ":", socksProxyPort);
 			if (socksProxyKeys == "shareddest")
 			{
