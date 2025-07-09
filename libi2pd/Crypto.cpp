@@ -779,7 +779,7 @@ namespace crypto
 		ChaCha20 (m_Ctx, msg, msgLen, key, nonce, out);
 	}	
 	
-	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, const std::string& info,
+	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, std::string_view info,
 		uint8_t * out, size_t outLen)
 	{
 		EVP_PKEY_CTX * pctx = EVP_PKEY_CTX_new_id (EVP_PKEY_HKDF, nullptr);
@@ -799,7 +799,7 @@ namespace crypto
 			EVP_PKEY_CTX_set1_hkdf_key (pctx, tempKey, len);
 		}
 		if (info.length () > 0)
-			EVP_PKEY_CTX_add1_hkdf_info (pctx, (const uint8_t *)info.c_str (), info.length ());
+			EVP_PKEY_CTX_add1_hkdf_info (pctx, (const uint8_t *)info.data (), info.length ());
 		EVP_PKEY_derive (pctx, out, &outLen);
 		EVP_PKEY_CTX_free (pctx);
 	}

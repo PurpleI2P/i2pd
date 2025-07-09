@@ -11,6 +11,7 @@
 
 #include <inttypes.h>
 #include <string>
+#include <string_view>
 #include <vector>
 #include <openssl/bn.h>
 #include <openssl/dh.h>
@@ -244,7 +245,7 @@ namespace crypto
 	
 // HKDF
 
-	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, const std::string& info, uint8_t * out, size_t outLen = 64); // salt - 32, out - 32 or 64, info <= 32
+	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, std::string_view info, uint8_t * out, size_t outLen = 64); // salt - 32, out - 32 or 64, info <= 32
 
 // Noise
 
