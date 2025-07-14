@@ -41,7 +41,7 @@ namespace crypto
 		m_PublicKey = EC_POINT_new (m_Curve);
 		BIGNUM * x = BN_bin2bn (pub, 32, nullptr);
 		BIGNUM * y = BN_bin2bn (pub + 32, 32, nullptr);
-		if (!EC_POINT_set_affine_coordinates_GFp (m_Curve, m_PublicKey, x, y, nullptr))
+		if (!EC_POINT_set_affine_coordinates (m_Curve, m_PublicKey, x, y, nullptr))
 			LogPrint (eLogError, "ECICS P256 invalid public key");
 		BN_free (x); BN_free (y);
 	}
@@ -87,7 +87,7 @@ namespace crypto
 		RAND_bytes (priv + 32, 224);
 		BN_free (key);
 		BIGNUM * x = BN_new (), * y = BN_new ();
-		EC_POINT_get_affine_coordinates_GFp (curve, p, x, y, NULL);
+		EC_POINT_get_affine_coordinates (curve, p, x, y, NULL);
 		bn2buf (x, pub, 32);
 		bn2buf (y, pub + 32, 32);
 		RAND_bytes (pub + 64, 192);
@@ -102,7 +102,7 @@ namespace crypto
 		m_PublicKey = EC_POINT_new (curve->GetGroup ());
 		BIGNUM * x = BN_bin2bn (pub, 32, nullptr);
 		BIGNUM * y = BN_bin2bn (pub + 32, 32, nullptr);
-		if (!EC_POINT_set_affine_coordinates_GFp (curve->GetGroup (), m_PublicKey, x, y, nullptr))
+		if (!EC_POINT_set_affine_coordinates (curve->GetGroup (), m_PublicKey, x, y, nullptr))
 			LogPrint (eLogError, "ECICS GOST R 34.10 invalid public key");
 		BN_free (x); BN_free (y);
 	}
@@ -146,7 +146,7 @@ namespace crypto
 		RAND_bytes (priv + 32, 224);
 		BN_free (key);
 		BIGNUM * x = BN_new (), * y = BN_new ();
-		EC_POINT_get_affine_coordinates_GFp (curve->GetGroup (), p, x, y, NULL);
+		EC_POINT_get_affine_coordinates (curve->GetGroup (), p, x, y, NULL);
 		bn2buf (x, pub, 32);
 		bn2buf (y, pub + 32, 32);
 		RAND_bytes (pub + 64, 192);

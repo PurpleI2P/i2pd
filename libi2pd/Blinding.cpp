@@ -6,10 +6,12 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#include <cstdint>
 #include <zlib.h> // for crc32
 #include <openssl/sha.h>
 #include <openssl/hmac.h>
 #include <openssl/ec.h>
+#include <openssl/evp.h>
 #include <openssl/bn.h>
 #include "Base.h"
 #include "Crypto.h"
@@ -65,10 +67,10 @@ namespace data
 		BIGNUM * x = BN_bin2bn (pub, publicKeyLen/2, NULL);
 		BIGNUM * y = BN_bin2bn (pub + publicKeyLen/2, publicKeyLen/2, NULL);
 		EC_POINT * p = EC_POINT_new (group);
-		EC_POINT_set_affine_coordinates_GFp (group, p, x, y, NULL);
+		EC_POINT_set_affine_coordinates (group, p, x, y, NULL);
 		EC_POINT * p1 = BlindPublicKeyECDSA (group, p, seed);
 		EC_POINT_free (p);
-		EC_POINT_get_affine_coordinates_GFp (group, p1, x, y, NULL);
+		EC_POINT_get_affine_coordinates (group, p1, x, y, NULL);
 		EC_POINT_free (p1);
 		i2p::crypto::bn2buf (x, blindedPub, publicKeyLen/2);
 		i2p::crypto::bn2buf (y, blindedPub + publicKeyLen/2, publicKeyLen/2);
@@ -88,7 +90,7 @@ namespace data
 		BN_CTX_free (ctx);
 		BN_free (a1);
 		BIGNUM * x = BN_new(), * y = BN_new();
-		EC_POINT_get_affine_coordinates_GFp (group, p, x, y, NULL);
+		EC_POINT_get_affine_coordinates (group, p, x, y, NULL);
 		EC_POINT_free (p);
 		i2p::crypto::bn2buf (x, blindedPub, publicKeyLen/2);
 		i2p::crypto::bn2buf (y, blindedPub + publicKeyLen/2, publicKeyLen/2);
@@ -295,12 +297,14 @@ namespace data
 
 	void BlindedPublicKey::H (const std::string& p, const std::vector<std::pair<const uint8_t *, size_t> >& bufs, uint8_t * hash) const
 	{
-		SHA256_CTX ctx;
-		SHA256_Init (&ctx);
-		SHA256_Update (&ctx, p.c_str (), p.length ());
+		EVP_MD_CTX *ctx = EVP_MD_CTX_new ();
+
+		EVP_DigestInit_ex(ctx, EVP_sha256 (), NULL);
+		EVP_DigestUpdate (ctx, p.c_str (), p.length ());
 		for (const auto& it: bufs)
-			SHA256_Update (&ctx, it.first, it.second);
-		SHA256_Final (hash, &ctx);
+			EVP_DigestUpdate (ctx, it.first, it.second);
+		EVP_DigestFinal_ex (ctx, (uint8_t * )hash, nullptr);
+		EVP_MD_CTX_free (ctx);
 	}
 
 	i2p::data::IdentHash BlindedPublicKey::GetStoreHash (const char * date) const
@@ -319,11 +323,12 @@ namespace data
 		if (publicKeyLength)
 		{
 			auto stA1 = htobe16 (m_BlindedSigType);
-			SHA256_CTX ctx;
-			SHA256_Init (&ctx);
-			SHA256_Update (&ctx, (const uint8_t *)&stA1, 2);
-			SHA256_Update (&ctx, blinded, publicKeyLength);
-			SHA256_Final ((uint8_t *)hash, &ctx);
+			EVP_MD_CTX *ctx = EVP_MD_CTX_new ();
+			EVP_DigestInit_ex(ctx, EVP_sha256(), NULL);
+			EVP_DigestUpdate (ctx, (const uint8_t *)&stA1, 2);
+			EVP_DigestUpdate (ctx, blinded, publicKeyLength);
+			EVP_DigestFinal_ex (ctx, (uint8_t * )hash, nullptr);
+			EVP_MD_CTX_free(ctx);
 		}
 		else
 			LogPrint (eLogError, "Blinding: Blinded key type ", (int)m_BlindedSigType, " is not supported");
