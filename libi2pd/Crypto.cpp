@@ -456,14 +456,14 @@ namespace crypto
 		auto p = EC_POINT_new (curve);
 		EC_POINT_mul (curve, p, k, nullptr, nullptr, ctx);
 		BIGNUM * x = BN_CTX_get (ctx), * y = BN_CTX_get (ctx);
-		EC_POINT_get_affine_coordinates_GFp (curve, p, x, y, nullptr);
+		EC_POINT_get_affine_coordinates (curve, p, x, y, nullptr);
 		encrypted[0] = 0;
 		bn2buf (x, encrypted + 1, len);
 		bn2buf (y, encrypted + 1 + len, len);
 		RAND_bytes (encrypted + 1 + 2*len, 256 - 2*len);
 		// encryption key and iv
 		EC_POINT_mul (curve, p, nullptr, key, k, ctx);
-		EC_POINT_get_affine_coordinates_GFp (curve, p, x, y, nullptr);
+		EC_POINT_get_affine_coordinates (curve, p, x, y, nullptr);
 		uint8_t keyBuf[64], iv[64], shared[32];
 		bn2buf (x, keyBuf, len);
 		bn2buf (y, iv, len);
@@ -496,11 +496,11 @@ namespace crypto
 		BN_bin2bn (encrypted + 1, len, x);
 		BN_bin2bn (encrypted + 1 + len, len, y);
 		auto p = EC_POINT_new (curve);
-		if (EC_POINT_set_affine_coordinates_GFp (curve, p, x, y, nullptr))
+		if (EC_POINT_set_affine_coordinates (curve, p, x, y, nullptr))
 		{
 			auto s = EC_POINT_new (curve);
 			EC_POINT_mul (curve, s, nullptr, p, key, ctx);
-			EC_POINT_get_affine_coordinates_GFp (curve, s, x, y, nullptr);
+			EC_POINT_get_affine_coordinates (curve, s, x, y, nullptr);
 			EC_POINT_free (s);
 			uint8_t keyBuf[64], iv[64], shared[32];
 			bn2buf (x, keyBuf, len);
@@ -810,31 +810,35 @@ namespace crypto
 	{
 		// pub is Bob's public static key, hh = SHA256(h)
 		memcpy (m_CK, ck, 32);
-		SHA256_CTX ctx;
-		SHA256_Init (&ctx);
-		SHA256_Update (&ctx, hh, 32);
-		SHA256_Update (&ctx, pub, 32);
-		SHA256_Final (m_H, &ctx); // h = MixHash(pub) = SHA256(hh || pub)
+
+		EVP_MD_CTX *ctx = EVP_MD_CTX_new ();
+		EVP_DigestInit_ex(ctx, EVP_sha256 (), NULL);
+		EVP_DigestUpdate (ctx, hh, 32);
+		EVP_DigestUpdate (ctx, pub, 32);
+		EVP_DigestFinal_ex (ctx, m_H, nullptr); // h = MixHash(pub) = SHA256(hh || pub)
+		EVP_MD_CTX_free (ctx);
 		m_N = 0;
 	}	
 	
 	void NoiseSymmetricState::MixHash (const uint8_t * buf, size_t len)
 	{
-		SHA256_CTX ctx;
-		SHA256_Init (&ctx);
-		SHA256_Update (&ctx, m_H, 32);
-		SHA256_Update (&ctx, buf, len);
-		SHA256_Final (m_H, &ctx);
+		EVP_MD_CTX *ctx = EVP_MD_CTX_new ();
+		EVP_DigestInit_ex(ctx, EVP_sha256 (), NULL);
+		EVP_DigestUpdate (ctx, m_H, 32);
+		EVP_DigestUpdate (ctx, buf, len);
+		EVP_DigestFinal_ex (ctx, m_H, nullptr);
+		EVP_MD_CTX_free (ctx);
 	}
 
 	void NoiseSymmetricState::MixHash (const std::vector<std::pair<uint8_t *, size_t> >& bufs)
 	{
-		SHA256_CTX ctx;
-		SHA256_Init (&ctx);
-		SHA256_Update (&ctx, m_H, 32);
+		EVP_MD_CTX *ctx = EVP_MD_CTX_new ();
+		EVP_DigestInit_ex(ctx, EVP_sha256 (), NULL);
+		EVP_DigestUpdate (ctx, m_H, 32);
 		for (const auto& it: bufs)
-			SHA256_Update (&ctx, it.first, it.second);
-		SHA256_Final (m_H, &ctx);
+			EVP_DigestUpdate (ctx, it.first, it.second);
+		EVP_DigestFinal_ex (ctx, m_H, nullptr);
+		EVP_MD_CTX_free (ctx);
 	}
 
 	void NoiseSymmetricState::MixKey (const uint8_t * sharedSecret)

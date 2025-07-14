@@ -27,7 +27,7 @@ namespace crypto
 		BN_CTX * ctx = BN_CTX_new ();
 		m_Group = EC_GROUP_new_curve_GFp (p, a, b, ctx);
 		EC_POINT * P = EC_POINT_new (m_Group);
-		EC_POINT_set_affine_coordinates_GFp (m_Group, P, x, y, ctx);
+		EC_POINT_set_affine_coordinates (m_Group, P, x, y, ctx);
 		EC_GROUP_set_generator (m_Group, P, q, nullptr);
 		EC_GROUP_set_curve_name (m_Group, NID_id_GostR3410_2001);
 		EC_POINT_free(P);
@@ -50,13 +50,13 @@ namespace crypto
 
 	bool GOSTR3410Curve::GetXY (const EC_POINT * p, BIGNUM * x, BIGNUM * y) const
 	{
-		return EC_POINT_get_affine_coordinates_GFp (m_Group, p, x, y, nullptr);
+		return EC_POINT_get_affine_coordinates (m_Group, p, x, y, nullptr);
 	}
 
 	EC_POINT * GOSTR3410Curve::CreatePoint (const BIGNUM * x, const BIGNUM * y) const
 	{
 		EC_POINT * p = EC_POINT_new (m_Group);
-		EC_POINT_set_affine_coordinates_GFp (m_Group, p, x, y, nullptr);
+		EC_POINT_set_affine_coordinates (m_Group, p, x, y, nullptr);
 		return p;
 	}
 
@@ -112,7 +112,7 @@ namespace crypto
 		BN_CTX_start (ctx);
 		EC_POINT * C = EC_POINT_new (m_Group); // C = k*P = (rx, ry)
 		EC_POINT * Q = nullptr;
-		if (EC_POINT_set_compressed_coordinates_GFp (m_Group, C, r, isNegativeY ? 1 : 0, ctx))
+		if (EC_POINT_set_compressed_coordinates (m_Group, C, r, isNegativeY ? 1 : 0, ctx))
 		{
 			EC_POINT * S = EC_POINT_new (m_Group); // S = s*P
 			EC_POINT_mul (m_Group, S, s, nullptr, nullptr, ctx);
