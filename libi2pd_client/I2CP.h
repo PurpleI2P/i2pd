@@ -92,9 +92,8 @@ namespace client
 
 			void Stop () override;
 
-			void SetEncryptionPrivateKey (const uint8_t * key);
-			void SetEncryptionType (i2p::data::CryptoKeyType keyType) { m_EncryptionKeyType = keyType; };
-			void SetECIESx25519EncryptionPrivateKey (const uint8_t * key);
+			void SetEncryptionPrivateKey (i2p::data::CryptoKeyType keyType, const uint8_t * key);
+			void SetECIESx25519EncryptionPrivateKey (i2p::data::CryptoKeyType keyType, const uint8_t * key);
 			void LeaseSetCreated (const uint8_t * buf, size_t len); // called from I2CPSession
 			void LeaseSet2Created (uint8_t storeType, const uint8_t * buf, size_t len); // called from I2CPSession
 			void SendMsgTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident, uint32_t nonce); // called from I2CPSession
@@ -109,10 +108,7 @@ namespace client
 		protected:
 
 			// GarlicDestination
-			i2p::data::CryptoKeyType GetRatchetsHighestCryptoType () const override 
-			{
-				return m_ECIESx25519Decryptor ? i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD : 0;
-			}
+			i2p::data::CryptoKeyType GetRatchetsHighestCryptoType () const override;
 			// LeaseSetDestination
 			void CleanupDestination () override;
 			i2p::data::CryptoKeyType GetPreferredCryptoType () const override;
@@ -134,10 +130,7 @@ namespace client
 
 			std::shared_ptr<I2CPSession> m_Owner;
 			std::shared_ptr<const i2p::data::IdentityEx> m_Identity;
-			i2p::data::CryptoKeyType m_EncryptionKeyType;
-			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> m_Decryptor; // standard
-			std::shared_ptr<i2p::crypto::ECIESX25519AEADRatchetDecryptor> m_ECIESx25519Decryptor;
-			uint8_t m_ECIESx25519PrivateKey[32];
+			std::map<i2p::data::CryptoKeyType, std::shared_ptr<i2p::crypto::LocalEncryptionKey> > m_EncryptionKeys; // last is most preferable
 			uint64_t m_LeaseSetExpirationTime;
 			bool m_IsCreatingLeaseSet, m_IsSameThread;
 			boost::asio::deadline_timer m_LeaseSetCreationTimer, m_ReadinessCheckTimer;

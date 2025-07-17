@@ -28,8 +28,7 @@ namespace client
 		std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, bool isSameThread,
 	    const std::map<std::string, std::string>& params):
 		LeaseSetDestination (service, isPublic, &params),
-		m_Owner (owner), m_Identity (identity), m_EncryptionKeyType (m_Identity->GetCryptoKeyType ()),
-		m_IsCreatingLeaseSet (false), m_IsSameThread (isSameThread), 
+		m_Owner (owner), m_Identity (identity), m_IsCreatingLeaseSet (false), m_IsSameThread (isSameThread), 
 		m_LeaseSetCreationTimer (service), m_ReadinessCheckTimer (service)
 	{
 	}
@@ -42,26 +41,59 @@ namespace client
 		m_Owner = nullptr;
 	}
 
-	void I2CPDestination::SetEncryptionPrivateKey (const uint8_t * key)
+	void I2CPDestination::SetEncryptionPrivateKey (i2p::data::CryptoKeyType keyType, const uint8_t * key)
 	{
-		m_Decryptor = i2p::data::PrivateKeys::CreateDecryptor (m_Identity->GetCryptoKeyType (), key);
+		bool exist = false;
+		auto it = m_EncryptionKeys.find (keyType);
+		if (it != m_EncryptionKeys.end () && !memcmp (it->second->priv.data (), key, it->second->priv.size ())) // new key?
+			exist = true;
+		if (!exist)
+		{
+			auto encryptionKey = std::make_shared<i2p::crypto::LocalEncryptionKey> (keyType);
+			memcpy (encryptionKey->priv.data (), key, encryptionKey->priv.size ());
+			encryptionKey->CreateDecryptor (); // from private key
+			m_EncryptionKeys.insert_or_assign (keyType, encryptionKey);
+		}
 	}
 
-	void I2CPDestination::SetECIESx25519EncryptionPrivateKey (const uint8_t * key)
+	void I2CPDestination::SetECIESx25519EncryptionPrivateKey (i2p::data::CryptoKeyType keyType, const uint8_t * key)
 	{
-		if (!m_ECIESx25519Decryptor || memcmp (m_ECIESx25519PrivateKey, key, 32)) // new key?
+		bool exist = false;
+		auto it = m_EncryptionKeys.find (keyType);
+		if (it != m_EncryptionKeys.end () && !memcmp (it->second->priv.data (), key, it->second->priv.size ())) // new key?
+			exist = true;
+		if (!exist)
 		{
-			m_ECIESx25519Decryptor = std::make_shared<i2p::crypto::ECIESX25519AEADRatchetDecryptor>(key, true); // calculate public
-			memcpy (m_ECIESx25519PrivateKey, key, 32);
+			auto encryptionKey = std::make_shared<i2p::crypto::LocalEncryptionKey> (keyType);
+			memcpy (encryptionKey->priv.data (), key, encryptionKey->priv.size ());
+			// create decryptor manually
+			auto decryptor = std::make_shared<i2p::crypto::ECIESX25519AEADRatchetDecryptor>(key, true); // calculate publicKey
+			encryptionKey->decryptor = decryptor;
+			// assign public key from decryptor
+			memcpy (encryptionKey->pub.data (), decryptor->GetPubicKey (), encryptionKey->pub.size ());
+			// insert or replace new
+			m_EncryptionKeys.insert_or_assign (keyType, encryptionKey);
 		}
 	}
 
 	bool I2CPDestination::Decrypt (const uint8_t * encrypted, uint8_t * data, i2p::data::CryptoKeyType preferredCrypto) const
 	{
-		if (preferredCrypto == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD && m_ECIESx25519Decryptor)
-			return m_ECIESx25519Decryptor->Decrypt (encrypted, data);
-		if (m_Decryptor)
-			return m_Decryptor->Decrypt (encrypted, data);
+		std::shared_ptr<i2p::crypto::LocalEncryptionKey> encryptionKey;
+		if (!m_EncryptionKeys.empty ())
+		{
+			if (m_EncryptionKeys.rbegin ()->first == preferredCrypto)
+				encryptionKey = m_EncryptionKeys.rbegin ()->second;
+			else
+			{
+				auto it = m_EncryptionKeys.find (preferredCrypto);
+				if (it != m_EncryptionKeys.end ())
+					encryptionKey = it->second;
+			}	
+			if (!encryptionKey)
+				encryptionKey = m_EncryptionKeys.rbegin ()->second;
+		}	
+		if (encryptionKey)
+			return encryptionKey->decryptor->Decrypt (encrypted, data);
 		else
 			LogPrint (eLogError, "I2CP: Decryptor is not set");
 		return false;
@@ -69,22 +101,32 @@ namespace client
 
 	const uint8_t * I2CPDestination::GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const
 	{
-		if (keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD && m_ECIESx25519Decryptor)
-			return m_ECIESx25519Decryptor->GetPubicKey ();
+		auto it = m_EncryptionKeys.find (keyType);
+		if (it != m_EncryptionKeys.end ())
+			return it->second->pub.data ();
 		return nullptr;
 	}
 
 	bool I2CPDestination::SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const
 	{
-		return keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ? (bool)m_ECIESx25519Decryptor : m_EncryptionKeyType == keyType;
+#if __cplusplus >= 202002L // C++20
+		return m_EncryptionKeys.contains (keyType);
+#else		
+		return m_EncryptionKeys.count (keyType) > 0;
+#endif	
 	}
 
 	i2p::data::CryptoKeyType I2CPDestination::GetPreferredCryptoType () const
 	{
-		if (m_ECIESx25519Decryptor)
-			return i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD;
-		return i2p::data::CRYPTO_KEY_TYPE_ELGAMAL;
+		return !m_EncryptionKeys.empty () ? m_EncryptionKeys.rbegin ()->first : 0;
 	}	
+
+	i2p::data::CryptoKeyType I2CPDestination::GetRatchetsHighestCryptoType () const
+	{
+		if (m_EncryptionKeys.empty ()) return 0;
+		auto cryptoType = m_EncryptionKeys.rbegin ()->first; 
+		return cryptoType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ? cryptoType : 0;
+	}
 		
 	void I2CPDestination::HandleDataMessage (const uint8_t * buf, size_t len, 
 		i2p::garlic::ECIESX25519AEADRatchetSession * from)
@@ -813,7 +855,7 @@ namespace client
 				// we always assume this field as 20 bytes (DSA) regardless actual size
 				// instead of
 				//offset += m_Destination->GetIdentity ()->GetSigningPrivateKeyLen ();
-				m_Destination->SetEncryptionPrivateKey (buf + offset);
+				m_Destination->SetEncryptionPrivateKey (i2p::data::CRYPTO_KEY_TYPE_ELGAMAL, buf + offset);
 				offset += 256;
 				m_Destination->LeaseSetCreated (buf + offset, len - offset);
 			}
@@ -846,13 +888,10 @@ namespace client
 					uint16_t keyType = bufbe16toh (buf + offset); offset += 2; // encryption type
 					uint16_t keyLen = bufbe16toh (buf + offset); offset += 2; // private key length
 					if (offset + keyLen > len) return;
-					if (keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
-						m_Destination->SetECIESx25519EncryptionPrivateKey (buf + offset);
+					if (keyType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
+						m_Destination->SetECIESx25519EncryptionPrivateKey (keyType, buf + offset);
 					else
-					{
-						m_Destination->SetEncryptionType (keyType);
-						m_Destination->SetEncryptionPrivateKey (buf + offset);
-					}
+						m_Destination->SetEncryptionPrivateKey (keyType, buf + offset); // from identity
 					offset += keyLen;
 				}
 
