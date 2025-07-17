@@ -1085,10 +1085,17 @@ namespace client
 					m_StreamingInboundSpeed = std::stoi(it->second);
 				if (it != params->end ())
 					m_StreamingMaxConcurrentStreams = std::stoi(it->second);
-				LogPrint (eLogDebug, "Destination: Reading parameter ", I2CP_PARAM_STREAMING_ANSWER_PINGS);
 				it = params->find (I2CP_PARAM_STREAMING_ANSWER_PINGS);
 				if (it != params->end ())
-					m_IsStreamingAnswerPings = std::stoi (it->second); // 1 for true
+				{	
+					LogPrint (eLogDebug, "Destination: Reading parameter ", I2CP_PARAM_STREAMING_ANSWER_PINGS, " value ", it->second);
+					if (it->second == "true") 
+						m_IsStreamingAnswerPings = true;
+					else if (it->second == "false") 
+						m_IsStreamingAnswerPings = false;
+					else
+						m_IsStreamingAnswerPings = std::stoi (it->second); // 1 for true
+				}	
 
 				if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
 				{
