@@ -1085,6 +1085,7 @@ namespace client
 					m_StreamingInboundSpeed = std::stoi(it->second);
 				if (it != params->end ())
 					m_StreamingMaxConcurrentStreams = std::stoi(it->second);
+				LogPrint (eLogDebug, "Destination: Reading parameter ", I2CP_PARAM_STREAMING_ANSWER_PINGS);
 				it = params->find (I2CP_PARAM_STREAMING_ANSWER_PINGS);
 				if (it != params->end ())
 					m_IsStreamingAnswerPings = std::stoi (it->second); // 1 for true
