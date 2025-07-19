@@ -90,7 +90,6 @@ namespace garlic
 		// for streaming only
 		int rtt; // RTT
 		uint32_t updateTime; // seconds since epoch
-		bool isJava; // based on choked value
 	};
 
 	class GarlicDestination;
@@ -131,6 +130,9 @@ namespace garlic
 
 			std::shared_ptr<GarlicRoutingPath> GetSharedRoutingPath ();
 			void SetSharedRoutingPath (std::shared_ptr<GarlicRoutingPath> path);
+
+			bool IsWithJava () const { return m_IsWithJava; }
+			void SetIsWithJava (bool isWithJava) { m_IsWithJava = isWithJava; }
 			
 			GarlicDestination * GetOwner () const { return m_Owner; }
 			void SetOwner (GarlicDestination * owner) { m_Owner = owner; }
@@ -154,6 +156,7 @@ namespace garlic
 			uint64_t m_LeaseSetSubmissionTime; // in milliseconds
 
 			std::shared_ptr<GarlicRoutingPath> m_SharedRoutingPath;
+			bool m_IsWithJava; // based on choked value from streaming
 
 		public:
 

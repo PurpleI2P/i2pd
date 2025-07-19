@@ -426,11 +426,7 @@ namespace stream
 							LogPrint (eLogDebug, "Streaming: limit window size for java client");
 							m_MaxWindowSize = 32;
 							m_IsJavaClient = true;
-							if (m_RoutingSession) 
-							{
-								auto path = m_RoutingSession->GetSharedRoutingPath ();
-								if (path) path->isJava = true;
-							}	
+							if (m_RoutingSession) m_RoutingSession->SetIsWithJava (true);
 						}
 						m_WindowDropTargetSize = MIN_WINDOW_SIZE;
 						m_LastWindowDropSize = 0;
@@ -772,7 +768,7 @@ namespace stream
 			if (m_RoutingSession)
 				m_RoutingSession->SetSharedRoutingPath (
 					std::make_shared<i2p::garlic::GarlicRoutingPath> (
-						i2p::garlic::GarlicRoutingPath{m_CurrentOutboundTunnel, m_CurrentRemoteLease, (int)m_RTT, 0, false}));
+						i2p::garlic::GarlicRoutingPath{m_CurrentOutboundTunnel, m_CurrentRemoteLease, (int)m_RTT, 0}));
 			m_IsFirstACK = false;
 		}
 		if (acknowledged)
@@ -1287,9 +1283,9 @@ namespace stream
 				m_CurrentOutboundTunnel = routingPath->outboundTunnel;
 				m_CurrentRemoteLease = routingPath->remoteLease;
 				m_RTT = routingPath->rtt;
-				m_IsJavaClient = routingPath->isJava;
-				if (m_IsJavaClient) m_MaxWindowSize = 32;
 			}
+			m_IsJavaClient = m_RoutingSession->IsWithJava ();
+			if (m_IsJavaClient) m_MaxWindowSize = 32;
 		}
 
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
