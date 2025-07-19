@@ -428,7 +428,7 @@ namespace client
 					else
 					{
 						// strip up some headers
-						static const std::array<std::string_view, 2> excluded // list of excluded headers
+						static constexpr std::array<std::string_view, 2> excluded // list of excluded headers
 						{
 							"Keep-Alive:", "X-I2P"
 						};
@@ -511,7 +511,7 @@ namespace client
 					if (line == "\r") endOfHeader = true;
 					else
 					{
-						static const std::array<std::string_view, 5> excluded // list of excluded headers
+						static constexpr std::array<std::string_view, 5> excluded // list of excluded headers
 						{
 							"Server:", "Date:", "X-Runtime:", "X-Powered-By:", "Proxy"
 						};
