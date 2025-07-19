@@ -76,6 +76,7 @@ namespace stream
 	const int PENDING_INCOMING_TIMEOUT = 10; // in seconds
 	const int MAX_RECEIVE_TIMEOUT = 20; // in seconds
 	const uint16_t DELAY_CHOKING = 60000; // in milliseconds
+	const uint16_t DELAY_CHOKING_JAVA = 61000; // in milliseconds
 	const uint16_t DELAY_CHOKING_2 = 65535; // in milliseconds
 	const uint64_t SEND_INTERVAL = 10000; // in microseconds
 	const uint64_t SEND_INTERVAL_VARIANCE = 2000; // in microseconds
@@ -287,6 +288,7 @@ namespace stream
 			bool m_IsImmediateAckRequested;
 			bool m_IsRemoteLeaseChangeInProgress;
 			bool m_IsBufferEmpty;
+			bool m_IsJavaClient;
 			StreamingDestination& m_LocalDestination;
 			std::shared_ptr<const i2p::data::IdentityEx> m_RemoteIdentity;
 			std::shared_ptr<const i2p::crypto::Verifier> m_TransientVerifier; // in case of offline key
@@ -305,7 +307,7 @@ namespace stream
 
 			SendBufferQueue m_SendBuffer;
 			double m_RTT, m_MinRTT, m_SlowRTT, m_FastRTT;
-			float m_WindowSize, m_LastWindowDropSize, m_WindowDropTargetSize;
+			float m_WindowSize, m_MaxWindowSize, m_LastWindowDropSize, m_WindowDropTargetSize;
 			int m_WindowIncCounter, m_RTO, m_AckDelay, m_PrevRTTSample;
 			double m_Jitter;
 			uint64_t m_MinPacingTime, m_PacingTime, m_PacingTimeRem, // microseconds

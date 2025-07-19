@@ -87,8 +87,10 @@ namespace garlic
 	{
 		std::shared_ptr<i2p::tunnel::OutboundTunnel> outboundTunnel;
 		std::shared_ptr<const i2p::data::Lease> remoteLease;
+		// for streaming only
 		int rtt; // RTT
 		uint32_t updateTime; // seconds since epoch
+		bool isJava; // based on choked value
 	};
 
 	class GarlicDestination;
@@ -129,7 +131,7 @@ namespace garlic
 
 			std::shared_ptr<GarlicRoutingPath> GetSharedRoutingPath ();
 			void SetSharedRoutingPath (std::shared_ptr<GarlicRoutingPath> path);
-
+			
 			GarlicDestination * GetOwner () const { return m_Owner; }
 			void SetOwner (GarlicDestination * owner) { m_Owner = owner; }
 
