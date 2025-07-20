@@ -156,7 +156,16 @@ namespace stream
 	}
 
 	void Stream::CleanUp ()
-	{
+	{		
+		if (m_RoutingSession && !m_SentPackets.empty ()) // free up space in shared window
+		{
+			int numPackets = m_SentPackets.size ();
+			int numSentPackets = m_RoutingSession->NumSentPackets ();
+			numSentPackets -= numPackets;
+			if (numSentPackets < 0) numSentPackets = 0;
+			m_RoutingSession->SetNumSentPackets (numSentPackets);
+		}
+		
 		m_SendBuffer.CleanUp ();
 		while (!m_ReceiveQueue.empty ())
 		{
@@ -612,6 +621,7 @@ namespace stream
 		}
 		int rttSample = INT_MAX;
 		int incCounter = 0;
+		int ackPacketsCounter = 0;
 		m_IsNAcked = false;
 		m_IsResendNeeded = false;
 		int nackCount = packet->GetNACKCount ();
@@ -653,6 +663,7 @@ namespace stream
 				m_SentPackets.erase (it++);
 				m_LocalDestination.DeletePacket (sentPacket);
 				acknowledged = true;
+				ackPacketsCounter++;
 				if (m_WindowIncCounter < m_MaxWindowSize && !m_IsFirstACK && !m_IsWinDropped)
 					incCounter++;
 			}
@@ -773,6 +784,13 @@ namespace stream
 		}
 		if (acknowledged)
 		{
+			if (m_RoutingSession)
+			{
+				int numSentPackets = m_RoutingSession->NumSentPackets ();
+				numSentPackets -= ackPacketsCounter;
+				if (numSentPackets < 0) numSentPackets = 0;
+				m_RoutingSession->SetNumSentPackets (numSentPackets);
+			}
 			m_NumResendAttempts = 0;
 			m_IsTimeOutResend = false;
 			SendBuffer ();
@@ -860,6 +878,18 @@ namespace stream
 		}
 		else if (numMsgs > m_NumPacketsToSend)
 			numMsgs = m_NumPacketsToSend;
+		if (m_RoutingSession)
+		{
+			int numSentPackets = m_RoutingSession->NumSentPackets ();
+			int numPacketsToSend = m_MaxWindowSize - numSentPackets;
+			if (numPacketsToSend <= 0) // shared window is full
+			{
+				m_LastSendTime = ts;
+				return;
+			}
+			else if (numMsgs > numPacketsToSend)
+				numMsgs = numPacketsToSend;
+		}
 		bool isNoAck = m_LastReceivedSequenceNumber < 0; // first packet
 		std::vector<Packet *> packets;
 		while ((m_Status == eStreamStatusNew) || (IsEstablished () && !m_SendBuffer.IsEmpty () && numMsgs > 0))
@@ -947,6 +977,7 @@ namespace stream
 		}
 		if (m_SendBuffer.GetSize() == 0) m_IsBufferEmpty = true;
 		else m_IsBufferEmpty = false;
+		int numPackets = packets.size ();
 		if (packets.size () > 0)
 		{
 			if (m_SavedPackets.empty ()) // no NACKS
@@ -963,7 +994,12 @@ namespace stream
 			}
 			SendPackets (packets);
 			m_LastSendTime = ts;
-			m_IsSendTime = false;
+			m_IsSendTime = false;			
+			if (m_RoutingSession)
+			{
+				int numSentPackets = m_RoutingSession->NumSentPackets ();
+				m_RoutingSession->SetNumSentPackets (numSentPackets + numPackets);
+			}
 			if (m_Status == eStreamStatusClosing && m_SendBuffer.IsEmpty ())
 				SendClose ();
 			if (isEmpty)
@@ -1209,6 +1245,11 @@ namespace stream
 
 		p->len = size;
 		boost::asio::post (m_Service, std::bind (&Stream::SendPacket, shared_from_this (), p));
+		if (m_RoutingSession)
+		{
+			int numSentPackets = m_RoutingSession->NumSentPackets ();
+			m_RoutingSession->SetNumSentPackets (numSentPackets + 1);
+		}
 		LogPrint (eLogDebug, "Streaming: FIN sent, sSID=", m_SendStreamID);
 	}
 

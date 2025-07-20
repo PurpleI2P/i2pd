@@ -28,7 +28,7 @@ namespace garlic
 {
 	GarlicRoutingSession::GarlicRoutingSession (GarlicDestination * owner, bool attachLeaseSet):
 		m_Owner (owner), m_LeaseSetUpdateStatus (attachLeaseSet ? eLeaseSetUpdated : eLeaseSetDoNotSend),
-		m_LeaseSetUpdateMsgID (0), m_IsWithJava (false)
+		m_LeaseSetUpdateMsgID (0), m_IsWithJava (false), m_NumSentPackets (0)
 	{
 	}
 

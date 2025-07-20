@@ -133,6 +133,9 @@ namespace garlic
 
 			bool IsWithJava () const { return m_IsWithJava; }
 			void SetIsWithJava (bool isWithJava) { m_IsWithJava = isWithJava; }
+
+			int NumSentPackets () const { return m_NumSentPackets; }
+			void SetNumSentPackets (int numSentPackets) { m_NumSentPackets = numSentPackets; }
 			
 			GarlicDestination * GetOwner () const { return m_Owner; }
 			void SetOwner (GarlicDestination * owner) { m_Owner = owner; }
@@ -157,6 +160,7 @@ namespace garlic
 
 			std::shared_ptr<GarlicRoutingPath> m_SharedRoutingPath;
 			bool m_IsWithJava; // based on choked value from streaming
+			int m_NumSentPackets; // for limit number of sent messages in streaming
 
 		public:
 
