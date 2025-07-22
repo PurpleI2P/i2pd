@@ -1397,10 +1397,11 @@ namespace client
 		return nullptr;
 	}
 
-	i2p::datagram::DatagramDestination * ClientDestination::CreateDatagramDestination (bool gzip)
+	i2p::datagram::DatagramDestination * ClientDestination::CreateDatagramDestination (bool gzip, 
+		i2p::datagram::DatagramVersion version)
 	{
-		if (m_DatagramDestination == nullptr)
-			m_DatagramDestination = new i2p::datagram::DatagramDestination (GetSharedFromThis (), gzip);
+		if (!m_DatagramDestination)
+			m_DatagramDestination = new i2p::datagram::DatagramDestination (GetSharedFromThis (), gzip, version);
 		return m_DatagramDestination;
 	}
 

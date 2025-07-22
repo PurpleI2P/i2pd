@@ -18,8 +18,10 @@ namespace i2p
 {
 namespace datagram
 {
-	DatagramDestination::DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner, bool gzip):
-		m_Owner (owner), m_DefaultReceiver (nullptr), m_DefaultRawReceiver (nullptr), m_Gzip (gzip)
+	DatagramDestination::DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner, 
+	    bool gzip, DatagramVersion version):
+		m_Owner (owner), m_DefaultReceiver (nullptr), m_DefaultRawReceiver (nullptr),
+		m_Gzip (gzip), m_Version (version)
 	{
 		if (m_Gzip)
 			m_Deflator.reset (new i2p::data::GzipDeflator);
@@ -431,14 +433,16 @@ namespace datagram
 		std::shared_ptr<DatagramSession> session = nullptr;
 		std::lock_guard<std::mutex> lock(m_SessionsMutex);
 		auto itr = m_Sessions.find(identity);
-		if (itr == m_Sessions.end()) {
+		if (itr == m_Sessions.end()) 
+		{
 			// not found, create new session
 			session = std::make_shared<DatagramSession>(m_Owner, identity);
+			session->SetVersion (m_Version);
 			session->Start ();
-			m_Sessions[identity] = session;
-		} else {
+			m_Sessions.emplace (identity, session);
+		} 
+		else
 			session = itr->second;
-		}
 		return session;
 	}
 

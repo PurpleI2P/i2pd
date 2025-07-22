@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -130,7 +130,7 @@ namespace client
 
 			I2PUDPClientTunnel (const std::string & name, const std::string &remoteDest,
 				const boost::asio::ip::udp::endpoint& localEndpoint, std::shared_ptr<i2p::client::ClientDestination> localDestination,
-				uint16_t remotePort, bool gzip);
+				uint16_t remotePort, bool gzip, i2p::datagram::DatagramVersion datagramVersion);
 			~I2PUDPClientTunnel ();
 
 			void Start ();
@@ -175,6 +175,7 @@ namespace client
 			uint16_t RemotePort, m_LastPort;
 			bool m_cancel_resolve;
 			bool m_Gzip;
+			i2p::datagram::DatagramVersion m_DatagramVersion;
 			std::shared_ptr<UDPConvo> m_LastSession;
 
 		public:

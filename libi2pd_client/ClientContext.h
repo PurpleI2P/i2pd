@@ -12,6 +12,7 @@
 #include <map>
 #include <mutex>
 #include <memory>
+#include <string_view>
 #include <boost/asio.hpp>
 #include "Destination.h"
 #include "I2PService.h"
@@ -61,7 +62,8 @@ namespace client
 	const char I2P_SERVER_TUNNEL_ADDRESS[] = "address";
 	const char I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL[] = "enableuniquelocal";
 	const char I2P_SERVER_TUNNEL_SSL[] = "ssl";
-
+	const char UDP_CLIENT_TUNNEL_DATAGRAM_VERSION[] = "datagramversion";
+	
 	class ClientContext
 	{
 		public:

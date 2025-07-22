@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -224,10 +224,10 @@ namespace client
 	I2PUDPClientTunnel::I2PUDPClientTunnel (const std::string & name, const std::string &remoteDest,
 		const boost::asio::ip::udp::endpoint& localEndpoint,
 		std::shared_ptr<i2p::client::ClientDestination> localDestination,
-		uint16_t remotePort, bool gzip) :
+		uint16_t remotePort, bool gzip, i2p::datagram::DatagramVersion datagramVersion) :
 		m_Name (name), m_RemoteDest (remoteDest), m_LocalDest (localDestination), m_LocalEndpoint (localEndpoint),
 		m_ResolveThread (nullptr), m_LocalSocket (nullptr), RemotePort (remotePort),
-		m_LastPort (0), m_cancel_resolve (false), m_Gzip (gzip)
+		m_LastPort (0), m_cancel_resolve (false), m_Gzip (gzip), m_DatagramVersion (datagramVersion)
 	{
 	}
 
@@ -245,7 +245,7 @@ namespace client
 		m_LocalSocket->set_option (boost::asio::socket_base::receive_buffer_size (I2P_UDP_MAX_MTU));
 		m_LocalSocket->set_option (boost::asio::socket_base::reuse_address (true));
 
-		auto dgram = m_LocalDest->CreateDatagramDestination (m_Gzip);
+		auto dgram = m_LocalDest->CreateDatagramDestination (m_Gzip, m_DatagramVersion);
 		dgram->SetReceiver (std::bind (&I2PUDPClientTunnel::HandleRecvFromI2P, this,
 			std::placeholders::_1, std::placeholders::_2,
 			std::placeholders::_3, std::placeholders::_4,

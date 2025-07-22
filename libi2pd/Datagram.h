@@ -129,7 +129,7 @@ namespace datagram
 
 		public:
 
-			DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner, bool gzip);
+			DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner, bool gzip, DatagramVersion version);
 			~DatagramDestination ();
 
 			void SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash & ident, uint16_t fromPort = 0, uint16_t toPort = 0);
@@ -190,6 +190,7 @@ namespace datagram
 			std::unordered_map<uint16_t, RawReceiver> m_RawReceiversByPorts;
 
 			bool m_Gzip; // gzip compression of data messages
+			DatagramVersion m_Version; // default for destination
 			i2p::data::GzipInflator m_Inflator;
 			std::unique_ptr<i2p::data::GzipDeflator> m_Deflator;
 			std::vector<uint8_t> m_From, m_Signature;

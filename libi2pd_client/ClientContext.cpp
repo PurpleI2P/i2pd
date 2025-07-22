@@ -636,7 +636,8 @@ namespace client
 						}
 					}
 
-					if (type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT) {
+					if (type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT) 
+					{
 						// udp client
 						// TODO: hostnames
 						boost::asio::ip::udp::endpoint end (boost::asio::ip::make_address(address), port);
@@ -644,7 +645,9 @@ namespace client
 							localDestination = m_SharedLocalDestination;
 
 						bool gzip = section.second.get (I2P_CLIENT_TUNNEL_GZIP, true);
-						auto clientTunnel = std::make_shared<I2PUDPClientTunnel> (name, dest, end, localDestination, destinationPort, gzip);
+						int datagramVersion = (i2p::datagram::DatagramVersion)section.second.get (UDP_CLIENT_TUNNEL_DATAGRAM_VERSION, (int)i2p::datagram::eDatagramV1);
+						auto clientTunnel = std::make_shared<I2PUDPClientTunnel> (name, dest, end, 
+							localDestination, destinationPort, gzip, (i2p::datagram::DatagramVersion)datagramVersion);
 
 						auto ins = m_ClientForwards.insert (std::make_pair (end, clientTunnel));
 						if (ins.second)
@@ -666,7 +669,9 @@ namespace client
 							LogPrint(eLogError, "Clients: I2P Client forward for endpoint ", end, " already exists");
 						}
 
-					} else {
+					} 
+					else 
+					{
 						boost::asio::ip::tcp::endpoint clientEndpoint;
 						std::shared_ptr<I2PService> clientTunnel;
 						if (type == I2P_TUNNELS_SECTION_TYPE_SOCKS)

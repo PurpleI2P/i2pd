@@ -274,7 +274,8 @@ namespace client
 
 			// datagram
 			i2p::datagram::DatagramDestination * GetDatagramDestination () const { return m_DatagramDestination; };
-			i2p::datagram::DatagramDestination * CreateDatagramDestination (bool gzip = true);
+			i2p::datagram::DatagramDestination * CreateDatagramDestination (bool gzip = true,
+				i2p::datagram::DatagramVersion version = i2p::datagram::eDatagramV1);
 
 			// implements LocalDestination
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, i2p::data::CryptoKeyType preferredCrypto) const override;
