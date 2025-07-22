@@ -311,7 +311,7 @@ namespace stream
 			int m_WindowIncCounter, m_RTO, m_AckDelay, m_PrevRTTSample;
 			double m_Jitter;
 			uint64_t m_MinPacingTime, m_PacingTime, m_PacingTimeRem, // microseconds
-				m_LastSendTime, m_LastACKRecieveTime, m_ACKRecieveInterval, m_RemoteLeaseChangeTime, m_LastWindowIncTime;	// milliseconds
+				m_LastSendTime, m_LastACKRecieveTime, m_ACKRecieveInterval, m_RemoteLeaseChangeTime, m_LastWindowIncTime, m_LastACKRequestTime;	// milliseconds
 			uint64_t m_LastACKSendTime, m_PacketACKInterval, m_PacketACKIntervalRem; // for limit inbound speed
 			int m_NumResendAttempts, m_NumPacketsToSend;
 			uint64_t m_JitterAccum;

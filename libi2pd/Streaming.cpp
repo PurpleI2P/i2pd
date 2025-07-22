@@ -96,7 +96,7 @@ namespace stream
 		m_WindowDropTargetSize (0), m_WindowIncCounter (0), m_RTO (INITIAL_RTO),
 		m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()), m_PrevRTTSample (INITIAL_RTT), 
 		m_Jitter (0), m_MinPacingTime (0),
-		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_LastSendTime (0), m_LastACKRecieveTime (0), m_ACKRecieveInterval (local.GetOwner ()->GetStreamingAckDelay ()), m_RemoteLeaseChangeTime (0), m_LastWindowIncTime (0),
+		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_LastSendTime (0), m_LastACKRecieveTime (0), m_ACKRecieveInterval (local.GetOwner ()->GetStreamingAckDelay ()), m_RemoteLeaseChangeTime (0), m_LastWindowIncTime (0), m_LastACKRequestTime (0),
 		m_LastACKSendTime (0), m_PacketACKInterval (1), m_PacketACKIntervalRem (0), // for limit inbound speed
 		m_NumResendAttempts (0), m_NumPacketsToSend (0), m_JitterAccum (0), m_JitterDiv (1), m_MTU (STREAMING_MTU)
 	{
@@ -123,7 +123,7 @@ namespace stream
 		m_WindowSize (INITIAL_WINDOW_SIZE), m_MaxWindowSize (MAX_WINDOW_SIZE), m_LastWindowDropSize  (0), m_WindowDropTargetSize (0), m_WindowIncCounter (0), 
 		m_RTO (INITIAL_RTO), m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
 		m_PrevRTTSample (INITIAL_RTT), m_Jitter (0), m_MinPacingTime (0),
-		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_LastSendTime (0), m_LastACKRecieveTime (0), m_ACKRecieveInterval (local.GetOwner ()->GetStreamingAckDelay ()), m_RemoteLeaseChangeTime (0), m_LastWindowIncTime (0),
+		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_LastSendTime (0), m_LastACKRecieveTime (0), m_ACKRecieveInterval (local.GetOwner ()->GetStreamingAckDelay ()), m_RemoteLeaseChangeTime (0), m_LastWindowIncTime (0), m_LastACKRequestTime (0),
 		m_LastACKSendTime (0), m_PacketACKInterval (1), m_PacketACKIntervalRem (0), // for limit inbound speed
 		m_NumResendAttempts (0), m_NumPacketsToSend (0), m_JitterAccum (0), m_JitterDiv (1), m_MTU (STREAMING_MTU)
 	{
@@ -433,7 +433,7 @@ namespace stream
 						if (delayRequested == DELAY_CHOKING_JAVA) // java detected
 						{
 							LogPrint (eLogDebug, "Streaming: limit window size for java client");
-							m_MaxWindowSize = 32;
+							m_MaxWindowSize = 64;
 							m_IsJavaClient = true;
 							if (m_RoutingSession) m_RoutingSession->SetIsWithJava (true);
 						}
@@ -965,9 +965,21 @@ namespace stream
 			else
 			{
 				// follow on packet
-				htobuf16 (packet + size, 0);
-				size += 2; // flags
-				htobuf16 (packet + size, 0); // no options
+				if (m_IsJavaClient && (!m_LastACKRequestTime || ts - m_LastACKRequestTime > m_MinRTT / 10))
+				{
+					m_LastACKRequestTime = ts;
+					htobe16buf (packet + size, PACKET_FLAG_DELAY_REQUESTED);
+					size += 2; // flags
+					htobe16buf (packet + size, 2); // 2 bytes delay interval
+					htobe16buf (packet + size + 2, 0); // set immediate ack interval
+					size += 2;
+				}
+				else
+				{
+					htobuf16 (packet + size, 0);
+					size += 2; // flags
+					htobuf16 (packet + size, 0); // no options
+				}
 				size += 2; // options size
 				size += m_SendBuffer.Get(packet + size, m_MTU); // payload
 			}
@@ -1326,7 +1338,7 @@ namespace stream
 				m_RTT = routingPath->rtt;
 			}
 			m_IsJavaClient = m_RoutingSession->IsWithJava ();
-			if (m_IsJavaClient) m_MaxWindowSize = 32;
+			if (m_IsJavaClient) m_MaxWindowSize = 64;
 		}
 
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
