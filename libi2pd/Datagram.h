@@ -51,7 +51,9 @@ namespace datagram
 		eDatagramV2 = 2,
 		eDatagramV3 = 3,
 	};	
-	
+
+	constexpr uint16_t DATAGRAM2_FLAG_OPTIONS = 0x10;
+	constexpr uint16_t DATAGRAM2_FLAG_OFFLINE_SIGNATURE = 0x20;
 	constexpr uint16_t DATAGRAM3_FLAG_OPTIONS = 0x10;
 	
 	class DatagramSession : public std::enable_shared_from_this<DatagramSession>
@@ -163,6 +165,8 @@ namespace datagram
 			void HandleDatagram (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len,
 				i2p::garlic::ECIESX25519AEADRatchetSession * from);
 			void HandleRawDatagram (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
+			void HandleDatagram2 (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len,
+				i2p::garlic::ECIESX25519AEADRatchetSession * from);
 			void HandleDatagram3 (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len,
 				i2p::garlic::ECIESX25519AEADRatchetSession * from);
 

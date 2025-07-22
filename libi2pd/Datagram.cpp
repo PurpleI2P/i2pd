@@ -160,6 +160,76 @@ namespace datagram
 			LogPrint (eLogWarning, "DatagramDestination: no receiver for raw datagram");
 	}
 
+	void DatagramDestination::HandleDatagram2 (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len,
+		i2p::garlic::ECIESX25519AEADRatchetSession * from)
+	{
+		if (len < 433)
+		{
+			LogPrint (eLogWarning, "Datagram: datagram2 is too short ", len);
+			return;
+		}
+		i2p::data::IdentityEx identity;
+		size_t identityLen = identity.FromBuffer (buf, len);
+		if (!identityLen) return;
+		size_t signatureLen = identity.GetSignatureLen ();
+		if (signatureLen + identityLen > len) return;
+		
+		std::shared_ptr<i2p::data::LeaseSet> ls;
+		bool verified = false;
+		if (from)
+		{
+			ls = m_Owner->FindLeaseSet (identity.GetIdentHash ());	
+			if (ls)
+			{	
+				uint8_t staticKey[32];
+				ls->Encrypt (nullptr, staticKey);
+				if (!memcmp (from->GetRemoteStaticKey (), staticKey, 32))
+					verified = true;
+				else
+				{	
+					LogPrint (eLogError, "Datagram: Remote LeaseSet static key mismatch for datagram2 from ", 
+						identity.GetIdentHash ().ToBase32 ());
+					return;
+				}	
+			}	
+		}
+		if (!verified)
+		{
+			std::vector<uint8_t> signedData (len + 32 - identityLen - signatureLen);
+			memcpy (signedData.data (), identity.GetIdentHash (), 32);
+			memcpy (signedData.data () + 32, buf + identityLen, signedData.size () - 32);
+			if (!identity.Verify (signedData.data (), signedData.size (), buf + len - signatureLen))
+			{
+				LogPrint (eLogWarning, "Datagram: datagram2 signature verification failed");
+				return;
+			}	
+		}	
+		uint16_t flags = bufbe16toh (buf + identityLen);
+		size_t offset = identityLen + 2;
+		if (flags & DATAGRAM2_FLAG_OPTIONS)
+			offset += bufbe16toh (buf + offset) + 2;
+		if (offset > len - signatureLen)
+		{
+			LogPrint (eLogWarning, "Datagram: datagram2 is too short ", len - signatureLen, " expected ", offset);
+			return;
+		}
+		if (flags & DATAGRAM2_FLAG_OFFLINE_SIGNATURE)
+		{
+			LogPrint (eLogWarning, "Datagram: datagram2 offline signature is not supported");
+			return;
+		}	
+		
+		auto session = ObtainSession (identity.GetIdentHash());
+		session->SetVersion (eDatagramV2);
+		if (ls) session->SetRemoteLeaseSet (ls);
+		session->Ack();
+		auto r = FindReceiver(toPort);
+		if(r)
+			r(identity, fromPort, toPort, buf + offset, len - offset - signatureLen);
+		else
+			LogPrint (eLogWarning, "DatagramDestination: no receiver for port ", toPort);
+	}	
+		
 	void DatagramDestination::HandleDatagram3 (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len,
 		i2p::garlic::ECIESX25519AEADRatchetSession * from)
 	{
@@ -297,7 +367,7 @@ namespace datagram
 					HandleDatagram (fromPort, toPort, uncompressed, uncompressedLen, from);
 				break;
 				case i2p::client::PROTOCOL_TYPE_DATAGRAM2:
-					// TODO:
+					HandleDatagram2 (fromPort, toPort, uncompressed, uncompressedLen, from);
 				break;
 				default:
 					LogPrint (eLogInfo, "Datagram: unknown protocol type ", protocolType);
