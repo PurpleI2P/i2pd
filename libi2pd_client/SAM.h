@@ -83,13 +83,14 @@ namespace client
 	const char SAM_PARAM_PORT[] = "PORT";
 	const char SAM_PARAM_FROM_PORT[] = "FROM_PORT";
 	const char SAM_VALUE_TRANSIENT[] = "TRANSIENT";
-	const char SAM_VALUE_STREAM[] = "STREAM";
-	const char SAM_VALUE_DATAGRAM[] = "DATAGRAM";
-	const char SAM_VALUE_RAW[] = "RAW";
-	const char SAM_VALUE_MASTER[] = "MASTER";
 	const char SAM_VALUE_TRUE[] = "true";
 	const char SAM_VALUE_FALSE[] = "false";
-
+	
+	constexpr std::string_view SAM_VALUE_STREAM { "STREAM" };
+	constexpr std::string_view SAM_VALUE_DATAGRAM { "DATAGRAM" };
+	constexpr std::string_view SAM_VALUE_RAW { "RAW" };
+	constexpr std::string_view SAM_VALUE_MASTER { "MASTER" };
+	
 	enum SAMSocketType
 	{
 		eSAMSocketTypeUnknown,

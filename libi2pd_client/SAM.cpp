@@ -353,8 +353,27 @@ namespace client
 		}
 
 		SAMSessionType type = eSAMSessionTypeUnknown;
+		i2p::datagram::DatagramVersion datagramVersion = i2p::datagram::eDatagramV1;
 		if (style == SAM_VALUE_STREAM) type = eSAMSessionTypeStream;
-		else if (style == SAM_VALUE_DATAGRAM) type = eSAMSessionTypeDatagram;
+#if __cplusplus >= 202002L // C++20
+		else if (style.starts_with (SAM_VALUE_DATAGRAM))
+#else		
+		else if (style.substr (0, SAM_VALUE_DATAGRAM.size ()) == SAM_VALUE_DATAGRAM)
+#endif			
+		{	
+			// DATAGRAM, DATAGRAM1, DATAGRAM2, DATAGRAM3
+			type = eSAMSessionTypeDatagram;
+			if (style.size () > SAM_VALUE_DATAGRAM.size ())
+			{
+				switch (style[SAM_VALUE_DATAGRAM.size ()])
+				{
+					case '1': datagramVersion = i2p::datagram::eDatagramV1; break;
+					case '2': datagramVersion = i2p::datagram::eDatagramV2; break;
+					case '3': datagramVersion = i2p::datagram::eDatagramV3; break;
+					default: type = eSAMSessionTypeUnknown;
+				}	
+			}	
+		}	
 		else if (style == SAM_VALUE_RAW) type = eSAMSessionTypeRaw;
 		else if (style == SAM_VALUE_MASTER) type = eSAMSessionTypeMaster;
 		if (type == eSAMSessionTypeUnknown)
@@ -416,7 +435,7 @@ namespace client
 			if (type == eSAMSessionTypeDatagram || type == eSAMSessionTypeRaw)
 			{
 				session->UDPEndpoint = forward;
-				auto dest = session->GetLocalDestination ()->CreateDatagramDestination ();
+				auto dest = session->GetLocalDestination ()->CreateDatagramDestination (false, datagramVersion);
 				uint16_t port = 0;
 				if (forward)
 				{	
