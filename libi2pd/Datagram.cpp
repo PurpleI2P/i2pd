@@ -195,31 +195,39 @@ namespace datagram
 				}	
 			}	
 		}
-		if (!verified)
-		{
-			std::vector<uint8_t> signedData (len + 32 - identityLen - signatureLen);
-			memcpy (signedData.data (), identity.GetIdentHash (), 32);
-			memcpy (signedData.data () + 32, buf + identityLen, signedData.size () - 32);
-			if (!identity.Verify (signedData.data (), signedData.size (), buf + len - signatureLen))
-			{
-				LogPrint (eLogWarning, "Datagram: datagram2 signature verification failed");
-				return;
-			}	
-		}	
 		uint16_t flags = bufbe16toh (buf + identityLen);
 		size_t offset = identityLen + 2;
 		if (flags & DATAGRAM2_FLAG_OPTIONS)
 			offset += bufbe16toh (buf + offset) + 2;
-		if (offset > len - signatureLen)
+		if (offset > len)
 		{
-			LogPrint (eLogWarning, "Datagram: datagram2 is too short ", len - signatureLen, " expected ", offset);
+			LogPrint (eLogWarning, "Datagram: datagram2 is too short ", len, " expected ", offset);
 			return;
 		}
-		if (flags & DATAGRAM2_FLAG_OFFLINE_SIGNATURE)
+		if (!verified)
 		{
-			LogPrint (eLogWarning, "Datagram: datagram2 offline signature is not supported");
-			return;
-		}	
+			std::shared_ptr<i2p::crypto::Verifier> transientVerifier;
+			if (flags & DATAGRAM2_FLAG_OFFLINE_SIGNATURE)
+			{	
+				transientVerifier = i2p::data::ProcessOfflineSignature (&identity, buf, len, offset);
+				if (!transientVerifier)
+				{
+					LogPrint (eLogWarning, "Datagram: datagram2 offline signature failed");
+					return;
+				}	
+				signatureLen = transientVerifier->GetSignatureLen ();
+			}	
+			std::vector<uint8_t> signedData (len + 32 - identityLen - signatureLen);
+			memcpy (signedData.data (), identity.GetIdentHash (), 32);
+			memcpy (signedData.data () + 32, buf + identityLen, signedData.size () - 32);
+			verified = transientVerifier ? transientVerifier->Verify (signedData.data (), signedData.size (), buf + len - signatureLen) :
+				identity.Verify (signedData.data (), signedData.size (), buf + len - signatureLen); 
+			if (!verified)
+			{
+				LogPrint (eLogWarning, "Datagram: datagram2 signature verification failed");
+				return;
+			}	
+		}
 		
 		auto session = ObtainSession (identity.GetIdentHash());
 		session->SetVersion (eDatagramV2);
