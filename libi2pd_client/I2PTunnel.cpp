@@ -738,17 +738,10 @@ namespace client
 		boost::system::error_code ec;
 		auto addr = boost::asio::ip::make_address (m_Address, ec);
 		if (!ec)
-		{
 			m_Endpoint.address (addr);
-			Accept ();
-		}
 		else
-		{
-			auto resolver = std::make_shared<boost::asio::ip::tcp::resolver>(GetService ());
-			resolver->async_resolve (m_Address, "",
-				std::bind (&I2PServerTunnel::HandleResolve, this,
-					std::placeholders::_1, std::placeholders::_2, resolver));
-		}
+			Resolve (nullptr);
+		Accept ();
 	}
 
 	void I2PServerTunnel::Stop ()
@@ -758,13 +751,26 @@ namespace client
 		auto localDestination = GetLocalDestination ();
 		if (localDestination)
 			localDestination->StopAcceptingStreams ();
-
+		if (m_Resolver)	
+			m_Resolver->cancel ();
+		
 		ClearHandlers ();
 	}
 
-	void I2PServerTunnel::HandleResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::results_type endpoints,
-		std::shared_ptr<boost::asio::ip::tcp::resolver> resolver)
+	bool I2PServerTunnel::Resolve (std::shared_ptr<i2p::stream::Stream> stream)
 	{
+		if (m_Resolver) return false; // already resolving
+		m_Resolver = std::make_shared<boost::asio::ip::tcp::resolver>(GetService ());
+		m_Resolver->async_resolve (m_Address, "",
+			std::bind (&I2PServerTunnel::HandleResolve, this,
+				std::placeholders::_1, std::placeholders::_2, stream));
+		return true;
+	}	
+		
+	void I2PServerTunnel::HandleResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::results_type endpoints,
+		std::shared_ptr<i2p::stream::Stream> stream)
+	{
+		m_Resolver = nullptr;
 		if (!ecode)
 		{
 			bool found = false;
@@ -808,7 +814,8 @@ namespace client
 			auto addr = ep.address ();
 			LogPrint (eLogInfo, "I2PTunnel: Server tunnel ", (*endpoints.begin ()).host_name (), " has been resolved to ", addr);
 			m_Endpoint.address (addr);
-			Accept ();
+			if (stream)
+				Connect (stream);
 		}
 		else
 			LogPrint (eLogError, "I2PTunnel: Unable to resolve server tunnel address ", m_Address, ": ", ecode.message ());
@@ -869,16 +876,28 @@ namespace client
 					return;
 				}
 			}
-			// new connection
-			auto conn = CreateI2PConnection (stream);
-			AddHandler (conn);
-			if (m_LocalAddress)
-				conn->Connect (*m_LocalAddress);
-			else
-				conn->Connect (m_IsUniqueLocal);
+			if (!m_Endpoint.address ().is_unspecified ())
+				Connect (stream);
+			else if (!Resolve (stream))
+			{
+				LogPrint (eLogWarning, "I2PTunnel: Address ", m_Address, " cann't be resolved. Incoming connection dropped");
+				stream->Close ();
+				return;
+			}	
 		}
 	}
 
+	void I2PServerTunnel::Connect (std::shared_ptr<i2p::stream::Stream> stream)
+	{
+		// new connection
+		auto conn = CreateI2PConnection (stream);
+		AddHandler (conn);
+		if (m_LocalAddress)
+			conn->Connect (*m_LocalAddress);
+		else
+			conn->Connect (m_IsUniqueLocal);
+	}	
+		
 	std::shared_ptr<I2PTunnelConnection> I2PServerTunnel::CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream)
 	{
 		return std::make_shared<I2PTunnelConnection> (this, stream, GetEndpoint (), m_SSLCtx);

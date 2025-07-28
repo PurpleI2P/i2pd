@@ -212,11 +212,13 @@ namespace client
 
 		private:
 
+			bool Resolve (std::shared_ptr<i2p::stream::Stream> stream);
 			void HandleResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::results_type endpoints,
-				std::shared_ptr<boost::asio::ip::tcp::resolver> resolver);
+				std::shared_ptr<i2p::stream::Stream> stream);
 
 			void Accept ();
 			void HandleAccept (std::shared_ptr<i2p::stream::Stream> stream);
+			void Connect (std::shared_ptr<i2p::stream::Stream> stream);
 			virtual std::shared_ptr<I2PTunnelConnection> CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);
 
 		private:
@@ -230,6 +232,7 @@ namespace client
 			bool m_IsAccessList;
 			std::unique_ptr<boost::asio::ip::address> m_LocalAddress;
 			std::shared_ptr<boost::asio::ssl::context> m_SSLCtx;
+			std::shared_ptr<boost::asio::ip::tcp::resolver> m_Resolver;
 	};
 
 	class I2PServerTunnelHTTP: public I2PServerTunnel
