@@ -20,8 +20,12 @@ namespace client
 	{
 		if (!m_LastSession || m_LastSession->Identity.GetLL()[0] != from.GetIdentHash ().GetLL()[0] || fromPort != m_LastSession->RemotePort)
 			m_LastSession = ObtainUDPSession(from, toPort, fromPort);
-		m_LastSession->IPSocket.send_to(boost::asio::buffer(buf, len), m_RemoteEndpoint);
-		m_LastSession->LastActivity = i2p::util::GetMillisecondsSinceEpoch();
+		boost::system::error_code ec;
+		m_LastSession->IPSocket.send_to(boost::asio::buffer(buf, len), m_RemoteEndpoint, 0, ec);
+		if (!ec)
+			m_LastSession->LastActivity = i2p::util::GetMillisecondsSinceEpoch();
+		else
+			LogPrint (eLogInfo, "UDP Server: Send exception: ", ec.message (), " to ", m_RemoteEndpoint);
 	}
 
 	void I2PUDPServerTunnel::HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
@@ -37,8 +41,12 @@ namespace client
 		}
 		if (m_LastSession)
 		{
-			m_LastSession->IPSocket.send_to(boost::asio::buffer(buf, len), m_RemoteEndpoint);
-			m_LastSession->LastActivity = i2p::util::GetMillisecondsSinceEpoch();
+			boost::system::error_code ec;
+			m_LastSession->IPSocket.send_to(boost::asio::buffer(buf, len), m_RemoteEndpoint, 0, ec);
+			if (!ec)
+				m_LastSession->LastActivity = i2p::util::GetMillisecondsSinceEpoch();
+			else
+				LogPrint (eLogInfo, "UDP Server: Send exception: ", ec.message (), " to ", m_RemoteEndpoint);
 		}
 	}
 
@@ -121,6 +129,7 @@ namespace client
 		RemotePort(theirPort)
 	{
 		IPSocket.set_option (boost::asio::socket_base::receive_buffer_size (I2P_UDP_MAX_MTU ));
+		IPSocket.non_blocking (true);
 		Receive();
 	}
 
@@ -244,6 +253,7 @@ namespace client
 		m_LocalSocket.reset (new boost::asio::ip::udp::socket (m_LocalDest->GetService (), m_LocalEndpoint));
 		m_LocalSocket->set_option (boost::asio::socket_base::receive_buffer_size (I2P_UDP_MAX_MTU));
 		m_LocalSocket->set_option (boost::asio::socket_base::reuse_address (true));
+		m_LocalSocket->non_blocking (true);
 
 		auto dgram = m_LocalDest->CreateDatagramDestination (m_Gzip, m_DatagramVersion);
 		dgram->SetReceiver (std::bind (&I2PUDPClientTunnel::HandleRecvFromI2P, this,
@@ -400,9 +410,13 @@ namespace client
 			if (len > 0)
 			{
 				LogPrint (eLogDebug, "UDP Client: Got ", len, "B from ", m_RemoteAddr ? m_RemoteAddr->identHash.ToBase32 () : "");
-				m_LocalSocket->send_to (boost::asio::buffer (buf, len), itr->second->first);
-				// mark convo as active
-				itr->second->second = i2p::util::GetMillisecondsSinceEpoch ();
+				boost::system::error_code ec;
+				m_LocalSocket->send_to (boost::asio::buffer (buf, len), itr->second->first, 0, ec);
+				if (!ec)
+					// mark convo as active
+					itr->second->second = i2p::util::GetMillisecondsSinceEpoch ();
+				else
+					LogPrint (eLogInfo, "UDP Client: Send exception: ", ec.message (), " to ", itr->second->first);
 			}
 		}
 		else
