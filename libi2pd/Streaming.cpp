@@ -880,6 +880,8 @@ namespace stream
 			numMsgs = m_NumPacketsToSend;
 		if (m_RoutingSession)
 		{
+			m_IsJavaClient = m_RoutingSession->IsWithJava ();
+			if (m_IsJavaClient) m_MaxWindowSize = 64;
 			int numSentPackets = m_RoutingSession->NumSentPackets ();
 			int numPacketsToSend = m_MaxWindowSize - numSentPackets;
 			if (numPacketsToSend <= 0) // shared window is full
@@ -1337,8 +1339,6 @@ namespace stream
 				m_CurrentRemoteLease = routingPath->remoteLease;
 				m_RTT = routingPath->rtt;
 			}
-			m_IsJavaClient = m_RoutingSession->IsWithJava ();
-			if (m_IsJavaClient) m_MaxWindowSize = 64;
 		}
 
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
