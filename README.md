@@ -77,7 +77,7 @@ Build instructions:
 * Docker image - [![Build containers](https://github.com/PurpleI2P/i2pd/actions/workflows/docker.yml/badge.svg)](https://github.com/PurpleI2P/i2pd/actions/workflows/docker.yml)
 * Snap - [![i2pd](https://snapcraft.io/i2pd/badge.svg)](https://snapcraft.io/i2pd) [![i2pd](https://snapcraft.io/i2pd/trending.svg?name=0)](https://snapcraft.io/i2pd)
 * FreeBSD - [![Build on FreeBSD](https://github.com/PurpleI2P/i2pd/actions/workflows/build-freebsd.yml/badge.svg)](https://github.com/PurpleI2P/i2pd/actions/workflows/build-freebsd.yml)
-* Android - [![Android CI](https://github.com/PurpleI2P/i2pd-android/actions/workflows/android.yml/badge.svg)](https://github.com/PurpleI2P/i2pd-android/actions/workflows/android.yml)
+* Android
 * iOS
 
 Using i2pd
