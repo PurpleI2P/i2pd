@@ -1009,6 +1009,7 @@ namespace client
 		m_StreamingOutboundSpeed (DEFAULT_MAX_OUTBOUND_SPEED),
 		m_StreamingInboundSpeed (DEFAULT_MAX_INBOUND_SPEED),
 		m_StreamingMaxConcurrentStreams (DEFAULT_MAX_CONCURRENT_STREAMS),
+		m_StreamingMaxWindowSize (i2p::stream::MAX_WINDOW_SIZE),
 		m_IsStreamingAnswerPings (DEFAULT_ANSWER_PINGS), m_LastPort (0),
 		m_DatagramDestination (nullptr), m_RefCounter (0), m_LastPublishedTimestamp (0),
 		m_ReadyChecker(service)
@@ -1083,8 +1084,16 @@ namespace client
 				it = params->find (I2CP_PARAM_STREAMING_MAX_INBOUND_SPEED);
 				if (it != params->end ())
 					m_StreamingInboundSpeed = std::stoi(it->second);
+				it = params->find (I2CP_PARAM_STREAMING_MAX_CONCURRENT_STREAMS);
 				if (it != params->end ())
 					m_StreamingMaxConcurrentStreams = std::stoi(it->second);
+				it = params->find (I2CP_PARAM_STREAMING_MAX_WINDOW_SIZE);
+				if (it != params->end ())
+				{	
+					m_StreamingMaxWindowSize = std::stoi(it->second);
+					if (m_StreamingMaxWindowSize < i2p::stream::MIN_WINDOW_SIZE) 
+						m_StreamingMaxWindowSize = i2p::stream::MIN_WINDOW_SIZE;
+				}	
 				it = params->find (I2CP_PARAM_STREAMING_ANSWER_PINGS);
 				if (it != params->end ())
 				{	

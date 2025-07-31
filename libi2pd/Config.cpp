@@ -124,7 +124,7 @@ namespace config {
 			("httpproxy.i2p.streaming.maxOutboundSpeed", value<std::string>()->default_value("1730000000"), "Max outbound speed of HTTP proxy stream in bytes/sec")
 			("httpproxy.i2p.streaming.maxInboundSpeed", value<std::string>()->default_value("1730000000"), "Max inbound speed of HTTP proxy stream in bytes/sec")
 			("httpproxy.i2p.streaming.profile", value<std::string>()->default_value("1"), "HTTP Proxy bandwidth usage profile. 1 - bulk(high), 2- interactive(low)")
-
+			("httpproxy.i2p.streaming.maxWindowSize", value<std::string>()->default_value("512"), "HTTP Proxy stream max window size. 512 by default")
 		;
 
 		options_description socksproxy("SOCKS Proxy options");
@@ -152,6 +152,7 @@ namespace config {
 			("socksproxy.i2p.streaming.maxOutboundSpeed", value<std::string>()->default_value("1730000000"), "Max outbound speed of SOCKS proxy stream in bytes/sec")
 			("socksproxy.i2p.streaming.maxInboundSpeed", value<std::string>()->default_value("1730000000"), "Max inbound speed of SOCKS proxy stream in bytes/sec")
 			("socksproxy.i2p.streaming.profile", value<std::string>()->default_value("1"), "SOCKS Proxy bandwidth usage profile. 1 - bulk(high), 2- interactive(low)")
+			("socksproxy.i2p.streaming.maxWindowSize", value<std::string>()->default_value("512"), "SOCKS Proxy stream max window size. 512 by default")
 		;
 
 		options_description shareddest("Shared local destination options");

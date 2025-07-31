@@ -101,6 +101,7 @@ namespace client
 	const int DEFAULT_STREAMING_PROFILE = STREAMING_PROFILE_BULK;
 	const char I2CP_PARAM_STREAMING_MAX_CONCURRENT_STREAMS[] = "i2p.streaming.maxConcurrentStreams";
 	const int DEFAULT_MAX_CONCURRENT_STREAMS = 2048;
+	const char I2CP_PARAM_STREAMING_MAX_WINDOW_SIZE[] = "i2p.streaming.maxWindowSize";
 	
 	typedef std::function<void (std::shared_ptr<i2p::stream::Stream> stream)> StreamRequestComplete;
 
@@ -271,6 +272,7 @@ namespace client
 			int GetStreamingInboundSpeed () const { return m_StreamingInboundSpeed; }
 			int GetStreamingMaxConcurrentStreams () const { return m_StreamingMaxConcurrentStreams; }
 			bool IsStreamingAnswerPings () const { return m_IsStreamingAnswerPings; }
+			int GetStreamingMaxWindowSize () const { return m_StreamingMaxWindowSize; }
 
 			// datagram
 			i2p::datagram::DatagramDestination * GetDatagramDestination () const { return m_DatagramDestination; };
@@ -311,7 +313,7 @@ namespace client
 			std::map<i2p::data::CryptoKeyType, std::shared_ptr<i2p::crypto::LocalEncryptionKey> > m_EncryptionKeys; // last is most preferable
 			i2p::data::CryptoKeyType m_PreferredCryptoType;
 			
-			int m_StreamingAckDelay,m_StreamingOutboundSpeed, m_StreamingInboundSpeed, m_StreamingMaxConcurrentStreams;
+			int m_StreamingAckDelay,m_StreamingOutboundSpeed, m_StreamingInboundSpeed, m_StreamingMaxConcurrentStreams, m_StreamingMaxWindowSize;
 			bool m_IsStreamingAnswerPings;
 			std::shared_ptr<i2p::stream::StreamingDestination> m_StreamingDestination; // default
 			std::map<uint16_t, std::shared_ptr<i2p::stream::StreamingDestination> > m_StreamingDestinationsByPorts;
