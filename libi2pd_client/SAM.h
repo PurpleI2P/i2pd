@@ -91,7 +91,7 @@ namespace client
 	constexpr std::string_view SAM_VALUE_RAW { "RAW" };
 	constexpr std::string_view SAM_VALUE_MASTER { "MASTER" };
 	
-	enum SAMSocketType
+	enum class SAMSocketType
 	{
 		eSAMSocketTypeUnknown,
 		eSAMSocketTypeSession,
@@ -184,7 +184,7 @@ namespace client
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
 	};
 
-	enum SAMSessionType
+	enum class SAMSessionType
 	{
 		eSAMSessionTypeUnknown,
 		eSAMSessionTypeStream,
@@ -226,7 +226,7 @@ namespace client
 	{
 		std::set<std::string, std::less<> > subsessions;
 		SAMMasterSession (SAMBridge & parent, std::string_view name, std::shared_ptr<ClientDestination> dest):
-			SAMSingleSession (parent, name, eSAMSessionTypeMaster, dest) {};
+			SAMSingleSession (parent, name, SAMSessionType::eSAMSessionTypeMaster, dest) {};
 		void Close ();
 	};
 

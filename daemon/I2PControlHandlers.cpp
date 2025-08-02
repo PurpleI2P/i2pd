@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -340,7 +340,7 @@ namespace client
 				for (const auto& socket: sam->ListSockets(it.first))
 				{
 					boost::property_tree::ptree stream;
-					stream.put("type", socket->GetSocketType ());
+					stream.put("type", (int)socket->GetSocketType ());
 					stream.put("peer", socket->GetSocket ().remote_endpoint());
 
 					sam_session_sockets.push_back(std::make_pair("", stream));

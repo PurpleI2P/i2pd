@@ -982,10 +982,10 @@ namespace http {
 			s << "<div class=\"listitem\">";
 			switch (it->GetSocketType ())
 			{
-				case i2p::client::eSAMSocketTypeSession  : s << "session";  break;
-				case i2p::client::eSAMSocketTypeStream   : s << "stream";   break;
-				case i2p::client::eSAMSocketTypeAcceptor : s << "acceptor"; break;
-				case i2p::client::eSAMSocketTypeForward  : s << "forward";  break;
+				case i2p::client::SAMSocketType::eSAMSocketTypeSession  : s << "session";  break;
+				case i2p::client::SAMSocketType::eSAMSocketTypeStream   : s << "stream";   break;
+				case i2p::client::SAMSocketType::eSAMSocketTypeAcceptor : s << "acceptor"; break;
+				case i2p::client::SAMSocketType::eSAMSocketTypeForward  : s << "forward";  break;
 				default: s << "unknown"; break;
 			}
 			s << " [" << it->GetSocket ().remote_endpoint() << "]";
