@@ -354,7 +354,7 @@ namespace i2p
 					m_RouterInfo.UpdateCaps (m_RouterInfo.GetCaps () | i2p::data::RouterInfo::eReachable);
 				break;	
 				case eRouterStatusProxy:
-					m_RouterInfo.UpdateCaps (m_RouterInfo.GetCaps () | i2p::data::RouterInfo::eUnreachable);
+					m_RouterInfo.UpdateCaps ((m_RouterInfo.GetCaps () | i2p::data::RouterInfo::eUnreachable) & ~i2p::data::RouterInfo::eReachable);
 				break;	
 				default:
 					;
