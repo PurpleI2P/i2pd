@@ -947,7 +947,8 @@ namespace http {
 			for (auto& it: sam->GetSessions ())
 			{
 				auto& name = it.second->GetLocalDestination ()->GetNickname ();
-				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_SAM_SESSION << "&sam_id=" << it.first << "\">";
+				auto sam_id = i2p::data::ByteStreamToBase64 ((const uint8_t *)it.first.data (), it.first.length ()); // base64, becuase session name might be UTF-8
+				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_SAM_SESSION << "&sam_id=" << sam_id << "\">";
 				s << name << " (" << it.first << ")</a></div>\r\n" << std::endl;
 			}
 			s << "</div>\r\n";
@@ -959,13 +960,26 @@ namespace http {
 	void ShowSAMSession (std::stringstream& s, const std::string& id)
 	{
 		auto sam = i2p::client::context.GetSAMBridge ();
-		if (!sam) {
+		if (!sam) 
+		{
 			ShowError(s, tr("SAM disabled"));
 			return;
 		}
-
-		auto session = sam->FindSession (id);
-		if (!session) {
+		if (id.empty ())
+		{
+			ShowError(s, tr("No sam_id"));
+			return;
+		}		
+		std::vector<uint8_t> sam_id(id.length ()); // id is in base64
+		size_t l = i2p::data::Base64ToByteStream (id, sam_id.data (), sam_id.size ());
+		if (!l)
+		{
+			ShowError(s, tr("Invalid sam_id"));
+			return;
+		}
+		auto session = sam->FindSession ( { (const char *)sam_id.data (), l });
+		if (!session) 
+		{
 			ShowError(s, tr("SAM session not found"));
 			return;
 		}
@@ -977,7 +991,7 @@ namespace http {
 		s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a></div>\r\n";
 		s << "<br>\r\n";
 		s << "<b>" << tr("Streams") << ":</b><br>\r\n<div class=\"list\">\r\n";
-		for (const auto& it: sam->ListSockets(id))
+		for (const auto& it: sam->ListSockets({ (const char *)sam_id.data (), l }))
 		{
 			s << "<div class=\"listitem\">";
 			switch (it->GetSocketType ())
