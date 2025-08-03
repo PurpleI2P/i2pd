@@ -1590,14 +1590,17 @@ namespace client
 			if (dest)
 			{
 				auto streamingDest = dest->GetStreamingDestination ();
-				auto numStreams = streamingDest->GetNumStreams ();
-				if (numStreams > 0)
-				{
-					LogPrint (eLogInfo, "SAM: Session ", session->Name, " still has ", numStreams, " streams");
-					ScheduleSessionCleanupTimer (session);
+				if (streamingDest)
+				{	
+					auto numStreams = streamingDest->GetNumStreams ();
+					if (numStreams > 0)
+					{
+						LogPrint (eLogInfo, "SAM: Session ", session->Name, " still has ", numStreams, " streams");
+						ScheduleSessionCleanupTimer (session);
+					}	
+					else
+						LogPrint (eLogDebug, "SAM: Session ", session->Name, " terminated");
 				}	
-				else
-					LogPrint (eLogDebug, "SAM: Session ", session->Name, " terminated");
 			}	
 		}	
 		// session's destructor is called here unless rescheduled
