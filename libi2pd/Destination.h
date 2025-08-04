@@ -174,6 +174,7 @@ namespace client
 			int GetLeaseSetType () const { return m_LeaseSetType; };
 			void SetLeaseSetType (int leaseSetType) { m_LeaseSetType = leaseSetType; };
 			int GetAuthType () const { return m_AuthType; };
+			static bool GetBoolParamValue (std::string_view value);
 			virtual void CleanupDestination () {}; // additional clean up in derived classes
 			virtual i2p::data::CryptoKeyType GetPreferredCryptoType () const = 0;
 			// I2CP
