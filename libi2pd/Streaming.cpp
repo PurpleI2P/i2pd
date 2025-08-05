@@ -91,16 +91,18 @@ namespace stream
 		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true), 
 		m_IsWinDropped (true), m_IsChoking2 (false), m_IsClientChoked (false), m_IsClientChoked2 (false),
 		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_IsRemoteLeaseChangeInProgress (false), 
-		m_IsBufferEmpty (false), m_IsJavaClient (false), m_LocalDestination (local),
-		m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service),
-		m_AckSendTimer (m_Service), m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (port),
-		m_RTT (INITIAL_RTT), m_MinRTT (INITIAL_RTT), m_SlowRTT (INITIAL_RTT), m_FastRTT (INITIAL_RTT), 
-		m_WindowSize (INITIAL_WINDOW_SIZE), m_MaxWindowSize (local.GetOwner ()->GetStreamingMaxWindowSize ()),
-		m_LastWindowDropSize  (0), m_WindowDropTargetSize (0), m_WindowIncCounter (0), m_RTO (INITIAL_RTO),
+		m_IsBufferEmpty (false), m_IsJavaClient (false), m_DontSign (local.GetOwner ()->IsStreamingDontSign ()), 
+		m_LocalDestination (local), m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service), 
+		m_SendTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service), m_NumSentBytes (0),
+		m_NumReceivedBytes (0), m_Port (port), m_RTT (INITIAL_RTT), m_MinRTT (INITIAL_RTT), 
+		m_SlowRTT (INITIAL_RTT), m_FastRTT (INITIAL_RTT), m_WindowSize (INITIAL_WINDOW_SIZE),
+		m_MaxWindowSize (local.GetOwner ()->GetStreamingMaxWindowSize ()), m_LastWindowDropSize (0), 
+		m_WindowDropTargetSize (0), m_WindowIncCounter (0), m_RTO (INITIAL_RTO),
 		m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()), m_PrevRTTSample (INITIAL_RTT), 
-		m_Jitter (0), m_MinPacingTime (0),
-		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_LastSendTime (0), m_LastACKRecieveTime (0), m_ACKRecieveInterval (local.GetOwner ()->GetStreamingAckDelay ()), m_RemoteLeaseChangeTime (0), m_LastWindowIncTime (0), m_LastACKRequestTime (0),
-		m_LastACKSendTime (0), m_PacketACKInterval (1), m_PacketACKIntervalRem (0), // for limit inbound speed
+		m_Jitter (0), m_MinPacingTime (0), m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), 
+		m_LastSendTime (0), m_LastACKRecieveTime (0), m_ACKRecieveInterval (local.GetOwner ()->GetStreamingAckDelay ()), 
+		m_RemoteLeaseChangeTime (0), m_LastWindowIncTime (0), m_LastACKRequestTime (0), m_LastACKSendTime (0), 
+		m_PacketACKInterval (1), m_PacketACKIntervalRem (0), // for limit inbound speed
 		m_NumResendAttempts (0), m_NumPacketsToSend (0), m_JitterAccum (0), m_JitterDiv (1), m_MTU (STREAMING_MTU)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
@@ -122,14 +124,16 @@ namespace stream
 		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true), 
 		m_IsWinDropped (true), m_IsChoking2 (false), m_IsClientChoked (false), m_IsClientChoked2 (false),
 		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_IsRemoteLeaseChangeInProgress (false),
-		m_IsBufferEmpty (false), m_IsJavaClient (false), m_LocalDestination (local),
-		m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service),
-		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0), m_RTT (INITIAL_RTT), m_MinRTT (INITIAL_RTT), m_SlowRTT (INITIAL_RTT), m_FastRTT (INITIAL_RTT),
+		m_IsBufferEmpty (false), m_IsJavaClient (false), m_DontSign (local.GetOwner ()->IsStreamingDontSign ()),
+		m_LocalDestination (local),m_ReceiveTimer (m_Service), m_SendTimer (m_Service),
+		m_ResendTimer (m_Service), m_AckSendTimer (m_Service),m_NumSentBytes (0), m_NumReceivedBytes (0),
+		m_Port (0), m_RTT (INITIAL_RTT), m_MinRTT (INITIAL_RTT), m_SlowRTT (INITIAL_RTT), m_FastRTT (INITIAL_RTT),
 		m_WindowSize (INITIAL_WINDOW_SIZE), m_MaxWindowSize (local.GetOwner ()->GetStreamingMaxWindowSize ()), 
-		m_LastWindowDropSize  (0), m_WindowDropTargetSize (0), m_WindowIncCounter (0), 
-		m_RTO (INITIAL_RTO), m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
-		m_PrevRTTSample (INITIAL_RTT), m_Jitter (0), m_MinPacingTime (0),
-		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_LastSendTime (0), m_LastACKRecieveTime (0), m_ACKRecieveInterval (local.GetOwner ()->GetStreamingAckDelay ()), m_RemoteLeaseChangeTime (0), m_LastWindowIncTime (0), m_LastACKRequestTime (0),
+		m_LastWindowDropSize  (0), m_WindowDropTargetSize (0), m_WindowIncCounter (0), m_RTO (INITIAL_RTO),
+		m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),m_PrevRTTSample (INITIAL_RTT), m_Jitter (0), 
+		m_MinPacingTime (0), m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_LastSendTime (0),
+		m_LastACKRecieveTime (0), m_ACKRecieveInterval (local.GetOwner ()->GetStreamingAckDelay ()), 
+		m_RemoteLeaseChangeTime (0), m_LastWindowIncTime (0), m_LastACKRequestTime (0),
 		m_LastACKSendTime (0), m_PacketACKInterval (1), m_PacketACKIntervalRem (0), // for limit inbound speed
 		m_NumResendAttempts (0), m_NumPacketsToSend (0), m_JitterAccum (0), m_JitterDiv (1), m_MTU (STREAMING_MTU)
 	{
@@ -487,7 +491,9 @@ namespace stream
 					return false;
 				}	
 				sessionVerified = true;
-			}	
+				if (!(flags & PACKET_FLAG_SIGNATURE_INCLUDED))
+					m_DontSign = true; // don't sign if the remote didn't sign
+			}
 		}
 
 		if (flags & PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED)
@@ -942,8 +948,8 @@ namespace stream
 					m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true, !m_IsIncoming);
 					m_MTU = (m_RoutingSession && m_RoutingSession->IsRatchets ()) ? STREAMING_MTU_RATCHETS : STREAMING_MTU;
 				}
-				uint16_t flags = PACKET_FLAG_SYNCHRONIZE | PACKET_FLAG_FROM_INCLUDED |
-					PACKET_FLAG_SIGNATURE_INCLUDED | PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED;
+				uint16_t flags = PACKET_FLAG_SYNCHRONIZE | PACKET_FLAG_FROM_INCLUDED | PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED;
+				if (!m_DontSign) flags |= PACKET_FLAG_SIGNATURE_INCLUDED;
 				if (isNoAck) flags |= PACKET_FLAG_NO_ACK;
 				bool isOfflineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().IsOfflineSignature ();
 				if (isOfflineSignature) flags |= PACKET_FLAG_OFFLINE_SIGNATURE;
@@ -957,18 +963,26 @@ namespace stream
 				size += identityLen; // from
 				htobe16buf (packet + size, m_MTU);
 				size += 2; // max packet size
-				if (isOfflineSignature)
+				if (m_DontSign)
 				{
-					const auto& offlineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().GetOfflineSignature ();
-					memcpy (packet + size, offlineSignature.data (), offlineSignature.size ());
-					size += offlineSignature.size (); // offline signature
+					htobe16buf (optionsSize, packet + size - 2 - optionsSize); // actual options size
+					size += m_SendBuffer.Get (packet + size, m_MTU); // payload
 				}
-				uint8_t * signature = packet + size; // set it later
-				memset (signature, 0, signatureLen); // zeroes for now
-				size += signatureLen; // signature
-				htobe16buf (optionsSize, packet + size - 2 - optionsSize); // actual options size
-				size += m_SendBuffer.Get (packet + size, m_MTU); // payload
-				m_LocalDestination.GetOwner ()->Sign (packet, size, signature);
+				else
+				{	
+					if (isOfflineSignature)
+					{
+						const auto& offlineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().GetOfflineSignature ();
+						memcpy (packet + size, offlineSignature.data (), offlineSignature.size ());
+						size += offlineSignature.size (); // offline signature
+					}
+					uint8_t * signature = packet + size; // set it later
+					memset (signature, 0, signatureLen); // zeroes for now
+					size += signatureLen; // signature
+					htobe16buf (optionsSize, packet + size - 2 - optionsSize); // actual options size
+					size += m_SendBuffer.Get (packet + size, m_MTU); // payload
+					m_LocalDestination.GetOwner ()->Sign (packet, size, signature);
+				}	
 			}
 			else
 			{
@@ -1253,15 +1267,25 @@ namespace stream
 		size++; // NACK count
 		packet[size] = 0;
 		size++; // resend delay
-		htobe16buf (packet + size, PACKET_FLAG_CLOSE | PACKET_FLAG_SIGNATURE_INCLUDED);
+		uint16_t flags = PACKET_FLAG_CLOSE;
+		if (!m_DontSign) flags |= PACKET_FLAG_SIGNATURE_INCLUDED;
+		htobe16buf (packet + size, flags);
 		size += 2; // flags
-		size_t signatureLen = m_LocalDestination.GetOwner ()->GetPrivateKeys ().GetSignatureLen ();
-		htobe16buf (packet + size, signatureLen); // signature only
-		size += 2; // options size
-		uint8_t * signature = packet + size;
-		memset (packet + size, 0, signatureLen);
-		size += signatureLen; // signature
-		m_LocalDestination.GetOwner ()->Sign (packet, size, signature);
+		if (m_DontSign)
+		{
+			memset (packet + size, 0, 2); // no options
+			size += 2; // options size
+		}	
+		else
+		{	
+			size_t signatureLen = m_LocalDestination.GetOwner ()->GetPrivateKeys ().GetSignatureLen ();
+			htobe16buf (packet + size, signatureLen); // signature only
+			size += 2; // options size
+			uint8_t * signature = packet + size;
+			memset (packet + size, 0, signatureLen);
+			size += signatureLen; // signature
+			m_LocalDestination.GetOwner ()->Sign (packet, size, signature);
+		}	
 
 		p->len = size;
 		boost::asio::post (m_Service, std::bind (&Stream::SendPacket, shared_from_this (), p));

@@ -273,22 +273,10 @@ namespace stream
 			int32_t m_PreviousReceivedSequenceNumber;
 			int32_t m_LastConfirmedReceivedSequenceNumber; // for limit inbound speed
 			StreamStatus m_Status;
-			bool m_IsIncoming;
-			bool m_IsAckSendScheduled;
-			bool m_IsNAcked;
-			bool m_IsFirstACK;
-			bool m_IsResendNeeded;
-			bool m_IsFirstRttSample;
-			bool m_IsSendTime;
-			bool m_IsWinDropped;
-			bool m_IsChoking2;
-			bool m_IsClientChoked;
-			bool m_IsClientChoked2;
-			bool m_IsTimeOutResend;
-			bool m_IsImmediateAckRequested;
-			bool m_IsRemoteLeaseChangeInProgress;
-			bool m_IsBufferEmpty;
-			bool m_IsJavaClient;
+			bool m_IsIncoming, m_IsAckSendScheduled, m_IsNAcked, m_IsFirstACK, m_IsResendNeeded,
+				m_IsFirstRttSample, m_IsSendTime, m_IsWinDropped, m_IsChoking2, m_IsClientChoked,
+				m_IsClientChoked2, m_IsTimeOutResend, m_IsImmediateAckRequested,
+				m_IsRemoteLeaseChangeInProgress, m_IsBufferEmpty, m_IsJavaClient, m_DontSign;
 			StreamingDestination& m_LocalDestination;
 			std::shared_ptr<const i2p::data::IdentityEx> m_RemoteIdentity;
 			std::shared_ptr<const i2p::crypto::Verifier> m_TransientVerifier; // in case of offline key

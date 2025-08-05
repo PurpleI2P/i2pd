@@ -1027,9 +1027,9 @@ namespace client
 		m_StreamingInboundSpeed (DEFAULT_MAX_INBOUND_SPEED),
 		m_StreamingMaxConcurrentStreams (DEFAULT_MAX_CONCURRENT_STREAMS),
 		m_StreamingMaxWindowSize (i2p::stream::MAX_WINDOW_SIZE),
-		m_IsStreamingAnswerPings (DEFAULT_ANSWER_PINGS), m_LastPort (0),
-		m_DatagramDestination (nullptr), m_RefCounter (0), m_LastPublishedTimestamp (0),
-		m_ReadyChecker(service)
+		m_IsStreamingAnswerPings (DEFAULT_ANSWER_PINGS), m_IsStreamingDontSign (DEFAULT_DONT_SIGN), 
+		m_LastPort (0), m_DatagramDestination (nullptr), m_RefCounter (0), 
+		m_LastPublishedTimestamp (0), m_ReadyChecker(service)
 	{
 		if (keys.IsOfflineSignature () && GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_LEASESET)
 			SetLeaseSetType (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2); // offline keys can be published with LS2 only
@@ -1114,7 +1114,10 @@ namespace client
 				it = params->find (I2CP_PARAM_STREAMING_ANSWER_PINGS);
 				if (it != params->end ())
 					m_IsStreamingAnswerPings = GetBoolParamValue (it->second);
-
+				it = params->find (I2CP_PARAM_STREAMING_DONT_SIGN);
+				if (it != params->end ())
+					m_IsStreamingDontSign = GetBoolParamValue (it->second);
+				
 				if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
 				{
 					// authentication for encrypted LeaseSet
