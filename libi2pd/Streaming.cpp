@@ -1218,7 +1218,8 @@ namespace stream
 		size += 4; // sendStreamID
 		memset (packet + size, 0, 14);
 		size += 14; // all zeroes
-		uint16_t flags = PACKET_FLAG_ECHO | PACKET_FLAG_SIGNATURE_INCLUDED | PACKET_FLAG_FROM_INCLUDED;
+		uint16_t flags = PACKET_FLAG_ECHO | PACKET_FLAG_FROM_INCLUDED;
+		if (!m_DontSign) flags |= PACKET_FLAG_SIGNATURE_INCLUDED;
 		bool isOfflineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().IsOfflineSignature ();
 		if (isOfflineSignature) flags |= PACKET_FLAG_OFFLINE_SIGNATURE;
 		htobe16buf (packet + size, flags);
@@ -1229,17 +1230,22 @@ namespace stream
 		size += 2; // options size
 		m_LocalDestination.GetOwner ()->GetIdentity ()->ToBuffer (packet + size, identityLen);
 		size += identityLen; // from
-		if (isOfflineSignature)
-		{
-			const auto& offlineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().GetOfflineSignature ();
-			memcpy (packet + size, offlineSignature.data (), offlineSignature.size ());
-			size += offlineSignature.size (); // offline signature
-		}
-		uint8_t * signature = packet + size; // set it later
-		memset (signature, 0, signatureLen); // zeroes for now
-		size += signatureLen; // signature
-		htobe16buf (optionsSize, packet + size - 2 - optionsSize); // actual options size
-		m_LocalDestination.GetOwner ()->Sign (packet, size, signature);
+		if (m_DontSign)
+			htobe16buf (optionsSize, packet + size - 2 - optionsSize); // actual options size
+		else
+		{	
+			if (isOfflineSignature)
+			{
+				const auto& offlineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().GetOfflineSignature ();
+				memcpy (packet + size, offlineSignature.data (), offlineSignature.size ());
+				size += offlineSignature.size (); // offline signature
+			}
+			uint8_t * signature = packet + size; // set it later
+			memset (signature, 0, signatureLen); // zeroes for now
+			size += signatureLen; // signature
+			htobe16buf (optionsSize, packet + size - 2 - optionsSize); // actual options size
+			m_LocalDestination.GetOwner ()->Sign (packet, size, signature);
+		}	
 		p.len = size;
 		SendPackets (std::vector<Packet *> { &p });
 		LogPrint (eLogDebug, "Streaming: Ping of ", p.len, " bytes sent");
