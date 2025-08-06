@@ -461,9 +461,10 @@ namespace stream
 			optionData += 2;
 		}
 
-		bool sessionVerified = false;
+		bool verified = true;
 		if (flags & PACKET_FLAG_FROM_INCLUDED)
 		{
+			verified = false;
 			if (m_RemoteLeaseSet) m_RemoteIdentity = m_RemoteLeaseSet->GetIdentity ();
 			if (!m_RemoteIdentity)
 				m_RemoteIdentity = std::make_shared<i2p::data::IdentityEx>(optionData, optionSize);
@@ -490,7 +491,7 @@ namespace stream
 						m_RemoteIdentity->GetIdentHash ().ToBase32 ());
 					return false;
 				}	
-				sessionVerified = true;
+				verified = true;
 				if (!(flags & PACKET_FLAG_SIGNATURE_INCLUDED))
 					m_DontSign = true; // don't sign if the remote didn't sign
 			}
@@ -503,6 +504,27 @@ namespace stream
 			optionData += 2;
 		}
 
+		if (flags & (PACKET_FLAG_CLOSE | PACKET_FLAG_RESET))
+		{
+			verified = false;
+			if (packet->from && !m_RemoteLeaseSet && m_RemoteIdentity)
+				m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());
+			if (m_RemoteLeaseSet)
+			{
+				uint8_t staticKey[32];
+				m_RemoteLeaseSet->Encrypt (nullptr, staticKey);
+				if (memcmp (packet->from->GetRemoteStaticKey (), staticKey, 32))
+				{
+					LogPrint (eLogError, "Streaming: Remote LeaseSet static key mismatch for stream from ", 
+						m_RemoteIdentity->GetIdentHash ().ToBase32 ());
+					return false;
+				}	
+				verified = true;
+			}	
+			else // invalid stream, safe to close
+				verified = true;
+		}	
+		
 		if (flags & PACKET_FLAG_OFFLINE_SIGNATURE)
 		{
 			if (!m_RemoteIdentity)
@@ -510,7 +532,7 @@ namespace stream
 				LogPrint (eLogInfo, "Streaming: offline signature without identity");
 				return false;
 			}
-			if (sessionVerified)
+			if (verified)
 			{
 				// skip offline signature
 				optionData += 4; // timestamp 
@@ -558,7 +580,6 @@ namespace stream
 				LogPrint (eLogError, "Streaming: Signature too big, ", signatureLen, " bytes");
 				return false;
 			}	
-			bool verified = sessionVerified;
 			if (!verified) // packet was not verified through session
 			{	
 				// verify actual signature
@@ -591,8 +612,13 @@ namespace stream
 			{
 				LogPrint (eLogError, "Streaming: Signature verification failed, sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID);
 				return false;
-			}	
+			}
 		}
+		if (!verified)
+		{
+			LogPrint (eLogError, "Streaming: Missing signature, sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID);
+			return false;
+		}	
 		if (immediateAckRequested)
 			SendQuickAck ();
 		return true;
