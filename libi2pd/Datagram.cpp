@@ -60,28 +60,49 @@ namespace datagram
 	{
 		if (session)
 		{
-			if (session->GetVersion () == eDatagramV3)
+			std::shared_ptr<I2NPMessage>  msg;
+			switch (session->GetVersion ())
 			{
-				constexpr uint8_t flags[] = { 0x00, 0x03 }; // datagram3, no options
-				auto msg = CreateDataMessage ({{m_Owner->GetIdentity ()->GetIdentHash (), 32}, 
-					{flags, 2}, {payload, len}}, fromPort, toPort, i2p::client::PROTOCOL_TYPE_DATAGRAM3, false); // datagram3
-				session->SendMsg(msg);
-			}
-			else
-			{	
-				if (m_Owner->GetIdentity ()->GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
+				case eDatagramV3:
 				{
-					uint8_t hash[32];
-					SHA256(payload, len, hash);
-					m_Owner->Sign (hash, 32, m_Signature.data ());
+					constexpr uint8_t flags[] = { 0x00, 0x03 }; // datagram3, no options
+					msg = CreateDataMessage ({{m_Owner->GetIdentity ()->GetIdentHash (), 32}, 
+						{flags, 2}, {payload, len}}, fromPort, toPort, i2p::client::PROTOCOL_TYPE_DATAGRAM3, false); // datagram3
+					break;
 				}
-				else
-					m_Owner->Sign (payload, len, m_Signature.data ());
+				case eDatagramV1:
+				{	
+					if (m_Owner->GetIdentity ()->GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
+					{
+						uint8_t hash[32];
+						SHA256(payload, len, hash);
+						m_Owner->Sign (hash, 32, m_Signature.data ());
+					}
+					else
+						m_Owner->Sign (payload, len, m_Signature.data ());
+					msg = CreateDataMessage ({{m_From.data (), m_From.size ()}, {m_Signature.data (), m_Signature.size ()}, {payload, len}},
+						fromPort, toPort, i2p::client::PROTOCOL_TYPE_DATAGRAM, !session->IsRatchets ()); // datagram1
+					break;
+				}
+				case eDatagramV2:
+				{
+					constexpr uint8_t flags[] = { 0x00, 0x02 }; // datagram2, no options
+					// signature
+					std::vector<uint8_t> signedData (len + 32 + 2);
+					memcpy (signedData.data (), m_Owner->GetIdentity ()->GetIdentHash (), 32);
+					memcpy (signedData.data () + 32, flags, 2);
+					memcpy (signedData.data () + 34, payload, len);
+					m_Owner->Sign (signedData.data (), signedData.size (), m_Signature.data ());
+					// TODO: offline signatures and options
+					msg = CreateDataMessage ({{m_From.data (), m_From.size ()}, {flags, 2}, {payload, len}, 
+						{m_Signature.data (), m_Signature.size ()}}, fromPort, toPort, i2p::client::PROTOCOL_TYPE_DATAGRAM2, false); // datagram2
 
-				auto msg = CreateDataMessage ({{m_From.data (), m_From.size ()}, {m_Signature.data (), m_Signature.size ()}, {payload, len}},
-					fromPort, toPort, i2p::client::PROTOCOL_TYPE_DATAGRAM, !session->IsRatchets ()); // datagram1
-				session->SendMsg(msg);
-			}	
+					break;
+				}	
+				default:
+					LogPrint (eLogError, "Datagram: datagram type ", (int)session->GetVersion (), " is not supported");
+			}
+			if (msg) session->SendMsg(msg);
 		}
 	}
 
