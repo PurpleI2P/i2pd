@@ -893,11 +893,17 @@ namespace client
 				SendSessionI2PError("Unsupported STYLE");
 				return;
 			}
-			auto fromPort = std::stoi(std::string (params[SAM_PARAM_FROM_PORT]));
-			if (fromPort == -1)
+			uint16_t fromPort = 0;
+			auto it = params.find (SAM_PARAM_FROM_PORT);
+			if (it != params.end ())
 			{
-				SendSessionI2PError("Invalid from port");
-				return;
+				auto p = it->second;
+				auto res = std::from_chars(p.data(), p.data() + p.size(), fromPort);
+				if (res.ec != std::errc())
+				{
+					SendSessionI2PError("Invalid from port");
+					return;
+				}
 			}
 			auto subsession = std::make_shared<SAMSubSession>(masterSession, id, type, fromPort);
 			if (m_Owner.AddSession (subsession))
@@ -1364,9 +1370,10 @@ namespace client
 
 	SAMSubSession::SAMSubSession (std::shared_ptr<SAMMasterSession> master, std::string_view name, SAMSessionType type, uint16_t port):
 		SAMSession (master->m_Bridge, name, type), masterSession (master), inPort (port)
-	{
-		if (Type == SAMSessionType::eSAMSessionTypeStream)
+	{	
+		if (Type == SAMSessionType::eSAMSessionTypeStream && port)
 		{
+			// additional streaming destination, use default if port is 0
 			auto d = masterSession->GetLocalDestination ()->CreateStreamingDestination (inPort);
 			if (d) d->Start ();
 		}
