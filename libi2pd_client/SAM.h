@@ -94,6 +94,7 @@ namespace client
 	constexpr int MAKE_SAM_VERSION_NUMBER (int major, int minor) { return major*10 + minor; }
 	constexpr int MIN_SAM_VERSION = MAKE_SAM_VERSION_NUMBER (3, 0);
 	constexpr int MAX_SAM_VERSION = MAKE_SAM_VERSION_NUMBER (3, 3);
+	constexpr int SAM_VERSION_33 = MAKE_SAM_VERSION_NUMBER (3, 3); // SAM 3.3
 	
 	enum class SAMSocketType
 	{

@@ -373,7 +373,15 @@ namespace client
 			}	
 		}	
 		else if (style == SAM_VALUE_RAW) type = SAMSessionType::eSAMSessionTypeRaw;
-		else if (style == SAM_VALUE_MASTER) type = SAMSessionType::eSAMSessionTypeMaster;
+		else if (style == SAM_VALUE_MASTER)
+		{	
+			if (m_Version < SAM_VERSION_33) // < SAM 3.3
+			{
+				SendSessionI2PError("MASTER session is not supported");
+				return;
+			}	
+			type = SAMSessionType::eSAMSessionTypeMaster;
+		}	
 		if (type == SAMSessionType::eSAMSessionTypeUnknown)
 		{
 			// unknown style
@@ -868,6 +876,11 @@ namespace client
 
 	void SAMSocket::ProcessSessionAdd (std::string_view buf)
 	{
+		if (m_Version < SAM_VERSION_33) // < SAM 3.3
+		{
+			SendSessionI2PError("SESSION ADD is not supported");
+			return;
+		}	
 		auto session = m_Owner.FindSession(m_ID);
 		if (session && session->Type == SAMSessionType::eSAMSessionTypeMaster)
 		{
@@ -918,6 +931,11 @@ namespace client
 
 	void SAMSocket::ProcessSessionRemove (std::string_view buf)
 	{
+		if (m_Version < SAM_VERSION_33) // < SAM 3.3
+		{
+			SendSessionI2PError("SESSION REMOVE is not supported");
+			return;
+		}
 		auto session = m_Owner.FindSession(m_ID);
 		if (session && session->Type == SAMSessionType::eSAMSessionTypeMaster)
 		{
