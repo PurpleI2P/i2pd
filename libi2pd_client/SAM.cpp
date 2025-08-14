@@ -26,9 +26,9 @@ namespace client
 {
 	SAMSocket::SAMSocket (SAMBridge& owner):
 		m_Owner (owner), m_Socket(owner.GetService()), m_Timer (m_Owner.GetService ()),
-		m_BufferOffset (0),
-		m_SocketType (SAMSocketType::eSAMSocketTypeUnknown), m_IsSilent (false),
-		m_IsAccepting (false), m_IsReceiving (false)
+		m_BufferOffset (0), m_SocketType (SAMSocketType::eSAMSocketTypeUnknown),
+		m_IsSilent (false), m_IsAccepting (false), m_IsReceiving (false),
+		m_Version (MIN_SAM_VERSION)
 	{
 	}
 
@@ -81,21 +81,26 @@ namespace client
 			std::placeholders::_1, std::placeholders::_2));
 	}
 
-	static bool SAMVersionAcceptable(const std::string & ver)
+	static int ExtractVersion (std::string_view ver)
 	{
-		return ver == "3.0" || ver == "3.1";
-	}
+		int version = 0;
+		for (auto ch: ver)
+		{
+			if (ch >= '0' && ch <= '9')
+			{
+				version *= 10;
+				version += (ch - '0');
+			}
+		}
+		return version;
+	}	
 
-	static bool SAMVersionTooLow(const std::string & ver)
+	static std::string CreateVersion (int ver)
 	{
-		return ver.size() && ver[0] < '3';
-	}
-
-	static bool SAMVersionTooHigh(const std::string & ver)
-	{
-		return ver.size() && ver > "3.1";
-	}
-
+		auto d = div (ver, 10);
+		return std::to_string (d.quot) + "." + std::to_string (d.rem);
+	}	
+		
 	void SAMSocket::HandleHandshakeReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
 		if (ecode)
@@ -121,8 +126,7 @@ namespace client
 
 			if (!strcmp (m_Buffer, SAM_HANDSHAKE))
 			{
-				std::string maxver("3.1");
-				std::string minver("3.0");
+				int minVer = 0, maxVer = 0;
 				// try to find MIN and MAX, 3.0 if not found
 				if (separator)
 				{
@@ -130,39 +134,33 @@ namespace client
 					auto params = ExtractParams (separator);
 					auto it = params.find (SAM_PARAM_MAX);
 					if (it != params.end ())
-						maxver = it->second;
+						maxVer = ExtractVersion (it->second);
 					it = params.find(SAM_PARAM_MIN);
 					if (it != params.end ())
-						minver = it->second;
+						minVer = ExtractVersion (it->second);
 				}
 				// version negotiation
-				std::string version;
-				if (SAMVersionAcceptable(maxver))
-				{
-					version = maxver;
-				}
-				else if (SAMVersionAcceptable(minver))
-				{
-					version = minver;
-				}
-				else if (SAMVersionTooLow(minver) && SAMVersionTooHigh(maxver))
-				{
-					version = "3.0";
-				}
-
-				if (SAMVersionAcceptable(version))
-				{
-#ifdef _MSC_VER
-					size_t l = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_HANDSHAKE_REPLY, version.c_str ());
-#else
-					size_t l = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_HANDSHAKE_REPLY, version.c_str ());
-#endif
-					boost::asio::async_write (m_Socket, boost::asio::buffer (m_Buffer, l), boost::asio::transfer_all (),
-						std::bind(&SAMSocket::HandleHandshakeReplySent, shared_from_this (),
-						std::placeholders::_1, std::placeholders::_2));
-				}
+				if (maxVer && maxVer <= MAX_SAM_VERSION)
+					m_Version = maxVer;
+				else if (minVer && minVer >= MIN_SAM_VERSION && minVer <= MAX_SAM_VERSION)
+					m_Version = minVer;
+				else if (!maxVer && !minVer)
+					m_Version = MIN_SAM_VERSION;
 				else
-					SendMessageReply (SAM_HANDSHAKE_NOVERSION, strlen (SAM_HANDSHAKE_NOVERSION), true);
+				{
+					LogPrint (eLogError, "SAM: Handshake version mismatch ", minVer, " ", maxVer);
+					SendMessageReply (SAM_HANDSHAKE_NOVERSION, true);
+					return;
+				}	
+				// send reply         
+#ifdef _MSC_VER
+				size_t l = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_HANDSHAKE_REPLY, CreateVersion (m_Version).c_str ());
+#else
+				size_t l = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_HANDSHAKE_REPLY, CreateVersion (m_Version).c_str ());
+#endif
+				boost::asio::async_write (m_Socket, boost::asio::buffer (m_Buffer, l), boost::asio::transfer_all (),
+					std::bind(&SAMSocket::HandleHandshakeReplySent, shared_from_this (),
+					std::placeholders::_1, std::placeholders::_2));
 			}
 			else
 			{
@@ -193,12 +191,12 @@ namespace client
 		}
 	}
 
-	void SAMSocket::SendMessageReply (const char * msg, size_t len, bool close)
+	void SAMSocket::SendMessageReply (std::string_view msg, bool close)
 	{
 		LogPrint (eLogDebug, "SAMSocket::SendMessageReply, close=",close?"true":"false", " reason: ", msg);
 
 		if (!m_IsSilent || m_SocketType == SAMSocketType::eSAMSocketTypeForward)
-			boost::asio::async_write (m_Socket, boost::asio::buffer (msg, len), boost::asio::transfer_all (),
+			boost::asio::async_write (m_Socket, boost::asio::buffer (msg.data (), msg.size ()), boost::asio::transfer_all (),
 				std::bind(&SAMSocket::HandleMessageReplySent, shared_from_this (),
 				std::placeholders::_1, std::placeholders::_2, close));
 		else
@@ -341,14 +339,14 @@ namespace client
 		if(!IsAcceptableSessionName(id))
 		{
 			// invalid session id
-			SendMessageReply (SAM_SESSION_CREATE_INVALID_ID, strlen(SAM_SESSION_CREATE_INVALID_ID), true);
+			SendMessageReply (SAM_SESSION_CREATE_INVALID_ID, true);
 			return;
 		}
 		m_ID = id;
 		if (m_Owner.FindSession (id))
 		{
 			// session exists
-			SendMessageReply (SAM_SESSION_CREATE_DUPLICATED_ID, strlen(SAM_SESSION_CREATE_DUPLICATED_ID), true);
+			SendMessageReply (SAM_SESSION_CREATE_DUPLICATED_ID, true);
 			return;
 		}
 
@@ -412,7 +410,7 @@ namespace client
 		//ensure we actually received a destination
 		if (destination.empty())
 		{
-			SendMessageReply (SAM_SESSION_STATUS_INVALID_KEY, strlen(SAM_SESSION_STATUS_INVALID_KEY), true);
+			SendMessageReply (SAM_SESSION_STATUS_INVALID_KEY, true);
 			return;
 		}
 
@@ -422,7 +420,7 @@ namespace client
 			i2p::data::PrivateKeys keys;
 			if (!keys.FromBase64(destination))
 			{
-				SendMessageReply(SAM_SESSION_STATUS_INVALID_KEY, strlen(SAM_SESSION_STATUS_INVALID_KEY), true);
+				SendMessageReply(SAM_SESSION_STATUS_INVALID_KEY, true);
 				return;
 			}
 		}
@@ -465,7 +463,7 @@ namespace client
 			}
 		}
 		else
-			SendMessageReply (SAM_SESSION_CREATE_DUPLICATED_DEST, strlen(SAM_SESSION_CREATE_DUPLICATED_DEST), true);
+			SendMessageReply (SAM_SESSION_CREATE_DUPLICATED_DEST, true);
 	}
 
 	void SAMSocket::HandleSessionReadinessCheckTimer (const boost::system::error_code& ecode)
@@ -503,7 +501,7 @@ namespace client
 #else
 			size_t l2 = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_CREATE_REPLY_OK, priv.c_str ());
 #endif
-			SendMessageReply (m_Buffer, l2, false);
+			SendMessageReply ({m_Buffer, l2}, false);
 		}
 	}
 
@@ -571,10 +569,10 @@ namespace client
 						shared_from_this(), std::placeholders::_1));
 			}
 			else
-				SendMessageReply (SAM_STREAM_STATUS_INVALID_KEY, strlen(SAM_STREAM_STATUS_INVALID_KEY), true);
+				SendMessageReply (SAM_STREAM_STATUS_INVALID_KEY, true);
 		}
 		else
-			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
+			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, true);
 	}
 
 	void SAMSocket::Connect (std::shared_ptr<const i2p::data::LeaseSet> remote, std::shared_ptr<SAMSession> session)
@@ -591,16 +589,16 @@ namespace client
 					m_Stream->Send ((uint8_t *)m_Buffer, m_BufferOffset); // connect and send
 					m_BufferOffset = 0;
 					I2PReceive ();
-					SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
+					SendMessageReply (SAM_STREAM_STATUS_OK, false);
 				}
 				else
-					SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
+					SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, true);
 			}
 			else
 				SendStreamCantReachPeer ("Incompatible crypto");
 		}
 		else
-			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
+			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, true);
 	}
 
 	void SAMSocket::HandleConnectLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet)
@@ -634,7 +632,7 @@ namespace client
 			if (!session->GetLocalDestination ()->IsAcceptingStreams ())
 			{
 				m_IsAccepting = true;
-				SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
+				SendMessageReply (SAM_STREAM_STATUS_OK, false);
 				session->GetLocalDestination ()->AcceptOnce (std::bind (&SAMSocket::HandleI2PAccept, shared_from_this (), std::placeholders::_1));
 			}
 			else
@@ -650,7 +648,7 @@ namespace client
 				if (session->acceptQueue.size () < SAM_SESSION_MAX_ACCEPT_QUEUE_SIZE)
 				{
 					// already accepting, queue up
-					SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
+					SendMessageReply (SAM_STREAM_STATUS_OK, false);
 					session->acceptQueue.push_back (std::make_pair(shared_from_this(), ts));
 				}
 				else
@@ -661,7 +659,7 @@ namespace client
 			}
 		}
 		else
-			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
+			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, true);
 	}
 
 	void SAMSocket::ProcessStreamForward (std::string_view buf)
@@ -680,7 +678,7 @@ namespace client
 		auto session = m_Owner.FindSession(id);
 		if (!session)
 		{
-			SendMessageReply(SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
+			SendMessageReply(SAM_STREAM_STATUS_INVALID_ID, true);
 			return;
 		}
 		if (session->GetLocalDestination()->IsAcceptingStreams())
@@ -748,7 +746,7 @@ namespace client
 		session->GetLocalDestination()->AcceptStreams(
 			std::bind(&SAMSocket::HandleI2PForward, shared_from_this(), std::placeholders::_1, ep));
 
-		SendMessageReply(SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
+		SendMessageReply(SAM_STREAM_STATUS_OK, false);
 	}
 
 
@@ -823,7 +821,7 @@ namespace client
 		size_t l = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY,
 			keys.GetPublic ()->ToBase64 ().c_str (), keys.ToBase64 ().c_str ());
 #endif
-		SendMessageReply (m_Buffer, l, false);
+		SendMessageReply ({m_Buffer, l}, false);
 	}
 
 	void SAMSocket::ProcessNamingLookup (std::string_view buf)
@@ -864,7 +862,7 @@ namespace client
 #else
 			size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
 #endif
-			SendMessageReply (m_Buffer, len, false);
+			SendMessageReply ({m_Buffer, len}, false);
 		}
 	}
 
@@ -880,7 +878,7 @@ namespace client
 			if (masterSession->subsessions.count (id) > 1)
 			{
 				// session exists
-				SendMessageReply (SAM_SESSION_CREATE_DUPLICATED_ID, strlen(SAM_SESSION_CREATE_DUPLICATED_ID), false);
+				SendMessageReply (SAM_SESSION_CREATE_DUPLICATED_ID, false);
 				return;
 			}
 			std::string_view style = params[SAM_PARAM_STYLE];
@@ -912,7 +910,7 @@ namespace client
 				SendSessionCreateReplyOk ();
 			}
 			else
-				SendMessageReply (SAM_SESSION_CREATE_DUPLICATED_ID, strlen(SAM_SESSION_CREATE_DUPLICATED_ID), false);
+				SendMessageReply (SAM_SESSION_CREATE_DUPLICATED_ID, false);
 		}
 		else
 			SendSessionI2PError ("Wrong session type");
@@ -929,7 +927,7 @@ namespace client
 			std::string id(params[SAM_PARAM_ID]);
 			if (!masterSession->subsessions.erase (id))
 			{
-				SendMessageReply (SAM_SESSION_STATUS_INVALID_KEY, strlen(SAM_SESSION_STATUS_INVALID_KEY), false);
+				SendMessageReply (SAM_SESSION_STATUS_INVALID_KEY, false);
 				return;
 			}
 			m_Owner.CloseSession (id);
@@ -946,7 +944,7 @@ namespace client
 #else
 		size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, reply, msg.c_str());
 #endif
-		SendMessageReply (m_Buffer, len, true);
+		SendMessageReply ({m_Buffer, len}, true);
 	}
 
 	void SAMSocket::SendSessionI2PError(const std::string & msg)
@@ -981,7 +979,7 @@ namespace client
 #else
 			size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
 #endif
-			SendMessageReply (m_Buffer, len, false);
+			SendMessageReply ({m_Buffer, len}, false);
 		}
 	}
 
@@ -993,7 +991,7 @@ namespace client
 #else
 		size_t l = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY, name.c_str (), base64.c_str ());
 #endif
-		SendMessageReply (m_Buffer, l, false);
+		SendMessageReply ({m_Buffer, l}, false);
 	}
 
 	const std::map<std::string_view, std::string_view> SAMSocket::ExtractParams (std::string_view buf)
