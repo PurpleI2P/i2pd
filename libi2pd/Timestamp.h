@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -14,6 +14,7 @@
 #include <vector>
 #include <string>
 #include <boost/asio.hpp>
+#include <boost/asio/deadline_timer.hpp> // for boost 1.89 
 
 namespace i2p
 {
