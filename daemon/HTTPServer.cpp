@@ -167,6 +167,11 @@ namespace http {
 	{
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
 
+		std::string theme; i2p::config::GetOption("http.theme", theme);
+		if(theme != "light" && theme != "black" ) theme = "light";
+		
+		
+
 		// Page language
 		std::string currLang = i2p::client::context.GetLanguage ()->GetLanguage(); // get current used language
 		auto it = i2p::i18n::languages.find(currLang);
@@ -184,6 +189,17 @@ namespace http {
 			"  <link rel=\"shortcut icon\" href=\"" << itoopieFavicon << "\">\r\n"
 			"  <title>" << tr(/* tr: Webconsole page title */ "Purple I2P Webconsole") << "</title>\r\n";
 		GetStyles(s);
+		if (theme == "black") 
+		{
+		s << 
+		"<style>:root {\r\n"
+         	"--main-bg-color: #242424;\r\n"
+                "--main-text-color: #17ab5c;\r\n"
+                "--main-link-color: #bf64b7;\r\n"
+                "--main-link-hover-color: #000000;\r\n"
+        	"}\r\n</style>";
+		
+		}
 		s <<
 			"</head>\r\n"
 			"<body>\r\n"

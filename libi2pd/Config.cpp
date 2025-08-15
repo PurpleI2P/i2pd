@@ -97,6 +97,7 @@ namespace config {
 			("http.webroot", value<std::string>()->default_value("/"),          "WebUI root path (default: / )")
 			("http.lang", value<std::string>()->default_value("english"),       "WebUI language (default: english )")
 			("http.showTotalTCSR", value<bool>()->default_value(false),         "Show additional value with total TCSR since router's start (default: false)")
+			("http.theme", value<std::string>()->default_value("light"), 	    "Theme for http web console")
 		;
 
 		options_description httpproxy("HTTP Proxy options");
