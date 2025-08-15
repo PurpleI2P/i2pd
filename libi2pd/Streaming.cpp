@@ -507,22 +507,25 @@ namespace stream
 		if (flags & (PACKET_FLAG_CLOSE | PACKET_FLAG_RESET))
 		{
 			verified = false;
-			if (packet->from && !m_RemoteLeaseSet && m_RemoteIdentity)
-				m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());
-			if (m_RemoteLeaseSet)
-			{
-				uint8_t staticKey[32];
-				m_RemoteLeaseSet->Encrypt (nullptr, staticKey);
-				if (memcmp (packet->from->GetRemoteStaticKey (), staticKey, 32))
+			if (packet->from)
+			{	
+				if (!m_RemoteLeaseSet && m_RemoteIdentity)
+					m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());
+				if (m_RemoteLeaseSet)
 				{
-					LogPrint (eLogError, "Streaming: Remote LeaseSet static key mismatch for stream from ", 
-						m_RemoteIdentity->GetIdentHash ().ToBase32 ());
-					return false;
+					uint8_t staticKey[32];
+					m_RemoteLeaseSet->Encrypt (nullptr, staticKey);
+					if (memcmp (packet->from->GetRemoteStaticKey (), staticKey, 32))
+					{
+						LogPrint (eLogError, "Streaming: Remote LeaseSet static key mismatch for stream from ", 
+							m_RemoteIdentity->GetIdentHash ().ToBase32 ());
+						return false;
+					}	
+					verified = true;
 				}	
-				verified = true;
-			}	
-			else // invalid stream, safe to close
-				verified = true;
+				else // invalid stream, safe to close
+					verified = true;
+			}
 		}	
 		
 		if (flags & PACKET_FLAG_OFFLINE_SIGNATURE)
