@@ -42,10 +42,10 @@
 
 namespace i2p {
 namespace http {
-	static void LoadExtCSS ()
+	static void LoadExtCSS (std::string fileName = "style.css")
 	{
 		std::stringstream s;
-		std::string styleFile = i2p::fs::DataDirPath ("webconsole/style.css");
+		std::string styleFile = i2p::fs::DataDirPath ("webconsole/"+fileName+".css");
 		if (i2p::fs::Exists(styleFile)) {
 			std::ifstream f(styleFile, std::ifstream::binary);
 			s << f.rdbuf();
@@ -168,7 +168,15 @@ namespace http {
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
 
 		std::string theme; i2p::config::GetOption("http.theme", theme);
-		if(theme != "light" && theme != "black" ) theme = "light";
+		if(theme != "light" && theme != "black" )
+		{
+			if (theme =="white") { 
+				theme = "light";
+			} else {
+				LoadExtCSS(theme);
+			}
+			
+		}
 		
 		
 
