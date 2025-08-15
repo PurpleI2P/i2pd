@@ -1,0 +1,160 @@
+/*
+ * Copyright (c) 2021-2025, The PurpleI2P Project
+ *
+ * This file is part of Purple i2pd project and licensed under BSD3
+ *
+ * See full license text in LICENSE file at top of project tree
+ *
+ ******************************************************************
+ *
+ * This is style sheet for webconsole, with @media selectors for adaptive
+ * view on desktop and mobile devices, respecting preferred user's color
+ * scheme used in system/browser.
+ *
+ * Minified copy of that style sheet is bundled inside i2pd sources.
+*/
+:root {
+	--main-bg-color: #0a0a0a; 
+	--main-text-color: #00ff99;  
+	--main-link-color: #ff00ff;    
+	--main-link-hover-color: #00ffff; 
+}
+
+body {
+	font: 100%/1.5em "Courier New", Courier, monospace;
+	margin: 0;
+	padding: 1.5em;
+	background: var(--main-bg-color);
+	color: var(--main-text-color);
+}
+
+a, .slide label {
+	text-decoration: none;
+	color: var(--main-link-color);
+}
+
+a:hover, a.button.selected, .slide label:hover, button[type=submit]:hover {
+	color: var(--main-link-hover-color);
+	background: var(--main-link-color);
+}
+.slidecontent {
+	display:none;
+}
+#slide-info {
+	display:none;
+}
+.enabled {
+	color: green;
+	text-shadow: 2px green;
+}
+.disabled {
+	color: red;
+}
+#slide-info:checked ~ .slidecontent {
+    display: block;
+}
+.header {
+	font-size: 2.5em;
+	text-align: center;
+	margin: 1em 0;
+	color: var(--main-link-color);
+	text-shadow: 0 0 5px #ff00ff, 0 0 10px #ff00ff;
+}
+
+.wrapper {
+	margin: 0 auto;
+	padding: 1em;
+	max-width: 64em;
+}
+
+.menu {
+	display: block;
+	float: left;
+	overflow: hidden;
+	padding: 4px;
+	max-width: 12em;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.listitem, .tableitem {
+	display: block;
+	font-family: monospace;
+	font-size: 1.2em;
+	white-space: nowrap;
+	color: #00ff99;
+}
+
+.content {
+	float: left;
+	font-size: 1em;
+	margin-left: 2em;
+	padding: 4px;
+	max-width: 50em;
+	overflow: auto;
+}
+
+.tunnel.established {
+	color: #0ff; 
+}
+
+.tunnel.expiring {
+	color: #ff0; 
+}
+
+.tunnel.failed {
+	color: #f00; 
+}
+
+.tunnel.building {
+	color: #888;
+}
+
+caption {
+	font-size: 1.5em;
+	text-align: center;
+	color: var(--main-link-color);
+	text-shadow: 0 0 3px #ff00ff;
+}
+
+table {
+	display: table;
+	border-collapse: collapse;
+	text-align: center;
+}
+
+textarea, input, select {
+	background-color: #111;
+	color: var(--main-text-color);
+	border: 1px solid var(--main-link-color);
+	font-family: monospace;
+	font-size: 14px;
+	padding: 5px;
+	border-radius: 3px;
+}
+
+button[type=submit], a.button {
+	background-color: transparent;
+	color: var(--main-link-color);
+	border: 1px solid var(--main-link-color);
+	padding: 5px 10px;
+	font-family: monospace;
+	border-radius: 4px;
+	cursor: pointer;
+	text-decoration: none;
+}
+
+button[type=submit]:hover, a.button:hover {
+	color: var(--main-link-hover-color);
+	background-color: #222;
+	box-shadow: 0 0 5px var(--main-link-hover-color);
+}
+
+@media screen and (max-width: 980px) {
+	.menu, .content, input, select, textarea, button[type=submit], a.button {
+		width: 90%;
+		margin: 0 auto 10px auto;
+		display: block;
+		text-align: center;
+	}
+}

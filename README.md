@@ -96,6 +96,24 @@ New languages can be requested on project's [discussion page](https://crowdin.co
 
 Current status: [![Crowdin](https://badges.crowdin.net/i2pd/localized.svg)](https://crowdin.com/project/i2pd)
 
+Custom CSS Theme
+------------
+
+You can use a custom theme for i2pd web console, e.g., `hacker.css`.
+
+Example:
+
+```bash
+user@computer:~/i2pd$ mkdir -p ~/.i2pd/webconsole
+user@computer:~/i2pd$ cp contrib/webconsole/hacker.css ~/.i2pd/webconsole/
+user@computer:~/i2pd$ ./i2pd --http.theme=hacker
+```
+Or set it in i2pd.conf:
+```
+[HTTP]
+theme=hacker
+```
+
 Donations
 ---------
 
