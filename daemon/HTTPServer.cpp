@@ -1498,11 +1498,8 @@ namespace http {
 		{
 			std::string theme; i2p::config::GetOption("http.theme", theme);
 			
-			if (theme != "light" && theme != "black" && theme !="white")
-			{
-
-			}
-			LoadExtCSS();
+			if (theme != "light" && theme != "black" && theme !="white") LoadExtCSS(theme);
+			else LoadExtCSS();
 		}
 		else
 		{
