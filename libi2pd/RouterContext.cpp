@@ -683,6 +683,9 @@ namespace i2p
 		else if (limit > (int)i2p::data::LOW_BANDWIDTH_LIMIT) { SetBandwidth('M'); }
 		else if (limit > 12) { SetBandwidth('L'); }
 		else                   { SetBandwidth('K'); }
+
+		
+		LogPrint(eLogInfo, "RouterContext: Set bandwidth ", limit, ". kb/s");
 		m_BandwidthLimit = limit; // set precise limit
 	}
 

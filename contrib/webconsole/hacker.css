@@ -14,7 +14,7 @@
  * Minified copy of that style sheet is bundled inside i2pd sources.
 */
 :root {
-	--main-bg-color: #0a0a0a; 
+	--main-bg-color: #0b0b0b; 
 	--main-text-color: #00ff99;  
 	--main-link-color: #ff00ff;    
 	--main-link-hover-color: #00ffff; 
@@ -52,6 +52,18 @@ a:hover, a.button.selected, .slide label:hover, button[type=submit]:hover {
 }
 #slide-info:checked ~ .slidecontent {
     display: block;
+}
+#slide_ntcp2 {
+	display: none;
+}
+#slide_ssu2 {
+	display: none;
+}
+#slide_ssu2:checked ~ .slidecontent {
+	display: block;
+}
+#slide_ntcp2:checked ~ .slidecontent{
+	display:block;
 }
 .header {
 	font-size: 2.5em;
