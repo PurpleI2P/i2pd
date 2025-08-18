@@ -34,7 +34,11 @@ namespace transport
 	const int SSU2_RESEND_CHECK_MORE_TIMEOUT_VARIANCE = 9; // in milliseconds
 	const size_t SSU2_MAX_RESEND_PACKETS = 128; // packets to resend at the time
 	const uint64_t SSU2_SOCKET_MIN_BUFFER_SIZE = 128 * 1024;
+#if defined(__OpenBSD__)
+	const uint64_t SSU2_SOCKET_MAX_BUFFER_SIZE = 2 * 1024 * 1024;
+#else	
 	const uint64_t SSU2_SOCKET_MAX_BUFFER_SIZE = 4 * 1024 * 1024;
+#endif	
 	const size_t SSU2_MAX_NUM_INTRODUCERS = 3;
 	const size_t SSU2_MIN_RECEIVED_PACKET_SIZE = 40; // 16 byte short header + 8 byte minimum payload + 16 byte MAC
 	const size_t SSU2_MAX_RECEIVED_QUEUE_SIZE = 2500; // in packets

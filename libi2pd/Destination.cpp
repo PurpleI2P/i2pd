@@ -11,6 +11,7 @@
 #include <string>
 #include <set>
 #include <vector>
+#include <charconv>
 #include <boost/algorithm/string.hpp>
 #include "Crypto.h"
 #include "ECIESX25519AEADRatchetSession.h"
@@ -93,10 +94,8 @@ namespace client
 				}
 				it = params->find (I2CP_PARAM_DONT_PUBLISH_LEASESET);
 				if (it != params->end ())
-				{
 					// override isPublic
-					m_IsPublic = (it->second != "true");
-				}
+					m_IsPublic = GetBoolParamValue (it->second);
 				it = params->find (I2CP_PARAM_LEASESET_TYPE);
 				if (it != params->end ())
 					m_LeaseSetType = std::stoi(it->second);
@@ -188,6 +187,24 @@ namespace client
 		CleanUp (); // GarlicDestination
 	}
 
+	bool LeaseSetDestination::GetBoolParamValue (std::string_view value)
+	{
+		bool ret = false;
+		if (value == "true") 
+			ret = true;
+		else if (value == "false") 
+			ret = false;
+		else
+		{
+			int v = 0;
+			auto res = std::from_chars(value.data(), value.data() + value.size(), v);
+			if (res.ec != std::errc())	
+				LogPrint (eLogError, "Destination: Unable to parse bool param value ", value, ": ",  std::make_error_code (res.ec).message ());
+			ret = v;		
+		}	
+		return ret;
+	}	
+		
 	bool LeaseSetDestination::Reconfigure(std::map<std::string, std::string> params)
 	{
 		auto itr = params.find("i2cp.dontPublishLeaseSet");
@@ -1010,9 +1027,9 @@ namespace client
 		m_StreamingInboundSpeed (DEFAULT_MAX_INBOUND_SPEED),
 		m_StreamingMaxConcurrentStreams (DEFAULT_MAX_CONCURRENT_STREAMS),
 		m_StreamingMaxWindowSize (i2p::stream::MAX_WINDOW_SIZE),
-		m_IsStreamingAnswerPings (DEFAULT_ANSWER_PINGS), m_LastPort (0),
-		m_DatagramDestination (nullptr), m_RefCounter (0), m_LastPublishedTimestamp (0),
-		m_ReadyChecker(service)
+		m_IsStreamingAnswerPings (DEFAULT_ANSWER_PINGS), m_IsStreamingDontSign (DEFAULT_DONT_SIGN), 
+		m_LastPort (0), m_DatagramDestination (nullptr), m_RefCounter (0), 
+		m_LastPublishedTimestamp (0), m_ReadyChecker(service)
 	{
 		if (keys.IsOfflineSignature () && GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_LEASESET)
 			SetLeaseSetType (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2); // offline keys can be published with LS2 only
@@ -1096,16 +1113,11 @@ namespace client
 				}	
 				it = params->find (I2CP_PARAM_STREAMING_ANSWER_PINGS);
 				if (it != params->end ())
-				{	
-					LogPrint (eLogDebug, "Destination: Reading parameter ", I2CP_PARAM_STREAMING_ANSWER_PINGS, " value ", it->second);
-					if (it->second == "true") 
-						m_IsStreamingAnswerPings = true;
-					else if (it->second == "false") 
-						m_IsStreamingAnswerPings = false;
-					else
-						m_IsStreamingAnswerPings = std::stoi (it->second); // 1 for true
-				}	
-
+					m_IsStreamingAnswerPings = GetBoolParamValue (it->second);
+				it = params->find (I2CP_PARAM_STREAMING_DONT_SIGN);
+				if (it != params->end ())
+					m_IsStreamingDontSign = GetBoolParamValue (it->second);
+				
 				if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
 				{
 					// authentication for encrypted LeaseSet

@@ -39,21 +39,21 @@ namespace client
 	
 	const char SAM_HANDSHAKE[] = "HELLO VERSION";
 	const char SAM_HANDSHAKE_REPLY[] = "HELLO REPLY RESULT=OK VERSION=%s\n";
-	const char SAM_HANDSHAKE_NOVERSION[] = "HELLO REPLY RESULT=NOVERSION\n";
+	constexpr std::string_view SAM_HANDSHAKE_NOVERSION { "HELLO REPLY RESULT=NOVERSION\n" };
 	const char SAM_HANDSHAKE_I2P_ERROR[] = "HELLO REPLY RESULT=I2P_ERROR\n";
 	const char SAM_SESSION_CREATE[] = "SESSION CREATE";
 	const char SAM_SESSION_CREATE_REPLY_OK[] = "SESSION STATUS RESULT=OK DESTINATION=%s\n";
-	const char SAM_SESSION_CREATE_DUPLICATED_ID[] = "SESSION STATUS RESULT=DUPLICATED_ID\n";
-	const char SAM_SESSION_CREATE_DUPLICATED_DEST[] = "SESSION STATUS RESULT=DUPLICATED_DEST\n";
-	const char SAM_SESSION_CREATE_INVALID_ID[] = "SESSION STATUS RESULT=INVALID_ID\n";
-	const char SAM_SESSION_STATUS_INVALID_KEY[] = "SESSION STATUS RESULT=INVALID_KEY\n";
+	constexpr std::string_view SAM_SESSION_CREATE_DUPLICATED_ID { "SESSION STATUS RESULT=DUPLICATED_ID\n" };
+	constexpr std::string_view SAM_SESSION_CREATE_DUPLICATED_DEST { "SESSION STATUS RESULT=DUPLICATED_DEST\n" };
+	constexpr std::string_view SAM_SESSION_CREATE_INVALID_ID { "SESSION STATUS RESULT=INVALID_ID\n" };
+	constexpr std::string_view SAM_SESSION_STATUS_INVALID_KEY { "SESSION STATUS RESULT=INVALID_KEY\n" };
 	const char SAM_SESSION_STATUS_I2P_ERROR[] = "SESSION STATUS RESULT=I2P_ERROR MESSAGE=\"%s\"\n";
 	const char SAM_SESSION_ADD[] = "SESSION ADD";
 	const char SAM_SESSION_REMOVE[] = "SESSION REMOVE";
 	const char SAM_STREAM_CONNECT[] = "STREAM CONNECT";
-	const char SAM_STREAM_STATUS_OK[] = "STREAM STATUS RESULT=OK\n";
-	const char SAM_STREAM_STATUS_INVALID_ID[] = "STREAM STATUS RESULT=INVALID_ID\n";
-	const char SAM_STREAM_STATUS_INVALID_KEY[] = "STREAM STATUS RESULT=INVALID_KEY\n";
+	constexpr std::string_view SAM_STREAM_STATUS_OK { "STREAM STATUS RESULT=OK\n" };
+	constexpr std::string_view SAM_STREAM_STATUS_INVALID_ID { "STREAM STATUS RESULT=INVALID_ID\n" };
+	constexpr std::string_view SAM_STREAM_STATUS_INVALID_KEY { "STREAM STATUS RESULT=INVALID_KEY\n" };
 	const char SAM_STREAM_STATUS_CANT_REACH_PEER[] = "STREAM STATUS RESULT=CANT_REACH_PEER MESSAGE=\"%s\"\n";
 	const char SAM_STREAM_STATUS_I2P_ERROR[] = "STREAM STATUS RESULT=I2P_ERROR MESSAGE=\"%s\"\n";
 	const char SAM_STREAM_ACCEPT[] = "STREAM ACCEPT";
@@ -90,6 +90,11 @@ namespace client
 	constexpr std::string_view SAM_VALUE_DATAGRAM { "DATAGRAM" };
 	constexpr std::string_view SAM_VALUE_RAW { "RAW" };
 	constexpr std::string_view SAM_VALUE_MASTER { "MASTER" };
+
+	constexpr int MAKE_SAM_VERSION_NUMBER (int major, int minor) { return major*10 + minor; }
+	constexpr int MIN_SAM_VERSION = MAKE_SAM_VERSION_NUMBER (3, 0);
+	constexpr int MAX_SAM_VERSION = MAKE_SAM_VERSION_NUMBER (3, 3);
+	constexpr int SAM_VERSION_33 = MAKE_SAM_VERSION_NUMBER (3, 3); // SAM 3.3
 	
 	enum class SAMSocketType
 	{
@@ -127,7 +132,7 @@ namespace client
 			void HandleHandshakeReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleHandshakeReplySent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleMessage (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-			void SendMessageReply (const char * msg, size_t len, bool close);
+			void SendMessageReply (std::string_view msg, bool close);
 			void HandleMessageReplySent (const boost::system::error_code& ecode, std::size_t bytes_transferred, bool close);
 			void Receive ();
 			void HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
@@ -182,6 +187,7 @@ namespace client
 			bool m_IsAccepting; // for eSAMSocketTypeAcceptor only
 			bool m_IsReceiving; // for eSAMSocketTypeStream only
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
+			int m_Version;
 	};
 
 	enum class SAMSessionType
