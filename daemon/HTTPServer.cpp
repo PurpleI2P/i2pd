@@ -42,7 +42,7 @@
 
 namespace i2p {
 namespace http {
-	static void LoadExtCSS (std::string fileName = "style.css")
+	static void LoadExtCSS (std::string fileName = "style")
 	{
 		std::stringstream s;
 		std::string styleFile = i2p::fs::DataDirPath ("webconsole/"+fileName+".css");
