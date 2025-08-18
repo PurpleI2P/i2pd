@@ -8,6 +8,7 @@
 
 #include <thread>
 #include <memory>
+#include <regex>
 
 #include "Daemon.h"
 
@@ -186,12 +187,41 @@ namespace util
 		std::string bandwidth; i2p::config::GetOption("bandwidth", bandwidth);
 		if (bandwidth.length () > 0)
 		{
+			const auto NumBandwithRegex = std::regex(R"(^\d+$)");
+			const auto BandwithRegex = std::regex(R"((\d+)(b|kb|mb|gb))");	
+			std::smatch bandWithMatch;
+
 			if (bandwidth.length () == 1 && ((bandwidth[0] >= 'K' && bandwidth[0] <= 'P') || bandwidth[0] == 'X' ))
 			{
 				i2p::context.SetBandwidth (bandwidth[0]);
 				LogPrint(eLogInfo, "Daemon: Bandwidth set to ", i2p::context.GetBandwidthLimit (), "KBps");
 			}
-			else
+			else if (std::regex_match(bandwidth, bandWithMatch, BandwithRegex)) {
+				const auto number = bandWithMatch[1].str();
+				const auto unit   = bandWithMatch[2].str();
+				int limit = std::atoi(number.c_str());
+				std::cout << unit;
+				if (unit == "b")
+				{
+					limit /= 1000;
+				} 
+				else if(unit == "mb")
+				{
+					limit *= 1000;
+				} else if(unit == "gb")
+				{
+					limit *= 1000000;
+				}
+				// if limit more than 32 bits then its will be negative
+				if (limit < 0)
+				{
+					LogPrint(eLogInfo, "Daemon: Unexpected bandwidth ", bandwidth, ". Set to 'low'");
+					i2p::context.SetBandwidth (i2p::data::CAPS_FLAG_LOW_BANDWIDTH2);					
+				} else {
+					i2p::context.SetBandwidth(limit);
+				}
+			}
+			else if(std::regex_search(bandwidth, NumBandwithRegex))
 			{
 				auto value = std::atoi(bandwidth.c_str());
 				if (value > 0)
@@ -204,7 +234,7 @@ namespace util
 					LogPrint(eLogInfo, "Daemon: Unexpected bandwidth ", bandwidth, ". Set to 'low'");
 					i2p::context.SetBandwidth (i2p::data::CAPS_FLAG_LOW_BANDWIDTH2);
 				}
-			}
+			} 
 		}
 		else if (isFloodfill)
 		{

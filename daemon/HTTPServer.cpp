@@ -10,6 +10,7 @@
 #include <sstream>
 #include <thread>
 #include <memory>
+#include <regex>
 
 #include <boost/asio.hpp>
 #include <boost/algorithm/string.hpp>
@@ -42,6 +43,7 @@
 
 namespace i2p {
 namespace http {
+	
 	static void LoadExtCSS (std::string fileName = "style.css")
 	{
 		std::stringstream s;
@@ -166,19 +168,17 @@ namespace http {
 	static void ShowPageHead (std::stringstream& s)
 	{
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-
 		std::string theme; i2p::config::GetOption("http.theme", theme);
-		if(theme != "light" && theme != "black" )
+
+		const auto isThemeRegex = std::regex("^(white|black|light)");
+		if (!std::regex_search(theme, isThemeRegex))
 		{
-			if (theme =="white") { 
-				theme = "light";
-			} else {
-				LoadExtCSS(theme);
-			}
-			
+			LoadExtCSS(theme);
 		}
-		
-		
+		else 
+		{
+			LoadExtCSS();
+		}		
 
 		// Page language
 		std::string currLang = i2p::client::context.GetLanguage ()->GetLanguage(); // get current used language
@@ -1482,6 +1482,12 @@ namespace http {
 		}
 		else if (cmd == HTTP_COMMAND_RELOAD_CSS)
 		{
+			std::string theme; i2p::config::GetOption("http.theme", theme);
+			
+			if (theme != "light" && theme != "black" && theme !="white")
+			{
+
+			}
 			LoadExtCSS();
 		}
 		else
