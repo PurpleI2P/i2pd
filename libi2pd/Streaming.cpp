@@ -1991,6 +1991,7 @@ namespace stream
 	void StreamingDestination::Stop ()
 	{
 		ResetAcceptor ();
+		ResetPongHandler ();
 		m_PendingIncomingTimer.cancel ();
 		m_PendingIncomingStreams.clear ();
 		{
@@ -2037,6 +2038,8 @@ namespace stream
 			{
 				// pong
 				LogPrint (eLogInfo, "Streaming: Pong received rSID=", packet->GetReceiveStreamID ());
+				if (m_PongHandler != nullptr)
+					m_PongHandler (packet->from ? packet->from->GetDestinationPtr () : nullptr);
 				DeletePacket (packet);
 				return;
 			}
@@ -2216,6 +2219,16 @@ namespace stream
 		m_Acceptor = nullptr;
 	}
 
+	void StreamingDestination::SetPongHandler (const PongHandler& handler)
+	{
+		m_PongHandler = handler;
+	}
+		
+	void StreamingDestination::ResetPongHandler ()
+	{
+		m_PongHandler = nullptr;
+	}
+		
 	void StreamingDestination::AcceptOnce (const Acceptor& acceptor)
 	{
 		boost::asio::post (m_Owner->GetService (), [acceptor, this](void)

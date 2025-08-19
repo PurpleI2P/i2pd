@@ -312,6 +312,7 @@ namespace stream
 		public:
 
 			typedef std::function<void (std::shared_ptr<Stream>)> Acceptor;
+			typedef std::function<void (const i2p::data::IdentHash *)> PongHandler;
 
 			StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort = 0, bool gzip = false);
 			~StreamingDestination ();
@@ -330,7 +331,9 @@ namespace stream
 			void AcceptOnce (const Acceptor& acceptor);
 			void AcceptOnceAcceptor (std::shared_ptr<Stream> stream, Acceptor acceptor, Acceptor prev);
 			std::shared_ptr<Stream> AcceptStream (int timeout = 0); // sync
-
+			void SetPongHandler (const PongHandler& handler);
+			void ResetPongHandler ();
+			
 			std::shared_ptr<i2p::client::ClientDestination> GetOwner () const { return m_Owner; };
 			void SetOwner (std::shared_ptr<i2p::client::ClientDestination> owner) { m_Owner = owner; };
 			uint16_t GetLocalPort () const { return m_LocalPort; };
@@ -358,6 +361,7 @@ namespace stream
 			std::unordered_map<uint32_t, std::shared_ptr<Stream> > m_IncomingStreams; // receiveStreamID->stream
 			std::shared_ptr<Stream> m_LastStream;
 			Acceptor m_Acceptor;
+			PongHandler m_PongHandler;
 			std::list<std::shared_ptr<Stream> > m_PendingIncomingStreams;
 			boost::asio::deadline_timer m_PendingIncomingTimer;
 			std::unordered_map<uint32_t, std::list<Packet *> > m_SavedPackets; // receiveStreamID->packets, arrived before SYN

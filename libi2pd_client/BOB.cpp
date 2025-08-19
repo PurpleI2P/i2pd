@@ -355,6 +355,17 @@ namespace client
 		Send ();
 	}
 
+	void BOBCommandSession::SendReplyOK (const std::vector<std::string_view>& strings)
+	{
+		std::ostream os(&m_SendBuffer);
+		os << "OK";
+		if (!strings.empty ()) os << " ";
+		for (auto& it: strings)
+			os << it;
+		os << std::endl;
+		Send ();
+	}	
+		
 	void BOBCommandSession::SendReplyError (const char * msg)
 	{
 		std::ostream os(&m_SendBuffer);
@@ -802,6 +813,64 @@ namespace client
 			SendReplyError ("empty lookup address");
 	}
 
+	void BOBCommandSession::PingCommandHandler (const char * operand, size_t len)
+	{
+		LogPrint (eLogDebug, "BOB: ping ", operand);
+		if (*operand)
+		{
+			auto addr = context.GetAddressBook ().GetAddress (operand);
+			if (!addr)
+			{
+				SendReplyError ("Address Not found");
+				return;
+			}
+			auto localDestination = (m_CurrentDestination && m_CurrentDestination->IsRunning ()) ? 
+				m_CurrentDestination->GetLocalDestination () : i2p::client::context.GetSharedLocalDestination ();
+			if (!localDestination)
+			{
+				SendReplyError ("No local destination");
+				return;
+			}
+			auto streamingDestination = localDestination->GetStreamingDestination ();
+			if (!streamingDestination)
+			{
+				SendReplyError ("No streaming destination");
+				return;
+			}
+			auto timer = std::make_shared<boost::asio::deadline_timer>(localDestination->GetService ());
+			timer->expires_from_now (boost::posix_time::milliseconds(BOB_PING_TIMEOUT));
+			timer->async_wait ([streamingDestination, s = shared_from_this ()](const boost::system::error_code& ecode)
+			{
+				if (ecode != boost::asio::error::operation_aborted)
+				{
+					LogPrint (eLogDebug, "BOB: Pong not received after ", BOB_PING_TIMEOUT, " millliseconds");
+					streamingDestination->ResetPongHandler ();
+					s->SendReplyError ("timeout");
+				}
+			});
+			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+			streamingDestination->SetPongHandler (
+			    [streamingDestination, timer, ts, s = shared_from_this ()](const i2p::data::IdentHash * from)
+				{
+					int t = i2p::util::GetMillisecondsSinceEpoch () - ts;
+					if (t < 0) t = 0;
+					streamingDestination->ResetPongHandler ();
+					timer->cancel ();
+					if (from) 
+						s->SendReplyOK ({"pong ", "from ", from->ToBase32(), ".b32.i2p: time=", std::to_string (t), " ms"});
+					else
+						s->SendReplyOK ({"pong: time=", std::to_string (t), " ms"});         
+				});
+			
+			if (addr->IsIdentHash ())
+				localDestination->SendPing (addr->identHash);
+			else
+				localDestination->SendPing (addr->blindedPublicKey);
+		}
+		else
+			SendReplyError ("empty ping address");
+	}	
+		
 	void BOBCommandSession::ClearCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: clear");
@@ -949,6 +1018,7 @@ namespace client
 		m_CommandHandlers[BOB_COMMAND_QUIET] = &BOBCommandSession::QuietCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_LOOKUP] = &BOBCommandSession::LookupCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_LOOKUP_LOCAL] = &BOBCommandSession::LookupLocalCommandHandler;
+		m_CommandHandlers[BOB_COMMAND_PING] = &BOBCommandSession::PingCommandHandler;	
 		m_CommandHandlers[BOB_COMMAND_CLEAR] = &BOBCommandSession::ClearCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_LIST] = &BOBCommandSession::ListCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_OPTION] = &BOBCommandSession::OptionCommandHandler;

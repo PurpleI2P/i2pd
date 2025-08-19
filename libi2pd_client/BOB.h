@@ -14,6 +14,8 @@
 #include <memory>
 #include <map>
 #include <string>
+#include <string_view>
+#include <vector>
 #include <optional>
 #include <boost/asio.hpp>
 #include "util.h"
@@ -29,6 +31,8 @@ namespace i2p
 namespace client
 {
 	const size_t BOB_COMMAND_BUFFER_SIZE = 1024;
+	const int BOB_PING_TIMEOUT = 8000; // in milliseconds
+	
 	const char BOB_COMMAND_ZAP[] = "zap";
 	const char BOB_COMMAND_QUIT[] = "quit";
 	const char BOB_COMMAND_START[] = "start";
@@ -46,6 +50,7 @@ namespace client
 	const char BOB_COMMAND_QUIET[] = "quiet";
 	const char BOB_COMMAND_LOOKUP[] = "lookup";
 	const char BOB_COMMAND_LOOKUP_LOCAL[] = "lookuplocal";
+	const char BOB_COMMAND_PING[] = "ping";
 	const char BOB_COMMAND_CLEAR[] = "clear";
 	const char BOB_COMMAND_LIST[] = "list";
 	const char BOB_COMMAND_OPTION[] = "option";
@@ -233,6 +238,7 @@ namespace client
 			void QuietCommandHandler (const char * operand, size_t len);
 			void LookupCommandHandler (const char * operand, size_t len);
 			void LookupLocalCommandHandler (const char * operand, size_t len);
+			void PingCommandHandler (const char * operand, size_t len);
 			void ClearCommandHandler (const char * operand, size_t len);
 			void ListCommandHandler (const char * operand, size_t len);
 			void OptionCommandHandler (const char * operand, size_t len);
@@ -249,6 +255,7 @@ namespace client
 			void Send ();
 			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void SendReplyOK (const char * msg = nullptr);
+			void SendReplyOK (const std::vector<std::string_view>& strings);
 			void SendReplyError (const char * msg);
 			void SendRaw (const char * data);
 
