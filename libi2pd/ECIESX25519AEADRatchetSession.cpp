@@ -843,7 +843,7 @@ namespace garlic
 		if (m_State == eSessionStateNewSessionSent)
 		{
 			m_State = eSessionStateEstablished;
-			// don't delete m_EpehemralKey and m_PQKeys because delayd NSR's migth come
+			// don't delete m_EpehemralKey and m_PQKeys because delayed NSR's might come
 			// done in CleanupReceiveNSRKeys called from NSR tagset destructor		
 			m_SessionCreatedTimestamp = i2p::util::GetSecondsSinceEpoch ();
 			GetOwner ()->AddECIESx25519Session (m_RemoteStaticKey, shared_from_this ());
