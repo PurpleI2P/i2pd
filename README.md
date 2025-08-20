@@ -3,6 +3,7 @@
 [![License](https://img.shields.io/github/license/PurpleI2P/i2pd.svg)](https://github.com/PurpleI2P/i2pd/blob/openssl/LICENSE)
 [![Packaging status](https://repology.org/badge/tiny-repos/i2pd.svg)](https://repology.org/project/i2pd/versions)
 [![Docker Pulls](https://img.shields.io/docker/pulls/purplei2p/i2pd)](https://hub.docker.com/r/purplei2p/i2pd)
+[![Github Downloads](https://img.shields.io/github/downloads/PurpleI2P/i2pd/total.svg)]()
 [![Crowdin](https://badges.crowdin.net/i2pd/localized.svg)](https://crowdin.com/project/i2pd)
 
 *note: i2pd for Android can be found in [i2pd-android](https://github.com/PurpleI2P/i2pd-android) repository and with Qt GUI in [i2pd-qt](https://github.com/PurpleI2P/i2pd-qt) repository*
