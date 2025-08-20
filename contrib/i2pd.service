@@ -34,5 +34,20 @@ LimitNOFILE=8192
 # To enable write of coredump uncomment this
 #LimitCORE=infinity
 
+#hardening
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectProc=invisible
+ProcSubset=pid
+PrivateTmp=true
+PrivateUsers=true
+PrivateDevices=true
+PrivateIPC=true
+NoNewPrivileges=true
+RestrictNamespaces=true
+
 [Install]
 WantedBy=multi-user.target
