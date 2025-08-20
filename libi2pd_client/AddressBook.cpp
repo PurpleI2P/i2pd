@@ -60,7 +60,7 @@ namespace client
 			int LoadLocal (Addresses& addresses) override;
 			int Save (const Addresses& addresses) override;
 
-			void SaveEtag (const i2p::data::IdentHash& subsciption, const std::string& etag, const std::string& lastModified) override;
+			void SaveEtag (const i2p::data::IdentHash& subscription, const std::string& etag, const std::string& lastModified) override;
 			bool GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified) override;
 			void ResetEtags () override;
 		

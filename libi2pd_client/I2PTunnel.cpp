@@ -880,7 +880,7 @@ namespace client
 				Connect (stream);
 			else if (!Resolve (stream))
 			{
-				LogPrint (eLogWarning, "I2PTunnel: Address ", m_Address, " cann't be resolved. Incoming connection dropped");
+				LogPrint (eLogWarning, "I2PTunnel: Address ", m_Address, " can't be resolved. Incoming connection dropped");
 				stream->Close ();
 				return;
 			}	
