@@ -343,18 +343,16 @@ namespace client
 		}
 	}
 
-	void BOBCommandSession::SendReplyOK (const char * msg)
+	void BOBCommandSession::SendReplyOK (std::string_view msg)
 	{
 		std::ostream os(&m_SendBuffer);
 		os << "OK";
-		if(msg)
-		{
+		if (!msg.empty ())
 			os << " " << msg;
-		}
 		os << std::endl;
 		Send ();
-	}
-
+	}	
+		
 	void BOBCommandSession::SendReplyOK (const std::vector<std::string_view>& strings)
 	{
 		std::ostream os(&m_SendBuffer);
@@ -366,7 +364,7 @@ namespace client
 		Send ();
 	}	
 		
-	void BOBCommandSession::SendReplyError (const char * msg)
+	void BOBCommandSession::SendReplyError (std::string_view msg)
 	{
 		std::ostream os(&m_SendBuffer);
 		os << "ERROR " << msg << std::endl;
@@ -377,10 +375,10 @@ namespace client
 	{
 		std::ostream os(&m_SendBuffer);
 		os << "BOB 00.00.10" << std::endl;
-		SendReplyOK();
+		SendReplyOK(std::string_view()); // empty string
 	}
 
-	void BOBCommandSession::SendRaw (const char * data)
+	void BOBCommandSession::SendRaw (std::string_view data)
 	{
 		std::ostream os(&m_SendBuffer);
 		os << data << std::endl;
@@ -575,9 +573,7 @@ namespace client
 			if (!dest)
 			{
 				m_Nickname = operand;
-				std::string msg ("Nickname set to ");
-				msg += m_Nickname;
-				SendReplyOK (msg.c_str ());
+				SendReplyOK ({ "Nickname set to ", m_Nickname });
 			}
 			else
 				SendReplyError ("tunnel is active");
@@ -602,11 +598,7 @@ namespace client
 				m_Nickname = operand;
 			}
 			if (m_Nickname == operand)
-			{
-				std::string msg ("Nickname set to ");
-				msg += m_Nickname;
-				SendReplyOK (msg.c_str ());
-			}
+				SendReplyOK ({"Nickname set to ", m_Nickname});
 			else
 				SendReplyError ("no nickname has been set");
 		}
@@ -617,7 +609,7 @@ namespace client
 	void BOBCommandSession::NewkeysCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: newkeys");
-		i2p::data::SigningKeyType signatureType = i2p::data::SIGNING_KEY_TYPE_DSA_SHA1;
+		i2p::data::SigningKeyType signatureType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519;
 		i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL;
 		if (*operand)
 		{
@@ -639,14 +631,14 @@ namespace client
 
 
 		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (signatureType, cryptoType, true);
-		SendReplyOK (m_Keys.GetPublic ()->ToBase64 ().c_str ());
+		SendReplyOK (m_Keys.GetPublic ()->ToBase64 ());
 	}
 
 	void BOBCommandSession::SetkeysCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: setkeys ", operand);
 		if (*operand && m_Keys.FromBase64 (operand))
-			SendReplyOK (m_Keys.GetPublic ()->ToBase64 ().c_str ());
+			SendReplyOK (m_Keys.GetPublic ()->ToBase64 ());
 		else
 			SendReplyError ("invalid keys");
 	}
@@ -655,7 +647,7 @@ namespace client
 	{
 		LogPrint (eLogDebug, "BOB: getkeys");
 		if (m_Keys.GetPublic ()) // keys are set ?
-			SendReplyOK (m_Keys.ToBase64 ().c_str ());
+			SendReplyOK (m_Keys.ToBase64 ());
 		else
 			SendReplyError ("keys are not set");
 	}
@@ -664,7 +656,7 @@ namespace client
 	{
 		LogPrint (eLogDebug, "BOB: getdest");
 		if (m_Keys.GetPublic ()) // keys are set ?
-			SendReplyOK (m_Keys.GetPublic ()->ToBase64 ().c_str ());
+			SendReplyOK (m_Keys.GetPublic ()->ToBase64 ());
 		else
 			SendReplyError ("keys are not set");
 	}
@@ -770,7 +762,7 @@ namespace client
 				auto leaseSet = localDestination->FindLeaseSet (addr->identHash);
 				if (leaseSet)
 				{
-					SendReplyOK (leaseSet->GetIdentity ()->ToBase64 ().c_str ());
+					SendReplyOK (leaseSet->GetIdentity ()->ToBase64 ());
 					return;
 				}
 			}
@@ -779,7 +771,7 @@ namespace client
 			auto requstCallback = [s](std::shared_ptr<i2p::data::LeaseSet> ls)
 				{
 					if (ls)
-						s->SendReplyOK (ls->GetIdentity ()->ToBase64 ().c_str ());
+						s->SendReplyOK (ls->GetIdentity ()->ToBase64 ());
 					else
 						s->SendReplyError ("LeaseSet Not found");
 				};
@@ -805,7 +797,7 @@ namespace client
 			}
 			auto ls = i2p::data::netdb.FindLeaseSet (addr->identHash);
 			if (ls)
-				SendReplyOK (ls->GetIdentity ()->ToBase64 ().c_str ());
+				SendReplyOK (ls->GetIdentity ()->ToBase64 ());
 			else
 				SendReplyError ("Local LeaseSet Not found");
 		}
@@ -888,7 +880,7 @@ namespace client
 		for (const auto& it: destinations)
 		{
 			BuildStatusLine(false, it.second, statusLine);
-			SendRaw(statusLine.c_str());
+			SendRaw(statusLine);
 			if(m_Nickname.compare(it.second->GetNickname()) == 0)
 				sentCurrent = true;
 		}
@@ -897,7 +889,7 @@ namespace client
 			// add the current tunnel to the list.
 			// this is for the incomplete tunnel which has not been started yet.
 			BuildStatusLine(true, m_CurrentDestination, statusLine);
-			SendRaw(statusLine.c_str());
+			SendRaw(statusLine);
 		}
 		SendReplyOK ("Listing done");
 	}
@@ -908,14 +900,10 @@ namespace client
 		const char * value = strchr (operand, '=');
 		if (value)
 		{
-			std::string msg ("option ");
 			*(const_cast<char *>(value)) = 0;
 			m_Options[operand] = value + 1;
-			msg += operand;
+			SendReplyOK ({ "option ", operand, " set to ", value + 1 });
 			*(const_cast<char *>(value)) = '=';
-			msg += " set to ";
-			msg += value + 1;
-			SendReplyOK (msg.c_str ());
 		}
 		else
 			SendReplyError ("malformed");
@@ -933,7 +921,7 @@ namespace client
 		{
 			// tunnel destination exists
 			BuildStatusLine(false, dest, statusLine);
-			SendReplyOK(statusLine.c_str());
+			SendReplyOK(statusLine);
 		}
 		else
 		{
@@ -941,7 +929,7 @@ namespace client
 			{
 				// tunnel is incomplete / has not been started yet
 				BuildStatusLine(true, nullptr, statusLine);
-				SendReplyOK(statusLine.c_str());
+				SendReplyOK(statusLine);
 			}
 			else
 			{
@@ -960,15 +948,14 @@ namespace client
 			{
 				ss << " " << x.first;
 			}
-			const std::string &str = ss.str();
-			SendReplyOK(str.c_str());
+			SendReplyOK(ss.str ());
 		}
 		else
 		{
 			auto it = helpStrings.find(operand);
 			if (it != helpStrings.end ())
 			{
-				SendReplyOK(it->second.c_str());
+				SendReplyOK(it->second);
 				return;
 			}
 			SendReplyError("No such command");

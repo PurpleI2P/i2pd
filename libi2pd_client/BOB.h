@@ -254,10 +254,10 @@ namespace client
 
 			void Send ();
 			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-			void SendReplyOK (const char * msg = nullptr);
+			void SendReplyOK (std::string_view msg);
 			void SendReplyOK (const std::vector<std::string_view>& strings);
-			void SendReplyError (const char * msg);
-			void SendRaw (const char * data);
+			void SendReplyError (std::string_view msg);
+			void SendRaw (std::string_view data);
 
 			void BuildStatusLine(bool currentTunnel, std::shared_ptr<BOBDestination> destination, std::string &out);
 
