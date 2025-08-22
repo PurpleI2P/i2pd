@@ -1026,7 +1026,8 @@ namespace http {
 				case i2p::client::SAMSocketType::eSAMSocketTypeForward  : s << "forward";  break;
 				default: s << "unknown"; break;
 			}
-			s << " [" << it->GetSocket ().remote_endpoint() << "]";
+			if (it->GetSocketType () != i2p::client::SAMSocketType::eSAMSocketTypeTerminated && it->GetSocket ().is_open ())	
+				s << " [" << it->GetSocket ().remote_endpoint() << "]";
 			s << "</div>\r\n";
 		}
 		s << "</div>\r\n";
