@@ -1069,7 +1069,10 @@ namespace client
 		// if no param or valid crypto type use from identity
 		if (encryptionKeyTypes.empty ())
 			encryptionKeyTypes.insert ( { GetIdentity ()->GetCryptoKeyType (),
-				i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD }); // usually 0,4
+#if OPENSSL_PQ
+				i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM768_X25519_AEAD,
+#endif				
+				i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD }); // usually 0,4 or 0,6,4 if post quantum
 
 		for (auto& it: encryptionKeyTypes)
 		{

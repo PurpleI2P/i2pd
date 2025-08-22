@@ -168,7 +168,11 @@ namespace config {
 			("shareddest.inbound.quantity", value<std::string>()->default_value("3"),  "Shared local destination inbound tunnels quantity")
 			("shareddest.outbound.quantity", value<std::string>()->default_value("3"), "Shared local destination outbound tunnels quantity")
 			("shareddest.i2cp.leaseSetType", value<std::string>()->default_value("3"), "Shared local destination's LeaseSet type")
-			("shareddest.i2cp.leaseSetEncType", value<std::string>()->default_value("0,4"), "Shared local destination's LeaseSet encryption type")
+#if OPENSSL_PQ
+			("shareddest.i2cp.leaseSetEncType", value<std::string>()->default_value("6,4,0"), "Shared local destination's LeaseSet encryption type")
+#else			
+			("shareddest.i2cp.leaseSetEncType", value<std::string>()->default_value("4,0"), "Shared local destination's LeaseSet encryption type")
+#endif			
 			("shareddest.i2p.streaming.profile", value<std::string>()->default_value("2"), "Shared local destination bandwidth usage profile. 1 - bulk(high), 2- interactive(low)")
 		;	
 		
