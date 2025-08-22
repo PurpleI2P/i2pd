@@ -125,7 +125,11 @@ namespace config {
 			("httpproxy.addresshelper", value<bool>()->default_value(true),           "Enable or disable addresshelper")
 			("httpproxy.senduseragent", value<bool>()->default_value(false),          "Pass through user's User-Agent if enabled. Disabled by default")
 			("httpproxy.i2cp.leaseSetType", value<std::string>()->default_value("3"), "Local destination's LeaseSet type")
-			("httpproxy.i2cp.leaseSetEncType", value<std::string>()->default_value("0,4"), "Local destination's LeaseSet encryption type")
+#if OPENSSL_PQ
+			("httpproxy.i2cp.leaseSetEncType", value<std::string>()->default_value("6,4,0"), "Local destination's LeaseSet encryption type")
+#else			
+			("httpproxy.i2cp.leaseSetEncType", value<std::string>()->default_value("4,0"), "Local destination's LeaseSet encryption type")
+#endif			
 			("httpproxy.i2cp.leaseSetPrivKey", value<std::string>()->default_value(""), "LeaseSet private key")
 			("httpproxy.i2p.streaming.maxOutboundSpeed", value<std::string>()->default_value("1730000000"), "Max outbound speed of HTTP proxy stream in bytes/sec")
 			("httpproxy.i2p.streaming.maxInboundSpeed", value<std::string>()->default_value("1730000000"), "Max inbound speed of HTTP proxy stream in bytes/sec")
@@ -153,7 +157,11 @@ namespace config {
 			("socksproxy.outproxy", value<std::string>()->default_value("127.0.0.1"),  "Upstream outproxy address for SOCKS Proxy")
 			("socksproxy.outproxyport", value<uint16_t>()->default_value(9050),        "Upstream outproxy port for SOCKS Proxy")
 			("socksproxy.i2cp.leaseSetType", value<std::string>()->default_value("3"), "Local destination's LeaseSet type")
-			("socksproxy.i2cp.leaseSetEncType", value<std::string>()->default_value("0,4"), "Local destination's LeaseSet encryption type")
+#if OPENSSL_PQ
+			("socksproxy.i2cp.leaseSetEncType", value<std::string>()->default_value("6,4,0"), "Local destination's LeaseSet encryption type")
+#else			
+			("socksproxy.i2cp.leaseSetEncType", value<std::string>()->default_value("4,0"), "Local destination's LeaseSet encryption type")
+#endif			
 			("socksproxy.i2cp.leaseSetPrivKey", value<std::string>()->default_value(""), "LeaseSet private key")
 			("socksproxy.i2p.streaming.maxOutboundSpeed", value<std::string>()->default_value("1730000000"), "Max outbound speed of SOCKS proxy stream in bytes/sec")
 			("socksproxy.i2p.streaming.maxInboundSpeed", value<std::string>()->default_value("1730000000"), "Max inbound speed of SOCKS proxy stream in bytes/sec")
