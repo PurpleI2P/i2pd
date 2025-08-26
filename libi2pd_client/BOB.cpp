@@ -823,44 +823,74 @@ namespace client
 				SendReplyError ("No local destination");
 				return;
 			}
-			auto streamingDestination = localDestination->GetStreamingDestination ();
-			if (!streamingDestination)
-			{
-				SendReplyError ("No streaming destination");
-				return;
-			}
-			auto timer = std::make_shared<boost::asio::deadline_timer>(localDestination->GetService ());
-			timer->expires_from_now (boost::posix_time::milliseconds(BOB_PING_TIMEOUT));
-			timer->async_wait ([streamingDestination, s = shared_from_this ()](const boost::system::error_code& ecode)
-			{
-				if (ecode != boost::asio::error::operation_aborted)
-				{
-					LogPrint (eLogDebug, "BOB: Pong not received after ", BOB_PING_TIMEOUT, " millliseconds");
-					streamingDestination->ResetPongHandler ();
-					s->SendReplyError ("timeout");
-				}
-			});
-			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-			streamingDestination->SetPongHandler (
-			    [streamingDestination, timer, ts, s = shared_from_this ()](const i2p::data::IdentHash * from)
-				{
-					int t = i2p::util::GetMillisecondsSinceEpoch () - ts;
-					if (t < 0) t = 0;
-					streamingDestination->ResetPongHandler ();
-					timer->cancel ();
-					if (from) 
-						s->SendReplyOK ({"pong ", "from ", from->ToBase32(), ".b32.i2p: time=", std::to_string (t), " ms"});
-					else
-						s->SendReplyOK ({"pong: time=", std::to_string (t), " ms"});         
-				});
-			
 			if (addr->IsIdentHash ())
-				localDestination->SendPing (addr->identHash);
+			{
+				// we might have leaseset already
+				auto leaseSet = localDestination->FindLeaseSet (addr->identHash);
+				if (leaseSet)
+				{	
+					boost::asio::post (localDestination->GetService (), 
+						std::bind (&BOBCommandSession::SendPing, shared_from_this (), leaseSet));
+					return;
+				}
+			}
+			// request LeaseSet
+			if (addr->IsIdentHash ())
+				localDestination->RequestDestination (addr->identHash,
+					std::bind (&BOBCommandSession::SendPing, shared_from_this (), std::placeholders::_1));
 			else
-				localDestination->SendPing (addr->blindedPublicKey);
+				localDestination->RequestDestinationWithEncryptedLeaseSet (addr->blindedPublicKey,
+					std::bind (&BOBCommandSession::SendPing, shared_from_this (), std::placeholders::_1));
 		}
 		else
 			SendReplyError ("empty ping address");
+	}	
+
+	void BOBCommandSession::SendPing (std::shared_ptr<const i2p::data::LeaseSet> ls)
+	{
+		if (!ls)
+		{
+			SendReplyError ("LeaseSet Not found");
+			return;
+		}	
+		auto localDestination = (m_CurrentDestination && m_CurrentDestination->IsRunning ()) ? 
+				m_CurrentDestination->GetLocalDestination () : i2p::client::context.GetSharedLocalDestination ();
+		if (!localDestination)
+		{
+			SendReplyError ("No local destination");
+			return;
+		}
+		auto streamingDestination = localDestination->GetStreamingDestination ();
+		if (!streamingDestination)
+		{
+			SendReplyError ("No streaming destination");
+			return;
+		}
+		auto timer = std::make_shared<boost::asio::deadline_timer>(localDestination->GetService ());
+		timer->expires_from_now (boost::posix_time::milliseconds(BOB_PING_TIMEOUT));
+		timer->async_wait ([streamingDestination, s = shared_from_this ()](const boost::system::error_code& ecode)
+		{
+			if (ecode != boost::asio::error::operation_aborted)
+			{
+				LogPrint (eLogDebug, "BOB: Pong not received after ", BOB_PING_TIMEOUT, " millliseconds");
+				streamingDestination->ResetPongHandler ();
+				s->SendReplyError ("timeout");
+			}
+		});
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		streamingDestination->SetPongHandler (
+		    [streamingDestination, timer, ts, s = shared_from_this ()](const i2p::data::IdentHash * from)
+			{
+				int t = i2p::util::GetMillisecondsSinceEpoch () - ts;
+				if (t < 0) t = 0;
+				streamingDestination->ResetPongHandler ();
+				timer->cancel ();
+				if (from) 
+					s->SendReplyOK ({"pong ", "from ", from->ToBase32(), ".b32.i2p: time=", std::to_string (t), " ms"});
+				else
+					s->SendReplyOK ({"pong: time=", std::to_string (t), " ms"});         
+			});
+		streamingDestination->SendPing (ls);
 	}	
 		
 	void BOBCommandSession::ClearCommandHandler (const char * operand, size_t len)

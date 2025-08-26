@@ -261,6 +261,8 @@ namespace client
 
 			void BuildStatusLine(bool currentTunnel, std::shared_ptr<BOBDestination> destination, std::string &out);
 
+			void SendPing (std::shared_ptr<const i2p::data::LeaseSet> ls);
+			
 		private:
 
 			BOBCommandChannel& m_Owner;
