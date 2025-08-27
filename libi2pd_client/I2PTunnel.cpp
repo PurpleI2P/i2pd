@@ -81,14 +81,26 @@ namespace client
 		return ourIP;
 	}
 
+	boost::asio::ip::address GetLoopbackAddress6For(const i2p::data::IdentHash & addr)
+	{
+		boost::asio::ip::address_v6::bytes_type bytes;
+		const uint8_t * ident = addr;
+		bytes[0] = 0xfd;
+		memcpy (bytes.data ()+1, ident, 15);
+		boost::asio::ip::address ourIP = boost::asio::ip::address_v6 (bytes);
+		return ourIP;
+	}
+		
 #ifdef __linux__
-	static void MapToLoopback(std::shared_ptr<boost::asio::ip::tcp::socket> sock, const i2p::data::IdentHash & addr)
+	static void MapToLoopback(std::shared_ptr<boost::asio::ip::tcp::socket> sock, const i2p::data::IdentHash & addr, bool isV4)
 	{
 		if (sock)
 		{
-			// bind to 127.x.x.x address
+			// bind to 127.x.x.x address for ipv4
 			// where x.x.x are first three bytes from ident
-			auto ourIP = GetLoopbackAddressFor(addr);
+			// bind to fdxx.xxxx.xxxx.xxxx.xxxx.xxxx.xxxx.xxxx address for ipv6
+			// where xx.xxxx.xxxx.xxxx.xxxx.xxxx.xxxx.xxxx are first 15 bytes from ident
+			auto ourIP = isV4 ? GetLoopbackAddressFor(addr) : GetLoopbackAddress6For(addr);
 			boost::system::error_code ec;
 			sock->bind (boost::asio::ip::tcp::endpoint (ourIP, 0), ec);
 			if (ec)
@@ -103,12 +115,19 @@ namespace client
 		{
 			I2PTunnelSetSocketOptions (m_Socket);
 #ifdef __linux__
-			if (isUniqueLocal && m_RemoteEndpoint.address ().is_v4 () &&
-				m_RemoteEndpoint.address ().to_v4 ().to_bytes ()[0] == 127)
-			{
-				m_Socket->open (boost::asio::ip::tcp::v4 ());
+			if (isUniqueLocal && m_RemoteEndpoint.address ().is_loopback ())
+			{	
 				auto ident = m_Stream->GetRemoteIdentity()->GetIdentHash();
-				MapToLoopback(m_Socket, ident);
+				if (m_RemoteEndpoint.address ().is_v4 ())
+				{
+					m_Socket->open (boost::asio::ip::tcp::v4 ());
+					MapToLoopback(m_Socket, ident, true);
+				}
+				else if (m_RemoteEndpoint.address ().is_v6 ())
+				{
+					m_Socket->open (boost::asio::ip::tcp::v6 ());
+					MapToLoopback(m_Socket, ident, false);
+				}	
 			}
 #endif
 			m_Socket->async_connect (m_RemoteEndpoint, std::bind (&I2PTunnelConnection::HandleConnect,
