@@ -774,7 +774,7 @@ namespace client
 					i2p::data::CryptoKeyType cryptoType = section.second.get (I2P_CLIENT_TUNNEL_CRYPTO_TYPE, i2p::data::CRYPTO_KEY_TYPE_ELGAMAL);
 
 					std::string address = section.second.get<std::string> (I2P_SERVER_TUNNEL_ADDRESS, "");
-					bool isUniqueLocal = section.second.get (I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL, true);
+					bool isUniqueLocal = section.second.get (I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL, (host == "::1") ? false : true);
 					bool ssl = section.second.get (I2P_SERVER_TUNNEL_SSL, false);
 
 					// I2CP
