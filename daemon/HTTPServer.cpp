@@ -288,9 +288,12 @@ namespace http {
 		s << "<b>" << tr("Uptime") << ":</b> ";
 		ShowUptime(s, i2p::context.GetUptime ());
 		s << "<br>\r\n";
-		s << "<b>" << tr("Network status") << ":</b> ";
-		ShowNetworkStatus (s, i2p::context.GetStatus (), i2p::context.GetTesting(), i2p::context.GetError ());
-		s << "<br>\r\n";
+		if (i2p::context.SupportsV4 () || i2p::context.GetStatus () != eRouterStatusUnknown) // don't show Unknown for ipv6-only
+		{	
+			s << "<b>" << tr("Network status") << ":</b> ";
+			ShowNetworkStatus (s, i2p::context.GetStatus (), i2p::context.GetTesting(), i2p::context.GetError ());
+			s << "<br>\r\n";
+		}	
 		if (i2p::context.SupportsV6 ())
 		{
 			s << "<b>" << tr("Network status v6") << ":</b> ";
