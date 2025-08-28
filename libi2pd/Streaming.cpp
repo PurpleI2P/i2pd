@@ -955,10 +955,18 @@ namespace stream
 			if (m_Status == eStreamStatusNew && !m_SendStreamID && m_RemoteIdentity)
 			{
 				// first SYN packet
-				packet[size] = 8;
-				size++; // NACK count
-				memcpy (packet + size, m_RemoteIdentity->GetIdentHash (), 32);
-				size += 32;
+				if (m_DontSign)
+				{
+					// remote ident is useless without signature, don't include it
+					packet[size] = 0; size++; // NACK count
+				}
+				else
+				{	
+					packet[size] = 8;
+					size++; // NACK count
+					memcpy (packet + size, m_RemoteIdentity->GetIdentHash (), 32);
+					size += 32;
+				}	
 			}
 			else
 			{	
