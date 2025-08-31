@@ -248,6 +248,14 @@ namespace client
 				char * separator = strchr (m_Buffer, ' ');
 				if (separator)
 				{
+					// one word command
+					if (std::string_view (m_Buffer, separator - m_Buffer) == SAM_PING)
+					{
+						ProcessPing ({ separator + 1, (size_t)(eol - separator - 1) });
+						return;
+					}
+
+					// two words command
 					size_t l = 0;
 					separator = strchr (separator + 1, ' ');
 					if (separator)
@@ -955,6 +963,12 @@ namespace client
 			SendSessionI2PError ("Wrong session type");
 	}
 
+	void SAMSocket::ProcessPing (std::string_view text)
+	{
+		LogPrint (eLogDebug, "SAM: Ping ", text);
+		SendReplyWithMessage (SAM_PONG, std::string (text));
+	}	
+		
 	void SAMSocket::SendReplyWithMessage (const char * reply, const std::string & msg)
 	{
 #ifdef _MSC_VER

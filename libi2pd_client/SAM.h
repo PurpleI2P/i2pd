@@ -85,12 +85,15 @@ namespace client
 	const char SAM_VALUE_TRANSIENT[] = "TRANSIENT";
 	const char SAM_VALUE_TRUE[] = "true";
 	const char SAM_VALUE_FALSE[] = "false";
-	
+
 	constexpr std::string_view SAM_VALUE_STREAM { "STREAM" };
 	constexpr std::string_view SAM_VALUE_DATAGRAM { "DATAGRAM" };
 	constexpr std::string_view SAM_VALUE_RAW { "RAW" };
 	constexpr std::string_view SAM_VALUE_MASTER { "MASTER" };
 
+	constexpr std::string_view SAM_PING { "PING" };
+	const char SAM_PONG[] = "PONG %s\n";
+	
 	constexpr int MAKE_SAM_VERSION_NUMBER (int major, int minor) { return major*10 + minor; }
 	constexpr int MIN_SAM_VERSION = MAKE_SAM_VERSION_NUMBER (3, 0);
 	constexpr int MAX_SAM_VERSION = MAKE_SAM_VERSION_NUMBER (3, 3);
@@ -153,6 +156,7 @@ namespace client
 			void ProcessNamingLookup (std::string_view buf);
 			void ProcessSessionAdd (std::string_view buf);
 			void ProcessSessionRemove (std::string_view buf);
+			void ProcessPing (std::string_view text);
 			void SendReplyWithMessage (const char * reply, const std::string & msg);
 			void SendSessionI2PError(const std::string & msg);
 			void SendStreamI2PError(const std::string & msg);	
