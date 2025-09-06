@@ -1,6 +1,37 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.58.0] - 2025-09-08
+### Added
+- Post-quantum end-to-end crypto(ML-KEM-512, ML-KEM-768, ML-KEM-1024) support if openssl >= 3.5.0
+- Datagram2 and Datagram3
+- SAM PING command
+- Support boost 1.89
+- Specify light or dark theme for webconsole
+- "ssu2.firewalled4" and "ssu2.firewalled6" params to force Firewalled even if network is OK
+- Streaming ping through BOB
+- Ability to specify bandwidth with "mb" and "gb" suffixes
+- "i2p.streaming.maxWindowSize" and "i2p.streaming.dontSign" params
+### Changed
+- Don't verify streaming SYN packet signature if comes from an ECIESx25519 session 
+- Non-blocking mode for UDP sockets in UDP tunnels
+- Accept "HELLO VERSION" without "MIN" and "MAX" in SAM
+- Try to resolve host again in server tunnel if failed before
+- Don't call deprecated functions for openssl 3
+- Enable post-quantum crypto by default if supported
+- Create unique loopback address from fd00::/8 range for ::1 if explicitly set in server tunnels
+- Limit number of outbound streaming packets if the peer can't handle them
+- Don't show Network status if ipv6 only
+- Reseeds list
+### Fixed
+- Version in I2CP SetDate message
+- Crash when SAM session is getting closed
+- Max UDP buffer size for OpenBSD
+- Lack of file descriptors for Haiku
+- Outgoing stream constantly re-requests LeaseSet if the remote peer has gone away
+- Numeric value for "i2p.streaming.answerPings" param
+- 'R' and 'U' router caps together if operating through a proxy
+
 ## [2.57.0] - 2025-06-02
 ### Added
 - Local domain sockets for I2PControl
