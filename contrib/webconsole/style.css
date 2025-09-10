@@ -92,12 +92,14 @@ a.button {
 }
 
 .content {
-	float: left;
+/*	float: left;*/
 	font-size: 1em;
 	margin-left: 2em;
 	padding: 4px;
 	max-width: 50em;
 	overflow: auto;
+ 	left: 35%;
+	position: absolute;
 }
 
 .tunnel.established {
@@ -230,6 +232,8 @@ input[type=number]::-webkit-inner-spin-button {
 		max-width: 100%;
 		width: 100%;
 		text-align: center;
+		position: absolute;
+		left: 0;
 	}
 
 	a, .slide label {
