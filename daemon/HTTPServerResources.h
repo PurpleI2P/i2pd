@@ -73,7 +73,7 @@ namespace http
 		"@media screen and (max-width: 980px) { body { font: 100%/1.2em sans-serif; padding: 1.2em 0 0 0; }\r\n"
 		"	.menu { width: 100%; max-width: unset; display: block; float: none; position: unset; font-size: 16px; text-align: center; }\r\n"
 		"	.menu a, .commands a { display: inline-block; padding: 4px; }\r\n"
-		"	.content { float: none; margin-left: unset; margin-top: 16px; max-width: 100%; width: 100%; text-align: center; }\r\n"
+		"	.content { float: none; margin-left: unset; margin-top: 16px; max-width: 100%; width: 100%; text-align: center; position: absolute; left: 0; }\r\n"
 		"	a, .slide label { display: block; }\r\n"
 		"	.header { margin: unset; font-size: 1.5em; }\r\n"
 		"	small { display: block; }\r\n"
