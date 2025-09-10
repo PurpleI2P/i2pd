@@ -45,7 +45,7 @@ namespace http
 		".menu { display: block; float: left; overflow: hidden; padding: 4px; max-width: 12em; white-space: nowrap; text-overflow: ellipsis ;}\r\n"
 		".listitem { display: block; font-family: monospace; font-size: 1.2em; white-space: nowrap; }\r\n"
 		".tableitem { font-family: monospace; font-size: 1.2em; white-space: nowrap; }\r\n"
-		".content { float: left; font-size: 1em; margin-left: 2em; padding: 4px; max-width: 50em; overflow: auto; }\r\n"
+		".content { font-size: 1em; margin-left: 2em; padding: 4px; max-width: 50em; overflow: auto; position: absolute; left: 35%; }\r\n"
 		".tunnel.established { color: #56B734; }\r\n"
 		".tunnel.expiring { color: #D3AE3F; }\r\n"
 		".tunnel.failed { color: #D33F3F; }\r\n"

@@ -92,12 +92,14 @@ a.button {
 }
 
 .content {
-	float: left;
+/*	float: left;*/
 	font-size: 1em;
 	margin-left: 2em;
 	padding: 4px;
 	max-width: 50em;
 	overflow: auto;
+ 	left: 35%;
+	position: absolute;
 }
 
 .tunnel.established {
