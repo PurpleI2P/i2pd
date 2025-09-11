@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -97,15 +97,15 @@ namespace util
 				return instance;
 			}
 	};
-#else
-#define Daemon i2p::util::DaemonLinux::Instance()
-	class DaemonLinux : public Daemon_Singleton
+#else // Unix-like systems, including Linux
+#define Daemon i2p::util::DaemonUnix::Instance()
+	class DaemonUnix : public Daemon_Singleton
 	{
 		public:
 
-			static DaemonLinux& Instance()
+			static DaemonUnix& Instance()
 			{
-				static DaemonLinux instance;
+				static DaemonUnix instance;
 				return instance;
 			}
 

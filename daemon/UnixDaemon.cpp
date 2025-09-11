@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -71,7 +71,7 @@ namespace i2p
 {
 	namespace util
 	{
-		bool DaemonLinux::start()
+		bool DaemonUnix::start()
 		{
 			if (isDaemon)
 			{
@@ -213,13 +213,13 @@ namespace i2p
 			return Daemon_Singleton::start();
 		}
 
-		bool DaemonLinux::stop()
+		bool DaemonUnix::stop()
 		{
 			i2p::fs::Remove(pidfile);
 			return Daemon_Singleton::stop();
 		}
 
-		void DaemonLinux::run ()
+		void DaemonUnix::run ()
 		{
 			i2p::util::SetThreadName ("i2pd-daemon");
 			while (running)
