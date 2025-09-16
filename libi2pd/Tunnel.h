@@ -248,6 +248,7 @@ namespace tunnel
 			void SetMaxNumTransitTunnels (uint32_t maxNumTransitTunnels);
 			uint32_t GetMaxNumTransitTunnels () const { return m_MaxNumTransitTunnels; };
 			int GetCongestionLevel() const { return m_MaxNumTransitTunnels ? CONGESTION_LEVEL_FULL * m_TransitTunnels.GetNumTransitTunnels () / m_MaxNumTransitTunnels : CONGESTION_LEVEL_FULL; }
+			std::mt19937& GetRng () { return m_Rng; }
 			
 		private:
 

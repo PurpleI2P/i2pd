@@ -561,13 +561,14 @@ namespace tunnel
 				if (m_Queue.Wait (1,0)) // 1 sec
 				{
 					m_Queue.GetWholeQueue (msgs);
+					auto mts = i2p::util::GetMillisecondsSinceEpoch ();
 					int numMsgs = 0;
 					uint32_t prevTunnelID = 0, tunnelID = 0;
 					std::shared_ptr<TunnelBase> prevTunnel;
 					while (!msgs.empty ())
 					{
 						auto msg = msgs.front (); msgs.pop_front ();
-						if (!msg) continue;
+						if (!msg || msg->IsExpired (mts)) continue;
 						std::shared_ptr<TunnelBase> tunnel;
 						uint8_t typeID = msg->GetTypeID ();
 						switch (typeID)

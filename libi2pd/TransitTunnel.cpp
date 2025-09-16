@@ -68,7 +68,9 @@ namespace tunnel
 
 		m_NumTransmittedBytes += tunnelMsg->GetLength ();
 		htobe32buf (tunnelMsg->GetPayload (), GetNextTunnelID ());
-		tunnelMsg->FillI2NPMessageHeader (eI2NPTunnelData);
+		// update header, expiration and size remain the same
+		tunnelMsg->SetMsgID (i2p::tunnel::tunnels.GetRng ()()); // assign new msgID
+		tunnelMsg->UpdateChks (); // new checksum TODO: remove later
 		m_TunnelDataMsgs.push_back (tunnelMsg);
 	}
 
