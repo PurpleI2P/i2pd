@@ -513,12 +513,6 @@ namespace net
 			// Hurricane Electric
 				return 1480;
 			break;
-			case 0x2a06a003:
-			case 0x2a06a004:
-			case 0x2a06a005:
-			// route48
-				return 1420;
-			break;
 			default: ;
 		}
 		return 1500;
@@ -648,7 +642,7 @@ namespace net
 		if (host.is_unspecified ()) return false;
 		if (host.is_v4())
 		{
-			static const std::array<std::pair<uint32_t, uint32_t>, 14> reservedIPv4Ranges 
+			static const std::array reservedIPv4Ranges 
 			{
 				address_pair_v4("0.0.0.0",      "0.255.255.255"),
 				address_pair_v4("10.0.0.0",     "10.255.255.255"),
@@ -674,7 +668,7 @@ namespace net
 		}
 		if (host.is_v6())
 		{
-			static const std::array<std::pair<boost::asio::ip::address_v6::bytes_type, boost::asio::ip::address_v6::bytes_type>, 7> reservedIPv6Ranges 
+			static std::array reservedIPv6Ranges 
 			{
 				address_pair_v6("64:ff9b::",  "64:ff9b:ffff:ffff:ffff:ffff:ffff:ffff"),  // NAT64
 				address_pair_v6("2001:db8::", "2001:db8:ffff:ffff:ffff:ffff:ffff:ffff"),
