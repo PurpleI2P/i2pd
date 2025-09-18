@@ -62,14 +62,20 @@ void MainWindow::MessageReceived (BMessage * msg)
 	switch (msg->what)
 	{
 		case M_GRACEFUL_SHUTDOWN:
-			i2p::context.SetAcceptsTunnels (false);
-			m_GracefulShutdownTimer = std::make_unique<BMessageRunner>(m_Messenger, 
-				BMessage (C_GRACEFUL_SHUTDOWN_UPDATE), GRACEFUL_SHUTDOWN_UPDATE_INTERVAL);
+			if (!m_GracefulShutdownTimer)
+			{
+				i2p::context.SetAcceptsTunnels (false);
+				Daemon.gracefulShutdownInterval = GRACEFUL_SHUTDOWN_UPDATE_COUNT;
+				m_GracefulShutdownTimer = std::make_unique<BMessageRunner>(m_Messenger, 
+					BMessage (C_GRACEFUL_SHUTDOWN_UPDATE), GRACEFUL_SHUTDOWN_UPDATE_INTERVAL);
+			}	
 		break;
 		case C_GRACEFUL_SHUTDOWN_UPDATE:
-			if (i2p::tunnel::tunnels.CountTransitTunnels () <= 0)
+			if (Daemon.gracefulShutdownInterval > 0) Daemon.gracefulShutdownInterval--;
+			if (!Daemon.gracefulShutdownInterval || i2p::tunnel::tunnels.CountTransitTunnels () <= 0)
 			{
 				m_GracefulShutdownTimer = nullptr;
+				Daemon.gracefulShutdownInterval = 0;
 				m_Messenger.SendMessage (B_QUIT_REQUESTED);
 			}	
 		break;
