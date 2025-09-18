@@ -1533,13 +1533,14 @@ namespace stream
 		if (m_Status != eStreamStatusTerminated)
 		{
 			m_SendTimer.cancel ();
-			m_SendTimer.expires_from_now (boost::posix_time::microseconds(
-				SEND_INTERVAL + m_LocalDestination.GetRandom () % SEND_INTERVAL_VARIANCE));
+			uint64_t interval = SEND_INTERVAL + m_LocalDestination.GetRandom () % SEND_INTERVAL_VARIANCE;
+			if (interval < m_PacingTime) interval = m_PacingTime;
+			m_SendTimer.expires_from_now (boost::posix_time::microseconds(interval));
 			m_SendTimer.async_wait (std::bind (&Stream::HandleSendTimer,
 				shared_from_this (), std::placeholders::_1));
 		}
 	}
-
+		
 	void Stream::HandleSendTimer (const boost::system::error_code& ecode)
 	{
 		if (ecode != boost::asio::error::operation_aborted)
