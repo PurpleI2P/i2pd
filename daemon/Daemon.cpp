@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -118,8 +118,8 @@ namespace util
 		if (logclftime)
 			i2p::log::Logger().SetTimeFormat ("[%d/%b/%Y:%H:%M:%S %z]");
 
-#ifdef WIN32_APP
-		// Win32 app with GUI supports only logging to file
+#if defined(WIN32_APP) || defined(__HAIKU__)
+		// Win32 app with GUI or Haiku supports only logging to file
 		logs = "file";
 #else
 		if (isDaemon && (logs == "" || logs == "stdout"))

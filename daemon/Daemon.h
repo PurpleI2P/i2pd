@@ -98,7 +98,6 @@ namespace util
 			}
 	};
 #else // Unix-like systems, including Linux
-#define Daemon i2p::util::DaemonUnix::Instance()
 	class DaemonUnix : public Daemon_Singleton
 	{
 		public:
@@ -122,6 +121,24 @@ namespace util
 
 			int gracefulShutdownInterval; // in seconds
 	};
+#if !defined(__HAIKU__)
+	#define Daemon i2p::util::DaemonUnix::Instance()
+#else
+	class DaemonHaiku: public DaemonUnix
+	{
+		public:
+			
+			static DaemonHaiku& Instance ()
+			{
+				static DaemonHaiku instance;
+				return instance;
+			}	
+			
+			void run ();
+	};	
+#define Daemon i2p::util::DaemonHaiku::Instance()
+#endif
+	
 #endif
 }
 }
