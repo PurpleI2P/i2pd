@@ -51,7 +51,6 @@ ifneq (, $(DESTDIR))
 endif
 
 ifneq (, $(findstring darwin, $(SYS)))
-	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
 	ifeq ($(HOMEBREW),1)
 		include Makefile.homebrew
 	else
@@ -61,16 +60,12 @@ else ifneq (, $(findstring mingw, $(SYS))$(findstring windows-gnu, $(SYS))$(find
 	DAEMON_SRC += Win32/DaemonWin32.cpp Win32/Win32App.cpp Win32/Win32Service.cpp Win32/Win32NetState.cpp
 	include Makefile.mingw
 else ifneq (, $(findstring linux, $(SYS))$(findstring gnu, $(SYS)))
-	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
 	include Makefile.linux
 else ifneq (, $(findstring freebsd, $(SYS))$(findstring openbsd, $(SYS)))
-	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
 	include Makefile.bsd
 else ifneq (, $(findstring haiku, $(SYS)))
-	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
 	include Makefile.haiku
 else ifneq (, $(findstring solaris, $(SYS)))
-	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
 	include Makefile.solaris
 else # not supported
 	$(error Not supported platform)
