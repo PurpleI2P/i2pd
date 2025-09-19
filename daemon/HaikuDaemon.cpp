@@ -9,12 +9,16 @@
 #if defined(__HAIKU__)
 
 #include <memory>
+#include <string>
 #include <MenuItem.h>
 #include <MenuBar.h>
 #include <MessageRunner.h>
 #include <Window.h>
 #include <Application.h>
+#include <Alert.h>
 
+#include "version.h"
+#include "Log.h"
 #include "RouterContext.h"
 #include "Tunnel.h"
 #include "Daemon.h"
@@ -44,7 +48,7 @@ class I2PApp: public BApplication
 };
 
 MainWindow::MainWindow ():
-	BWindow (BRect(100, 100, 500, 400), "i2pd", B_TITLED_WINDOW, B_QUIT_ON_WINDOW_CLOSE),
+	BWindow (BRect(100, 100, 500, 400), "i2pd " VERSION, B_TITLED_WINDOW, B_QUIT_ON_WINDOW_CLOSE),
 	m_Messenger (nullptr, this)
 {	
 	auto r = Bounds (); r.bottom = 20;
@@ -94,6 +98,15 @@ namespace i2p
 {
 namespace util
 {
+	bool DaemonHaiku::init(int argc, char* argv[])
+	{
+		i2p::log::SetThrowFunction ([](const std::string& s)
+			{
+				// BAlert ("Critical", s.c_str (), "Ok").Go ();
+			});
+		return Daemon_Singleton::init (argc, argv);
+	}	
+	
 	void DaemonHaiku::run ()
 	{
 		if (isDaemon)
