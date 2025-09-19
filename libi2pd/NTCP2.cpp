@@ -1536,11 +1536,15 @@ namespace transport
 					}
 					else if (address->IsV6() && (context.SupportsV6 () || context.SupportsMesh ()))
 					{
+#if defined(__HAIKU__)
+						LogPrint (eLogInfo, "NTCP2: Can't listen v6 TCP port ", address->port, ". IPV6_V6ONLY is not supported");
+						continue; // IPV6_V6ONLY is not supported. Don't listen ipv6
+#endif						
 						m_NTCP2V6Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService ()));
 						try
 						{
-							m_NTCP2V6Acceptor->open (boost::asio::ip::tcp::v6());
-							m_NTCP2V6Acceptor->set_option (boost::asio::ip::v6_only (true));
+							m_NTCP2V6Acceptor->open (boost::asio::ip::tcp::v6());						
+							m_NTCP2V6Acceptor->set_option (boost::asio::ip::v6_only (true));							
 							m_NTCP2V6Acceptor->set_option (boost::asio::socket_base::reuse_address (true));
 #if defined(__linux__) && !defined(_NETINET_IN_H)
 							if (!m_Address6 && !m_YggdrasilAddress) // only if not binded to address

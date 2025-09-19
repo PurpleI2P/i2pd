@@ -289,7 +289,14 @@ namespace transport
 				socket.close ();
 			socket.open (localEndpoint.protocol ());
 			if (localEndpoint.address ().is_v6 ())
+#if !defined(__HAIKU__)					
 				socket.set_option (boost::asio::ip::v6_only (true));
+#else
+			{
+				LogPrint (eLogWarning, "SSU2: Socket option IPV6_V6ONLY is not supported");
+				m_IsForcedFirewalled6 = true; // IPV6_V6ONLY is not supported, always Firewalled for ipv6
+			}		
+#endif			
 
 			uint64_t bufferSize = i2p::context.GetBandwidthLimit() * 1024 / 5; // max lag = 200ms
 			bufferSize = std::max(SSU2_SOCKET_MIN_BUFFER_SIZE, std::min(bufferSize, SSU2_SOCKET_MAX_BUFFER_SIZE));
