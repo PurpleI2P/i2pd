@@ -1345,6 +1345,12 @@ namespace transport
 			}
 		}
 
+		if (ipv6 &&	i2p::util::net::GetClearnetIPV6Address ().is_unspecified ())
+		{
+			LogPrint(eLogWarning, "Transports: Clearnet ipv6 not found. Disabled");
+			ipv6 = false;
+		}	
+		
 		if (!i2p::config::IsDefault("port"))
 		{
 			LogPrint(eLogInfo, "Transports: Accepting incoming connections at port ", port);

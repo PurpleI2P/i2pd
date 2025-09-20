@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -231,6 +231,7 @@ namespace util
 		int GetMaxMTU (const boost::asio::ip::address_v6& localAddress); // check tunnel broker for ipv6 address
 		const boost::asio::ip::address GetInterfaceAddress (const std::string & ifname, bool ipv6=false);
 		boost::asio::ip::address_v6 GetYggdrasilAddress ();
+		boost::asio::ip::address_v6 GetClearnetIPV6Address ();
 		bool IsLocalAddress (const boost::asio::ip::address& addr);
 		bool IsInReservedRange (const boost::asio::ip::address& host);
 		bool IsYggdrasilAddress (const boost::asio::ip::address& addr);

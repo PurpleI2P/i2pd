@@ -545,7 +545,8 @@ namespace net
 		return (reservedPorts.find(port) != reservedPorts.end());
 	}
 
-	boost::asio::ip::address_v6 GetYggdrasilAddress ()
+	template<typename CheckAddress>
+	static boost::asio::ip::address_v6 GetLocalIPV6Address (CheckAddress checkAddress)
 	{
 #if defined(_WIN32)
 		ULONG outBufLen = 0;
@@ -580,7 +581,7 @@ namespace net
 			{
 				LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
 				sockaddr_in6 *localInterfaceAddress = (sockaddr_in6*) lpAddr;
-				if (IsYggdrasilAddress(localInterfaceAddress->sin6_addr.u.Byte)) {
+				if (checkAddress(localInterfaceAddress->sin6_addr.u.Byte)) {
 					boost::asio::ip::address_v6::bytes_type bytes;
 					memcpy (bytes.data (), &localInterfaceAddress->sin6_addr.u.Byte, 16);
 					FREE(pAddresses);
@@ -590,7 +591,7 @@ namespace net
 			}
 			pCurrAddresses = pCurrAddresses->Next;
 		}
-		LogPrint(eLogWarning, "NetIface: Interface with Yggdrasil network address not found");
+		LogPrint(eLogWarning, "NetIface: Interface with ipv6 network address not found");
 		FREE(pAddresses);
 		return boost::asio::ip::address_v6 ();
 #else
@@ -604,7 +605,7 @@ namespace net
 					if (cur->ifa_addr && cur->ifa_addr->sa_family == AF_INET6)
 					{
 						sockaddr_in6* sa = (sockaddr_in6*)cur->ifa_addr;
-						if (IsYggdrasilAddress(sa->sin6_addr.s6_addr))
+						if (checkAddress(sa->sin6_addr.s6_addr))
 						{
 							boost::asio::ip::address_v6::bytes_type bytes;
 							memcpy (bytes.data (), &sa->sin6_addr, 16);
@@ -617,14 +618,27 @@ namespace net
 		}
 		catch (std::exception& ex)
 		{
-			LogPrint(eLogError, "NetIface: Exception while searching Yggdrasill address using ifaddr: ", ex.what());
+			LogPrint(eLogError, "NetIface: Exception while searching ipv6 address using ifaddr: ", ex.what());
 		}
-		LogPrint(eLogWarning, "NetIface: Interface with Yggdrasil network address not found");
+		LogPrint(eLogWarning, "NetIface: Interface with ipv6 network address not found");
 		if (addrs) freeifaddrs(addrs);
 		return boost::asio::ip::address_v6 ();
 #endif
 	}
 
+	boost::asio::ip::address_v6 GetYggdrasilAddress ()
+	{
+		return GetLocalIPV6Address ([](const uint8_t addr[16]) { return IsYggdrasilAddress (addr); });
+	}	
+
+	boost::asio::ip::address_v6 GetClearnetIPV6Address ()
+	{
+		return GetLocalIPV6Address ([](const uint8_t addr[16])
+			{
+				return (addr[0] & 0xF0) == 0x20; // 2000::/3
+			});	
+	}	
+	
 	bool IsLocalAddress (const boost::asio::ip::address& addr)
 	{
 		auto mtu = // TODO: implement better
