@@ -184,7 +184,7 @@ jobs:
       uses: actions/cache@v4
       id: cache-winpthreads
       with:
-        path: MINGW-packages/mingw-w64-winpthreads-git/*.zst
+        path: MINGW-packages/mingw-w64-winpthreads/*.zst
         key: winxp-winpthreads-${{ steps.version-winpthreads.outputs.version }}
     - name: Build WinXP-capable winpthreads package
       if: steps.cache-winpthreads.outputs.cache-hit != 'true'
@@ -192,7 +192,7 @@ jobs:
         cd MINGW-packages/mingw-w64-winpthreads-git
         MINGW_ARCH=mingw32 makepkg-mingw -sCLf --noconfirm --nocheck
     - name: Install winpthreads package
-      run: pacman --noconfirm -U MINGW-packages/mingw-w64-winpthreads-git/mingw-w64-i686-*-any.pkg.tar.zst
+      run: pacman --noconfirm -U MINGW-packages/mingw-w64-winpthreads/mingw-w64-i686-*-any.pkg.tar.zst
 
     # OpenSSL
     - name: Get openssl package version
@@ -209,8 +209,7 @@ jobs:
       if: steps.cache-openssl.outputs.cache-hit != 'true'
       run: |
         cd MINGW-packages/mingw-w64-openssl
-        gpg --recv-keys D894E2CE8B3D79F5
-        gpg --recv-keys 216094DFD0CB81EF
+        curl https://openssl-library.org/source/pubkeys.asc | gpg --import
         MINGW_ARCH=mingw32 makepkg-mingw -sCLf --noconfirm --nocheck
     - name: Install openssl package
       run: pacman --noconfirm -U MINGW-packages/mingw-w64-openssl/mingw-w64-i686-*-any.pkg.tar.zst
@@ -226,7 +225,6 @@ jobs:
       with:
         path: MINGW-packages/mingw-w64-boost/*.zst
         key: winxp-boost-1.85.0+crt-${{ steps.version-headers.outputs.version }}+ossl-${{ steps.version-openssl.outputs.version }}
-    # Rebuild package if packages above has changed
     - name: Build WinXP-capable boost package
       if: steps.cache-boost.outputs.cache-hit != 'true'
       run: |
@@ -242,7 +240,6 @@ jobs:
       run: |
         mkdir -p obj/Win32 obj/libi2pd obj/libi2pd_client obj/daemon
         make USE_UPNP=yes DEBUG=no USE_GIT_VERSION=yes USE_WINXP_FLAGS=yes -j3
-
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
