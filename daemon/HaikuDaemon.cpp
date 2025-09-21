@@ -19,6 +19,7 @@
 
 #include "version.h"
 #include "Log.h"
+#include "Config.h"
 #include "RouterContext.h"
 #include "Tunnel.h"
 #include "Daemon.h"
@@ -100,22 +101,29 @@ namespace util
 {
 	bool DaemonHaiku::init(int argc, char* argv[])
 	{
-		i2p::log::SetThrowFunction ([](const std::string& s)
-			{
-				// BAlert ("Critical", s.c_str (), "Ok").Go ();
-			});
+		i2p::config::GetOption("daemon", isDaemon);
+		if (!isDaemon)
+		{
+			new I2PApp(); // set be_app
+			i2p::log::SetThrowFunction ([](const std::string& s)
+				{
+					auto alert = new BAlert (nullptr, s.c_str (), "Quit", nullptr, nullptr,
+						B_WIDTH_AS_USUAL, B_OFFSET_SPACING, B_STOP_ALERT);
+					alert->Go ();
+				});
+		}	
 		return Daemon_Singleton::init (argc, argv);
 	}	
 	
 	void DaemonHaiku::run ()
 	{
-		if (isDaemon)
-			DaemonUnix::run ();
-		else
+		if (be_app)
 		{
-			I2PApp app;
-			app.Run ();
+			be_app->Run ();
+			delete be_app;
 		}		
+		else
+			DaemonUnix::run ();
 	}	
 }	
 }	
