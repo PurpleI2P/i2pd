@@ -189,7 +189,7 @@ jobs:
     - name: Build WinXP-capable winpthreads package
       if: steps.cache-winpthreads.outputs.cache-hit != 'true'
       run: |
-        cd MINGW-packages/mingw-w64-winpthreads-git
+        cd MINGW-packages/mingw-w64-winpthreads
         MINGW_ARCH=mingw32 makepkg-mingw -sCLf --noconfirm --nocheck
     - name: Install winpthreads package
       run: pacman --noconfirm -U MINGW-packages/mingw-w64-winpthreads/mingw-w64-i686-*-any.pkg.tar.zst
