@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -44,7 +44,7 @@ namespace i2p
 {
 namespace win32
 {
-	DWORD g_GracefulShutdownEndtime = 0;
+	static DWORD g_GracefulShutdownEndtime = 0;
 	bool g_isWinService;
 
 	static void ShowPopupMenu (HWND hWnd, POINT *curpos, int wDefaultItem)
@@ -195,11 +195,11 @@ namespace win32
 		s << "; ";
 		s << "Success Rate: " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate() << "%\n";
 		s << "Uptime: "; ShowUptime(s, i2p::context.GetUptime ());
-		if (g_GracefulShutdownEndtime != 0)
-		{
-			DWORD GracefulTimeLeft = (g_GracefulShutdownEndtime - GetTickCount()) / 1000;
-			s << "Graceful shutdown, time left: "; ShowUptime(s, GracefulTimeLeft);
-		}
+		auto gracefulTimeLeft = GetGracefulShutdownRemainingTime ();
+		if (gracefulTimeLeft > 0)
+		{	
+			s << "Graceful shutdown, time left: "; ShowUptime(s, gracefulTimeLeft);
+		}	
 		else
 			s << "\n";
 		s << "Inbound: " << i2p::transport::transports.GetInBandwidth() / 1024 << " KiB/s; ";
@@ -498,5 +498,13 @@ namespace win32
 			PostMessage (hWnd, WM_COMMAND, MAKEWPARAM(ID_STOP_GRACEFUL_SHUTDOWN, 0), 0);
 		return hWnd;
 	}
+
+	int GetGracefulShutdownRemainingTime ()
+	{
+		if (!g_GracefulShutdownEndtime) return 0;
+		auto remains = (g_GracefulShutdownEndtime - GetTickCount()) / 1000;
+		if (remains < 0) remains = 0;
+		return remains;
+	}	
 }
 }

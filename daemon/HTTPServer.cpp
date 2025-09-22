@@ -307,8 +307,9 @@ namespace http {
 			s << "<br>\r\n";
 		}
 #elif defined(WIN32_APP)
-		if (i2p::win32::g_GracefulShutdownEndtime != 0) {
-			uint16_t remains = (i2p::win32::g_GracefulShutdownEndtime - GetTickCount()) / 1000;
+		auto remains = i2p::win32::GetGracefulShutdownRemainingTime ();
+		if (remains > 0) 
+		{
 			s << "<b>" << tr("Stopping in") << ":</b> ";
 			ShowUptime(s, remains);
 			s << "<br>\r\n";

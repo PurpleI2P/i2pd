@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -15,13 +15,12 @@ namespace i2p
 {
 namespace win32
 {
-	extern DWORD g_GracefulShutdownEndtime;
-
 	bool StartWin32App (bool isWinService);
 	void StopWin32App ();
 	int RunWin32App ();
 	bool GracefulShutdown ();
 	bool StopGracefulShutdown ();
+	int GetGracefulShutdownRemainingTime ();
 }
 }
 #endif // WIN32APP_H__
