@@ -62,9 +62,9 @@ namespace util
 		return service;
 	}
 
-	void Daemon_Singleton::setDataDir(std::string path)
+	void Daemon_Singleton::setDataDir(std::string_view path)
 	{
-		if (path != "")
+		if (!path.empty ())
 			DaemonDataDir = path;
 	}
 
@@ -433,6 +433,116 @@ namespace util
 		i2p::log::Logger().Stop();
 
 		return true;
+	}
+
+	static void ShowUptime (std::stringstream& s, int seconds)
+	{
+		int num;
+
+		if ((num = seconds / 86400) > 0) {
+			s << num << " days, ";
+			seconds -= num * 86400;
+		}
+		if ((num = seconds / 3600) > 0) {
+			s << num << " hours, ";
+			seconds -= num * 3600;
+		}
+		if ((num = seconds / 60) > 0) {
+			s << num << " min, ";
+			seconds -= num * 60;
+		}
+		s << seconds << " seconds\n";
+	}
+
+	static void ShowTransfered (std::stringstream& s, size_t transfer)
+	{
+		auto bytes = transfer & 0x03ff;
+		transfer >>= 10;
+		auto kbytes = transfer & 0x03ff;
+		transfer >>= 10;
+		auto mbytes = transfer & 0x03ff;
+		transfer >>= 10;
+		auto gbytes = transfer;
+
+		if (gbytes)
+			s << gbytes << " GB, ";
+		if (mbytes)
+			s << mbytes << " MB, ";
+		if (kbytes)
+			s << kbytes << " KB, ";
+		s << bytes << " Bytes\n";
+	}
+
+	static void ShowNetworkStatus (std::stringstream& s, RouterStatus status, bool testing, RouterError error)
+	{
+		switch (status)
+		{
+			case eRouterStatusOK: s << "OK"; break;
+			case eRouterStatusFirewalled: s << "FW"; break;
+			case eRouterStatusUnknown: s << "Unk"; break;
+			case eRouterStatusProxy: s << "Proxy"; break;
+			case eRouterStatusMesh: s << "Mesh"; break;
+			default: s << "Unk";
+		};
+		if (testing)
+			s << " (Test)";
+		if (error != eRouterErrorNone)
+		{
+			switch (error)
+			{
+				case eRouterErrorClockSkew:
+					s << " - " << tr("Clock skew");
+				break;
+				case eRouterErrorOffline:
+					s << " - " << tr("Offline");
+				break;
+				case eRouterErrorSymmetricNAT:
+					s << " - " << tr("Symmetric NAT");
+				break;
+				case eRouterErrorFullConeNAT:
+					s << " - " << tr("Full cone NAT");
+				break;
+				case eRouterErrorNoDescriptors:
+					s << " - " << tr("No Descriptors");
+				break;
+				default: ;
+			}
+		}
+	}
+
+	void PrintMainWindowText (std::stringstream& s)
+	{
+		s << "\n";
+		s << "Status: ";
+		ShowNetworkStatus (s, i2p::context.GetStatus (), i2p::context.GetTesting(), i2p::context.GetError ());
+		if (i2p::context.SupportsV6 ())
+		{
+			s << " / ";
+			ShowNetworkStatus (s, i2p::context.GetStatusV6 (), i2p::context.GetTestingV6(), i2p::context.GetErrorV6 ());
+		}
+		s << "; ";
+		s << "Success Rate: " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate() << "%\n";
+		s << "Uptime: "; ShowUptime(s, i2p::context.GetUptime ());
+		auto gracefulTimeLeft = Daemon.GetGracefulShutdownInterval ();
+		if (gracefulTimeLeft > 0)
+		{	
+			s << "Graceful shutdown, time left: "; ShowUptime(s, gracefulTimeLeft);
+		}	
+		else
+			s << "\n";
+		s << "Inbound: " << i2p::transport::transports.GetInBandwidth() / 1024 << " KiB/s; ";
+		s << "Outbound: " << i2p::transport::transports.GetOutBandwidth() / 1024 << " KiB/s\n";
+		s << "Received: "; ShowTransfered (s, i2p::transport::transports.GetTotalReceivedBytes());
+		s << "Sent: "; ShowTransfered (s, i2p::transport::transports.GetTotalSentBytes());
+		s << "\n";
+		s << "Routers: " << i2p::data::netdb.GetNumRouters () << "; ";
+		s << "Floodfills: " << i2p::data::netdb.GetNumFloodfills () << "; ";
+		s << "LeaseSets: " << i2p::data::netdb.GetNumLeaseSets () << "\n";
+		s << "Tunnels: ";
+		s << "In: " << i2p::tunnel::tunnels.CountInboundTunnels() << "; ";
+		s << "Out: " << i2p::tunnel::tunnels.CountOutboundTunnels() << "; ";
+		s << "Transit: " << i2p::tunnel::tunnels.CountTransitTunnels() << "\n";
+		s << "\n";
 	}
 }
 }

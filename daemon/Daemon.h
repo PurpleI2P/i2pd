@@ -11,7 +11,9 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 #include <ostream>
+#include <sstream>
 
 namespace i2p
 {
@@ -27,9 +29,9 @@ namespace util
 		virtual bool start ();
 		virtual bool stop ();
 		virtual void run () {};
-
-		virtual void setDataDir (std::string path);
+		
 		virtual int GetGracefulShutdownInterval () const { return 0; };
+		void setDataDir (std::string_view path);
 		
 	public:
 		
@@ -52,6 +54,8 @@ namespace util
 		std::string DaemonDataDir;
 	};
 
+	void PrintMainWindowText (std::stringstream& s); // for GUI
+	
 #if defined(QT_GUI_LIB) // check if QT
 #define Daemon i2p::util::DaemonQT::Instance()
 	// dummy, invoked from RunQT
