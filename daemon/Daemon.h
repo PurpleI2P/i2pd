@@ -29,7 +29,10 @@ namespace util
 		virtual void run () {};
 
 		virtual void setDataDir (std::string path);
-
+		virtual int GetGracefulShutdownInterval () const { return 0; };
+		
+	public:
+		
 		bool isDaemon;
 		bool running;
 
@@ -74,15 +77,21 @@ namespace util
 				static DaemonWin32 instance;
 				return instance;
 			}
-
+	
 			bool init(int argc, char* argv[]);
 			bool start();
 			bool stop();
 			void run ();
 
+			int GetGracefulShutdownInterval () const;
+
+		public:
+		
 			bool isGraceful;
 
-			DaemonWin32 ():isGraceful(false) {}
+		private:
+
+			DaemonWin32 (): isGraceful(false) {}
 	};
 #elif (defined(ANDROID) && !defined(ANDROID_BINARY))
 #define Daemon i2p::util::DaemonAndroid::Instance()
@@ -112,6 +121,8 @@ namespace util
 			bool stop();
 			void run ();
 
+			int GetGracefulShutdownInterval () const { return gracefulShutdownInterval; };
+			
 		private:
 
 			std::string pidfile;

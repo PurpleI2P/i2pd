@@ -300,21 +300,13 @@ namespace http {
 			ShowNetworkStatus (s, i2p::context.GetStatusV6 (), i2p::context.GetTestingV6(), i2p::context.GetErrorV6 ());
 			s << "<br>\r\n";
 		}
-#if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
-		if (auto remains = Daemon.gracefulShutdownInterval) {
-			s << "<b>" << tr("Stopping in") << ":</b> ";
-			ShowUptime(s, remains);
-			s << "<br>\r\n";
-		}
-#elif defined(WIN32_APP)
-		auto remains = i2p::win32::GetGracefulShutdownRemainingTime ();
+		auto remains = Daemon.GetGracefulShutdownInterval ();
 		if (remains > 0) 
 		{
 			s << "<b>" << tr("Stopping in") << ":</b> ";
 			ShowUptime(s, remains);
 			s << "<br>\r\n";
 		}
-#endif
 		auto family = i2p::context.GetFamily ();
 		if (family.length () > 0)
 			s << "<b>"<< tr("Family") << ":</b> " << family << "<br>\r\n";

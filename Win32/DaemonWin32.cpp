@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -98,6 +98,11 @@ namespace util
 		}
 #endif
 	}
+
+	int DaemonWin32::GetGracefulShutdownInterval () const
+	{
+		return i2p::win32::GetGracefulShutdownRemainingTime ();
+	}	
 }
 }
 #endif //_WIN32

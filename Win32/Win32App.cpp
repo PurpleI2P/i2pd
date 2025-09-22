@@ -195,7 +195,7 @@ namespace win32
 		s << "; ";
 		s << "Success Rate: " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate() << "%\n";
 		s << "Uptime: "; ShowUptime(s, i2p::context.GetUptime ());
-		auto gracefulTimeLeft = GetGracefulShutdownRemainingTime ();
+		auto gracefulTimeLeft = Daemon.GetGracefulShutdownInterval ();
 		if (gracefulTimeLeft > 0)
 		{	
 			s << "Graceful shutdown, time left: "; ShowUptime(s, gracefulTimeLeft);
