@@ -12,6 +12,8 @@
 #include <string>
 #include <MenuItem.h>
 #include <MenuBar.h>
+#include <StringView.h>
+#include <Font.h>
 #include <MessageRunner.h>
 #include <Window.h>
 #include <Application.h>
@@ -28,6 +30,16 @@ constexpr int M_GRACEFUL_SHUTDOWN = 1;
 constexpr int C_GRACEFUL_SHUTDOWN_UPDATE = 2;
 constexpr bigtime_t GRACEFUL_SHUTDOWN_UPDATE_INTERVAL = 1000*1000; // in microseconds
 constexpr int GRACEFUL_SHUTDOWN_UPDATE_COUNT = 600; // 10 minutes
+
+class MainWindowView: public BStringView
+{
+	public:
+		MainWindowView (BRect r);
+	
+	private:
+		void Draw (BRect updateRect) override;
+		
+};	
 
 class MainWindow: public BWindow
 {
@@ -48,6 +60,24 @@ class I2PApp: public BApplication
 		I2PApp ();	
 };
 
+MainWindowView::MainWindowView (BRect r):
+	BStringView (r, nullptr, nullptr, B_FOLLOW_ALL, B_WILL_DRAW)
+{
+	SetViewColor (255, 255, 255);
+	SetHighColor (0xD4, 0x3B, 0x69);
+	BFont font = *be_plain_font;
+	font.SetSize (12);
+	SetFont (&font);
+}	
+
+void MainWindowView::Draw (BRect updateRect)
+{
+	std::stringstream s;
+	i2p::util::PrintMainWindowText (s);
+	SetText (s.str ().c_str ());
+	BStringView::Draw (updateRect);
+}	
+
 MainWindow::MainWindow ():
 	BWindow (BRect(100, 100, 500, 400), "i2pd " VERSION, B_TITLED_WINDOW, B_QUIT_ON_WINDOW_CLOSE),
 	m_Messenger (nullptr, this)
@@ -59,6 +89,9 @@ MainWindow::MainWindow ():
 	runMenu->AddItem (new BMenuItem ("Graceful shutdown", new BMessage (M_GRACEFUL_SHUTDOWN), 'G'));
 	runMenu->AddItem (new BMenuItem ("Quit", new BMessage (B_QUIT_REQUESTED), 'Q'));
 	menuBar->AddItem (runMenu);
+	r = Bounds (); r.left = 20; r.top = 21;
+	auto view = new MainWindowView (r);	
+	AddChild (view);
 }	
 
 void MainWindow::MessageReceived (BMessage * msg)
