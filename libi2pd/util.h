@@ -9,7 +9,9 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#include <inttypes.h>
 #include <string>
+#include <map>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -225,6 +227,28 @@ namespace util
 			T m_Copy;
 	};
 
+	class Mapping
+	{
+		public:
+
+			Mapping () = default;
+			size_t FromBuffer (const uint8_t * buf, size_t len);
+			size_t FromBuffer (size_t size, const uint8_t * buf, size_t len); //without 2 bytes size
+			size_t ToBuffer (uint8_t * buf, size_t len);
+			
+			std::string_view operator[](std::string_view param) const;
+			bool Insert (std::string_view param, std::string_view value);
+			void CleanUp ();
+			
+			static std::string_view ExtractString (const uint8_t * buf, size_t len);
+			static size_t WriteString (std::string_view str, uint8_t * buf, size_t len);
+			static size_t WriteOption (std::string_view param, std::string_view value, uint8_t * buf, size_t len);
+			
+		private:
+
+			std::map<std::string, std::string, std::less<> > m_Options;
+	};	
+	
 	namespace net
 	{
 		int GetMTU (const boost::asio::ip::address& localAddress);

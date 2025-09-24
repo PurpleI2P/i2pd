@@ -215,6 +215,113 @@ namespace util
 #endif
 	}
 
+	size_t Mapping::FromBuffer (const uint8_t * buf, size_t len)
+	{
+		if (len < 2) return 0;
+		return FromBuffer (bufbe16toh (buf), buf + 2, len - 2) + 2;
+	}	
+
+	size_t Mapping::FromBuffer (size_t size, const uint8_t * buf, size_t len)
+	{
+		if (len < size) return 0;
+		size_t offset = 0;
+		while (offset < size)
+		{
+			auto param = ExtractString (buf + offset, size - offset);
+			offset += param.length () + 1;
+			if (offset + 1 > size)
+			{
+				LogPrint (eLogWarning, "Mapping: Param length ",  param.length (), " is too long");
+				break;
+			}	
+			if (buf[offset] != '=')
+			{
+				LogPrint (eLogWarning, "Mapping: Unexpected character ", buf[offset], " instead '=' after ", param);
+				break;
+			}
+			offset++;
+
+			auto value = ExtractString (buf + offset, size - offset);
+			offset += value.length () + 1;
+			if (offset + 1 > size)
+			{
+				LogPrint (eLogWarning, "Mapping: Value length ",  param.length (), " is too long");
+				break;
+			}	
+			if (buf[offset] != ';')
+			{
+				LogPrint (eLogWarning, "Mapping: Unexpected character ", buf[offset], " instead ';' after ", value);
+				break;
+			}
+			offset++;
+			m_Options.emplace (param, value);
+		}
+		return size;
+	}	
+	
+	std::string_view Mapping::ExtractString (const uint8_t * buf, size_t len)
+	{
+		uint8_t l = buf[0];
+		if (l > len) l = len;
+		return { (const char *)(buf + 1), l };
+	}
+
+	size_t Mapping::ToBuffer (uint8_t * buf, size_t len)
+	{
+		size_t offset = 2;
+		for (auto it: m_Options)
+		{
+			if (len <= offset) break;
+			size_t l = WriteOption (it.first, it.second, buf + offset, len - offset);
+			if (!l) break;
+			offset += l;
+		}	
+		htobe16buf (buf, offset - 2);
+		return offset;
+	}	
+	
+	size_t Mapping::WriteString (std::string_view str, uint8_t * buf, size_t len)
+	{
+		auto l = str.length ();
+		if (l + 1 >= len) l = len - 1;
+		if (l > 255) l = 255; // 1 byte max
+		buf[0] = l;
+		memcpy (buf + 1, str.data (), l);
+		return l + 1;
+	}	
+
+	size_t Mapping::WriteOption (std::string_view param, std::string_view value, uint8_t * buf, size_t len)
+	{
+		if (param.length () + value.length () + 4 > len) return 0;
+		size_t offset = 0;
+		offset += WriteString (param, buf + offset, len - offset);
+		buf[offset] = '='; offset++;
+		offset += WriteString (value, buf + offset, len - offset);
+		buf[offset] = ';'; offset++;
+		return offset;
+	}	
+	
+	std::string_view Mapping::operator[](std::string_view param) const
+	{
+		auto it = m_Options.find (param);
+		if (it != m_Options.end ()) return it->second;
+		return std::string_view (); // empty string
+	}	
+
+	bool Mapping::Insert (std::string_view param, std::string_view value)
+	{
+		return m_Options.emplace (param, value).second;
+	}	
+
+	void Mapping::CleanUp ()
+	{
+		if (!m_Options.empty ())
+		{	
+			decltype(m_Options) tmp;
+			m_Options.swap (tmp);
+		}	
+	}	
+	
 namespace net
 {
 #ifdef _WIN32
