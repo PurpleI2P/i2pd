@@ -24,11 +24,13 @@
 #include "Config.h"
 #include "RouterContext.h"
 #include "Tunnel.h"
+#include "Transports.h"
 #include "Daemon.h"
 
 constexpr int M_GRACEFUL_SHUTDOWN = 1;
 constexpr int C_GRACEFUL_SHUTDOWN_UPDATE = 2;
 constexpr int C_MAIN_VIEW_UPDATE = 3;
+constexpr int M_RUN_PEER_TEST = 4;
 constexpr bigtime_t GRACEFUL_SHUTDOWN_UPDATE_INTERVAL = 1000*1100; // in microseconds, ~ 1 sec
 constexpr int GRACEFUL_SHUTDOWN_UPDATE_COUNT = 600; // 10 minutes
 constexpr bigtime_t MAIN_VIEW_UPDATE_INTERVAL = 5000*1000; // in miscroseconds, 5 secs
@@ -66,6 +68,9 @@ MainWindow::MainWindow ():
 	runMenu->AddItem (new BMenuItem ("Graceful shutdown", new BMessage (M_GRACEFUL_SHUTDOWN), 'G'));
 	runMenu->AddItem (new BMenuItem ("Quit", new BMessage (B_QUIT_REQUESTED), 'Q'));
 	menuBar->AddItem (runMenu);
+	auto commandsMenu = new BMenu ("Commands");
+	commandsMenu->AddItem (new BMenuItem ("Run peer test", new BMessage (M_RUN_PEER_TEST), 'P'));
+	menuBar->AddItem (commandsMenu);
 	m_MainView = new BStringView (BRect (20, 21, 300, 250), nullptr, "Starting...", B_FOLLOW_ALL, B_WILL_DRAW);
 	m_MainView->SetViewColor (255, 255, 255);
 	m_MainView->SetHighColor (0xD4, 0x3B, 0x69);
@@ -91,7 +96,7 @@ void MainWindow::MessageReceived (BMessage * msg)
 	{
 		case C_MAIN_VIEW_UPDATE:
 			UpdateMainView ();
-			break;
+		break;
 		case M_GRACEFUL_SHUTDOWN:
 			if (!m_GracefulShutdownTimer)
 			{
@@ -119,6 +124,9 @@ void MainWindow::MessageReceived (BMessage * msg)
 			m_MainViewUpdateTimer = nullptr;
 			m_GracefulShutdownTimer = nullptr;
 			BWindow::MessageReceived (msg);
+		break;
+		case M_RUN_PEER_TEST:
+			i2p::transport::transports.PeerTest ();
 		break;
 		default:
 			BWindow::MessageReceived (msg);
