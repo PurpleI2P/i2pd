@@ -239,6 +239,7 @@ namespace util
 			std::string_view operator[](std::string_view param) const;
 			bool Insert (std::string_view param, std::string_view value);
 			void CleanUp ();
+			bool IsEmpty () const { return m_Options.empty (); }
 			
 			static std::string_view ExtractString (const uint8_t * buf, size_t len);
 			static size_t WriteString (std::string_view str, uint8_t * buf, size_t len);

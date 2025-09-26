@@ -459,7 +459,8 @@ namespace client
 				}		
 				if (type == SAMSessionType::eSAMSessionTypeDatagram)
 					dest->SetReceiver (std::bind (&SAMSocket::HandleI2PDatagramReceive, shared_from_this (),
-						std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
+						std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, 
+					    std::placeholders::_4, std::placeholders::_5, std::placeholders::_6),
 						port
 					);
 				else // raw
@@ -1290,7 +1291,8 @@ namespace client
 			LogPrint (eLogWarning, "SAM: I2P forward acceptor has been reset");
 	}
 
-	void SAMSocket::HandleI2PDatagramReceive (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
+	void SAMSocket::HandleI2PDatagramReceive (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort,
+		const uint8_t * buf, size_t len, const i2p::util::Mapping * options)
 	{
 		LogPrint (eLogDebug, "SAM: Datagram received ", len);
 		auto base64 = from.ToBase64 ();

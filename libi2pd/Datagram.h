@@ -20,6 +20,7 @@
 #include "LeaseSet.h"
 #include "I2NPProtocol.h"
 #include "Garlic.h"
+#include "util.h"
 #include "ECIESX25519AEADRatchetSession.h"
 
 namespace i2p
@@ -124,7 +125,8 @@ namespace datagram
 	const size_t MAX_DATAGRAM_SIZE = 32768;
 	class DatagramDestination
 	{
-		typedef std::function<void (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)> Receiver;
+		typedef std::function<void (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, 
+			const uint8_t * buf, size_t len, const i2p::util::Mapping * options)> Receiver;
 		typedef std::function<void (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)> RawReceiver;
 
 		public:
@@ -193,6 +195,7 @@ namespace datagram
 			DatagramVersion m_Version; // default for destination
 			i2p::data::GzipInflator m_Inflator;
 			std::unique_ptr<i2p::data::GzipDeflator> m_Deflator;
+			i2p::util::Mapping m_Options;
 			std::vector<uint8_t> m_From, m_Signature;
 			i2p::util::MemoryPool<I2NPMessageBuffer<I2NP_MAX_MESSAGE_SIZE> > m_I2NPMsgsPool;
 	};

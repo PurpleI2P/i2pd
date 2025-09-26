@@ -165,7 +165,7 @@ namespace datagram
 			session->Ack();
 			auto r = FindReceiver(toPort);
 			if(r)
-				r(identity, fromPort, toPort, buf + headerLen, len -headerLen);
+				r(identity, fromPort, toPort, buf + headerLen, len - headerLen, nullptr);
 			else
 				LogPrint (eLogWarning, "DatagramDestination: no receiver for port ", toPort);
 		}
@@ -218,8 +218,20 @@ namespace datagram
 		}
 		uint16_t flags = bufbe16toh (buf + identityLen);
 		size_t offset = identityLen + 2;
+		bool isOptions = false;
 		if (flags & DATAGRAM2_FLAG_OPTIONS)
-			offset += bufbe16toh (buf + offset) + 2;
+		{	
+			isOptions = true;
+			m_Options.CleanUp ();
+			auto optionsLen = m_Options.FromBuffer (buf + offset, len - offset);
+			if (optionsLen)
+				offset += optionsLen;
+			else
+			{
+				LogPrint (eLogWarning, "Datagram: datagram2 can't read options");
+				return;
+			}
+		}	
 		if (offset > len)
 		{
 			LogPrint (eLogWarning, "Datagram: datagram2 is too short ", len, " expected ", offset);
@@ -256,7 +268,7 @@ namespace datagram
 		session->Ack();
 		auto r = FindReceiver(toPort);
 		if(r)
-			r(identity, fromPort, toPort, buf + offset, len - offset - signatureLen);
+			r(identity, fromPort, toPort, buf + offset, len - offset - signatureLen, isOptions ? &m_Options : nullptr);
 		else
 			LogPrint (eLogWarning, "DatagramDestination: no receiver for port ", toPort);
 	}	
@@ -288,14 +300,26 @@ namespace datagram
 					{
 						uint16_t flags = bufbe16toh (buf + 32);
 						size_t offset = 34;
+						bool isOptions = false;
 						if (flags & DATAGRAM3_FLAG_OPTIONS)
-							offset += bufbe16toh (buf + offset) + 2;
+						{	
+							isOptions = true;
+							m_Options.CleanUp ();
+							auto optionsLen = m_Options.FromBuffer (buf + offset, len - offset);
+							if (optionsLen)
+								offset += optionsLen;
+							else
+							{
+								LogPrint (eLogWarning, "Datagram: datagram3 can't read options");
+								return;
+							}	
+						}	
 						if (offset > len)
 						{
 							LogPrint (eLogWarning, "Datagram: datagram3 is too short ", len, " expected ", offset);
 							return;
 						}	
-						r(*ls->GetIdentity (), fromPort, toPort, buf + offset, len - offset);
+						r(*ls->GetIdentity (), fromPort, toPort, buf + offset, len - offset, isOptions ? &m_Options : nullptr);
 					}	
 					else
 						LogPrint (eLogWarning, "Datagram: no receiver for port ", toPort);

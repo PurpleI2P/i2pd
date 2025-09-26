@@ -16,7 +16,8 @@ namespace i2p
 {
 namespace client
 {
-	void I2PUDPServerTunnel::HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
+	void I2PUDPServerTunnel::HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, 
+		const uint8_t * buf, size_t len, const i2p::util::Mapping * options)
 	{
 		if (!m_LastSession || m_LastSession->Identity.GetLL()[0] != from.GetIdentHash ().GetLL()[0] || fromPort != m_LastSession->RemotePort)
 			m_LastSession = ObtainUDPSession(from, toPort, fromPort);
@@ -189,7 +190,8 @@ namespace client
 
 		auto dgram = m_LocalDest->CreateDatagramDestination (m_Gzip);
 		dgram->SetReceiver (
-			std::bind (&I2PUDPServerTunnel::HandleRecvFromI2P, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
+			std::bind (&I2PUDPServerTunnel::HandleRecvFromI2P, this, std::placeholders::_1, std::placeholders::_2, 
+				std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6),
 			m_inPort
 		);
 		dgram->SetRawReceiver (
@@ -259,7 +261,7 @@ namespace client
 		dgram->SetReceiver (std::bind (&I2PUDPClientTunnel::HandleRecvFromI2P, this,
 			std::placeholders::_1, std::placeholders::_2,
 			std::placeholders::_3, std::placeholders::_4,
-			std::placeholders::_5),
+			std::placeholders::_5, std::placeholders::_6),
 			RemotePort
 		);
 		dgram->SetRawReceiver (std::bind (&I2PUDPClientTunnel::HandleRecvFromI2PRaw, this,
@@ -392,7 +394,8 @@ namespace client
 		LogPrint(eLogInfo, "UDP Tunnel: Resolved ", m_RemoteDest, " to ", m_RemoteAddr->identHash.ToBase32 ());
 	}
 
-	void I2PUDPClientTunnel::HandleRecvFromI2P (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
+	void I2PUDPClientTunnel::HandleRecvFromI2P (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, 
+		const uint8_t * buf, size_t len, const i2p::util::Mapping * options)
 	{
 		if (m_RemoteAddr && from.GetIdentHash() == m_RemoteAddr->identHash)
 			HandleRecvFromI2PRaw (fromPort, toPort, buf, len);
