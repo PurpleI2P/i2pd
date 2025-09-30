@@ -134,12 +134,13 @@ namespace datagram
 			DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner, bool gzip, DatagramVersion version);
 			~DatagramDestination ();
 
-			void SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash & ident, uint16_t fromPort = 0, uint16_t toPort = 0);
-			void SendRawDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash & ident, uint16_t fromPort = 0, uint16_t toPort = 0);
+			void SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident, uint16_t fromPort = 0, uint16_t toPort = 0);
+			void SendRawDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident, uint16_t fromPort = 0, uint16_t toPort = 0);
 			// TODO: implement calls from other thread from SAM
 
 			std::shared_ptr<DatagramSession> GetSession(const i2p::data::IdentHash & ident);
-			void SendDatagram (std::shared_ptr<DatagramSession> session, const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort);
+			void SendDatagram (std::shared_ptr<DatagramSession> session, const uint8_t * payload, size_t len, 
+				uint16_t fromPort, uint16_t toPort, const i2p::util::Mapping * options = nullptr);
 			void SendRawDatagram (std::shared_ptr<DatagramSession> session, const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort);
 			void FlushSendQueue (std::shared_ptr<DatagramSession> session);
 

@@ -56,7 +56,8 @@ namespace datagram
 		return ObtainSession(ident);
 	}
 
-	void DatagramDestination::SendDatagram (std::shared_ptr<DatagramSession> session, const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort)
+	void DatagramDestination::SendDatagram (std::shared_ptr<DatagramSession> session, const uint8_t * payload, size_t len,
+		uint16_t fromPort, uint16_t toPort, const i2p::util::Mapping * options)
 	{
 		if (session)
 		{
@@ -65,9 +66,18 @@ namespace datagram
 			{
 				case eDatagramV3:
 				{
-					constexpr uint8_t flags[] = { 0x00, 0x03 }; // datagram3, no options
-					msg = CreateDataMessage ({{m_Owner->GetIdentity ()->GetIdentHash (), 32}, 
-						{flags, 2}, {payload, len}}, fromPort, toPort, i2p::client::PROTOCOL_TYPE_DATAGRAM3, false); // datagram3
+					uint8_t flags[] = { 0x00, 0x03 }; // datagram3, no options
+					if (options)
+					{
+						uint8_t optionsBuf[256]; // TODO: evaluate actual size
+						size_t optionsLen = options->ToBuffer (optionsBuf, 256);
+						if (optionsLen) flags[1] |= DATAGRAM3_FLAG_OPTIONS;
+						msg = CreateDataMessage ({{m_Owner->GetIdentity ()->GetIdentHash (), 32}, {flags, 2}, 
+							{optionsBuf, optionsLen}, {payload, len}}, fromPort, toPort, i2p::client::PROTOCOL_TYPE_DATAGRAM3, false); // datagram3
+					}	
+					else
+						msg = CreateDataMessage ({{m_Owner->GetIdentity ()->GetIdentHash (), 32}, 
+							{flags, 2}, {payload, len}}, fromPort, toPort, i2p::client::PROTOCOL_TYPE_DATAGRAM3, false); // datagram3
 					break;
 				}
 				case eDatagramV1:

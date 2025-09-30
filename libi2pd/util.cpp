@@ -266,7 +266,7 @@ namespace util
 		return { (const char *)(buf + 1), l };
 	}
 
-	size_t Mapping::ToBuffer (uint8_t * buf, size_t len)
+	size_t Mapping::ToBuffer (uint8_t * buf, size_t len) const
 	{
 		size_t offset = 2;
 		for (auto it: m_Options)

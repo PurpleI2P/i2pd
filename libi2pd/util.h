@@ -17,6 +17,7 @@
 #include <mutex>
 #include <thread>
 #include <utility>
+#include <charconv>
 #include <boost/asio.hpp>
 
 #ifdef ANDROID
@@ -234,7 +235,7 @@ namespace util
 			Mapping () = default;
 			size_t FromBuffer (const uint8_t * buf, size_t len);
 			size_t FromBuffer (size_t size, const uint8_t * buf, size_t len); //without 2 bytes size
-			size_t ToBuffer (uint8_t * buf, size_t len);
+			size_t ToBuffer (uint8_t * buf, size_t len) const;
 			
 			std::string_view operator[](std::string_view param) const;
 			bool Insert (std::string_view param, std::string_view value);
@@ -244,6 +245,20 @@ namespace util
 			static std::string_view ExtractString (const uint8_t * buf, size_t len);
 			static size_t WriteString (std::string_view str, uint8_t * buf, size_t len);
 			static size_t WriteOption (std::string_view param, std::string_view value, uint8_t * buf, size_t len);
+
+			template<typename T>
+			bool Get(std::string_view param, T& value)
+			{
+				auto s = (*this)[param];
+				if (s.empty ()) return false;
+				auto res = std::from_chars(s.data(), s.data() + s.size(), value);
+				return res.ec != std::errc();
+			}	
+			template<typename T>
+			bool Put (std::string_view param, T value)
+			{
+				return Insert (param, std::to_string (value));
+			}	
 			
 		private:
 
