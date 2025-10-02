@@ -226,10 +226,10 @@ namespace datagram
 				}	
 			}	
 		}
-		uint16_t flags = bufbe16toh (buf + identityLen);
+		const uint8_t * flags = buf + identityLen;
 		size_t offset = identityLen + 2;
 		bool isOptions = false;
-		if (flags & DATAGRAM2_FLAG_OPTIONS)
+		if (flags[1] & DATAGRAM2_FLAG_OPTIONS)
 		{	
 			isOptions = true;
 			m_Options.CleanUp ();
@@ -250,7 +250,7 @@ namespace datagram
 		if (!verified)
 		{
 			std::shared_ptr<i2p::crypto::Verifier> transientVerifier;
-			if (flags & DATAGRAM2_FLAG_OFFLINE_SIGNATURE)
+			if (flags[1] & DATAGRAM2_FLAG_OFFLINE_SIGNATURE)
 			{	
 				transientVerifier = i2p::data::ProcessOfflineSignature (&identity, buf, len, offset);
 				if (!transientVerifier)
@@ -308,10 +308,10 @@ namespace datagram
 					auto r = FindReceiver(toPort);
 					if (r)
 					{
-						uint16_t flags = bufbe16toh (buf + 32);
+						const uint8_t * flags = buf + 32;
 						size_t offset = 34;
 						bool isOptions = false;
-						if (flags & DATAGRAM3_FLAG_OPTIONS)
+						if (flags[1] & DATAGRAM3_FLAG_OPTIONS)
 						{	
 							isOptions = true;
 							m_Options.CleanUp ();

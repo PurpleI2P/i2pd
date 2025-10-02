@@ -6,6 +6,7 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#include <string_view>
 #include "Log.h"
 #include "util.h"
 #include "ClientContext.h"
@@ -16,6 +17,9 @@ namespace i2p
 {
 namespace client
 {
+	constexpr std::string_view UDP_SESSION_SEQN { "seqn" };
+	constexpr std::string_view UDP_SESSION_ACKED { "acked" };
+	
 	void I2PUDPServerTunnel::HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, 
 		const uint8_t * buf, size_t len, const i2p::util::Mapping * options)
 	{
@@ -27,6 +31,15 @@ namespace client
 			m_LastSession->LastActivity = i2p::util::GetMillisecondsSinceEpoch();
 		else
 			LogPrint (eLogInfo, "UDP Server: Send exception: ", ec.message (), " to ", m_RemoteEndpoint);
+		if (options)
+		{
+			uint32_t seqn = 0;
+			if (options->Get (UDP_SESSION_SEQN, seqn) && seqn > m_LastSession->m_LastReceivedPacketNum)
+			{	
+				m_LastSession->m_LastReceivedPacketNum = seqn;
+				LogPrint (eLogDebug, "UDP Server: Received packet with seqn ", seqn);
+			}	
+		}		
 	}
 
 	void I2PUDPServerTunnel::HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
@@ -123,11 +136,9 @@ namespace client
 		const boost::asio::ip::udp::endpoint& endpoint, const i2p::data::IdentHash& to,
 		uint16_t ourPort, uint16_t theirPort) :
 		m_Destination(localDestination->GetDatagramDestination()),
-		IPSocket(localDestination->GetService(), localEndpoint),
-		Identity (to), SendEndpoint(endpoint),
-		LastActivity(i2p::util::GetMillisecondsSinceEpoch()),
-		LocalPort(ourPort),
-		RemotePort(theirPort)
+		IPSocket(localDestination->GetService(), localEndpoint), Identity (to), 
+		SendEndpoint(endpoint), LastActivity(i2p::util::GetMillisecondsSinceEpoch()),
+		LocalPort(ourPort), RemotePort(theirPort), m_NextSendPacketNum (1), m_LastReceivedPacketNum (0)
 	{
 		IPSocket.set_option (boost::asio::socket_base::receive_buffer_size (I2P_UDP_MAX_MTU ));
 		IPSocket.non_blocking (true);
@@ -149,7 +160,13 @@ namespace client
 			auto ts = i2p::util::GetMillisecondsSinceEpoch();
 			auto session = m_Destination->GetSession (Identity);
 			if (ts > LastActivity + I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL)
-				m_Destination->SendDatagram(session, m_Buffer, len, LocalPort, RemotePort);
+			{
+				i2p::util::Mapping options;
+				options.Put (UDP_SESSION_SEQN, m_NextSendPacketNum);
+				if (m_LastReceivedPacketNum > 0)
+					options.Put (UDP_SESSION_ACKED, m_LastReceivedPacketNum);
+				m_Destination->SendDatagram(session, m_Buffer, len, LocalPort, RemotePort, &options);
+			}	
 			else
 				m_Destination->SendRawDatagram(session, m_Buffer, len, LocalPort, RemotePort);
 			size_t numPackets = 0;
@@ -164,6 +181,7 @@ namespace client
 			}
 			if (numPackets > 0)
 				LogPrint(eLogDebug, "UDPSession: Forward more ", numPackets, "packets B from ", FromEndpoint);
+			m_NextSendPacketNum += numPackets + 1;
 			m_Destination->FlushSendQueue (session);
 			LastActivity = ts;
 			Receive();
@@ -238,7 +256,8 @@ namespace client
 		uint16_t remotePort, bool gzip, i2p::datagram::DatagramVersion datagramVersion) :
 		m_Name (name), m_RemoteDest (remoteDest), m_LocalDest (localDestination), m_LocalEndpoint (localEndpoint),
 		m_ResolveThread (nullptr), m_LocalSocket (nullptr), RemotePort (remotePort),
-		m_LastPort (0), m_cancel_resolve (false), m_Gzip (gzip), m_DatagramVersion (datagramVersion)
+		m_LastPort (0), m_cancel_resolve (false), m_Gzip (gzip), m_DatagramVersion (datagramVersion),
+		m_NextSendPacketNum (1), m_LastReceivedPacketNum (0)
 	{
 	}
 
@@ -339,7 +358,13 @@ namespace client
 		LogPrint (eLogDebug, "UDP Client: Send ", transferred, " to ", m_RemoteAddr->identHash.ToBase32 (), ":", RemotePort);
 		auto session = m_LocalDest->GetDatagramDestination ()->GetSession (m_RemoteAddr->identHash);
 		if (ts > m_LastSession->second + I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL)
-			m_LocalDest->GetDatagramDestination ()->SendDatagram (session, m_RecvBuff, transferred, remotePort, RemotePort);
+		{	
+			i2p::util::Mapping options;
+			options.Put (UDP_SESSION_SEQN, m_NextSendPacketNum);
+			if (m_LastReceivedPacketNum > 0)
+				options.Put (UDP_SESSION_ACKED, m_LastReceivedPacketNum);
+			m_LocalDest->GetDatagramDestination ()->SendDatagram (session, m_RecvBuff, transferred, remotePort, RemotePort, &options);
+		}	
 		else
 			m_LocalDest->GetDatagramDestination ()->SendRawDatagram (session, m_RecvBuff, transferred, remotePort, RemotePort);
 		size_t numPackets = 0;
@@ -356,6 +381,7 @@ namespace client
 		}
 		if (numPackets)
 			LogPrint (eLogDebug, "UDP Client: Sent ", numPackets, " more packets to ", m_RemoteAddr->identHash.ToBase32 ());
+		m_NextSendPacketNum += numPackets + 1;
 		m_LocalDest->GetDatagramDestination ()->FlushSendQueue (session);
 
 		// mark convo as active

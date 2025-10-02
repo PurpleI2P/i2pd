@@ -247,12 +247,12 @@ namespace util
 			static size_t WriteOption (std::string_view param, std::string_view value, uint8_t * buf, size_t len);
 
 			template<typename T>
-			bool Get(std::string_view param, T& value)
+			bool Get(std::string_view param, T& value) const
 			{
 				auto s = (*this)[param];
 				if (s.empty ()) return false;
 				auto res = std::from_chars(s.data(), s.data() + s.size(), value);
-				return res.ec != std::errc();
+				return res.ec == std::errc();
 			}	
 			template<typename T>
 			bool Put (std::string_view param, T value)

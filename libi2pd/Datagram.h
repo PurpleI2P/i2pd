@@ -53,9 +53,9 @@ namespace datagram
 		eDatagramV3 = 3,
 	};	
 
-	constexpr uint16_t DATAGRAM2_FLAG_OPTIONS = 0x10;
-	constexpr uint16_t DATAGRAM2_FLAG_OFFLINE_SIGNATURE = 0x20;
-	constexpr uint16_t DATAGRAM3_FLAG_OPTIONS = 0x10;
+	constexpr uint8_t DATAGRAM2_FLAG_OPTIONS = 0x10;
+	constexpr uint8_t DATAGRAM2_FLAG_OFFLINE_SIGNATURE = 0x20;
+	constexpr uint8_t DATAGRAM3_FLAG_OPTIONS = 0x10;
 	
 	class DatagramSession : public std::enable_shared_from_this<DatagramSession>
 	{

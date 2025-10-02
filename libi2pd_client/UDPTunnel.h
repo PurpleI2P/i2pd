@@ -46,6 +46,7 @@ namespace client
 		uint16_t RemotePort;
 
 		uint8_t m_Buffer[I2P_UDP_MAX_MTU];
+		uint32_t m_NextSendPacketNum, m_LastReceivedPacketNum;
 
 		UDPSession(boost::asio::ip::udp::endpoint localEndpoint,
 			const std::shared_ptr<i2p::client::ClientDestination> & localDestination,
@@ -180,6 +181,7 @@ namespace client
 			bool m_Gzip;
 			i2p::datagram::DatagramVersion m_DatagramVersion;
 			std::shared_ptr<UDPConvo> m_LastSession;
+			uint32_t m_NextSendPacketNum, m_LastReceivedPacketNum;
 
 		public:
 
