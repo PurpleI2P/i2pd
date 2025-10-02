@@ -24,6 +24,6 @@ endif
 
 OSARCH = $(shell uname -p)
 
-ifneq ($(OSARCH),powerpc)
-	CXXFLAGS += -msse
+ifeq ($(shell uname -m), x86_64)
+    CXXFLAGS += -msse
 endif

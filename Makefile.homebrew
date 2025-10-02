@@ -1,14 +1,19 @@
 # root directory holding homebrew
+# brew install boost openssl@3 cmake make  
 BREWROOT = /opt/homebrew
 BOOSTROOT = ${BREWROOT}/opt/boost
-SSLROOT = ${BREWROOT}/opt/openssl@1.1
+SSLROOT = ${BREWROOT}/opt/openssl@3
 UPNPROOT = ${BREWROOT}/opt/miniupnpc
 
 CXXFLAGS ?= ${CXX_DEBUG} -Wall -Wno-overloaded-virtual
-NEEDED_CXXFLAGS ?= -std=c++17
+NEEDED_CXXFLAGS += -std=c++20
 INCFLAGS ?= -I${SSLROOT}/include -I${BOOSTROOT}/include
 LDFLAGS ?= ${LD_DEBUG}
 DEFINES += -DMAC_OSX
+
+ifeq ($(shell uname -m), x86_64)
+    CXXFLAGS += -msse
+endif
 
 ifeq ($(USE_STATIC),yes)
 	LDLIBS = -lz ${SSLROOT}/lib/libcrypto.a ${SSLROOT}/lib/libssl.a ${BOOSTROOT}/lib/libboost_system.a ${BOOSTROOT}/lib/libboost_filesystem.a ${BOOSTROOT}/lib/libboost_program_options.a
