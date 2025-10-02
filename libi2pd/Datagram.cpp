@@ -304,7 +304,6 @@ namespace datagram
 					auto session = ObtainSession (ident);
 					session->SetVersion (eDatagramV3);
 					session->SetRemoteLeaseSet (ls);
-					session->Ack ();
 					auto r = FindReceiver(toPort);
 					if (r)
 					{
@@ -333,6 +332,7 @@ namespace datagram
 					}	
 					else
 						LogPrint (eLogWarning, "Datagram: no receiver for port ", toPort);
+					session->Ack ();
 				}	
 				else
 					LogPrint (eLogError, "Datagram: Remote LeaseSet static key mismatch for datagram3 from ", ident.ToBase32 ());

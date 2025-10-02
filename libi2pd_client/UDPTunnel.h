@@ -55,6 +55,7 @@ namespace client
 			uint16_t ourPort, uint16_t theirPort);
 		void HandleReceived(const boost::system::error_code & ecode, std::size_t len);
 		void Receive();
+		std::shared_ptr<i2p::datagram::DatagramSession> GetDatagramSession ();	
 	};
 
 
@@ -163,6 +164,7 @@ namespace client
 				const uint8_t * buf, size_t len, const i2p::util::Mapping * options);
 			void HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			void TryResolving ();
+			std::shared_ptr<i2p::datagram::DatagramSession> GetDatagramSession ();
 
 		private:
 
