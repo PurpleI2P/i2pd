@@ -36,6 +36,7 @@ namespace client
 	struct UDPSession
 	{
 		i2p::datagram::DatagramDestination * m_Destination;
+		std::weak_ptr<i2p::datagram::DatagramSession> m_LastDatagramSession;
 		boost::asio::ip::udp::socket IPSocket;
 		i2p::data::IdentHash Identity;
 		boost::asio::ip::udp::endpoint FromEndpoint;
@@ -181,6 +182,7 @@ namespace client
 			bool m_Gzip;
 			i2p::datagram::DatagramVersion m_DatagramVersion;
 			std::shared_ptr<UDPConvo> m_LastSession;
+			std::weak_ptr<i2p::datagram::DatagramSession> m_LastDatagramSession;
 			uint32_t m_NextSendPacketNum, m_LastReceivedPacketNum;
 
 		public:

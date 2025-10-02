@@ -35,10 +35,7 @@ namespace client
 		{
 			uint32_t seqn = 0;
 			if (options->Get (UDP_SESSION_SEQN, seqn) && seqn > m_LastSession->m_LastReceivedPacketNum)
-			{	
 				m_LastSession->m_LastReceivedPacketNum = seqn;
-				LogPrint (eLogDebug, "UDP Server: Received packet with seqn ", seqn);
-			}	
 		}		
 	}
 
@@ -158,7 +155,12 @@ namespace client
 		{
 			LogPrint(eLogDebug, "UDPSession: Forward ", len, "B from ", FromEndpoint);
 			auto ts = i2p::util::GetMillisecondsSinceEpoch();
-			auto session = m_Destination->GetSession (Identity);
+			auto session = m_LastDatagramSession.lock ();
+			if (!session)
+			{	
+				session = m_Destination->GetSession (Identity);
+				m_LastDatagramSession = session;
+			}	
 			if (ts > LastActivity + I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL)
 			{
 				i2p::util::Mapping options;
@@ -356,7 +358,12 @@ namespace client
 		// send off to remote i2p destination
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		LogPrint (eLogDebug, "UDP Client: Send ", transferred, " to ", m_RemoteAddr->identHash.ToBase32 (), ":", RemotePort);
-		auto session = m_LocalDest->GetDatagramDestination ()->GetSession (m_RemoteAddr->identHash);
+		auto session = m_LastDatagramSession.lock ();
+		if (!session)
+		{	
+			session = m_LocalDest->GetDatagramDestination ()->GetSession (m_RemoteAddr->identHash);
+			m_LastDatagramSession = session;
+		}	
 		if (ts > m_LastSession->second + I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL)
 		{	
 			i2p::util::Mapping options;
@@ -424,7 +431,15 @@ namespace client
 		const uint8_t * buf, size_t len, const i2p::util::Mapping * options)
 	{
 		if (m_RemoteAddr && from.GetIdentHash() == m_RemoteAddr->identHash)
+		{
+			if (options)
+			{
+				uint32_t seqn = 0;
+				if (options->Get (UDP_SESSION_SEQN, seqn) && seqn > m_LastReceivedPacketNum)
+					m_LastReceivedPacketNum = seqn;
+			}	
 			HandleRecvFromI2PRaw (fromPort, toPort, buf, len);
+		}	
 		else
 			LogPrint(eLogWarning, "UDP Client: Unwarranted traffic from ", from.GetIdentHash().ToBase32 ());
 	}
