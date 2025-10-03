@@ -6,7 +6,7 @@
 [![Github Downloads](https://img.shields.io/github/downloads/PurpleI2P/i2pd/total.svg)]()
 [![Crowdin](https://badges.crowdin.net/i2pd/localized.svg)](https://crowdin.com/project/i2pd)
 
-*note: i2pd for Android can be found in [i2pd-android](https://github.com/PurpleI2P/i2pd-android) repository and with Qt GUI in [i2pd-qt](https://github.com/PurpleI2P/i2pd-qt) repository*
+*Note: i2pd for Android can be found in the [i2pd-android](https://github.com/PurpleI2P/i2pd-android) repository and with a Qt GUI in the [i2pd-qt](https://github.com/PurpleI2P/i2pd-qt) repository. For macOS, a GUI version can be found in the [gui-i2pd](https://github.com/MetanoicArmor/gui-i2pd) repository.*
 
 i2pd
 ====
