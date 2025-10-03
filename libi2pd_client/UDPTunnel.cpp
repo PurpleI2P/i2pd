@@ -165,11 +165,16 @@ namespace client
 			auto session = GetDatagramSession ();
 			if (ts > LastActivity + I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL)
 			{
-				i2p::util::Mapping options;
-				options.Put (UDP_SESSION_SEQN, m_NextSendPacketNum);
-				if (m_LastReceivedPacketNum > 0)
-					options.Put (UDP_SESSION_ACKED, m_LastReceivedPacketNum);
-				m_Destination->SendDatagram(session, m_Buffer, len, LocalPort, RemotePort, &options);
+				if (session->GetVersion () == i2p::datagram::eDatagramV3)
+				{	
+					i2p::util::Mapping options;
+					options.Put (UDP_SESSION_SEQN, m_NextSendPacketNum);
+					if (m_LastReceivedPacketNum > 0)
+						options.Put (UDP_SESSION_ACKED, m_LastReceivedPacketNum);
+					m_Destination->SendDatagram(session, m_Buffer, len, LocalPort, RemotePort, &options);
+				}
+				else
+					m_Destination->SendDatagram(session, m_Buffer, len, LocalPort, RemotePort);
 			}	
 			else
 				m_Destination->SendRawDatagram(session, m_Buffer, len, LocalPort, RemotePort);
@@ -374,11 +379,16 @@ namespace client
 		auto session = GetDatagramSession ();
 		if (ts > m_LastSession->second + I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL)
 		{	
-			i2p::util::Mapping options;
-			options.Put (UDP_SESSION_SEQN, m_NextSendPacketNum);
-			if (m_LastReceivedPacketNum > 0)
-				options.Put (UDP_SESSION_ACKED, m_LastReceivedPacketNum);
-			m_LocalDest->GetDatagramDestination ()->SendDatagram (session, m_RecvBuff, transferred, remotePort, RemotePort, &options);
+			if (m_DatagramVersion == i2p::datagram::eDatagramV3)
+			{	
+				i2p::util::Mapping options;
+				options.Put (UDP_SESSION_SEQN, m_NextSendPacketNum);
+				if (m_LastReceivedPacketNum > 0)
+					options.Put (UDP_SESSION_ACKED, m_LastReceivedPacketNum);
+				m_LocalDest->GetDatagramDestination ()->SendDatagram (session, m_RecvBuff, transferred, remotePort, RemotePort, &options);
+			}
+			else
+				m_LocalDest->GetDatagramDestination ()->SendDatagram (session, m_RecvBuff, transferred, remotePort, RemotePort);
 		}	
 		else
 			m_LocalDest->GetDatagramDestination ()->SendRawDatagram (session, m_RecvBuff, transferred, remotePort, RemotePort);
