@@ -636,6 +636,17 @@ namespace net
 		return IsYggdrasilAddress (addr.to_v6 ().to_bytes ().data ());
 	}
 
+	static bool IsMyceliumAddress (const uint8_t addr[16])
+	{
+		return addr[0] == 0x04 || addr[0] == 0x05;
+	}
+
+	bool IsMyceliumAddress (const boost::asio::ip::address& addr)
+	{
+		if (!addr.is_v6 ()) return false;
+		return IsMyceliumAddress (addr.to_v6 ().to_bytes ().data ());
+	}
+
 	bool IsPortInReservedRange (const uint16_t port) noexcept
 	{
 		// https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers (Feb. 3, 2023) + Tor browser (9150)
