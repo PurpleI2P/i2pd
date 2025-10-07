@@ -14,6 +14,7 @@
 #include <memory>
 #include <thread>
 #include <vector>
+#include <list>
 #include <unordered_map>
 #include <boost/asio.hpp>
 #include "util.h"
@@ -32,7 +33,7 @@ namespace client
 
 	/** max size for i2p udp */
 	const size_t I2P_UDP_MAX_MTU = 64*1024;
-
+	
 	struct UDPSession
 	{
 		i2p::datagram::DatagramDestination * m_Destination;
@@ -110,7 +111,7 @@ namespace client
 			void HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			UDPSessionPtr ObtainUDPSession (const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort);
 			uint32_t GetSessionIndex (uint16_t fromPort, uint16_t toPort) const { return ((uint32_t)fromPort << 16) + toPort; }
-
+			
 		private:
 
 			bool m_IsUniqueLocal;
@@ -165,7 +166,8 @@ namespace client
 			void HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			void TryResolving ();
 			std::shared_ptr<i2p::datagram::DatagramSession> GetDatagramSession ();
-
+			void Acked (uint32_t seqn);
+			
 		private:
 
 			const std::string m_Name;
@@ -186,7 +188,9 @@ namespace client
 			std::shared_ptr<UDPConvo> m_LastSession;
 			std::weak_ptr<i2p::datagram::DatagramSession> m_LastDatagramSession;
 			uint32_t m_NextSendPacketNum, m_LastReceivedPacketNum;
-
+			std::list<std::pair<uint32_t, uint64_t> > m_UnackedDatagrams; // list of sent but not acked repliable datagrams(seqn, timestamp) in ascending order
+			uint64_t m_RTT; // milliseconds
+			
 		public:
 
 			bool isUpdated; // transient, used during reload only
