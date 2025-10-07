@@ -378,11 +378,17 @@ namespace client
 		LogPrint (eLogDebug, "UDP Client: Send ", transferred, " to ", m_RemoteAddr->identHash.ToBase32 (), ":", RemotePort);
 		auto session = GetDatagramSession ();
 		uint64_t repliableDatagramInterval = I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL;
-		if (m_RTT && m_RTT < I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL*10) repliableDatagramInterval = m_RTT/10;
-		if (ts > m_LastSession->second + repliableDatagramInterval )
+		if (m_RTT >= 10) repliableDatagramInterval = m_RTT/10; // 1 ms min
+		if (ts > m_LastSession->second + repliableDatagramInterval)
 		{	
 			if (m_DatagramVersion == i2p::datagram::eDatagramV3)
 			{	
+				if (!m_UnackedDatagrams.empty () && (ts > m_UnackedDatagrams.front ().second + I2P_UDP_MAX_UNACKED_DATAGRAM_TIME ||
+				 	m_NextSendPacketNum > m_UnackedDatagrams.front ().first + I2P_UDP_MAX_NUM_UNACKED_DATAGRAMS))
+				{
+					m_UnackedDatagrams.clear ();
+					session->DropSharedRoutingPath ();
+				}	
 				m_UnackedDatagrams.push_back ({ m_NextSendPacketNum, ts });
 				i2p::util::Mapping options;
 				options.Put (UDP_SESSION_SEQN, m_NextSendPacketNum);

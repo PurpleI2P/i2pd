@@ -82,6 +82,8 @@ namespace datagram
 
 			DatagramVersion GetVersion () const { return m_Version; }
 			void SetVersion (DatagramVersion version) { m_Version = version; }
+
+			void DropSharedRoutingPath () { if (m_RoutingSession) m_RoutingSession->SetSharedRoutingPath (nullptr); }
 			
 		struct Info
 		{
