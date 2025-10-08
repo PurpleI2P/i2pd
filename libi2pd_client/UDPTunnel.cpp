@@ -19,6 +19,9 @@ namespace client
 {
 	constexpr std::string_view UDP_SESSION_SEQN { "seqn" };
 	constexpr std::string_view UDP_SESSION_ACKED { "acked" };
+	constexpr std::string_view UDP_SESSION_FLAGS { "flags" };
+
+	constexpr uint8_t UDP_SESSION_FLAG_RESET_PATH = 0x01;
 	
 	void I2PUDPServerTunnel::HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, 
 		const uint8_t * buf, size_t len, const i2p::util::Mapping * options)
@@ -34,6 +37,9 @@ namespace client
 			LogPrint (eLogInfo, "UDP Server: Send exception: ", ec.message (), " to ", m_RemoteEndpoint);
 		if (options)
 		{
+			uint8_t flags = 0;
+			if (options->Get (UDP_SESSION_FLAGS, flags) && (flags & UDP_SESSION_FLAG_RESET_PATH))
+				m_LastSession->GetDatagramSession ()->DropSharedRoutingPath ();
 			uint32_t seqn = 0;
 			if (options->Get (UDP_SESSION_SEQN, seqn) && seqn > m_LastSession->m_LastReceivedPacketNum)
 			{	
@@ -42,7 +48,7 @@ namespace client
 				replyOptions.Put (UDP_SESSION_ACKED, m_LastSession->m_LastReceivedPacketNum);
 				m_LastSession->m_Destination->SendDatagram(m_LastSession->GetDatagramSession (),
 					nullptr, 0, m_LastSession->LocalPort, m_LastSession->RemotePort, &replyOptions); // Ack only, no payload
-			}	
+			}
 		}		
 	}
 
@@ -383,17 +389,22 @@ namespace client
 		{	
 			if (m_DatagramVersion == i2p::datagram::eDatagramV3)
 			{	
+				uint8_t flags = 0;
 				if (!m_UnackedDatagrams.empty () && (ts > m_UnackedDatagrams.front ().second + I2P_UDP_MAX_UNACKED_DATAGRAM_TIME ||
 				 	m_NextSendPacketNum > m_UnackedDatagrams.front ().first + I2P_UDP_MAX_NUM_UNACKED_DATAGRAMS))
 				{
 					m_UnackedDatagrams.clear ();
 					session->DropSharedRoutingPath ();
+					m_RTT = 0;
+					flags |= UDP_SESSION_FLAG_RESET_PATH;
 				}	
 				m_UnackedDatagrams.push_back ({ m_NextSendPacketNum, ts });
 				i2p::util::Mapping options;
 				options.Put (UDP_SESSION_SEQN, m_NextSendPacketNum);
 				if (m_LastReceivedPacketNum > 0)
 					options.Put (UDP_SESSION_ACKED, m_LastReceivedPacketNum);
+				if (flags)
+					options.Put (UDP_SESSION_FLAGS, flags);
 				m_LocalDest->GetDatagramDestination ()->SendDatagram (session, m_RecvBuff, transferred, remotePort, RemotePort, &options);
 			}
 			else
