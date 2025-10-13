@@ -233,12 +233,18 @@ namespace util
 		public:
 
 			Mapping () = default;
+			Mapping (const Mapping& ) = default;
+			Mapping (Mapping&& ) = default;
+			Mapping (std::initializer_list<std::pair<const std::string, std::string> > options):
+				m_Options (options) {} 
+			
 			size_t FromBuffer (const uint8_t * buf, size_t len);
 			size_t FromBuffer (size_t size, const uint8_t * buf, size_t len); //without 2 bytes size
 			size_t ToBuffer (uint8_t * buf, size_t len) const;
 			
 			std::string_view operator[](std::string_view param) const;
 			bool Insert (std::string_view param, std::string_view value);
+			bool Contains (std::string_view param) const;
 			void CleanUp ();
 			bool IsEmpty () const { return m_Options.empty (); }
 			
@@ -253,16 +259,30 @@ namespace util
 				if (s.empty ()) return false;
 				auto res = std::from_chars(s.data(), s.data() + s.size(), value);
 				return res.ec == std::errc();
+			}
+			bool Get(std::string_view param, bool& value) const
+			{
+				auto s = (*this)[param];
+				if (s.empty ()) return false;
+				return GetBoolParamValue (s, value);
 			}	
 			template<typename T>
 			bool Put (std::string_view param, T value)
 			{
 				return Insert (param, std::to_string (value));
 			}	
+
+		private:
+
+			static bool GetBoolParamValue (std::string_view s, bool& value);
 			
 		private:
 
 			std::map<std::string, std::string, std::less<> > m_Options;
+
+		public:
+
+			const decltype(m_Options)& GetOptions () const { return m_Options; }
 	};	
 	
 	namespace net

@@ -313,6 +313,16 @@ namespace util
 		return m_Options.emplace (param, value).second;
 	}	
 
+	bool Mapping::Contains (std::string_view param) const
+	{
+#if __cplusplus >= 202002L // C++20
+		return m_Options.contains (param);
+#else		
+		auto it = m_Options.find (param);
+		return it != m_Options.end ();
+#endif		
+	}	
+	
 	void Mapping::CleanUp ()
 	{
 		if (!m_Options.empty ())
@@ -321,6 +331,29 @@ namespace util
 			m_Options.swap (tmp);
 		}	
 	}	
+
+	bool Mapping::GetBoolParamValue (std::string_view s, bool& value)
+	{
+		bool ret = true;
+		value = false;
+		if (s == "true") 
+			value = true;
+		else if (s == "false") 
+			value = false;
+		else
+		{
+			int v = 0;
+			auto res = std::from_chars(s.data(), s.data() + s.size(), v);
+			if (res.ec == std::errc())
+				value = v;
+			else
+			{	
+				LogPrint (eLogError, "Mapping: Unable to parse bool param value ", s, ": ",  std::make_error_code (res.ec).message ());
+				ret = false;
+			}		
+		}	
+		return ret;
+	}
 	
 namespace net
 {

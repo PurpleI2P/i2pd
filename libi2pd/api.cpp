@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -91,7 +91,7 @@ namespace api
 	}
 
 	std::shared_ptr<i2p::client::ClientDestination> CreateLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic,
-		const std::map<std::string, std::string> * params)
+		const i2p::util::Mapping * params)
 	{
 		auto localDestination = std::make_shared<i2p::client::RunnableClientDestination> (keys, isPublic, params);
 		localDestination->Start ();
@@ -99,7 +99,7 @@ namespace api
 	}
 
 	std::shared_ptr<i2p::client::ClientDestination> CreateLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType,
-		const std::map<std::string, std::string> * params)
+		const i2p::util::Mapping * params)
 	{
 		i2p::data::PrivateKeys keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType);
 		auto localDestination = std::make_shared<i2p::client::RunnableClientDestination> (keys, isPublic, params);

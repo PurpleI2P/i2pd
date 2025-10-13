@@ -132,7 +132,7 @@ namespace client
 
 		public:
 
-			LeaseSetDestination (boost::asio::io_context& service, bool isPublic, const std::map<std::string, std::string> * params = nullptr);
+			LeaseSetDestination (boost::asio::io_context& service, bool isPublic, const i2p::util::Mapping * params = nullptr);
 			~LeaseSetDestination ();
 			const std::string& GetNickname () const { return m_Nickname; };
 			auto& GetService () { return m_Service; };
@@ -141,7 +141,7 @@ namespace client
 			virtual void Stop ();
 
 			/** i2cp reconfigure */
-			virtual bool Reconfigure(std::map<std::string, std::string> i2cpOpts);
+			virtual bool Reconfigure(const i2p::util::Mapping& i2cpOpts);
 
 			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () { return m_Pool; };
 			bool IsReady () const { return m_LeaseSet && !m_LeaseSet->IsExpired () && m_Pool->GetOutboundTunnels ().size () > 0; };
@@ -176,7 +176,6 @@ namespace client
 			int GetLeaseSetType () const { return m_LeaseSetType; };
 			void SetLeaseSetType (int leaseSetType) { m_LeaseSetType = leaseSetType; };
 			int GetAuthType () const { return m_AuthType; };
-			static bool GetBoolParamValue (std::string_view value);
 			virtual void CleanupDestination () {}; // additional clean up in derived classes
 			virtual i2p::data::CryptoKeyType GetPreferredCryptoType () const = 0;
 			// I2CP
@@ -240,7 +239,7 @@ namespace client
 		public:
 
 			ClientDestination (boost::asio::io_context& service, const i2p::data::PrivateKeys& keys,
-				bool isPublic, const std::map<std::string, std::string> * params = nullptr);
+				bool isPublic, const i2p::util::Mapping * params = nullptr);
 			~ClientDestination ();
 
 			void Start () override;
@@ -306,7 +305,7 @@ namespace client
 				return std::static_pointer_cast<ClientDestination>(shared_from_this ());
 			}
 			void PersistTemporaryKeys (std::shared_ptr<i2p::crypto::LocalEncryptionKey> keys);
-			void ReadAuthKey (const std::string& group, const std::map<std::string, std::string> * params);
+			void ReadAuthKey (const std::string& group, const i2p::util::Mapping * params);
 
 			template<typename Dest>
 			std::shared_ptr<i2p::stream::Stream> CreateStreamSync (const Dest& dest, uint16_t port);
@@ -341,7 +340,7 @@ namespace client
 	{
 		public:
 
-			RunnableClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params = nullptr);
+			RunnableClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const i2p::util::Mapping * params = nullptr);
 			~RunnableClientDestination ();
 
 			void Start ();

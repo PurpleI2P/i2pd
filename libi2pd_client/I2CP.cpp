@@ -26,7 +26,7 @@ namespace client
 
 	I2CPDestination::I2CPDestination (boost::asio::io_context& service, std::shared_ptr<I2CPSession> owner,
 		std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, bool isSameThread,
-	    const std::map<std::string, std::string>& params):
+	    const i2p::util::Mapping& params):
 		LeaseSetDestination (service, isPublic, &params),
 		m_Owner (owner), m_Identity (identity), m_IsCreatingLeaseSet (false), m_IsSameThread (isSameThread), 
 		m_LeaseSetCreationTimer (service), m_ReadinessCheckTimer (service)
@@ -376,7 +376,7 @@ namespace client
 	}	
 		
 	RunnableI2CPDestination::RunnableI2CPDestination (std::shared_ptr<I2CPSession> owner,
-		std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params):
+		std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const i2p::util::Mapping& params):
 		RunnableService ("I2CP"),
 		I2CPDestination (GetIOService (), owner, identity, isPublic, false, params)
 	{
@@ -637,8 +637,8 @@ namespace client
 		return l + 1;
 	}
 
-	void I2CPSession::ExtractMapping (const uint8_t * buf, size_t len, std::map<std::string, std::string>& mapping) const
-	// TODO: move to Base.cpp
+	void I2CPSession::ExtractMapping (const uint8_t * buf, size_t len, i2p::util::Mapping& mapping) const
+	// TODO: call FromBuffer
 	{
 		size_t offset = 0;
 		while (offset < len)
@@ -660,7 +660,7 @@ namespace client
 				break;
 			}
 			offset++;
-			mapping.emplace (param, value);
+			mapping.Insert (param, value);
 		}
 	}
 
@@ -701,7 +701,7 @@ namespace client
 			SendSessionStatusMessage (eI2CPSessionStatusInvalid); // invalid
 			return;
 		}
-		std::map<std::string, std::string> params;
+		i2p::util::Mapping params;
 		ExtractMapping (buf + offset, optionsSize, params);
 		offset += optionsSize; // options
 		if (params[I2CP_PARAM_MESSAGE_RELIABILITY] == "none") m_IsSendAccepted = false;
@@ -767,7 +767,7 @@ namespace client
 						if (optssize <= len - sizeof(uint16_t) - sizeof(uint64_t) - identsz - ident.GetSignatureLen() - sizeof(uint16_t))
 						{
 							buf += sizeof(uint16_t);
-							std::map<std::string, std::string> opts;
+							i2p::util::Mapping opts;
 							ExtractMapping(buf, optssize, opts);
 							buf += optssize;
 							//uint64_t date = bufbe64toh(buf);
