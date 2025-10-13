@@ -17,6 +17,11 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
+#include <errno.h>
+#if defined(__OpenBSD__)
+#include <map>
+#include <utility>
+#endif
 
 #include "Config.h"
 #include "FS.h"
@@ -26,6 +31,114 @@
 #include "ClientContext.h"
 #include "Transports.h"
 #include "util.h"
+
+#if defined(__OpenBSD__)
+namespace
+{
+std::string ParentDirectory(const std::string& path)
+{
+	if (path.empty())
+		return "";
+	auto pos = path.find_last_of('/');
+	if (pos == std::string::npos)
+		return "";
+	if (pos == 0)
+		return "/";
+	return path.substr(0, pos);
+}
+
+void AddRule(std::map<std::string, std::string>& rules, const std::string& path, const char* perms)
+{
+	if (path.empty())
+		return;
+	std::string normalized = path;
+	while (normalized.size() > 1 && normalized.back() == '/')
+		normalized.pop_back();
+	auto it = rules.find(normalized);
+	if (it == rules.end())
+		rules.emplace(std::move(normalized), std::string(perms));
+	else
+		for (const char* p = perms; *p; ++p)
+			if (it->second.find(*p) == std::string::npos)
+				it->second.push_back(*p);
+}
+}
+
+static bool ConfigureOpenBSDSandbox(const std::string& pidfile, bool isDaemon)
+{
+	std::map<std::string, std::string> rules;
+	const auto& dataDir = i2p::fs::GetDataDir();
+	if (!dataDir.empty())
+		AddRule(rules, dataDir, "rwc");
+	const auto& certsDir = i2p::fs::GetCertsDir();
+	if (!certsDir.empty())
+		AddRule(rules, certsDir, "r");
+
+	AddRule(rules, "/etc", "r");
+	AddRule(rules, "/dev/null", "rw");
+	AddRule(rules, "/dev/urandom", "r");
+	AddRule(rules, "/dev/log", "rw");
+
+	auto allowWritablePath = [&rules](const std::string& path)
+	{
+		if (path.empty() || path.front() != '/')
+			return;
+		auto parent = ParentDirectory(path);
+		if (parent.empty() || parent == "/")
+			AddRule(rules, path, "rwc");
+		else
+			AddRule(rules, parent, "rwc");
+	};
+
+	allowWritablePath(pidfile);
+
+	std::string logsOption;
+	i2p::config::GetOption("log", logsOption);
+	bool logToFile = logsOption == "file";
+	if (!logToFile && logsOption != "syslog")
+	{
+		if (isDaemon && (logsOption.empty() || logsOption == "stdout"))
+			logToFile = true;
+	}
+
+	if (logToFile)
+	{
+		std::string logfile;
+		i2p::config::GetOption("logfile", logfile);
+		if (logfile.empty())
+			logfile = i2p::fs::DataDirPath("i2pd.log");
+		if (!logfile.empty())
+		{
+			if (logfile.front() != '/')
+				logfile = i2p::fs::DataDirPath(logfile);
+			allowWritablePath(logfile);
+		}
+	}
+
+	for (const auto& rule : rules)
+	{
+		if (unveil(rule.first.c_str(), rule.second.c_str()) == -1)
+		{
+			LogPrint(eLogError, "Daemon: unveil failed for ", rule.first, ": ", strerror(errno));
+			return false;
+		}
+	}
+
+	if (unveil(nullptr, nullptr) == -1)
+	{
+		LogPrint(eLogError, "Daemon: unveil lock failed: ", strerror(errno));
+		return false;
+	}
+
+	constexpr const char* promises = "stdio rpath wpath cpath inet dns proc fattr thread unix";
+	if (pledge(promises, nullptr) == -1)
+	{
+		LogPrint(eLogError, "Daemon: pledge(", promises, ") failed: ", strerror(errno));
+		return false;
+	}
+	return true;
+}
+#endif // __OpenBSD__
 
 void handle_signal(int sig)
 {
@@ -152,6 +265,10 @@ namespace i2p
 			if (pidfile == "") {
 				pidfile = i2p::fs::DataDirPath("i2pd.pid");
 			}
+#if defined(__OpenBSD__)
+			if (!ConfigureOpenBSDSandbox(pidfile, isDaemon))
+				return false;
+#endif
 			if (pidfile != "") {
 				pidFH = open(pidfile.c_str(), O_RDWR | O_CREAT, 0600);
 				if (pidFH < 0)

@@ -52,7 +52,7 @@ namespace data
 					if (pkey)
 					{	
 						int curve = 0;
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+#if I2PD_OPENSSL_GE_3 // since 3.0.0
 						char groupName[20];
 						if (EVP_PKEY_get_group_name(pkey, groupName, sizeof(groupName), NULL) == 1)
 							curve = OBJ_txt2nid (groupName);
@@ -157,7 +157,7 @@ namespace data
 			SSL * ssl = SSL_new (ctx);
 			EVP_PKEY * pkey = SSL_get_privatekey (ssl);
 			int curve = 0;
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+#if I2PD_OPENSSL_GE_3 // since 3.0.0
 			char groupName[20];
 			if (EVP_PKEY_get_group_name(pkey, groupName, sizeof(groupName), NULL) == 1)
 				curve = OBJ_txt2nid (groupName);

@@ -62,7 +62,7 @@ namespace crypto
 			
 		private:
 
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+#if I2PD_OPENSSL_GE_3 // since 3.0.0
 			EVP_PKEY * m_PublicKey;
 #else			
 			DSA * m_PublicKey;
@@ -82,7 +82,7 @@ namespace crypto
 
 		private:
 
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+#if I2PD_OPENSSL_GE_3 // since 3.0.0
 			EVP_PKEY * m_PrivateKey;
 #else
 			DSA * m_PrivateKey;
@@ -96,7 +96,7 @@ namespace crypto
 	constexpr size_t ECDSAP384_KEY_LENGTH = 96;
 	constexpr size_t ECDSAP521_KEY_LENGTH = 132;
 	
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+#if I2PD_OPENSSL_GE_3 // since 3.0.0
 	class ECDSAVerifier: public Verifier
 	{
 		public:
@@ -377,7 +377,7 @@ namespace crypto
 			EVP_PKEY * GetPkey () const { return m_Pkey; };
 	};
 
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+#if I2PD_OPENSSL_GE_3 // since 3.0.0
 	class EDDSA25519phVerifier: public EDDSA25519Verifier
 	{
 		public:
@@ -423,7 +423,7 @@ namespace crypto
 			EDDSA25519SignerCompat * m_Fallback;
 	};
 
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+#if I2PD_OPENSSL_GE_3 // since 3.0.0
 	class EDDSA25519phSigner: public EDDSA25519Signer
 	{
 		public:

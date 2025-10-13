@@ -7,8 +7,9 @@
 */
 
 #include <memory>
+#include "Crypto.h"
 #include <openssl/evp.h>
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+#if I2PD_OPENSSL_GE_3 // since 3.0.0
 #include <openssl/core_names.h>
 #include <openssl/param_build.h>
 #endif
@@ -19,7 +20,7 @@ namespace i2p
 {
 namespace crypto
 {
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+#if I2PD_OPENSSL_GE_3 // since 3.0.0
 	DSAVerifier::DSAVerifier ():
 		m_PublicKey (nullptr)
 	{
@@ -172,7 +173,7 @@ namespace crypto
 	}
 #endif	
 
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+#if I2PD_OPENSSL_GE_3 // since 3.0.0
 	ECDSAVerifier::ECDSAVerifier (int curve, size_t keyLen, const EVP_MD * hash):
 		m_Curve(curve), m_KeyLen (keyLen), m_Hash (hash), m_PublicKey (nullptr)
 	{
@@ -405,7 +406,7 @@ namespace crypto
 			LogPrint (eLogError, "EdDSA signing key is not set");
 	}
 
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000)
+#if I2PD_OPENSSL_GE_3
 	static const OSSL_PARAM EDDSA25519phParams[] =
 	{
 		OSSL_PARAM_utf8_string ("instance", (char *)"Ed25519ph", 9),

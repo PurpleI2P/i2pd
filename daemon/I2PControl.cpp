@@ -16,6 +16,7 @@
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/property_tree/json_parser.hpp>
 
+#include "Crypto.h"
 #include "FS.h"
 #include "Log.h"
 #include "Config.h"
@@ -437,7 +438,7 @@ namespace client
 	void I2PControlService::CreateCertificate (const char *crt_path, const char *key_path)
 	{
 		FILE *f = NULL;
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+	#if I2PD_OPENSSL_GE_3 // since 3.0.0
 		EVP_PKEY *  pkey = EVP_RSA_gen(4096); // e = 65537
 #else		
 		EVP_PKEY * pkey = EVP_PKEY_new ();

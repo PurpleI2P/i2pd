@@ -11,18 +11,18 @@
 #include <vector>
 #include <mutex>
 #include <memory>
+#include "Crypto.h"
 #include <openssl/dh.h>
 #include <openssl/md5.h>
 #include <openssl/crypto.h>
 #include "TunnelBase.h"
 #include <openssl/ssl.h>
 #include <openssl/kdf.h>
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+#if I2PD_OPENSSL_GE_3 // since 3.0.0
 #include <openssl/param_build.h>
 #include <openssl/core_names.h>
 #endif
 #include "CPU.h"
-#include "Crypto.h"
 #include "Ed25519.h"
 #include "I2PEndian.h"
 #include "Log.h"
@@ -148,7 +148,7 @@ namespace crypto
 	#define dsap GetCryptoConstants ().dsap
 	#define dsaq GetCryptoConstants ().dsaq
 	#define dsag GetCryptoConstants ().dsag
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+#if I2PD_OPENSSL_GE_3 // since 3.0.0
 	EVP_PKEY * CreateDSA (BIGNUM * pubKey, BIGNUM * privKey)
 	{
 		EVP_PKEY * pkey = nullptr;

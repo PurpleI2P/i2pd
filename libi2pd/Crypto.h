@@ -24,14 +24,22 @@
 #include <openssl/rand.h>
 #include <openssl/opensslv.h>
 
+#if defined(LIBRESSL_VERSION_NUMBER)
+#define I2PD_OPENSSL_GE_3 0
+#define I2PD_OPENSSL_GE_3_5 0
+#else
+#define I2PD_OPENSSL_GE_3 (OPENSSL_VERSION_NUMBER >= 0x030000000L)
+#define I2PD_OPENSSL_GE_3_5 (OPENSSL_VERSION_NUMBER >= 0x030500000L)
+#endif
+
 #include "Base.h"
 #include "Tag.h"
 
 // recognize openssl version and features
-#if (!defined(LIBRESSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER != 0x030000000)) // 3.0.0, regression in SipHash, not implemented in LibreSSL
+#if (!defined(LIBRESSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER != 0x030000000L)) // 3.0.0, regression in SipHash, not implemented in LibreSSL
 #	define OPENSSL_SIPHASH 1
 #endif
-#if (OPENSSL_VERSION_NUMBER >= 0x030500000) // 3.5.0
+#if I2PD_OPENSSL_GE_3_5
 #	define OPENSSL_PQ 1
 #endif
 
@@ -42,7 +50,7 @@ namespace crypto
 	bool bn2buf (const BIGNUM * bn, uint8_t * buf, size_t len);
 
 	// DSA
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+#if I2PD_OPENSSL_GE_3 // since 3.0.0
 	EVP_PKEY * CreateDSA (BIGNUM * pubKey = nullptr, BIGNUM * privKey = nullptr);
 #else
 	DSA * CreateDSA ();
