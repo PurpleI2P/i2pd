@@ -620,50 +620,6 @@ namespace client
 			m_IsSending = false;
 	}
 
-	std::string_view I2CPSession::ExtractString (const uint8_t * buf, size_t len) const
-	{
-		uint8_t l = buf[0];
-		if (l > len) l = len;
-		return { (const char *)(buf + 1), l };
-	}
-
-	size_t I2CPSession::PutString (uint8_t * buf, size_t len, std::string_view str)
-	{
-		auto l = str.length ();
-		if (l + 1 >= len) l = len - 1;
-		if (l > 255) l = 255; // 1 byte max
-		buf[0] = l;
-		memcpy (buf + 1, str.data (), l);
-		return l + 1;
-	}
-
-	void I2CPSession::ExtractMapping (const uint8_t * buf, size_t len, i2p::util::Mapping& mapping) const
-	// TODO: call FromBuffer
-	{
-		size_t offset = 0;
-		while (offset < len)
-		{
-			auto param = ExtractString (buf + offset, len - offset);
-			offset += param.length () + 1;
-			if (buf[offset] != '=')
-			{
-				LogPrint (eLogWarning, "I2CP: Unexpected character ", buf[offset], " instead '=' after ", param);
-				break;
-			}
-			offset++;
-
-			auto value = ExtractString (buf + offset, len - offset);
-			offset += value.length () + 1;
-			if (buf[offset] != ';')
-			{
-				LogPrint (eLogWarning, "I2CP: Unexpected character ", buf[offset], " instead ';' after ", value);
-				break;
-			}
-			offset++;
-			mapping.Insert (param, value);
-		}
-	}
-
 	void I2CPSession::GetDateMessageHandler (const uint8_t * buf, size_t len)
 	{
 		constexpr std::string_view version(I2P_VERSION);
@@ -672,7 +628,7 @@ namespace client
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		htobe64buf (payload.data(), ts);
 		// send our version back
-		PutString (payload.data() + 8, payload.size() - 8, version);
+		i2p::util::Mapping::WriteString (version, payload.data() + 8, payload.size() - 8);
 		SendI2CPMessage (I2CP_SET_DATE_MESSAGE, payload.data(), payload.size());
 	}
 
@@ -702,7 +658,7 @@ namespace client
 			return;
 		}
 		i2p::util::Mapping params;
-		ExtractMapping (buf + offset, optionsSize, params);
+		params.FromBuffer (optionsSize, buf + offset, len - offset);
 		offset += optionsSize; // options
 		if (params[I2CP_PARAM_MESSAGE_RELIABILITY] == "none") m_IsSendAccepted = false;
 
@@ -768,7 +724,7 @@ namespace client
 						{
 							buf += sizeof(uint16_t);
 							i2p::util::Mapping opts;
-							ExtractMapping(buf, optssize, opts);
+							opts.FromBuffer (optssize, buf, optssize);
 							buf += optssize;
 							//uint64_t date = bufbe64toh(buf);
 							buf += sizeof(uint64_t);
@@ -980,7 +936,7 @@ namespace client
 				break;
 				case 1: // address
 				{
-					auto name = ExtractString (buf + 11, len - 11);
+					auto name = i2p::util::Mapping::ExtractString (buf + 11, len - 11);
 					auto addr = i2p::client::context.GetAddressBook ().GetAddress (name);
 					if (!addr || !addr->IsIdentHash ())
 					{

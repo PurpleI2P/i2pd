@@ -195,9 +195,6 @@ namespace client
 
 			void HandleI2CPMessageSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 
-			std::string_view ExtractString (const uint8_t * buf, size_t len) const;
-			size_t PutString (uint8_t * buf, size_t len, std::string_view str);
-			void ExtractMapping (const uint8_t * buf, size_t len, i2p::util::Mapping& mapping) const;
 			void SendSessionStatusMessage (I2CPSessionStatus status);
 			void SendHostReplyMessage (uint32_t requestID, std::shared_ptr<const i2p::data::IdentityEx> identity);
 			
