@@ -931,7 +931,7 @@ namespace client
 		if (value)
 		{
 			*(const_cast<char *>(value)) = 0;
-			m_Options[operand] = value + 1;
+			m_Options.Insert (operand, value + 1);
 			SendReplyOK ({ "option ", operand, " set to ", value + 1 });
 			*(const_cast<char *>(value)) = '=';
 		}

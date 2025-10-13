@@ -87,7 +87,7 @@ namespace client
 
 			I2CPDestination (boost::asio::io_context& service, std::shared_ptr<I2CPSession> owner,
 				std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, bool isSameThread, 
-			    const std::map<std::string, std::string>& params);
+			    const i2p::util::Mapping& params);
 			~I2CPDestination () {};
 
 			void Stop () override;
@@ -142,7 +142,7 @@ namespace client
 		public:
 
 			RunnableI2CPDestination (std::shared_ptr<I2CPSession> owner, std::shared_ptr<const i2p::data::IdentityEx> identity,
-				bool isPublic, const std::map<std::string, std::string>& params);
+				bool isPublic, const i2p::util::Mapping& params);
 			~RunnableI2CPDestination ();
 
 			void Start ();
@@ -197,7 +197,7 @@ namespace client
 
 			std::string_view ExtractString (const uint8_t * buf, size_t len) const;
 			size_t PutString (uint8_t * buf, size_t len, std::string_view str);
-			void ExtractMapping (const uint8_t * buf, size_t len, std::map<std::string, std::string>& mapping) const;
+			void ExtractMapping (const uint8_t * buf, size_t len, i2p::util::Mapping& mapping) const;
 			void SendSessionStatusMessage (I2CPSessionStatus status);
 			void SendHostReplyMessage (uint32_t requestID, std::shared_ptr<const i2p::data::IdentityEx> identity);
 			

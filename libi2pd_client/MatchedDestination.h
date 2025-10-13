@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -23,7 +23,7 @@ namespace client
 		public:
 
 			MatchedTunnelDestination(const i2p::data::PrivateKeys& keys, const std::string & remoteName,
-				const std::map<std::string, std::string> * params = nullptr);
+				const i2p::util::Mapping * params = nullptr);
 			void Start();
 			void Stop();
 

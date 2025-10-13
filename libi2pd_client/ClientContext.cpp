@@ -340,7 +340,7 @@ namespace client
 
 	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (bool isPublic,
 		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType,
-		const std::map<std::string, std::string> * params)
+		const i2p::util::Mapping * params)
 	{
 		i2p::data::PrivateKeys keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType, true);
 		auto localDestination = std::make_shared<RunnableClientDestination> (keys, isPublic, params);
@@ -351,7 +351,7 @@ namespace client
 	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (
 		boost::asio::io_context& service, bool isPublic,
 		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType,
-		const std::map<std::string, std::string> * params)
+		const i2p::util::Mapping * params)
 	{
 		i2p::data::PrivateKeys keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType, true);
 		auto localDestination = std::make_shared<ClientDestination> (service, keys, isPublic, params);
@@ -359,7 +359,8 @@ namespace client
 		return localDestination;
 	}
 
-	std::shared_ptr<ClientDestination> ClientContext::CreateNewMatchedTunnelDestination(const i2p::data::PrivateKeys &keys, const std::string & name, const std::map<std::string, std::string> * params)
+	std::shared_ptr<ClientDestination> ClientContext::CreateNewMatchedTunnelDestination(const i2p::data::PrivateKeys &keys, 
+		const std::string & name, const i2p::util::Mapping * params)
 	{
 		auto localDestination = std::make_shared<MatchedTunnelDestination>(keys, name, params);
 		AddLocalDestination (localDestination);
@@ -389,7 +390,7 @@ namespace client
 	}
 
 	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic,
-		const std::map<std::string, std::string> * params)
+		const i2p::util::Mapping * params)
 	{
 		auto it = m_Destinations.find (keys.GetPublic ()->GetIdentHash ());
 		if (it != m_Destinations.end ())
@@ -404,7 +405,7 @@ namespace client
 	}
 
 	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (boost::asio::io_context& service,
-		const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params)
+		const i2p::data::PrivateKeys& keys, bool isPublic, const i2p::util::Mapping * params)
 	{
 		auto it = m_Destinations.find (keys.GetPublic ()->GetIdentHash ());
 		if (it != m_Destinations.end ())
@@ -420,9 +421,9 @@ namespace client
 
 	void ClientContext::CreateNewSharedLocalDestination ()
 	{
-		std::map<std::string, std::string> params;
+		i2p::util::Mapping params;
 		ReadI2CPOptionsFromConfig ("shareddest.", params);
-		params[I2CP_PARAM_OUTBOUND_NICKNAME] = "SharedDest";
+		params.Insert (I2CP_PARAM_OUTBOUND_NICKNAME, "SharedDest");
 		
 		m_SharedLocalDestination = CreateNewLocalDestination (false, i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519,
 			i2p::data::CRYPTO_KEY_TYPE_ELGAMAL, &params); // non-public, EDDSA
@@ -450,88 +451,89 @@ namespace client
 	}
 
 	template<typename Section>
-	void ClientContext::ReadI2CPOptionsGroup (const Section& section, const std::string& group, std::map<std::string, std::string>& options) const
+	void ClientContext::ReadI2CPOptionsGroup (const Section& section, const std::string& group, 
+		i2p::util::Mapping& options) const
 	{
 		for (auto it: section.second)
 		{
 			if (it.first.length () >= group.length () && !it.first.compare (0, group.length (), group))
-				options[it.first] = it.second.get_value ("");
+				options.Insert (it.first, it.second.get_value (""));
 		}
 	}
 
 	template<typename Section>
-	void ClientContext::ReadI2CPOptions (const Section& section, bool isServer, std::map<std::string, std::string>& options) const
+	void ClientContext::ReadI2CPOptions (const Section& section, bool isServer, i2p::util::Mapping& options) const
 	{
-		options[I2CP_PARAM_INBOUND_TUNNEL_LENGTH] = GetI2CPOption (section, I2CP_PARAM_INBOUND_TUNNEL_LENGTH, DEFAULT_INBOUND_TUNNEL_LENGTH);
-		options[I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH] = GetI2CPOption (section, I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH, DEFAULT_OUTBOUND_TUNNEL_LENGTH);
-		options[I2CP_PARAM_INBOUND_TUNNELS_QUANTITY] = GetI2CPOption (section, I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, DEFAULT_INBOUND_TUNNELS_QUANTITY);
-		options[I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY] = GetI2CPOption (section, I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, DEFAULT_OUTBOUND_TUNNELS_QUANTITY);
-		options[I2CP_PARAM_INBOUND_TUNNELS_LENGTH_VARIANCE] = GetI2CPOption (section, I2CP_PARAM_INBOUND_TUNNELS_LENGTH_VARIANCE, DEFAULT_INBOUND_TUNNELS_LENGTH_VARIANCE);
-		options[I2CP_PARAM_OUTBOUND_TUNNELS_LENGTH_VARIANCE] = GetI2CPOption (section, I2CP_PARAM_OUTBOUND_TUNNELS_LENGTH_VARIANCE, DEFAULT_OUTBOUND_TUNNELS_LENGTH_VARIANCE);
-		options[I2CP_PARAM_TAGS_TO_SEND] = GetI2CPOption (section, I2CP_PARAM_TAGS_TO_SEND, DEFAULT_TAGS_TO_SEND);
-		options[I2CP_PARAM_MIN_TUNNEL_LATENCY] = GetI2CPOption(section, I2CP_PARAM_MIN_TUNNEL_LATENCY, DEFAULT_MIN_TUNNEL_LATENCY);
-		options[I2CP_PARAM_MAX_TUNNEL_LATENCY] = GetI2CPOption(section, I2CP_PARAM_MAX_TUNNEL_LATENCY, DEFAULT_MAX_TUNNEL_LATENCY);
-		options[I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY] = GetI2CPOption(section, I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY, DEFAULT_INITIAL_ACK_DELAY);
-		options[I2CP_PARAM_STREAMING_MAX_OUTBOUND_SPEED] = GetI2CPOption(section, I2CP_PARAM_STREAMING_MAX_OUTBOUND_SPEED, DEFAULT_MAX_OUTBOUND_SPEED);
-		options[I2CP_PARAM_STREAMING_MAX_INBOUND_SPEED] = GetI2CPOption(section, I2CP_PARAM_STREAMING_MAX_INBOUND_SPEED, DEFAULT_MAX_INBOUND_SPEED);
-		options[I2CP_PARAM_STREAMING_MAX_CONCURRENT_STREAMS] = GetI2CPOption(section, I2CP_PARAM_STREAMING_MAX_CONCURRENT_STREAMS, DEFAULT_MAX_CONCURRENT_STREAMS);
-		options[I2CP_PARAM_STREAMING_ANSWER_PINGS] = GetI2CPOption(section, I2CP_PARAM_STREAMING_ANSWER_PINGS, isServer ? DEFAULT_ANSWER_PINGS : false);
-		options[I2CP_PARAM_STREAMING_DONT_SIGN] = GetI2CPOption(section, I2CP_PARAM_STREAMING_DONT_SIGN, DEFAULT_DONT_SIGN);
-		options[I2CP_PARAM_STREAMING_PROFILE] = GetI2CPOption(section, I2CP_PARAM_STREAMING_PROFILE, DEFAULT_STREAMING_PROFILE);
-		options[I2CP_PARAM_STREAMING_MAX_WINDOW_SIZE] = GetI2CPOption(section, I2CP_PARAM_STREAMING_MAX_WINDOW_SIZE, i2p::stream::MAX_WINDOW_SIZE);
-		options[I2CP_PARAM_LEASESET_TYPE] = GetI2CPOption(section, I2CP_PARAM_LEASESET_TYPE, DEFAULT_LEASESET_TYPE);
+		options.Insert (I2CP_PARAM_INBOUND_TUNNEL_LENGTH, GetI2CPOption (section, I2CP_PARAM_INBOUND_TUNNEL_LENGTH, DEFAULT_INBOUND_TUNNEL_LENGTH));
+		options.Insert (I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH, GetI2CPOption (section, I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH, DEFAULT_OUTBOUND_TUNNEL_LENGTH));
+		options.Insert (I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, GetI2CPOption (section, I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, DEFAULT_INBOUND_TUNNELS_QUANTITY));
+		options.Insert (I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, GetI2CPOption (section, I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, DEFAULT_OUTBOUND_TUNNELS_QUANTITY));
+		options.Insert (I2CP_PARAM_INBOUND_TUNNELS_LENGTH_VARIANCE, GetI2CPOption (section, I2CP_PARAM_INBOUND_TUNNELS_LENGTH_VARIANCE, DEFAULT_INBOUND_TUNNELS_LENGTH_VARIANCE));
+		options.Insert (I2CP_PARAM_OUTBOUND_TUNNELS_LENGTH_VARIANCE, GetI2CPOption (section, I2CP_PARAM_OUTBOUND_TUNNELS_LENGTH_VARIANCE, DEFAULT_OUTBOUND_TUNNELS_LENGTH_VARIANCE));
+		options.Insert (I2CP_PARAM_TAGS_TO_SEND, GetI2CPOption (section, I2CP_PARAM_TAGS_TO_SEND, DEFAULT_TAGS_TO_SEND));
+		options.Insert (I2CP_PARAM_MIN_TUNNEL_LATENCY, GetI2CPOption(section, I2CP_PARAM_MIN_TUNNEL_LATENCY, DEFAULT_MIN_TUNNEL_LATENCY));
+		options.Insert (I2CP_PARAM_MAX_TUNNEL_LATENCY, GetI2CPOption(section, I2CP_PARAM_MAX_TUNNEL_LATENCY, DEFAULT_MAX_TUNNEL_LATENCY));
+		options.Insert (I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY, GetI2CPOption(section, I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY, DEFAULT_INITIAL_ACK_DELAY));
+		options.Insert (I2CP_PARAM_STREAMING_MAX_OUTBOUND_SPEED, GetI2CPOption(section, I2CP_PARAM_STREAMING_MAX_OUTBOUND_SPEED, DEFAULT_MAX_OUTBOUND_SPEED));
+		options.Insert (I2CP_PARAM_STREAMING_MAX_INBOUND_SPEED, GetI2CPOption(section, I2CP_PARAM_STREAMING_MAX_INBOUND_SPEED, DEFAULT_MAX_INBOUND_SPEED));
+		options.Insert (I2CP_PARAM_STREAMING_MAX_CONCURRENT_STREAMS, GetI2CPOption(section, I2CP_PARAM_STREAMING_MAX_CONCURRENT_STREAMS, DEFAULT_MAX_CONCURRENT_STREAMS));
+		options.Insert (I2CP_PARAM_STREAMING_ANSWER_PINGS, GetI2CPOption(section, I2CP_PARAM_STREAMING_ANSWER_PINGS, isServer ? DEFAULT_ANSWER_PINGS : false));
+		options.Insert (I2CP_PARAM_STREAMING_DONT_SIGN, GetI2CPOption(section, I2CP_PARAM_STREAMING_DONT_SIGN, DEFAULT_DONT_SIGN));
+		options.Insert (I2CP_PARAM_STREAMING_PROFILE, GetI2CPOption(section, I2CP_PARAM_STREAMING_PROFILE, DEFAULT_STREAMING_PROFILE));
+		options.Insert (I2CP_PARAM_STREAMING_MAX_WINDOW_SIZE, GetI2CPOption(section, I2CP_PARAM_STREAMING_MAX_WINDOW_SIZE, i2p::stream::MAX_WINDOW_SIZE));
+		options.Insert (I2CP_PARAM_LEASESET_TYPE, GetI2CPOption(section, I2CP_PARAM_LEASESET_TYPE, DEFAULT_LEASESET_TYPE));
 #if OPENSSL_PQ
 		std::string encType = GetI2CPStringOption(section, I2CP_PARAM_LEASESET_ENCRYPTION_TYPE, isServer ? "6,4" : "6,4,0");
 #else		
 		std::string encType = GetI2CPStringOption(section, I2CP_PARAM_LEASESET_ENCRYPTION_TYPE, isServer ? "4" : "4,0");
 #endif		
-		if (encType.length () > 0) options[I2CP_PARAM_LEASESET_ENCRYPTION_TYPE] = encType;
+		if (encType.length () > 0) options.Insert (I2CP_PARAM_LEASESET_ENCRYPTION_TYPE, encType);
 		std::string privKey = GetI2CPStringOption(section, I2CP_PARAM_LEASESET_PRIV_KEY, "");
-		if (privKey.length () > 0) options[I2CP_PARAM_LEASESET_PRIV_KEY] = privKey;
+		if (privKey.length () > 0) options.Insert (I2CP_PARAM_LEASESET_PRIV_KEY, privKey);
 		auto authType = GetI2CPOption(section, I2CP_PARAM_LEASESET_AUTH_TYPE, 0);
 		if (authType != "0") // auth is set
 		{
-			options[I2CP_PARAM_LEASESET_AUTH_TYPE] = authType;
+			options.Insert (I2CP_PARAM_LEASESET_AUTH_TYPE, authType);
 			if (authType == "1") // DH
 				ReadI2CPOptionsGroup (section, I2CP_PARAM_LEASESET_CLIENT_DH, options);
 			else if (authType == "2") // PSK
 				ReadI2CPOptionsGroup (section, I2CP_PARAM_LEASESET_CLIENT_PSK, options);
 		}
 		std::string explicitPeers = GetI2CPStringOption(section, I2CP_PARAM_EXPLICIT_PEERS, "");
-		if (explicitPeers.length () > 0) options[I2CP_PARAM_EXPLICIT_PEERS] = explicitPeers;
+		if (explicitPeers.length () > 0) options.Insert (I2CP_PARAM_EXPLICIT_PEERS, explicitPeers);
 		std::string ratchetInboundTags = GetI2CPStringOption(section, I2CP_PARAM_RATCHET_INBOUND_TAGS, "");
-		if (ratchetInboundTags.length () > 0) options[I2CP_PARAM_RATCHET_INBOUND_TAGS] = ratchetInboundTags;
+		if (ratchetInboundTags.length () > 0) options.Insert (I2CP_PARAM_RATCHET_INBOUND_TAGS, ratchetInboundTags);
 	}
 
-	void ClientContext::ReadI2CPOptionsFromConfig (const std::string& prefix, std::map<std::string, std::string>& options) const
+	void ClientContext::ReadI2CPOptionsFromConfig (const std::string& prefix, i2p::util::Mapping& options) const
 	{
 		std::string value;
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_INBOUND_TUNNEL_LENGTH, value))
-			options[I2CP_PARAM_INBOUND_TUNNEL_LENGTH] = value;
+			options.Insert (I2CP_PARAM_INBOUND_TUNNEL_LENGTH, value);
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, value))
-			options[I2CP_PARAM_INBOUND_TUNNELS_QUANTITY] = value;
+			options.Insert (I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, value);
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_INBOUND_TUNNELS_LENGTH_VARIANCE, value))
-			options[I2CP_PARAM_INBOUND_TUNNELS_LENGTH_VARIANCE] = value;
+			options.Insert (I2CP_PARAM_INBOUND_TUNNELS_LENGTH_VARIANCE, value);
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH, value))
-			options[I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH] = value;
+			options.Insert (I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH, value);
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, value))
-			options[I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY] = value;
+			options.Insert (I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, value);
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_OUTBOUND_TUNNELS_LENGTH_VARIANCE, value))
-			options[I2CP_PARAM_OUTBOUND_TUNNELS_LENGTH_VARIANCE] = value;
+			options.Insert (I2CP_PARAM_OUTBOUND_TUNNELS_LENGTH_VARIANCE, value);
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_MIN_TUNNEL_LATENCY, value))
-			options[I2CP_PARAM_MIN_TUNNEL_LATENCY] = value;
+			options.Insert (I2CP_PARAM_MIN_TUNNEL_LATENCY, value);
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_MAX_TUNNEL_LATENCY, value))
-			options[I2CP_PARAM_MAX_TUNNEL_LATENCY] = value;
+			options.Insert (I2CP_PARAM_MAX_TUNNEL_LATENCY, value);
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_LEASESET_TYPE, value))
-			options[I2CP_PARAM_LEASESET_TYPE] = value;
+			options.Insert (I2CP_PARAM_LEASESET_TYPE, value);
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_LEASESET_ENCRYPTION_TYPE, value))
-			options[I2CP_PARAM_LEASESET_ENCRYPTION_TYPE] = value;
+			options.Insert (I2CP_PARAM_LEASESET_ENCRYPTION_TYPE, value);
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_LEASESET_PRIV_KEY, value) && !value.empty ())
-			options[I2CP_PARAM_LEASESET_PRIV_KEY] = value;
+			options.Insert (I2CP_PARAM_LEASESET_PRIV_KEY, value);
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_STREAMING_PROFILE, value))
-			options[I2CP_PARAM_STREAMING_PROFILE] = value;
+			options.Insert (I2CP_PARAM_STREAMING_PROFILE, value);
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_STREAMING_MAX_WINDOW_SIZE, value))
-			options[I2CP_PARAM_STREAMING_MAX_WINDOW_SIZE] = value;
+			options.Insert (I2CP_PARAM_STREAMING_MAX_WINDOW_SIZE, value);
 	}
 
 	void ClientContext::ReadTunnels ()
@@ -609,13 +611,12 @@ namespace client
 #endif				
 					i2p::data::CryptoKeyType cryptoType = section.second.get (I2P_CLIENT_TUNNEL_CRYPTO_TYPE, i2p::data::CRYPTO_KEY_TYPE_ELGAMAL);
 					// I2CP
-					std::map<std::string, std::string> options;
+					i2p::util::Mapping options;
 					ReadI2CPOptions (section, false, options);
 
 					// Set I2CP name if not set
-					auto itopt = options.find (I2CP_PARAM_OUTBOUND_NICKNAME);
-					if (itopt == options.end ())
-						options[I2CP_PARAM_OUTBOUND_NICKNAME] = name;
+					if (!options.Contains (I2CP_PARAM_OUTBOUND_NICKNAME))
+						options.Insert (I2CP_PARAM_OUTBOUND_NICKNAME, name);
 
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					if (keys == "shareddest")
@@ -778,13 +779,12 @@ namespace client
 					bool ssl = section.second.get (I2P_SERVER_TUNNEL_SSL, false);
 
 					// I2CP
-					std::map<std::string, std::string> options;
+					i2p::util::Mapping options;
 					ReadI2CPOptions (section, true, options);
 
 					// Set I2CP name if not set
-					auto itopt = options.find (I2CP_PARAM_INBOUND_NICKNAME);
-					if (itopt == options.end ())
-						options[I2CP_PARAM_INBOUND_NICKNAME] = name;
+					if (!options.Contains (I2CP_PARAM_INBOUND_NICKNAME))
+						options.Insert (I2CP_PARAM_INBOUND_NICKNAME, name);
 
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					if (keys == "shareddest")
@@ -944,9 +944,9 @@ namespace client
 				i2p::data::PrivateKeys keys;
 				if(LoadPrivateKeys (keys, httpProxyKeys, sigType))
 				{
-					std::map<std::string, std::string> params;
+					i2p::util::Mapping params;
 					ReadI2CPOptionsFromConfig ("httpproxy.", params);
-					params[I2CP_PARAM_OUTBOUND_NICKNAME] = "HTTPProxy";
+					params.Insert (I2CP_PARAM_OUTBOUND_NICKNAME, "HTTPProxy");
 					localDestination = CreateNewLocalDestination (keys, false, &params);
 					if (localDestination) localDestination->Acquire ();
 				}
@@ -1001,9 +1001,9 @@ namespace client
 				i2p::data::PrivateKeys keys;
 				if (LoadPrivateKeys (keys, socksProxyKeys, sigType))
 				{
-					std::map<std::string, std::string> params;
+					i2p::util::Mapping params;
 					ReadI2CPOptionsFromConfig ("socksproxy.", params);
-					params[I2CP_PARAM_OUTBOUND_NICKNAME] = "SOCKSProxy";
+					params.Insert (I2CP_PARAM_OUTBOUND_NICKNAME, "SOCKSProxy");
 					localDestination = CreateNewLocalDestination (keys, false, &params);
 					if (localDestination) localDestination->Acquire ();
 				}

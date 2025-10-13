@@ -272,7 +272,7 @@ namespace client
 			std::string m_Nickname, m_InHost, m_OutHost;
 			uint16_t m_InPort, m_OutPort;
 			i2p::data::PrivateKeys m_Keys;
-			std::map<std::string, std::string> m_Options;
+			i2p::util::Mapping m_Options;
 			std::shared_ptr<BOBDestination> m_CurrentDestination;
 
 			enum class TunnelType
