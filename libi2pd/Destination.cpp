@@ -167,31 +167,28 @@ namespace client
 		
 	bool LeaseSetDestination::Reconfigure(const i2p::util::Mapping& params)
 	{
-		params.Get ("i2cp.dontPublishLeaseSet", m_IsPublic);
+		params.Get (I2CP_PARAM_DONT_PUBLISH_LEASESET, m_IsPublic);
 
-		int inLen = 0, outLen = 0, inQuant = 0, outQuant = 0, numTags = 0, minLatency = 0, maxLatency = 0;
-		std::map<std::string_view, int&> intOpts = 
-		{
-			{I2CP_PARAM_INBOUND_TUNNEL_LENGTH, inLen},
-			{I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH, outLen},
-			{I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, inQuant},
-			{I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, outQuant},
-			{I2CP_PARAM_TAGS_TO_SEND, numTags},
-			{I2CP_PARAM_MIN_TUNNEL_LATENCY, minLatency},
-			{I2CP_PARAM_MAX_TUNNEL_LATENCY, maxLatency}
-		};
-
+		auto numTags = GetNumTags ();
+		params.Get (I2CP_PARAM_TAGS_TO_SEND, numTags);
+		auto numRatchetInboundTags = GetNumRatchetInboundTags ();
+		params.Get (I2CP_PARAM_RATCHET_INBOUND_TAGS, numRatchetInboundTags);
 		auto pool = GetTunnelPool();
-		inLen = pool->GetNumInboundHops();
-		outLen = pool->GetNumOutboundHops();
-		inQuant = pool->GetNumInboundTunnels();
-		outQuant = pool->GetNumOutboundTunnels();
-		minLatency = 0;
-		maxLatency = 0;
-
-		for (auto & opt : intOpts)
-			params.Get (opt.first, opt.second);
-
+		auto inLen = pool->GetNumInboundHops();
+		params.Get (I2CP_PARAM_INBOUND_TUNNEL_LENGTH, inLen);
+		auto outLen = pool->GetNumOutboundHops();
+		params.Get (I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH, outLen);
+		auto inQuant = pool->GetNumInboundTunnels();
+		params.Get (I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, inQuant);
+		auto outQuant = pool->GetNumOutboundTunnels();
+		params.Get (I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, outQuant);
+		int minLatency = 0;
+		params.Get (I2CP_PARAM_MIN_TUNNEL_LATENCY, minLatency);
+		int maxLatency = 0;
+		params.Get (I2CP_PARAM_MAX_TUNNEL_LATENCY, maxLatency);
+		
+		SetNumTags (numTags);
+		SetNumRatchetInboundTags (numRatchetInboundTags);
 		pool->RequireLatency(minLatency, maxLatency);
 		return pool->Reconfigure(inLen, outLen, inQuant, outQuant);
 	}
