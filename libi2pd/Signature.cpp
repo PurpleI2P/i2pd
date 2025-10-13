@@ -7,6 +7,7 @@
 */
 
 #include <memory>
+#include <cstring>
 #include "Crypto.h"
 #include <openssl/evp.h>
 #if I2PD_OPENSSL_GE_3 // since 3.0.0
@@ -286,19 +287,41 @@ namespace crypto
 		
 	void CreateECDSARandomKeys (int curve, size_t keyLen, uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
 	{
-		EVP_PKEY * pkey = EVP_EC_gen (OBJ_nid2ln(curve));
-		// private
-		BIGNUM * priv = BN_new ();
-		EVP_PKEY_get_bn_param (pkey, OSSL_PKEY_PARAM_PRIV_KEY, &priv);
-		bn2buf (priv, signingPrivateKey, keyLen/2);
-		BN_free (priv);
-		// public
-		BIGNUM * x = BN_new (), * y = BN_new ();
-		EVP_PKEY_get_bn_param (pkey, OSSL_PKEY_PARAM_EC_PUB_X, &x);
-		EVP_PKEY_get_bn_param (pkey, OSSL_PKEY_PARAM_EC_PUB_Y, &y);
-		bn2buf (x, signingPublicKey, keyLen/2);
-		bn2buf (y, signingPublicKey + keyLen/2, keyLen/2);
-		BN_free (x); BN_free (y);
+		auto pkey = GenerateECKey (curve);
+		if (!pkey)
+			return;
+		EC_KEY * ec = EVP_PKEY_get1_EC_KEY (pkey);
+		if (!ec)
+		{
+			LogPrint (eLogError, "ECDSA: Failed to extract EC key for curve ", curve);
+			EVP_PKEY_free (pkey);
+			return;
+		}
+		const BIGNUM * priv = EC_KEY_get0_private_key (ec);
+		if (priv)
+			bn2buf (priv, signingPrivateKey, keyLen/2);
+		else
+			memset (signingPrivateKey, 0, keyLen/2);
+		const EC_GROUP * group = EC_KEY_get0_group (ec);
+		const EC_POINT * pub = EC_KEY_get0_public_key (ec);
+		if (group && pub)
+		{
+			BIGNUM * x = BN_new (), * y = BN_new ();
+			BN_CTX * ctx = BN_CTX_new ();
+			if (x && y && ctx && EC_POINT_get_affine_coordinates_GFp (group, pub, x, y, ctx))
+			{
+				bn2buf (x, signingPublicKey, keyLen/2);
+				bn2buf (y, signingPublicKey + keyLen/2, keyLen/2);
+			}
+			else
+				LogPrint (eLogError, "ECDSA: Failed to extract public coordinates for curve ", curve);
+			if (ctx) BN_CTX_free (ctx);
+			if (x) BN_free (x);
+			if (y) BN_free (y);
+		}
+		else
+			LogPrint (eLogError, "ECDSA: Missing group or public key for curve ", curve);
+		EC_KEY_free (ec);
 		EVP_PKEY_free (pkey);
 	}	
 		

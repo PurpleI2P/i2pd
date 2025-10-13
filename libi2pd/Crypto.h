@@ -48,6 +48,8 @@ namespace i2p
 namespace crypto
 {
 	bool bn2buf (const BIGNUM * bn, uint8_t * buf, size_t len);
+	EVP_PKEY * GenerateECKey (int curve);
+	int GetEVPKeyCurveNID (const EVP_PKEY * pkey);
 
 	// DSA
 #if I2PD_OPENSSL_GE_3 // since 3.0.0

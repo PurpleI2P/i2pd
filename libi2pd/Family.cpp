@@ -51,14 +51,7 @@ namespace data
 					auto pkey = X509_get_pubkey (cert);
 					if (pkey)
 					{	
-						int curve = 0;
-#if I2PD_OPENSSL_GE_3 // since 3.0.0
-						char groupName[20];
-						if (EVP_PKEY_get_group_name(pkey, groupName, sizeof(groupName), NULL) == 1)
-							curve = OBJ_txt2nid (groupName);
-						else
-							curve = -1;
-#endif						
+						int curve = i2p::crypto::GetEVPKeyCurveNID (pkey);
 						if (!curve || curve == NID_X9_62_prime256v1)
 						{	
 							if (!m_SigningKeys.emplace (cn, std::make_pair(pkey, (int)m_SigningKeys.size () + 1)).second)
@@ -156,14 +149,7 @@ namespace data
 		{
 			SSL * ssl = SSL_new (ctx);
 			EVP_PKEY * pkey = SSL_get_privatekey (ssl);
-			int curve = 0;
-#if I2PD_OPENSSL_GE_3 // since 3.0.0
-			char groupName[20];
-			if (EVP_PKEY_get_group_name(pkey, groupName, sizeof(groupName), NULL) == 1)
-				curve = OBJ_txt2nid (groupName);
-			else
-				curve = -1;
-#endif	
+			int curve = i2p::crypto::GetEVPKeyCurveNID (pkey);
 			if (!curve || curve == NID_X9_62_prime256v1)
 			{
 				uint8_t buf[100], sign[72], signature[64];

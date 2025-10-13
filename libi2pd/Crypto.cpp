@@ -15,9 +15,11 @@
 #include <openssl/dh.h>
 #include <openssl/md5.h>
 #include <openssl/crypto.h>
+#include <openssl/ec.h>
 #include "TunnelBase.h"
 #include <openssl/ssl.h>
 #include <openssl/kdf.h>
+#include <openssl/objects.h>
 #if I2PD_OPENSSL_GE_3 // since 3.0.0
 #include <openssl/param_build.h>
 #include <openssl/core_names.h>
@@ -135,6 +137,62 @@ namespace crypto
 		BN_bn2bin (bn, buf + offset);
 		memset (buf, 0, offset);
 		return true;
+	}
+
+	EVP_PKEY * GenerateECKey (int curve)
+	{
+	#if I2PD_OPENSSL_GE_3
+		return EVP_EC_gen (OBJ_nid2ln (curve));
+	#else
+		EC_KEY * ec = EC_KEY_new_by_curve_name (curve);
+		if (!ec)
+		{
+			LogPrint (eLogError, "Crypto: Failed to allocate EC key for curve ", curve);
+			return nullptr;
+		}
+		if (!EC_KEY_generate_key (ec))
+		{
+			LogPrint (eLogError, "Crypto: Failed to generate EC key for curve ", curve);
+			EC_KEY_free (ec);
+			return nullptr;
+		}
+		EVP_PKEY * pkey = EVP_PKEY_new ();
+		if (!pkey)
+		{
+			LogPrint (eLogError, "Crypto: Failed to allocate EVP_PKEY for EC curve ", curve);
+			EC_KEY_free (ec);
+			return nullptr;
+		}
+		if (!EVP_PKEY_assign_EC_KEY (pkey, ec))
+		{
+			LogPrint (eLogError, "Crypto: EVP_PKEY_assign_EC_KEY failed for curve ", curve);
+			EVP_PKEY_free (pkey);
+			EC_KEY_free (ec);
+			return nullptr;
+		}
+		return pkey;
+	#endif
+	}
+
+	int GetEVPKeyCurveNID (const EVP_PKEY * pkey)
+	{
+		if (!pkey) return -1;
+	#if I2PD_OPENSSL_GE_3
+		char groupName[64];
+		if (EVP_PKEY_get_group_name (const_cast<EVP_PKEY *>(pkey), groupName, sizeof (groupName), NULL) == 1)
+			return OBJ_txt2nid (groupName);
+		return -1;
+	#else
+		if (EVP_PKEY_base_id (pkey) != EVP_PKEY_EC)
+			return 0;
+		EC_KEY * ec = EVP_PKEY_get1_EC_KEY (const_cast<EVP_PKEY *>(pkey));
+		if (!ec)
+			return -1;
+		const EC_GROUP * group = EC_KEY_get0_group (ec);
+		int nid = group ? EC_GROUP_get_curve_name (group) : -1;
+		EC_KEY_free (ec);
+		return nid;
+	#endif
 	}
 
 // RSA
