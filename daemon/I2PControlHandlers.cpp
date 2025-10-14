@@ -37,6 +37,7 @@ namespace client
 		m_RouterInfoHandlers["i2p.router.net.bw.outbound.1s"]        = &I2PControlHandlers::OutboundBandwidth1S;
 		m_RouterInfoHandlers["i2p.router.net.bw.outbound.15s"]       = &I2PControlHandlers::OutboundBandwidth15S;
 		m_RouterInfoHandlers["i2p.router.net.status"]                = &I2PControlHandlers::NetStatusHandler;
+		m_RouterInfoHandlers["i2p.router.net.status.v6"]             = &I2PControlHandlers::NetStatusV6Handler;
 		m_RouterInfoHandlers["i2p.router.net.tunnels.participating"] = &I2PControlHandlers::TunnelsParticipatingHandler;
 		m_RouterInfoHandlers["i2p.router.net.tunnels.successrate"]   = &I2PControlHandlers::TunnelsSuccessRateHandler;
 		m_RouterInfoHandlers["i2p.router.net.total.received.bytes"]  = &I2PControlHandlers::NetTotalReceivedBytes;
@@ -135,6 +136,13 @@ namespace client
 	void I2PControlHandlers::NetStatusHandler (std::ostringstream& results)
 	{
 		InsertParam (results, "i2p.router.net.status", (int)i2p::context.GetStatus ());
+	}
+
+
+
+	void I2PControlHandlers::NetStatusV6Handler (std::ostringstream& results)
+	{
+		InsertParam (results, "i2p.router.net.status.v6", (int)i2p::context.GetStatusV6 ());
 	}
 
 	void I2PControlHandlers::TunnelsParticipatingHandler (std::ostringstream& results)
