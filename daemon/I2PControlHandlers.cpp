@@ -138,8 +138,6 @@ namespace client
 		InsertParam (results, "i2p.router.net.status", (int)i2p::context.GetStatus ());
 	}
 
-
-
 	void I2PControlHandlers::NetStatusV6Handler (std::ostringstream& results)
 	{
 		InsertParam (results, "i2p.router.net.status.v6", (int)i2p::context.GetStatusV6 ());
