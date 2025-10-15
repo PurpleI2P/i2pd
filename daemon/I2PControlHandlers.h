@@ -47,6 +47,7 @@ namespace client
 			void NetDbKnownPeersHandler (std::ostringstream& results);
 			void NetDbActivePeersHandler (std::ostringstream& results);
 			void NetStatusHandler (std::ostringstream& results);
+			void NetStatusV6Handler (std::ostringstream& results);
 			void TunnelsParticipatingHandler (std::ostringstream& results);
 			void TunnelsSuccessRateHandler (std::ostringstream& results);
 			void InboundBandwidth1S (std::ostringstream& results);
