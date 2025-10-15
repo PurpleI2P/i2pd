@@ -149,7 +149,7 @@ namespace util
 				return instance;
 			}	
 			
-			bool init(int argc, char* argv[]);
+			bool start ();
 			void run ();
 	};	
 #define Daemon i2p::util::DaemonHaiku::Instance()

@@ -26,11 +26,16 @@
 #include "Tunnel.h"
 #include "Transports.h"
 #include "Daemon.h"
+#include "ClientContext.h"
 
-constexpr int M_GRACEFUL_SHUTDOWN = 1;
-constexpr int C_GRACEFUL_SHUTDOWN_UPDATE = 2;
-constexpr int C_MAIN_VIEW_UPDATE = 3;
-constexpr int M_RUN_PEER_TEST = 4;
+enum
+{
+	M_GRACEFUL_SHUTDOWN = 1,
+	M_RUN_PEER_TEST,
+	M_DUMMY_COMMAND,
+	C_GRACEFUL_SHUTDOWN_UPDATE,
+	C_MAIN_VIEW_UPDATE
+};	
 constexpr bigtime_t GRACEFUL_SHUTDOWN_UPDATE_INTERVAL = 1000*1100; // in microseconds, ~ 1 sec
 constexpr int GRACEFUL_SHUTDOWN_UPDATE_COUNT = 600; // 10 minutes
 constexpr bigtime_t MAIN_VIEW_UPDATE_INTERVAL = 5000*1000; // in miscroseconds, 5 secs
@@ -54,7 +59,9 @@ class MainWindow: public BWindow
 class I2PApp: public BApplication
 {
 	public:
-		I2PApp ();	
+	
+		I2PApp ();
+		void CreateMainWindow ();
 };
 
 MainWindow::MainWindow ():
@@ -71,6 +78,12 @@ MainWindow::MainWindow ():
 	auto commandsMenu = new BMenu ("Commands");
 	commandsMenu->AddItem (new BMenuItem ("Run peer test", new BMessage (M_RUN_PEER_TEST), 'P'));
 	menuBar->AddItem (commandsMenu);
+	auto tunnelsMenu = new BMenu ("Tunnels");
+	for (auto& it: i2p::client::context.GetClientTunnels ())
+		tunnelsMenu->AddItem (new BMenuItem (it.second->GetName (), new BMessage (M_DUMMY_COMMAND)));
+	for (auto& it: i2p::client::context.GetServerTunnels ())
+		tunnelsMenu->AddItem (new BMenuItem (it.second->GetName (), new BMessage (M_DUMMY_COMMAND)));	
+	menuBar->AddItem (tunnelsMenu);
 	m_MainView = new BStringView (BRect (20, 21, 300, 250), nullptr, "Starting...", B_FOLLOW_ALL, B_WILL_DRAW);
 	m_MainView->SetViewColor (255, 255, 255);
 	m_MainView->SetHighColor (0xD4, 0x3B, 0x69);
@@ -135,6 +148,10 @@ void MainWindow::MessageReceived (BMessage * msg)
 
 I2PApp::I2PApp (): BApplication("application/x-vnd.purplei2p-i2pd")
 {
+}	
+
+void I2PApp::CreateMainWindow ()
+{
 	auto mainWindow = new MainWindow ();
 	mainWindow->Show ();
 }	
@@ -143,12 +160,12 @@ namespace i2p
 {
 namespace util
 {
-	bool DaemonHaiku::init(int argc, char* argv[])
-	{
-		i2p::config::GetOption("daemon", isDaemon);
+	bool DaemonHaiku::start ()
+	{	
+		I2PApp * app = nullptr;
 		if (!isDaemon)
 		{
-			new I2PApp(); // set be_app
+			app = new I2PApp(); // set be_app
 			i2p::log::SetThrowFunction ([](const std::string& s)
 				{
 					auto alert = new BAlert (nullptr, s.c_str (), "Quit", nullptr, nullptr,
@@ -156,7 +173,10 @@ namespace util
 					alert->Go ();
 				});
 		}	
-		return Daemon_Singleton::init (argc, argv);
+		auto ret = Daemon_Singleton::start ();
+		if (ret && app)
+			app->CreateMainWindow ();
+		return ret;
 	}	
 	
 	void DaemonHaiku::run ()
