@@ -47,6 +47,7 @@ class MainWindow: public BWindow
 	
 	private:
 		void MessageReceived (BMessage * msg) override;	
+		bool QuitRequested () override;
 	
 		void UpdateMainView ();
 	
@@ -54,6 +55,7 @@ class MainWindow: public BWindow
 		BMessenger m_Messenger;
 		BStringView * m_MainView;
 		std::unique_ptr<BMessageRunner> m_MainViewUpdateTimer, m_GracefulShutdownTimer;	
+		bool m_IsGracefulShutdownComplete = false;
 };	
 
 class I2PApp: public BApplication
@@ -130,20 +132,34 @@ void MainWindow::MessageReceived (BMessage * msg)
 			{
 				m_GracefulShutdownTimer = nullptr;
 				Daemon.gracefulShutdownInterval = 0;
+				m_IsGracefulShutdownComplete = true;
 				m_Messenger.SendMessage (B_QUIT_REQUESTED);
 			}		
 		break;
-		case B_QUIT_REQUESTED:
-			m_MainViewUpdateTimer = nullptr;
-			m_GracefulShutdownTimer = nullptr;
-			BWindow::MessageReceived (msg);
-		break;
 		case M_RUN_PEER_TEST:
 			i2p::transport::transports.PeerTest ();
-		break;
+		break;	
 		default:
 			BWindow::MessageReceived (msg);
 	}	
+}	
+
+bool MainWindow::QuitRequested ()
+{
+	bool isQuit = true;
+	if (!m_IsGracefulShutdownComplete)
+	{
+		auto alert = new BAlert (nullptr, "This will stop i2pd. Are you sure?", "Cancel", "Yes", "No",
+			B_WIDTH_AS_USUAL, B_OFFSET_SPACING, B_WARNING_ALERT);
+		alert->SetShortcut (0, B_ESCAPE);
+		isQuit = alert->Go () == 1; // Yes
+	}
+	if (isQuit)
+	{
+		m_MainViewUpdateTimer = nullptr;
+		m_GracefulShutdownTimer = nullptr;
+	}
+	return isQuit;
 }	
 
 I2PApp::I2PApp (): BApplication("application/x-vnd.purplei2p-i2pd")
