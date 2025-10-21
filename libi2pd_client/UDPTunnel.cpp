@@ -22,6 +22,7 @@ namespace client
 	constexpr std::string_view UDP_SESSION_FLAGS { "flags" };
 
 	constexpr uint8_t UDP_SESSION_FLAG_RESET_PATH = 0x01;
+	constexpr uint8_t UDP_SESSION_FLAG_ACK_REQUESTED = 0x02;
 	
 	void I2PUDPServerTunnel::HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, 
 		const uint8_t * buf, size_t len, const i2p::util::Mapping * options)
@@ -37,18 +38,22 @@ namespace client
 			LogPrint (eLogInfo, "UDP Server: Send exception: ", ec.message (), " to ", m_RemoteEndpoint);
 		if (options)
 		{
-			uint8_t flags = 0;
-			if (options->Get (UDP_SESSION_FLAGS, flags) && (flags & UDP_SESSION_FLAG_RESET_PATH))
-				m_LastSession->GetDatagramSession ()->DropSharedRoutingPath ();
 			uint32_t seqn = 0;
 			if (options->Get (UDP_SESSION_SEQN, seqn) && seqn > m_LastSession->m_LastReceivedPacketNum)
-			{	
 				m_LastSession->m_LastReceivedPacketNum = seqn;
-				i2p::util::Mapping replyOptions;
-				replyOptions.Put (UDP_SESSION_ACKED, m_LastSession->m_LastReceivedPacketNum);
-				m_LastSession->m_Destination->SendDatagram(m_LastSession->GetDatagramSession (),
-					nullptr, 0, m_LastSession->LocalPort, m_LastSession->RemotePort, &replyOptions); // Ack only, no payload
-			}
+			uint8_t flags = 0;
+			if (options->Get (UDP_SESSION_FLAGS, flags))
+			{	
+				if (flags & UDP_SESSION_FLAG_RESET_PATH)
+					m_LastSession->GetDatagramSession ()->DropSharedRoutingPath ();
+				if (flags & UDP_SESSION_FLAG_ACK_REQUESTED)
+				{	
+					i2p::util::Mapping replyOptions;
+					replyOptions.Put (UDP_SESSION_ACKED, m_LastSession->m_LastReceivedPacketNum);
+					m_LastSession->m_Destination->SendDatagram(m_LastSession->GetDatagramSession (),
+						nullptr, 0, m_LastSession->LocalPort, m_LastSession->RemotePort, &replyOptions); // Ack only, no payload
+				}
+			}	
 		}		
 	}
 
@@ -399,7 +404,11 @@ namespace client
 					m_RTT = 0;
 					flags |= UDP_SESSION_FLAG_RESET_PATH;
 				}	
-				m_UnackedDatagrams.push_back ({ m_NextSendPacketNum, ts });
+				if (!m_RTT || !m_AckTimerSeqn)
+				{	
+					flags |= UDP_SESSION_FLAG_ACK_REQUESTED;
+					m_UnackedDatagrams.push_back ({ m_NextSendPacketNum, ts });
+				}	
 				i2p::util::Mapping options;
 				options.Put (UDP_SESSION_SEQN, m_NextSendPacketNum);
 				if (m_LastReceivedPacketNum > 0)
@@ -487,8 +496,10 @@ namespace client
 			{
 				uint32_t seqn = 0;
 				if (options->Get (UDP_SESSION_SEQN, seqn) && seqn > m_LastReceivedPacketNum)
-				{	
 					m_LastReceivedPacketNum = seqn;
+				uint8_t flags = 0;
+				if (options->Get (UDP_SESSION_FLAGS, flags) && (flags & UDP_SESSION_FLAG_ACK_REQUESTED))
+				{
 					i2p::util::Mapping replyOptions;
 					replyOptions.Put (UDP_SESSION_ACKED, m_LastReceivedPacketNum);
 					m_LocalDest->GetDatagramDestination ()->SendDatagram (GetDatagramSession (),
@@ -561,7 +572,7 @@ namespace client
 						m_RTT = 0;
 						// send empty packet with reset path flag
 						i2p::util::Mapping options;
-						options.Put (UDP_SESSION_FLAGS, UDP_SESSION_FLAG_RESET_PATH);
+						options.Put (UDP_SESSION_FLAGS, UDP_SESSION_FLAG_RESET_PATH | UDP_SESSION_FLAG_ACK_REQUESTED);
 						auto session = GetDatagramSession ();
 						session->DropSharedRoutingPath ();
 						m_LocalDest->GetDatagramDestination ()->SendDatagram (session, nullptr, 0, 0, 0, &options);
