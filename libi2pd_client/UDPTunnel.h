@@ -36,7 +36,7 @@ namespace client
 	/** max size for i2p udp */
 	const size_t I2P_UDP_MAX_MTU = 64*1024;
 	
-	struct UDPSession
+	struct UDPSession // for server side
 	{
 		i2p::datagram::DatagramDestination * m_Destination;
 		std::weak_ptr<i2p::datagram::DatagramSession> m_LastDatagramSession;
@@ -169,6 +169,7 @@ namespace client
 			void TryResolving ();
 			std::shared_ptr<i2p::datagram::DatagramSession> GetDatagramSession ();
 			void Acked (uint32_t seqn);
+			void ScheduleAckTimer (uint32_t seqn);
 			
 		private:
 
@@ -192,6 +193,8 @@ namespace client
 			uint32_t m_NextSendPacketNum, m_LastReceivedPacketNum;
 			std::list<std::pair<uint32_t, uint64_t> > m_UnackedDatagrams; // list of sent but not acked repliable datagrams(seqn, timestamp) in ascending order
 			uint64_t m_RTT; // milliseconds
+			boost::asio::deadline_timer m_AckTimer;
+			uint32_t m_AckTimerSeqn;
 			
 		public:
 
