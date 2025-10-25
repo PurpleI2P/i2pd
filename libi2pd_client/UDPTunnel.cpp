@@ -404,7 +404,8 @@ namespace client
 					m_RTT = 0;
 					flags |= UDP_SESSION_FLAG_RESET_PATH;
 				}	
-				if (!m_RTT || !m_AckTimerSeqn)
+				if (!m_RTT || !m_AckTimerSeqn || (!m_UnackedDatagrams.empty () &&
+					ts > m_UnackedDatagrams.back ().second + repliableDatagramInterval)) // last ack request
 				{	
 					flags |= UDP_SESSION_FLAG_ACK_REQUESTED;
 					m_UnackedDatagrams.push_back ({ m_NextSendPacketNum, ts });
