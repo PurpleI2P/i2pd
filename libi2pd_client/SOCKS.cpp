@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -20,6 +20,7 @@
 #include "I2PService.h"
 #include "util.h"
 #include "Socks5.h"
+#include "UDPTunnel.h"
 
 namespace i2p
 {
@@ -172,6 +173,7 @@ namespace proxy
 			const bool m_UseUpstreamProxy; // do we want to use the upstream proxy for non i2p addresses?
 			const std::string m_UpstreamProxyAddress;
 			const uint16_t m_UpstreamProxyPort;
+			std::unique_ptr<i2p::client::I2PUDPClientTunnel> m_UDPTunnel;
 
 		public:
 
@@ -229,6 +231,11 @@ namespace proxy
 			LogPrint(eLogDebug, "SOCKS: Closing stream");
 			m_stream.reset ();
 		}
+		if (m_UDPTunnel)
+		{
+			m_UDPTunnel->Stop ();
+			m_UDPTunnel = nullptr;
+		}	
 		Done(shared_from_this());
 	}
 
@@ -343,10 +350,20 @@ namespace proxy
 			break;
 			case SOCKS5:
 				LogPrint(eLogInfo, "SOCKS: v5 connection success");
-				auto s = i2p::client::context.GetAddressBook().ToAddress(GetOwner()->GetLocalDestination()->GetIdentHash());
-				address ad; ad.dns.FromString(s);
-				// HACK only 16 bits passed in port as SOCKS5 doesn't allow for more
-				response = GenerateSOCKS5Response(SOCKS5_OK, ADDR_DNS, ad, m_stream->GetRecvStreamID());
+				if (m_cmd == CMD_UDP && m_UDPTunnel)
+				{
+					address ad;
+					// TODO: implement ipv6
+					ad.ip = m_UDPTunnel->GetLocalEndpoint ().address ().to_v4 ().to_uint ();
+					response = GenerateSOCKS5Response(SOCKS5_OK, ADDR_IPV4, ad, m_UDPTunnel->GetLocalEndpoint ().port ());
+				}	
+				else
+				{	
+					auto s = i2p::client::context.GetAddressBook().ToAddress(GetOwner()->GetLocalDestination()->GetIdentHash());
+					address ad; ad.dns.FromString(s);
+					// HACK only 16 bits passed in port as SOCKS5 doesn't allow for more
+					response = GenerateSOCKS5Response(SOCKS5_OK, ADDR_DNS, ad, m_stream ? m_stream->GetRecvStreamID() : 0);
+				}		
 			break;
 		}
 		boost::asio::async_write(*m_sock, response, std::bind(&SOCKSHandler::SentSocksDone, shared_from_this(), std::placeholders::_1));
@@ -369,7 +386,7 @@ namespace proxy
 
 	bool SOCKSHandler::ValidateSOCKSRequest()
 	{
-		if ( m_cmd != CMD_CONNECT )
+		if ( m_cmd != CMD_CONNECT && m_cmd != CMD_UDP)
 		{
 			// TODO: we need to support binds and other shit!
 			LogPrint(eLogError, "SOCKS: Unsupported command: ", m_cmd);
@@ -619,17 +636,39 @@ namespace proxy
 				LogPrint(eLogInfo, "SOCKS: Requested ", addr, ":" , m_port);
 				const size_t addrlen = addr.size();
 				// does it end with .i2p?
-				if ( addr.rfind(".i2p") == addrlen - 4) {
-					// yes it does, make an i2p session
-					GetOwner()->CreateStream ( std::bind (&SOCKSHandler::HandleStreamRequestComplete,
-							shared_from_this(), std::placeholders::_1), m_address.dns.ToString(), m_port);
-				} else if (m_UseUpstreamProxy) {
+				if (addr.rfind(".i2p") == addrlen - 4) 
+				{
+					// yes it does
+					switch (m_cmd)
+					{
+						case CMD_CONNECT:
+							//make an i2p session
+							GetOwner()->CreateStream ( std::bind (&SOCKSHandler::HandleStreamRequestComplete,
+								shared_from_this(), std::placeholders::_1), m_address.dns.ToString(), m_port);
+						break;	
+						case CMD_UDP:
+						{	
+							// create UDP client tunnel
+							LogPrint (eLogInfo, "SOCKS: New UDP associate connection");	
+							const auto& localEndpoint = ((SOCKSServer *)GetOwner ())->GetLocalEndpoint ();	
+							m_UDPTunnel = std::make_unique<i2p::client::I2PUDPClientTunnel>("", addr,
+								boost::asio::ip::udp::endpoint (localEndpoint.address (), localEndpoint.port ()), // use proxy endpoint TODO: select UDP port
+							    GetOwner ()->GetLocalDestination (), m_port, false, i2p::datagram::eDatagramV3);
+							boost::asio::post (GetOwner ()->GetService (), [this](void)
+								{
+									SocksRequestSuccess();
+								});			
+							break;
+						}		
+						default: ;
+					}	
+				} 
+				else if (m_UseUpstreamProxy)
 					// forward it to upstream proxy
 					ForwardSOCKS();
-				} else {
+				else
 					// no upstream proxy
 					SocksRequestFailed(SOCKS5_ADDR_UNSUP);
-				}
 			}
 			else
 				AsyncSockRead();
@@ -648,10 +687,18 @@ namespace proxy
 		if (!ecode)
 		{
 			if (Kill()) return;
-			LogPrint (eLogInfo, "SOCKS: New I2PTunnel connection");
-			auto connection = std::make_shared<i2p::client::I2PTunnelConnection>(GetOwner(), m_sock, m_stream);
-			GetOwner()->AddHandler (connection);
-			connection->I2PConnect (m_remaining_data,m_remaining_data_len);
+			if (m_cmd == CMD_CONNECT)
+			{	
+				LogPrint (eLogInfo, "SOCKS: New I2PTunnel connection");
+				auto connection = std::make_shared<i2p::client::I2PTunnelConnection>(GetOwner(), m_sock, m_stream);
+				GetOwner()->AddHandler (connection);
+				connection->I2PConnect (m_remaining_data,m_remaining_data_len);
+			}
+			else if (m_cmd == CMD_UDP && m_UDPTunnel)
+			{
+				LogPrint (eLogInfo, "SOCKS: Start UDP tunnel");
+				m_UDPTunnel->Start ();
+			}	
 			Done(shared_from_this());
 		}
 		else

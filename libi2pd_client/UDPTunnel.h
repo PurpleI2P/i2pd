@@ -147,7 +147,6 @@ namespace client
 			std::vector<std::shared_ptr<DatagramSessionInfo> > GetSessions ();
 
 			bool IsLocalDestination (const i2p::data::IdentHash & destination) const { return destination == m_LocalDest->GetIdentHash(); }
-
 			std::shared_ptr<ClientDestination> GetLocalDestination () const { return m_LocalDest; }
 			inline void SetLocalDestination (std::shared_ptr<ClientDestination> dest)
 			{
@@ -155,7 +154,8 @@ namespace client
 				if (dest) dest->Acquire ();
 				m_LocalDest = dest;
 			}
-
+			const boost::asio::ip::udp::endpoint& GetLocalEndpoint () const { return m_LocalEndpoint; };
+			
 			void ExpireStale (const uint64_t delta=I2P_UDP_SESSION_TIMEOUT);
 
 		private:
