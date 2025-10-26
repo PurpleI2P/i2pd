@@ -686,20 +686,21 @@ namespace proxy
 	{
 		if (!ecode)
 		{
-			if (Kill()) return;
 			if (m_cmd == CMD_CONNECT)
 			{	
+				if (Kill()) return;
 				LogPrint (eLogInfo, "SOCKS: New I2PTunnel connection");
 				auto connection = std::make_shared<i2p::client::I2PTunnelConnection>(GetOwner(), m_sock, m_stream);
 				GetOwner()->AddHandler (connection);
 				connection->I2PConnect (m_remaining_data,m_remaining_data_len);
+				Done(shared_from_this());
 			}
 			else if (m_cmd == CMD_UDP && m_UDPTunnel)
 			{
 				LogPrint (eLogInfo, "SOCKS: Start UDP tunnel");
 				m_UDPTunnel->Start ();
+				AsyncSockRead (); // associate socket
 			}	
-			Done(shared_from_this());
 		}
 		else
 		{
