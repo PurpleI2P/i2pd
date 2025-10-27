@@ -127,6 +127,7 @@ namespace proxy
 			void HandleSockRecv(const boost::system::error_code & ecode, std::size_t bytes_transfered);
 			void Terminate();
 			void AsyncSockRead();
+			SOCKSServer * GetServer () { return (SOCKSServer *)GetOwner (); };
 			boost::asio::const_buffer GenerateSOCKS4Response(errTypes error, uint32_t ip, uint16_t port);
 			boost::asio::const_buffer GenerateSOCKS5Response(errTypes error, addrTypes type, const address &addr, uint16_t port);
 			bool Socks5ChooseAuth();
@@ -234,6 +235,7 @@ namespace proxy
 		if (m_UDPTunnel)
 		{
 			m_UDPTunnel->Stop ();
+			GetServer ()->ReleaseLocalUDPPort (m_UDPTunnel->GetLocalEndpoint ().port ());
 			m_UDPTunnel = nullptr;
 		}	
 		Done(shared_from_this());
@@ -647,19 +649,16 @@ namespace proxy
 								shared_from_this(), std::placeholders::_1), m_address.dns.ToString(), m_port);
 						break;	
 						case CMD_UDP:
-						{	
 							// create UDP client tunnel
 							LogPrint (eLogInfo, "SOCKS: New UDP associate connection");	
-							const auto& localEndpoint = ((SOCKSServer *)GetOwner ())->GetLocalEndpoint ();	
 							m_UDPTunnel = std::make_unique<i2p::client::I2PUDPClientTunnel>("", addr,
-								boost::asio::ip::udp::endpoint (localEndpoint.address (), localEndpoint.port ()), // use proxy endpoint TODO: select UDP port
+								GetServer ()->GetNextLocalUDPEndpoint (),
 							    GetOwner ()->GetLocalDestination (), m_port, false, i2p::datagram::eDatagramV3);
 							boost::asio::post (GetOwner ()->GetService (), [this](void)
 								{
 									SocksRequestSuccess();
 								});			
 							break;
-						}		
 						default: ;
 					}	
 				} 
@@ -872,5 +871,25 @@ namespace proxy
 		m_UpstreamProxyPort = port;
 		m_UseUpstreamProxy = true;
 	}
+
+	boost::asio::ip::udp::endpoint SOCKSServer::GetNextLocalUDPEndpoint ()
+	{
+		const auto& localEndpoint = GetLocalEndpoint ();
+		uint16_t port = localEndpoint.port ();
+#if __cplusplus >= 202002L // C++20
+		while (m_UDPPorts.contains (port))
+#else		
+		while (m_UDPPorts.count (port) > 0)
+#endif	
+			port++;
+		m_UDPPorts.insert (port);
+		
+		return boost::asio::ip::udp::endpoint (localEndpoint.address (), port); // use proxy address
+	}		
+
+	void SOCKSServer::ReleaseLocalUDPPort (uint16_t port)
+	{
+		m_UDPPorts.erase (port);
+	}	
 }
 }

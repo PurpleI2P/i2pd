@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2025, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -28,7 +28,9 @@ namespace proxy
 			~SOCKSServer() {};
 
 			void SetUpstreamProxy(const std::string & addr, const uint16_t port);
-
+			boost::asio::ip::udp::endpoint GetNextLocalUDPEndpoint ();
+			void ReleaseLocalUDPPort (uint16_t port);
+		
 		protected:
 
 			// Implements TCPIPAcceptor
@@ -41,6 +43,7 @@ namespace proxy
 			std::string m_UpstreamProxyAddress;
 			uint16_t m_UpstreamProxyPort;
 			bool m_UseUpstreamProxy;
+			std::set<uint16_t> m_UDPPorts;
 	};
 
 	typedef SOCKSServer SOCKSProxy;
