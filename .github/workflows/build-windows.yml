@@ -108,6 +108,7 @@ jobs:
         path: build/i2pd.exe
 
   build-xp:
+    if: false
     name: XP
     runs-on: windows-latest
 
