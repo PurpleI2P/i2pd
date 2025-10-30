@@ -552,7 +552,10 @@ namespace client
 		{
 			if (it->first > seqn) break;
 			if (it->first == seqn)
-				m_RTT = i2p::util::GetMillisecondsSinceEpoch () - it->second;
+			{	
+				auto rtt = i2p::util::GetMillisecondsSinceEpoch () - it->second;
+				m_RTT = m_RTT ? (m_RTT + rtt)/2 : rtt;
+			}	
 			it++;
 		}	
 		m_UnackedDatagrams.erase (m_UnackedDatagrams.begin (), it);
