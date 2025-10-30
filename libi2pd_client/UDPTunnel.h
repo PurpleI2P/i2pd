@@ -35,8 +35,17 @@ namespace client
 	
 	/** max size for i2p udp */
 	const size_t I2P_UDP_MAX_MTU = 64*1024;
+
+	struct UDPConnection  
+	{
+		uint32_t m_NextSendPacketNum = 1, m_LastReceivedPacketNum = 0;
+		std::list<std::pair<uint32_t, uint64_t> > m_UnackedDatagrams; // list of sent but not acked repliable datagrams(seqn, timestamp) in ascending order
+		uint64_t m_RTT = 0; // milliseconds
+
+		virtual void Acked (uint32_t seqn);
+	};
 	
-	struct UDPSession // for server side
+	struct UDPSession: public UDPConnection // for server side
 	{
 		i2p::datagram::DatagramDestination * m_Destination;
 		std::weak_ptr<i2p::datagram::DatagramSession> m_LastDatagramSession;
@@ -50,15 +59,14 @@ namespace client
 		uint16_t RemotePort;
 
 		uint8_t m_Buffer[I2P_UDP_MAX_MTU];
-		uint32_t m_NextSendPacketNum, m_LastReceivedPacketNum;
-
+	
 		UDPSession(boost::asio::ip::udp::endpoint localEndpoint,
 			const std::shared_ptr<i2p::client::ClientDestination> & localDestination,
 			const boost::asio::ip::udp::endpoint& remote, const i2p::data::IdentHash& ident,
 			uint16_t ourPort, uint16_t theirPort);
 		void HandleReceived(const boost::system::error_code & ecode, std::size_t len);
 		void Receive();
-		std::shared_ptr<i2p::datagram::DatagramSession> GetDatagramSession ();	
+		std::shared_ptr<i2p::datagram::DatagramSession> GetDatagramSession ();
 	};
 
 
@@ -132,7 +140,7 @@ namespace client
 			bool isUpdated; // transient, used during reload only
 	};
 
-	class I2PUDPClientTunnel
+	class I2PUDPClientTunnel: public UDPConnection
 	{
 		public:
 
@@ -168,7 +176,7 @@ namespace client
 			void HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			void TryResolving ();
 			std::shared_ptr<i2p::datagram::DatagramSession> GetDatagramSession ();
-			void Acked (uint32_t seqn);
+			void Acked (uint32_t seqn) override;
 			void ScheduleAckTimer (uint32_t seqn);
 			
 		private:
@@ -190,9 +198,7 @@ namespace client
 			i2p::datagram::DatagramVersion m_DatagramVersion;
 			std::shared_ptr<UDPConvo> m_LastSession;
 			std::weak_ptr<i2p::datagram::DatagramSession> m_LastDatagramSession;
-			uint32_t m_NextSendPacketNum, m_LastReceivedPacketNum;
-			std::list<std::pair<uint32_t, uint64_t> > m_UnackedDatagrams; // list of sent but not acked repliable datagrams(seqn, timestamp) in ascending order
-			uint64_t m_RTT; // milliseconds
+			
 			boost::asio::deadline_timer m_AckTimer;
 			uint32_t m_AckTimerSeqn;
 			
