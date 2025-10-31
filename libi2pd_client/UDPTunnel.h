@@ -41,8 +41,20 @@ namespace client
 		uint32_t m_NextSendPacketNum = 1, m_LastReceivedPacketNum = 0;
 		std::list<std::pair<uint32_t, uint64_t> > m_UnackedDatagrams; // list of sent but not acked repliable datagrams(seqn, timestamp) in ascending order
 		uint64_t m_RTT = 0; // milliseconds
+	
+		boost::asio::deadline_timer m_AckTimer;
+		uint32_t m_AckTimerSeqn = 0;
 
-		virtual void Acked (uint32_t seqn);
+		UDPConnection (boost::asio::io_context& service): m_AckTimer (service) {};
+		virtual ~UDPConnection () { Stop (); };
+		virtual void Start () {};
+		virtual void Stop ();
+	
+		void Acked (uint32_t seqn);
+		void ScheduleAckTimer (uint32_t seqn);		
+	
+		virtual std::shared_ptr<i2p::datagram::DatagramSession> GetDatagramSession () = 0;
+		virtual i2p::datagram::DatagramDestination * GetDatagramDestination () const = 0;
 	};
 	
 	struct UDPSession: public UDPConnection // for server side
@@ -66,7 +78,8 @@ namespace client
 			uint16_t ourPort, uint16_t theirPort);
 		void HandleReceived(const boost::system::error_code & ecode, std::size_t len);
 		void Receive();
-		std::shared_ptr<i2p::datagram::DatagramSession> GetDatagramSession ();
+		std::shared_ptr<i2p::datagram::DatagramSession> GetDatagramSession () override;
+		i2p::datagram::DatagramDestination * GetDatagramDestination () const override { return m_Destination; } 
 	};
 
 
@@ -149,8 +162,8 @@ namespace client
 				uint16_t remotePort, bool gzip, i2p::datagram::DatagramVersion datagramVersion);
 			~I2PUDPClientTunnel ();
 
-			void Start ();
-			void Stop ();
+			void Start () override;
+			void Stop () override;
 			const char * GetName () const { return m_Name.c_str(); }
 			std::vector<std::shared_ptr<DatagramSessionInfo> > GetSessions ();
 
@@ -175,9 +188,9 @@ namespace client
 				const uint8_t * buf, size_t len, const i2p::util::Mapping * options);
 			void HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			void TryResolving ();
-			std::shared_ptr<i2p::datagram::DatagramSession> GetDatagramSession ();
-			void Acked (uint32_t seqn) override;
-			void ScheduleAckTimer (uint32_t seqn);
+			std::shared_ptr<i2p::datagram::DatagramSession> GetDatagramSession () override;
+			i2p::datagram::DatagramDestination * GetDatagramDestination () const override 
+			{ return m_LocalDest ? m_LocalDest->GetDatagramDestination () : nullptr; }
 			
 		private:
 
@@ -198,9 +211,6 @@ namespace client
 			i2p::datagram::DatagramVersion m_DatagramVersion;
 			std::shared_ptr<UDPConvo> m_LastSession;
 			std::weak_ptr<i2p::datagram::DatagramSession> m_LastDatagramSession;
-			
-			boost::asio::deadline_timer m_AckTimer;
-			uint32_t m_AckTimerSeqn;
 			
 		public:
 
