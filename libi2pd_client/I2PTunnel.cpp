@@ -925,15 +925,15 @@ namespace client
 
 	I2PServerTunnelHTTP::I2PServerTunnelHTTP (const std::string& name, const std::string& address,
 		uint16_t port, std::shared_ptr<ClientDestination> localDestination,
-		const std::string& host, uint16_t inport, bool gzip):
+		const std::string& host, uint16_t inport, bool gzip, bool i2pheaders):
 		I2PServerTunnel (name, address, port, localDestination, inport, gzip),
-		m_Host (host)
+		m_Host (host), m_I2PHeaders (i2pheaders)
 	{
 	}
 
 	std::shared_ptr<I2PTunnelConnection> I2PServerTunnelHTTP::CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream)
 	{
-		if (m_XI2P.empty () || stream->GetRemoteIdentity () != m_From.lock ())
+		if (m_I2PHeaders && (m_XI2P.empty () || stream->GetRemoteIdentity () != m_From.lock ()))
 		{
 			auto from = stream->GetRemoteIdentity ();
 			m_From = from;

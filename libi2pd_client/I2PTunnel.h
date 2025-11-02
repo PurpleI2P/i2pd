@@ -241,7 +241,7 @@ namespace client
 
 			I2PServerTunnelHTTP (const std::string& name, const std::string& address, uint16_t port,
 				std::shared_ptr<ClientDestination> localDestination, const std::string& host,
-				uint16_t inport = 0, bool gzip = true);
+				uint16_t inport = 0, bool gzip = true, bool i2pheaders = true);
 
 		private:
 
@@ -251,6 +251,7 @@ namespace client
 
 			std::string m_Host, m_XI2P;
 			std::weak_ptr<const i2p::data::IdentityEx> m_From;
+			bool m_I2PHeaders;
 	};
 
 	class I2PServerTunnelIRC: public I2PServerTunnel

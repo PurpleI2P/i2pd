@@ -765,8 +765,6 @@ namespace client
 					std::string accessList = section.second.get<std::string> (I2P_SERVER_TUNNEL_ACCESS_LIST, "");
 					if(accessList == "")
 						accessList = section.second.get<std::string> (I2P_SERVER_TUNNEL_WHITE_LIST, "");
-					std::string hostOverride = section.second.get<std::string> (I2P_SERVER_TUNNEL_HOST_OVERRIDE, "");
-					std::string webircpass = section.second.get<std::string> (I2P_SERVER_TUNNEL_WEBIRC_PASSWORD, "");
 					bool gzip = section.second.get (I2P_SERVER_TUNNEL_GZIP, false);
 					i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
 #if !OPENSSL_PQ
@@ -851,9 +849,16 @@ namespace client
 
 					std::shared_ptr<I2PServerTunnel> serverTunnel;
 					if (type == I2P_TUNNELS_SECTION_TYPE_HTTP)
-						serverTunnel = std::make_shared<I2PServerTunnelHTTP> (name, host, port, localDestination, hostOverride, inPort, gzip);
+					{	
+						std::string hostOverride = section.second.get<std::string> (I2P_SERVER_TUNNEL_HOST_OVERRIDE, "");
+						bool i2pheaders = section.second.get (I2P_SERVER_TUNNEL_I2P_HEADERS, true);
+						serverTunnel = std::make_shared<I2PServerTunnelHTTP> (name, host, port, localDestination, hostOverride, inPort, gzip, i2pheaders);
+					}	
 					else if (type == I2P_TUNNELS_SECTION_TYPE_IRC)
+					{
+						std::string webircpass = section.second.get<std::string> (I2P_SERVER_TUNNEL_WEBIRC_PASSWORD, "");
 						serverTunnel = std::make_shared<I2PServerTunnelIRC> (name, host, port, localDestination, webircpass, inPort, gzip);
+					}	
 					else // regular server tunnel by default
 						serverTunnel = std::make_shared<I2PServerTunnel> (name, host, port, localDestination, inPort, gzip);
 

@@ -51,6 +51,7 @@ namespace client
 	const char I2P_CLIENT_TUNNEL_KEEP_ALIVE_INTERVAL[] = "keepaliveinterval";
 	const char I2P_SERVER_TUNNEL_HOST[] = "host";
 	const char I2P_SERVER_TUNNEL_HOST_OVERRIDE[] = "hostoverride";
+	const char I2P_SERVER_TUNNEL_I2P_HEADERS[] = "i2pheaders";
 	const char I2P_SERVER_TUNNEL_PORT[] = "port";
 	const char I2P_SERVER_TUNNEL_KEYS[] = "keys";
 	const char I2P_SERVER_TUNNEL_SIGNATURE_TYPE[] = "signaturetype";
