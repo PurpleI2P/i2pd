@@ -79,7 +79,7 @@ jobs:
       packages: write
       contents: read
 
-    needs: build
+    # needs: build
 
     steps:
     - name: Checkout
