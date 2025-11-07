@@ -46,7 +46,7 @@ jobs:
       run: brew list
 
     - name: Build application
-      run: make HOMEBREW=1 USE_UPNP=ON USE_STATIC=ON PREFIX=$GITHUB_WORKSPACE/output -j3
+      run: make HOMEBREW=1 USE_UPNP=yes USE_STATIC=yes PREFIX=$GITHUB_WORKSPACE/output -j3
 
     - name: Print binary linking
       run: otool -L i2pd
