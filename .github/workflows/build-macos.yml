@@ -18,6 +18,9 @@ on:
     branches:
     - '*'
 
+concurrency:
+  group: ${{ github.workflow }}
+
 jobs:
   build:
     name: Build on ${{ matrix.target-name }}
