@@ -31,10 +31,10 @@ jobs:
       fail-fast: true
       matrix:
         include:
-          #- target: macos-latest
-          #  target-name: ARM64
-          - target: macos-latest-large
-            target-name: Intel x86_64
+          - target: macos-latest
+            target-name: ARM64
+          #- target: macos-latest-large
+          #  target-name: Intel x86_64
 
     steps:
     - name: Checkout
