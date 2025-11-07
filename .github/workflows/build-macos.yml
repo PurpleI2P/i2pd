@@ -18,9 +18,9 @@ on:
     branches:
     - '*'
 
-concurrency:
-  group: ci-macos
-  cancel-in-progress: false
+#concurrency:
+#  group: ci-macos
+#  cancel-in-progress: false
 
 jobs:
   build:
@@ -31,10 +31,10 @@ jobs:
       fail-fast: true
       matrix:
         include:
-          - target: macos-latest
+          - target: macos-15
             target-name: ARM64
-          #- target: macos-latest-large
-          #  target-name: Intel x86_64
+          - target: macos-15-intel
+            target-name: Intel x86_64
 
     steps:
     - name: Checkout
