@@ -20,6 +20,7 @@ on:
 
 jobs:
   build:
+    if: false
     name: Building container for ${{ matrix.platform }}
     runs-on: ubuntu-latest
     permissions:
@@ -105,7 +106,7 @@ jobs:
 
     - name: Create and push latest manifest image to Docker Hub
       if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-      uses: Noelware/docker-manifest-action@v1.0.0
+      uses: Noelware/docker-manifest-action@v1
       with:
         tags: purplei2p/i2pd:latest
         inputs: purplei2p/i2pd:latest-amd64,purplei2p/i2pd:latest-i386,purplei2p/i2pd:latest-arm64,purplei2p/i2pd:latest-armv7
@@ -113,7 +114,7 @@ jobs:
 
     - name: Create and push latest manifest image to GHCR
       if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-      uses: Noelware/docker-manifest-action@v1.0.0
+      uses: Noelware/docker-manifest-action@v1
       with:
         tags: ghcr.io/purplei2p/i2pd:latest
         inputs: ghcr.io/purplei2p/i2pd:latest-amd64,ghcr.io/purplei2p/i2pd:latest-i386,ghcr.io/purplei2p/i2pd:latest-arm64,ghcr.io/purplei2p/i2pd:latest-armv7
@@ -125,7 +126,7 @@ jobs:
 
     - name: Create and push release manifest to Docker Hub
       if: ${{ startsWith(github.ref, 'refs/tags/') }}
-      uses: Noelware/docker-manifest-action@v1.0.0
+      uses: Noelware/docker-manifest-action@v1
       with:
         tags: purplei2p/i2pd:latest,purplei2p/i2pd:latest-release,purplei2p/i2pd:release-${{ env.RELEASE_VERSION }}
         inputs: purplei2p/i2pd:latest-amd64,purplei2p/i2pd:latest-i386,purplei2p/i2pd:latest-arm64,purplei2p/i2pd:latest-armv7
@@ -133,7 +134,7 @@ jobs:
 
     - name: Create and push release manifest to GHCR
       if: ${{ startsWith(github.ref, 'refs/tags/') }}
-      uses: Noelware/docker-manifest-action@v1.0.0
+      uses: Noelware/docker-manifest-action@v1
       with:
         tags: ghcr.io/purplei2p/i2pd:latest,ghcr.io/purplei2p/i2pd:latest-release,ghcr.io/purplei2p/i2pd:release-${{ env.RELEASE_VERSION }}
         inputs: ghcr.io/purplei2p/i2pd:latest-amd64,ghcr.io/purplei2p/i2pd:latest-i386,ghcr.io/purplei2p/i2pd:latest-arm64,ghcr.io/purplei2p/i2pd:latest-armv7
