@@ -2,7 +2,7 @@
 # brew install boost openssl@3 cmake make  
 BREWROOT = /opt/homebrew
 BOOSTROOT = ${BREWROOT}/opt/boost
-SSLROOT = ${BREWROOT}/opt/openssl@3
+SSLROOT = ${BREWROOT}/opt/openssl@3.5
 UPNPROOT = ${BREWROOT}/opt/miniupnpc
 
 CXXFLAGS ?= ${CXX_DEBUG} -Wall -Wno-overloaded-virtual
@@ -16,7 +16,7 @@ ifeq ($(shell uname -m), x86_64)
 endif
 
 ifeq ($(USE_STATIC),yes)
-	LDLIBS = -lz ${SSLROOT}/lib/libcrypto.a ${SSLROOT}/lib/libssl.a ${BOOSTROOT}/lib/libboost_system.a ${BOOSTROOT}/lib/libboost_filesystem.a ${BOOSTROOT}/lib/libboost_program_options.a
+	LDLIBS = -lz ${SSLROOT}/lib/libcrypto.a ${SSLROOT}/lib/libssl.a ${BOOSTROOT}/lib/libboost_program_options.a
 ifeq ($(USE_UPNP),yes)
 	LDLIBS += ${UPNPROOT}/lib/libminiupnpc.a
 endif
