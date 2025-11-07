@@ -20,7 +20,6 @@ on:
 
 jobs:
   build:
-    if: false
     name: Building container for ${{ matrix.platform }}
     runs-on: ubuntu-latest
     permissions:
@@ -79,7 +78,7 @@ jobs:
       packages: write
       contents: read
 
-    # needs: build
+    needs: build
 
     steps:
     - name: Checkout
