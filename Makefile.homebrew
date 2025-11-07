@@ -1,6 +1,12 @@
 # root directory holding homebrew
-# brew install boost openssl@3 cmake make  
-BREWROOT = /opt/homebrew
+# brew install boost openssl@3.5 cmake make
+
+ifeq ($(shell uname -m), x86_64)
+	BREWROOT = /usr/local
+else
+	BREWROOT = /opt/homebrew
+endif
+
 BOOSTROOT = ${BREWROOT}/opt/boost
 SSLROOT = ${BREWROOT}/opt/openssl@3.5
 UPNPROOT = ${BREWROOT}/opt/miniupnpc
