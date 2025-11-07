@@ -20,13 +20,17 @@ on:
 
 jobs:
   build:
-    name: With USE_UPNP=${{ matrix.with_upnp }}
-    runs-on: macOS-latest
+    name: Build on ${{ matrix.target-name }}
+    runs-on: ${{ matrix.target }}
 
     strategy:
       fail-fast: true
       matrix:
-        with_upnp: ['yes', 'no']
+        include:
+          - target: macos-latest
+            target-name: ARM64
+          - target: macos-latest-large
+            target-name: Intel x86_64
 
     steps:
     - name: Checkout
@@ -36,10 +40,10 @@ jobs:
       run: |
         find /usr/local/bin -lname '*/Library/Frameworks/Python.framework/*' -delete
         brew update
-        brew install boost miniupnpc openssl@1.1
+        brew install boost miniupnpc openssl@3.5
 
     - name: List installed formulae
       run: brew list
 
     - name: Build application
-      run: make HOMEBREW=1 USE_UPNP=${{ matrix.with_upnp }} PREFIX=$GITHUB_WORKSPACE/output -j3
+      run: make HOMEBREW=1 USE_UPNP=ON PREFIX=$GITHUB_WORKSPACE/output -j3
