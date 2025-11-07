@@ -5,7 +5,7 @@ on:
     branches:
     - '*'
     paths:
-    - .github/workflows/build-osx.yml
+    - .github/workflows/build-macos.yml
     - daemon/**
     - i18n/**
     - libi2pd/**
@@ -19,7 +19,8 @@ on:
     - '*'
 
 concurrency:
-  group: ${{ github.workflow }}
+  group: ci-macos
+  cancel-in-progress: false
 
 jobs:
   build:
