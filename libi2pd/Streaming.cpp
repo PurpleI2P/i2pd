@@ -919,6 +919,14 @@ namespace stream
 		}
 		else if (numMsgs > m_NumPacketsToSend)
 			numMsgs = m_NumPacketsToSend;
+
+		if (!m_RemoteLeaseSet) m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());
+		if (m_RemoteLeaseSet)
+		{
+			if (!m_RoutingSession)
+				m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true, false);
+		}
+
 		if (m_RoutingSession)
 		{
 			m_IsJavaClient = m_RoutingSession->IsWithJava ();
@@ -1759,6 +1767,7 @@ namespace stream
 						", another remote lease has been selected for stream with rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
 				}
 			}
+			if (m_IsTimeOutResend) ScheduleResend ();
 			SendPackets (packets);
 			m_LastSendTime = ts;
 			m_IsSendTime = false;
@@ -1803,6 +1812,17 @@ namespace stream
 						m_CurrentOutboundTunnel = nullptr;
 						m_CurrentRemoteLease = nullptr;
 					}	
+				}
+				if (m_LastReceivedSequenceNumber == 0 && m_SequenceNumber == 1)
+				{
+					if (m_NumResendAttempts > 1)
+					{
+						m_Status = eStreamStatusReset;
+						Close ();
+						return;
+					}
+					m_NumResendAttempts++;
+					ScheduleAck (INITIAL_RTO);
 				}
 				SendQuickAck ();
 			}
