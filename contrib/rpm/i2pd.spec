@@ -8,6 +8,9 @@ License:       BSD
 URL:           https://github.com/PurpleI2P/i2pd
 Source0:       https://github.com/PurpleI2P/i2pd/archive/%{version}/%name-%version.tar.gz
 
+Provides: group(i2pd) = %{version}-%{release}
+Provides:  user(i2pd) = %{version}-%{release}
+
 BuildRequires: cmake
 
 BuildRequires: chrpath
