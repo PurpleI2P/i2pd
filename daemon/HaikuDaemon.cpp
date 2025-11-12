@@ -189,9 +189,15 @@ namespace util
 					alert->Go ();
 				});
 		}	
-		auto ret = Daemon_Singleton::start ();
-		if (ret && app)
-			app->CreateMainWindow ();
+		bool ret = false;
+		if (app)
+		{	
+			ret = Daemon_Singleton::start ();
+			if (ret)
+				app->CreateMainWindow ();
+		}
+		else
+			ret = DaemonUnix::start ();
 		return ret;
 	}	
 	
