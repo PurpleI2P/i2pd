@@ -793,7 +793,8 @@ namespace transport
 
 	void Transports::PeerTest (bool ipv4, bool ipv6)
 	{
-		if (RoutesRestricted() || !m_SSU2Server || m_SSU2Server->UsesProxy ()) return;
+		if (RoutesRestricted() || i2p::context.IsLimitedConnectivity () ||
+		    !m_SSU2Server || m_SSU2Server->UsesProxy ()) return;
 		if (ipv4 && i2p::context.SupportsV4 ())
 		{
 			LogPrint (eLogInfo, "Transports: Started peer test IPv4");
