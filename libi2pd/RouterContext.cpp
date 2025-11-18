@@ -354,10 +354,11 @@ namespace i2p
 				case eRouterStatusFirewalled:
 					SetUnreachable (true, false); // ipv4
 				break;
-				case eRouterStatusMesh:
+				case eRouterStatusMesh:	
 					m_RouterInfo.UpdateCaps (m_RouterInfo.GetCaps () | i2p::data::RouterInfo::eReachable);
 				break;	
 				case eRouterStatusProxy:
+				case eRouterStatusStan:	
 					m_RouterInfo.UpdateCaps ((m_RouterInfo.GetCaps () | i2p::data::RouterInfo::eUnreachable) & ~i2p::data::RouterInfo::eReachable);
 				break;	
 				default:

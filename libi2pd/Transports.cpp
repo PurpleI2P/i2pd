@@ -1319,6 +1319,7 @@ namespace transport
 		bool ipv4;     i2p::config::GetOption("ipv4", ipv4);
 		bool ygg;      i2p::config::GetOption("meshnets.yggdrasil", ygg);
 		uint16_t port; i2p::config::GetOption("port", port);
+		bool stan;	   i2p::config::GetOption("stan", stan);
 
 		boost::asio::ip::address_v6 yggaddr;
 		if (ygg)
@@ -1363,7 +1364,8 @@ namespace transport
 		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		if (ntcp2)
 		{
-			bool published; i2p::config::GetOption("ntcp2.published", published);
+			bool published = false; 
+			if (!stan) i2p::config::GetOption("ntcp2.published", published);
 			if (published)
 			{
 				std::string ntcp2proxy; i2p::config::GetOption("ntcp2.proxy", ntcp2proxy);
@@ -1399,12 +1401,15 @@ namespace transport
 		{
 			uint16_t ssu2port; i2p::config::GetOption("ssu2.port", ssu2port);
 			if (!ssu2port && port) ssu2port = port;
-			bool published; i2p::config::GetOption("ssu2.published", published);
+			bool published = false; 
+			if (!stan) i2p::config::GetOption("ssu2.published", published);
 			if (published)
 				i2p::context.PublishSSU2Address (ssu2port, true, ipv4, ipv6); // publish
 			else
 				i2p::context.PublishSSU2Address (ssu2port, false, ipv4, ipv6); // unpublish
 		}
+		if (stan)
+			i2p::context.SetStatus (eRouterStatusStan);
 	}
 }
 }

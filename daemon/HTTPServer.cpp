@@ -255,6 +255,7 @@ namespace http {
 			case eRouterStatusUnknown: s << tr("Unknown"); break;
 			case eRouterStatusProxy: s << tr("Proxy"); break;
 			case eRouterStatusMesh: s << tr("Mesh"); break;
+			case eRouterStatusStan: s << tr("Stan"); break;
 			default: s << tr("Unknown");
 		}
 		if (testing)

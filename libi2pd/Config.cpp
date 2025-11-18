@@ -71,6 +71,7 @@ namespace config {
 			("insomnia", bool_switch()->default_value(false),                 "Prevent system from sleeping (default: disabled)")
 			("close", value<std::string>()->default_value("ask"),             "Action on close: minimize, exit, ask")
 #endif
+			("stan", bool_switch()->default_value(false), 					  "Router has limited connectivity (default: false)")
 		;
 
 		options_description limits("Limits options");

@@ -47,7 +47,8 @@ namespace garlic
 		eRouterStatusFirewalled = 1,
 		eRouterStatusUnknown = 2,
 		eRouterStatusProxy = 3,
-		eRouterStatusMesh = 4
+		eRouterStatusMesh = 4,
+		eRouterStatusStan = 5
 	};
 
 	const char* const ROUTER_STATUS_NAMES[] =
@@ -56,7 +57,8 @@ namespace garlic
 		"Firewalled", // 1
 		"Unknown", // 2
 		"Proxy", // 3
-		"Mesh" // 4
+		"Mesh", // 4
+		"Stan" // 5
 	};
 
 	enum RouterError
@@ -179,7 +181,7 @@ namespace garlic
 			void SetMTU (int mtu, bool v4);
 			void SetHidden(bool hide) { m_IsHiddenMode = hide; };
 			bool IsHidden() const { return m_IsHiddenMode; };
-			bool IsLimitedConnectivity () const { return m_Status == eRouterStatusProxy; }; // TODO: implement other cases
+			bool IsLimitedConnectivity () const { return m_Status == eRouterStatusProxy || m_Status == eRouterStatusStan; };
 			i2p::crypto::NoiseSymmetricState& GetCurrentNoiseState () { return m_CurrentNoiseState; };
 
 			void UpdateNTCP2V6Address (const boost::asio::ip::address& host); // called from Daemon. TODO: remove

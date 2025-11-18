@@ -482,6 +482,7 @@ namespace util
 			case eRouterStatusUnknown: s << "Unk"; break;
 			case eRouterStatusProxy: s << "Proxy"; break;
 			case eRouterStatusMesh: s << "Mesh"; break;
+			case eRouterStatusStan: s << "Stan"; break;
 			default: s << "Unk";
 		};
 		if (testing)
