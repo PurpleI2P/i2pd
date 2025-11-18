@@ -273,14 +273,14 @@ namespace client
 				{
 					response << "{\"id\":" << id << ",\"result\":{";
 					(this->*(it->second))(pt.get_child ("params"), response);
-					response << "},\"jsonrpc\":\"2.0\"}";
+					response << "},\"jsonrpc\":\"2.0\"}\n";
 				}
 				else
 				{
 					LogPrint (eLogWarning, "I2PControl: Unknown method ", method);
 					response << "{\"id\":null,\"error\":";
 					response << "{\"code\":-32601,\"message\":\"Method not found\"},";
-					response << "\"jsonrpc\":\"2.0\"}";
+					response << "\"jsonrpc\":\"2.0\"}\n";
 				}
 				SendResponse (socket, buf, response, isHtml);
 			}
@@ -290,7 +290,7 @@ namespace client
 				std::ostringstream response;
 				response << "{\"id\":null,\"error\":";
 				response << "{\"code\":-32700,\"message\":\"" << ex.what () << "\"},";
-				response << "\"jsonrpc\":\"2.0\"}";
+				response << "\"jsonrpc\":\"2.0\"}\n";
 				SendResponse (socket, buf, response, isHtml);
 			}
 			catch (...)
