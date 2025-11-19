@@ -40,6 +40,8 @@ namespace client
 		m_RouterInfoHandlers["i2p.router.net.status.v6"]             = &I2PControlHandlers::NetStatusV6Handler;
 		m_RouterInfoHandlers["i2p.router.net.error"]                 = &I2PControlHandlers::NetErrorHandler;
 		m_RouterInfoHandlers["i2p.router.net.error.v6"]              = &I2PControlHandlers::NetErrorV6Handler;
+		m_RouterInfoHandlers["i2p.router.net.testing"]               = &I2PControlHandlers::NetTestingHandler;
+		m_RouterInfoHandlers["i2p.router.net.testing.v6"]            = &I2PControlHandlers::NetTestingV6Handler;
 		m_RouterInfoHandlers["i2p.router.net.tunnels.participating"] = &I2PControlHandlers::TunnelsParticipatingHandler;
 		m_RouterInfoHandlers["i2p.router.net.tunnels.successrate"]   = &I2PControlHandlers::TunnelsSuccessRateHandler;
 		m_RouterInfoHandlers["i2p.router.net.total.received.bytes"]  = &I2PControlHandlers::NetTotalReceivedBytes;
@@ -153,6 +155,16 @@ namespace client
 	void I2PControlHandlers::NetErrorV6Handler (std::ostringstream& results)
 	{
 		InsertParam (results, "i2p.router.net.error.v6", (int)i2p::context.GetErrorV6 ());
+	}
+
+	void I2PControlHandlers::NetTestingHandler (std::ostringstream& results)
+	{
+		InsertParam (results, "i2p.router.net.testing", (int)i2p::context.GetTesting ());
+	}
+
+	void I2PControlHandlers::NetTestingV6Handler (std::ostringstream& results)
+	{
+		InsertParam (results, "i2p.router.net.testing.v6", (int)i2p::context.GetTestingV6 ());
 	}
 
 	void I2PControlHandlers::TunnelsParticipatingHandler (std::ostringstream& results)
