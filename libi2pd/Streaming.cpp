@@ -935,6 +935,13 @@ namespace stream
 			int numPacketsToSend = m_MaxWindowSize - numSentPackets;
 			if (numPacketsToSend <= 0) // shared window is full
 			{
+				if (m_LastReceivedSequenceNumber <= 0 && m_SequenceNumber == 0)
+				{
+					LogPrint (eLogWarning, "Streaming: limit of unacknowledged packets has been reached, terminate, rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
+					m_Status = eStreamStatusReset;
+					Close ();
+					return;
+				}
 				m_LastSendTime = ts;
 				return;
 			}
@@ -1140,6 +1147,16 @@ namespace stream
 		if (lastReceivedSeqn < 0)
 		{
 			LogPrint (eLogError, "Streaming: No packets have been received yet");
+			if (m_SequenceNumber == 0)
+			{
+				if (m_NumResendAttempts > 1)
+				{
+					m_Status = eStreamStatusReset;
+					Close ();
+					return;
+				}
+				m_NumResendAttempts++;
+			}
 			return;
 		}
 
