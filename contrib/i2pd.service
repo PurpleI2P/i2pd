@@ -33,6 +33,16 @@ SendSIGKILL=yes
 LimitNOFILE=8192
 # To enable write of coredump uncomment this
 #LimitCORE=infinity
+#hardening
+ProtectControlGroups=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+NoNewPrivileges=true
+RestrictNamespaces=true
+ProtectSystem=full
+ReadWritePaths=-/var/lib/i2pd
+ReadWritePaths=-/run/i2pd
+ReadWritePaths=-/etc/i2pd
 
 [Install]
 WantedBy=multi-user.target
