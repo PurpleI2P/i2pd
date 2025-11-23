@@ -15,7 +15,7 @@ DESC=i2pd                 # Introduce a short description here
 NAME=i2pd                 # Introduce the short server's name here
 DAEMON=/usr/bin/$NAME    # Introduce the server's location here
 DAEMON_OPTS=""            # Arguments to run the daemon with
-PIDFILE=/var/run/$NAME/$NAME.pid
+PIDFILE=/run/$NAME/$NAME.pid
 I2PCONF=/etc/$NAME/i2pd.conf
 TUNCONF=/etc/$NAME/tunnels.conf
 TUNDIR=/etc/$NAME/tunnels.conf.d
@@ -42,7 +42,7 @@ do_start()
     return 2
   fi
 
-  test -e /var/run/i2pd || install -m 755 -o i2pd -g i2pd -d /var/run/i2pd
+  test -e /run/i2pd || install -m 755 -o i2pd -g i2pd -d /run/i2pd
   touch "$PIDFILE"
   chown -f $USER:adm "$PIDFILE"
 
