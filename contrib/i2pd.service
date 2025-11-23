@@ -1,5 +1,5 @@
 [Unit]
-Description=I2P Router written in C++
+Description=C++ daemon for accessing the I2P network
 Documentation=man:i2pd(1) https://i2pd.readthedocs.io/en/latest/
 Wants=network.target
 After=network.target network-online.target
