@@ -186,6 +186,7 @@ namespace client
 					if (ecode != boost::asio::error::operation_aborted)
 					{
 						LogPrint (eLogInfo, "UDP Connection: Packet ", m_AckTimerSeqn, " was not acked");
+						DeleteExpiredUnackedDatagrams ();
 						m_AckTimerSeqn = 0;
 						m_RTT = 0;
 						// send empty packet with reset path flag
@@ -197,6 +198,19 @@ namespace client
 					}
 				});
 		}	
+	}	
+
+	void UDPConnection::DeleteExpiredUnackedDatagrams ()
+	{
+		if (m_UnackedDatagrams.empty ()) return;
+		auto expired  = i2p::util::GetMillisecondsSinceEpoch () - (m_RTT ? 2*m_RTT : I2P_UDP_MAX_UNACKED_DATAGRAM_TIME);
+		auto it = m_UnackedDatagrams.begin ();
+		while (it != m_UnackedDatagrams.end ())
+		{
+			if (it->second < expired) break;
+			it++;
+		}	
+		m_UnackedDatagrams.erase (m_UnackedDatagrams.begin (), it);
 	}	
 	
 	UDPSession::UDPSession(boost::asio::ip::udp::endpoint localEndpoint,
@@ -442,6 +456,12 @@ namespace client
 			RecvFromLocal ();
 			return; // drop, remote not resolved
 		}
+		if (!m_UnackedDatagrams.empty () && m_NextSendPacketNum > m_UnackedDatagrams.front ().first + I2P_UDP_MAX_NUM_UNACKED_DATAGRAMS)
+		{
+			// window is full, drop packet
+			RecvFromLocal ();
+			return;
+		}
 		auto remotePort = m_RecvEndpoint.port ();
 		if (!m_LastPort || m_LastPort != remotePort)
 		{
@@ -464,15 +484,8 @@ namespace client
 		if (ts > m_LastSession->second + repliableDatagramInterval)
 		{	
 			if (m_DatagramVersion == i2p::datagram::eDatagramV3)
-			{	
+			{		
 				uint8_t flags = 0;
-				if (!m_UnackedDatagrams.empty () && m_NextSendPacketNum > m_UnackedDatagrams.front ().first + I2P_UDP_MAX_NUM_UNACKED_DATAGRAMS)
-				{
-					m_UnackedDatagrams.clear ();
-					session->DropSharedRoutingPath ();
-					m_RTT = 0;
-					flags |= UDP_SESSION_FLAG_RESET_PATH;
-				}	
 				if (!m_RTT || !m_AckTimerSeqn || (!m_UnackedDatagrams.empty () &&
 					ts > m_UnackedDatagrams.back ().second + repliableDatagramInterval)) // last ack request
 				{	

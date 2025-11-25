@@ -51,7 +51,8 @@ namespace client
 		virtual void Stop ();
 	
 		void Acked (uint32_t seqn);
-		void ScheduleAckTimer (uint32_t seqn);		
+		void ScheduleAckTimer (uint32_t seqn);
+		void DeleteExpiredUnackedDatagrams ();
 	
 		virtual std::shared_ptr<i2p::datagram::DatagramSession> GetDatagramSession () = 0;
 		virtual i2p::datagram::DatagramDestination * GetDatagramDestination () const = 0;
