@@ -247,8 +247,12 @@ namespace client
 					{
 						std::getline(ss, header);
 						auto colon = header.find (':');
-						if (colon != std::string::npos && header.substr (0, colon) == "Content-Length")
-							contentLength = std::stoi (header.substr (colon + 1));
+						if (colon != std::string::npos)
+						{
+							auto name = header.substr (0, colon);
+							if (name == "Content-Length" || name == "content-length")
+								contentLength = std::stoi (header.substr (colon + 1));
+						}
 					}
 					if (ss.eof ())
 					{
