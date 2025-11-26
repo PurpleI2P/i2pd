@@ -15,6 +15,7 @@
 // Use global placeholders from boost introduced when local_time.hpp is loaded
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "FS.h"
 #include "Log.h"
@@ -247,7 +248,7 @@ namespace client
 					{
 						std::getline(ss, header);
 						auto colon = header.find (':');
-						if (colon != std::string::npos && header.substr (0, colon) == "Content-Length")
+						if (colon != std::string::npos && boost::iequals (header.substr (0, colon), "Content-Length"))
 							contentLength = std::stoi (header.substr (colon + 1));
 					}
 					if (ss.eof ())
