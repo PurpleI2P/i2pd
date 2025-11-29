@@ -2,13 +2,16 @@
 
 pidfile="/var/run/i2pd/i2pd.pid"
 logfile="/var/log/i2pd/i2pd.log"
-mainconf="/etc/i2pd/i2pd.conf"
-tunconf="/etc/i2pd/tunnels.conf"
-tundir="/etc/i2pd/tunnels.conf.d"
 
 name="i2pd"
 command="/usr/bin/i2pd"
-command_args="--service --daemon --log=file --logfile=$logfile --conf=$mainconf --tunconf=$tunconf --tunnelsdir=$tundir --pidfile=$pidfile"
+command_args_background="--daemon --pidfile=${pidfile}"
+command_args="--service --log=file \
+	--logfile=$logfile \
+	--conf=/etc/i2pd/i2pd.conf \
+	--tunconf=/etc/i2pd/tunnels.conf \
+	--tunnelsdir=/etc/i2pd/tunnels.conf.d \
+"
 description="i2p router written in C++"
 required_dirs="/var/lib/i2pd"
 required_files="$mainconf"
