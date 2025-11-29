@@ -5,7 +5,7 @@
 # Required-Stop:     $remote_fs
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: i2p router written in C++
+# Short-Description: C++ daemon for accessing the I2P network
 ### END INIT INFO
 
 # Author: hagen <hagen@i2pmail.org>
