@@ -1,6 +1,6 @@
 #!/sbin/openrc-run
 
-pidfile="/var/run/i2pd/i2pd.pid"
+pidfile="/run/i2pd/i2pd.pid"
 logfile="/var/log/i2pd/i2pd.log"
 mainconf="/etc/i2pd/i2pd.conf"
 tunconf="/etc/i2pd/tunnels.conf"
