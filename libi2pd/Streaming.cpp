@@ -622,8 +622,22 @@ namespace stream
 			LogPrint (eLogError, "Streaming: Missing signature, sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID);
 			return false;
 		}	
-		if (immediateAckRequested)
-			SendQuickAck ();
+		if (immediateAckRequested)	
+		{	
+			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+			if (m_LastACKSendTime != ts) // preventing multiple acks when reading m_SavedPackets
+			{
+				if (m_IsAckSendScheduled)
+				{
+					SendQuickAck ();
+					auto ackTimeout = m_RTT/10;
+					if (ackTimeout > m_AckDelay) ackTimeout = m_AckDelay;
+					ScheduleAck (ackTimeout);
+				}
+				else
+					SendQuickAck ();
+			}
+		}
 		return true;
 	}
 
@@ -1039,7 +1053,7 @@ namespace stream
 			else
 			{
 				// follow on packet
-				if (m_IsJavaClient && (!m_LastACKRequestTime || ts - m_LastACKRequestTime > m_MinRTT / 10))
+				if (!m_LastACKRequestTime || ts - m_LastACKRequestTime > m_MinRTT / 10)
 				{
 					m_LastACKRequestTime = ts;
 					htobe16buf (packet + size, PACKET_FLAG_DELAY_REQUESTED);
