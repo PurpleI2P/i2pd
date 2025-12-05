@@ -602,14 +602,26 @@ namespace datagram
 		if (!m_RoutingSession || m_RoutingSession->IsTerminated () || !m_RoutingSession->IsReadyToSend ())
 		{
 			bool found = false;
-			for (auto& it: m_PendingRoutingSessions)
-				if (it->GetOwner () && m_RoutingSession->IsReadyToSend ()) // found established session
+			if (!m_PendingRoutingSessions.empty ())
+			{	
+				std::vector<std::weak_ptr<i2p::garlic::GarlicRoutingSession> > tmp;
+				for (auto& it: m_PendingRoutingSessions)
 				{
-					m_RoutingSession = it;
-					m_PendingRoutingSessions.clear ();
-					found = true;
-					break;
+					auto s = it.lock ();
+					if (s)
+					{	
+						if (s->GetOwner () && s->IsReadyToSend ()) // found established session
+						{
+							m_RoutingSession = s;
+							tmp.clear ();
+							found = true;
+							break;
+						}
+						tmp.push_back (s);
+					}	
 				}
+				m_PendingRoutingSessions.swap (tmp);
+			}	
 			if (!found)
 			{
 				m_RoutingSession = m_LocalDestination->GetRoutingSession(m_RemoteLeaseSet, true);
