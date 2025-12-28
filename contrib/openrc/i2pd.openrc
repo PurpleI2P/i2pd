@@ -24,11 +24,11 @@ depend() {
 start_pre() {
   if [ -r /etc/default/i2pd ]; then
     . /etc/default/i2pd
-  fi
 
-  if [ "x$I2PD_ENABLED" != "xyes" ]; then
-    ewarn "i2pd disabled in /etc/default/i2pd"
-    exit 1
+    if [ "x$I2PD_ENABLED" != "xyes" ]; then
+      ewarn "i2pd disabled in /etc/default/i2pd"
+      exit 1
+    fi
   fi
 
   checkpath -f -o $command_user $logfile
