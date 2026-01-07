@@ -140,8 +140,9 @@ namespace log {
 	}
 
 	const char * Log::TimeAsString(std::time_t t) {
+		struct tm caltime;
 		if (t != m_LastTimestamp) {
-			strftime(m_LastDateTime, sizeof(m_LastDateTime), m_TimeFormat.c_str(), localtime(&t));
+			strftime(m_LastDateTime, sizeof(m_LastDateTime), m_TimeFormat.c_str(), localtime_r(&t, &caltime));
 			m_LastTimestamp = t;
 		}
 		return m_LastDateTime;

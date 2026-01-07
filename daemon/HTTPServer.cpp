@@ -93,11 +93,12 @@ namespace http {
 
 	static std::string ConvertTime (uint64_t time)
 	{
+		struct tm caltime;
 		lldiv_t divTime = lldiv(time, 1000);
 		time_t t = divTime.quot;
-		struct tm *tm = localtime(&t);
+		localtime_r(&t, &caltime);
 		char date[128];
-		snprintf(date, sizeof(date), "%02d/%02d/%d %02d:%02d:%02d.%03lld", tm->tm_mday, tm->tm_mon + 1, tm->tm_year + 1900, tm->tm_hour, tm->tm_min, tm->tm_sec, divTime.rem);
+		snprintf(date, sizeof(date), "%02d/%02d/%d %02d:%02d:%02d.%03lld", caltime.tm_mday, caltime.tm_mon + 1, caltime.tm_year + 1900, caltime.tm_hour, caltime.tm_min, caltime.tm_sec, divTime.rem);
 		return date;
 	}
 
