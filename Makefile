@@ -75,7 +75,11 @@ INCFLAGS += -I$(LIB_SRC_DIR) -I$(LIB_CLIENT_SRC_DIR) -I$(LANG_SRC_DIR)
 NEEDED_CXXFLAGS += -MMD -MP
 
 ifeq ($(USE_GIT_VERSION),yes)
+ifdef VERSION
+	GIT_VERSION := $(VERSION)
+else
 	GIT_VERSION := $(shell git describe --tags)
+endif
 	DEFINES += -DGITVER=$(GIT_VERSION)
 endif
 
