@@ -7,6 +7,7 @@
  */
 
 #include "SybilDetector.h"
+#include "Config.h"
 #include "Log.h"
 #include "RouterContext.h"
 #include <algorithm>
@@ -70,10 +71,30 @@ float SybilDetector::NetworkStats::GetBandwidthClassRatio(const std::string& bw_
 //
 
 SybilDetector::SybilDetector(const SybilDetectorConfig& cfg) : m_Config(cfg) {
+    // Override defaults with config file values if available
+    bool configAvailable = false;
+    try {
+        i2p::config::GetOption("sybil.enabled", m_Config.enabled);
+        configAvailable = true;
+    } catch (...) {}
+    
+    if (configAvailable) {
+        i2p::config::GetOption("sybil.flood", m_Config.flood_protection_enabled);
+        i2p::config::GetOption("sybil.reputation", m_Config.reputation_system_enabled);
+        i2p::config::GetOption("sybil.maxroutersperhour", m_Config.max_new_routers_per_hour);
+        i2p::config::GetOption("sybil.maxroutersperasn", m_Config.max_routers_per_asn);
+        i2p::config::GetOption("sybil.versionthreshold", m_Config.version_cluster_threshold);
+        i2p::config::GetOption("sybil.bandwidththreshold", m_Config.bandwidth_cluster_threshold);
+        i2p::config::GetOption("sybil.mintrust", m_Config.min_trust_score);
+    }
+    
     if (m_Config.enabled) {
         LogPrint(eLogInfo, "SybilDetector: Enabled (flood=", m_Config.flood_protection_enabled,
                  ", reputation=", m_Config.reputation_system_enabled,
-                 ", rate_limit=", m_Config.max_new_routers_per_hour, "/hour)");
+                 ", rate_limit=", m_Config.max_new_routers_per_hour, "/hour",
+                 ", min_trust=", m_Config.min_trust_score, ")");
+    } else {
+        LogPrint(eLogInfo, "SybilDetector: Disabled by configuration");
     }
 }
 

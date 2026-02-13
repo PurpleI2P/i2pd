@@ -367,6 +367,18 @@ namespace config {
 			("cpuext.force", bool_switch()->default_value(false),                    "Deprecated option")
 		;
 
+		options_description sybil("Sybil attack protection options");
+		sybil.add_options()
+			("sybil.enabled", value<bool>()->default_value(true),                    "Enable Sybil attack detection (default: enabled)")
+			("sybil.flood", value<bool>()->default_value(true),                      "Enable flood protection (default: enabled)")
+			("sybil.reputation", value<bool>()->default_value(true),                 "Enable reputation system (default: enabled)")
+			("sybil.maxroutersperhour", value<uint32_t>()->default_value(1000),      "Max new routers per hour (default: 1000)")
+			("sybil.maxroutersperasn", value<uint32_t>()->default_value(500),        "Max routers per ASN (default: 500)")
+			("sybil.versionthreshold", value<float>()->default_value(0.60f),         "Version clustering threshold (default: 0.60)")
+			("sybil.bandwidththreshold", value<float>()->default_value(0.70f),       "Bandwidth clustering threshold (default: 0.70)")
+			("sybil.mintrust", value<float>()->default_value(0.3f),                  "Minimum trust score to accept router (default: 0.3)")
+		;
+
 		options_description meshnets("Meshnet transports options");
 		meshnets.add_options()
 			("meshnets.yggdrasil", bool_switch()->default_value(false),              "Support transports through the Yggdrasil (default: false)")
@@ -404,6 +416,7 @@ namespace config {
 			.add(persist)
 			.add(cpuext)
 			.add(meshnets)
+			.add(sybil)
 #ifdef __linux__
 			.add(unix_specific)
 #endif
