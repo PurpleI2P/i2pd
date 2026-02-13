@@ -33,6 +33,7 @@
 #include "version.h"
 #include "util.h"
 #include "KadDHT.h"
+#include "SybilDetector.h"
 
 namespace i2p
 {
@@ -193,6 +194,7 @@ namespace data
 			i2p::fs::HashedStorage m_Storage;
 
 			std::shared_ptr<NetDbRequests> m_Requests;
+			SybilDetector m_SybilDetector;  // Sybil attack detector
 
 			bool m_PersistProfiles;
 			std::future<void> m_SavingProfiles, m_DeletingProfiles, m_ApplyingProfileUpdates, m_PersistingRouters;

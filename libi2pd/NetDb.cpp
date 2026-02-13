@@ -311,6 +311,21 @@ namespace data
 					(mts < r->GetTimestamp () + NETDB_MAX_EXPIRATION_TIMEOUT*1000LL || // too old
 					 context.GetUptime () < NETDB_CHECK_FOR_EXPIRATION_UPTIME/10); // enough uptime
 			}
+			// Sybil attack detection
+			if (isValid)
+			{
+				auto verdict = m_SybilDetector.EvaluateRouter(r);
+				if (verdict == SybilDetector::Verdict::REJECT)
+				{
+					LogPrint(eLogWarning, "NetDb: Router rejected by Sybil detector: ", ident.ToBase64());
+					isValid = false;
+				}
+				else if (verdict == SybilDetector::Verdict::PROBATION)
+				{
+					LogPrint(eLogInfo, "NetDb: Router on probation (low trust): ", ident.ToBase64());
+					// Router is accepted but flagged for monitoring
+				}
+			}
 			if (isValid)
 			{
 				bool inserted = false;
