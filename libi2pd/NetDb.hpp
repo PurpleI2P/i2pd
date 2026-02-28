@@ -90,16 +90,16 @@ namespace data
 
 			void RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete = nullptr, bool direct = true);
 
-			std::shared_ptr<const RouterInfo> GetRandomRouter () const;
-			std::shared_ptr<const RouterInfo> GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse, bool endpoint, bool clientTunnel) const;
-			std::shared_ptr<const RouterInfo> GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse, bool endpoint) const;
-			std::shared_ptr<const RouterInfo> GetRandomSSU2PeerTestRouter (bool v4, const std::unordered_set<IdentHash>& excluded) const;
-			std::shared_ptr<const RouterInfo> GetRandomSSU2Introducer (bool v4, const std::unordered_set<IdentHash>& excluded) const;
-			std::shared_ptr<const RouterInfo> GetClosestFloodfill (const IdentHash& destination, const std::unordered_set<IdentHash>& excluded, bool nextDay = false) const;
+			std::shared_ptr<RouterInfo> GetRandomRouter (util::RoutersInUse& inUse) const;
+			std::shared_ptr<RouterInfo> GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse, bool endpoint, bool clientTunnel, util::RoutersInUse& inUse) const;
+			std::shared_ptr<RouterInfo> GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse, bool endpoint, util::RoutersInUse& inUse) const;
+			std::shared_ptr<RouterInfo> GetRandomSSU2PeerTestRouter (bool v4, const std::unordered_set<IdentHash>& excluded) const;
+			std::shared_ptr<RouterInfo> GetRandomSSU2Introducer (bool v4, const std::unordered_set<IdentHash>& excluded) const;
+			std::shared_ptr<RouterInfo> GetClosestFloodfill (const IdentHash& destination, const std::unordered_set<IdentHash>& excluded, bool nextDay = false) const;
 			std::vector<IdentHash> GetClosestFloodfills (const IdentHash& destination, size_t num,
 				std::unordered_set<IdentHash>& excluded, bool closeThanUsOnly = false) const;
 			std::vector<IdentHash> GetExploratoryNonFloodfill (const IdentHash& destination, size_t num, const std::unordered_set<IdentHash>& excluded);
-			std::shared_ptr<const RouterInfo> GetRandomRouterInFamily (FamilyID fam) const;
+			std::shared_ptr<RouterInfo> GetRandomRouterInFamily (FamilyID fam) const;
 			void SetUnreachable (const IdentHash& ident, bool unreachable);
 			void ExcludeReachableTransports (const IdentHash& ident, RouterInfo::CompatibleTransports transports);
 
@@ -161,7 +161,7 @@ namespace data
 			std::shared_ptr<const RouterInfo> AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len, bool& updated);
 
 			template<typename Filter>
-			std::shared_ptr<const RouterInfo> GetRandomRouter (Filter filter) const;
+			std::shared_ptr<RouterInfo> GetRandomRouter (Filter filter) const;
 
 			void HandleDatabaseStoreMsg (std::shared_ptr<const I2NPMessage> msg);
 			void HandleDatabaseLookupMsg (std::shared_ptr<const I2NPMessage> msg);

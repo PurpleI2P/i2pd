@@ -175,7 +175,7 @@ namespace transport
 			uint32_t GetTransitBandwidth15s () const { return m_TransitBandwidth15s; };
 			int GetCongestionLevel (bool longTerm) const;
 			size_t GetNumPeers () const { return m_Peers.size (); };
-			std::shared_ptr<const i2p::data::RouterInfo> GetRandomPeer (bool isHighBandwidth) const;
+			std::shared_ptr<data::RouterInfo> GetRandomPeer(bool isHighBandwidth, util::RoutersInUse& inUse) const;
 
 			/** get a trusted first hop for restricted routes */
 			std::shared_ptr<const i2p::data::RouterInfo> GetRestrictedPeer();
@@ -215,7 +215,7 @@ namespace transport
 			void DetectExternalIP ();
 
 			template<typename Filter>
-				std::shared_ptr<const i2p::data::RouterInfo> GetRandomPeer (Filter filter) const;
+				std::shared_ptr<i2p::data::RouterInfo> GetRandomPeer (Filter filter) const;
 
 		private:
 

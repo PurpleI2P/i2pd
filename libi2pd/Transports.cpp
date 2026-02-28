@@ -1117,7 +1117,7 @@ namespace transport
 	}
 
 	template<typename Filter>
-	std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer (Filter filter) const
+	std::shared_ptr<i2p::data::RouterInfo> Transports::GetRandomPeer (Filter filter) const
 	{
 		if (m_Peers.empty()) return nullptr;
 		auto ts = i2p::util::GetSecondsSinceEpoch ();
@@ -1210,8 +1210,34 @@ namespace transport
 		return found ? i2p::data::netdb.FindRouter (ident) : nullptr;
 	}
 
-	std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer (bool isHighBandwidth) const
+	const uint64_t RANDOM_PICK_TIMEOUT_MS = 30000;
+
+	std::shared_ptr<RouterInfo> recheck(std::shared_ptr<RouterInfo> candidate, uint64_t currentMillis)
 	{
+		if (candidate.get())
+		{
+			if (!candidate->RecheckTsAndUpdate(currentMillis))
+			{
+				return {nullptr};
+			}
+		}
+		return candidate;
+	}
+
+	std::shared_ptr<i2p::data::RouterInfo> Transports::GetRandomPeer (bool isHighBandwidth, util::RoutersInUse& inUse) const
+	{
+		LogPrint (eLogInfo, "(unique_only) Transports::GetRandomPeer");
+		/*uint64_t currentMillis = util::GetMillisecondsSinceEpoch ();
+		return recheck(GetRandomPeer (
+			[isHighBandwidth, inUse, currentMillis](std::shared_ptr<const Peer> peer)->bool
+			{
+				// connected, not overloaded and not slow
+				return !peer->router && peer->IsConnected () && peer->isEligible &&
+					peer->sessions.front ()->GetSendQueueSize () <= PEER_ROUTER_INFO_OVERLOAD_QUEUE_SIZE &&
+					!peer->sessions.front ()->IsSlow () && !peer->sessions.front ()->IsBandwidthExceeded (peer->isHighBandwidth) &&
+					(!isHighBandwidth || peer->isHighBandwidth) &&
+				    peer->router->LastPickTs() + RANDOM_PICK_TIMEOUT_MS < currentMillis && peer->router->IsMatch(inUse);
+			}), currentMillis);*/
 		return GetRandomPeer (
 			[isHighBandwidth](std::shared_ptr<const Peer> peer)->bool
 			{

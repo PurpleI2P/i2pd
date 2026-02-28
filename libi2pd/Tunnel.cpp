@@ -276,6 +276,49 @@ namespace tunnel
 			v((*it).ident);
 	}
 
+	void Tunnel::PrintPeers(std::string msg)
+	{
+		std::string d = "Tunnel peers: ";
+		for (auto& peer: GetInvertedPeers())
+		{
+			d += peer.get()->GetIdentHash().ToBase64().substr(0, 4) + " ";
+		}
+		LogPrint(eLogDebug, d + " " + msg);
+	}
+
+	void Tunnel::CollectRouters(i2p::util::RoutersInUse& collection)
+	{
+		for (auto& peer: GetInvertedPeers())
+		{
+			auto r = data::netdb.FindRouter(peer->GetIdentHash()).get();
+			if (r != nullptr)
+			{
+				collection.IdentHashesBase64.insert(peer->GetIdentHash().ToBase64());
+				for (auto& host: r->GetAllHostAddresses())
+				{
+					if (!host.is_unspecified())
+						collection.Hosts.insert(host);
+				}
+			}
+		}
+	}
+
+	void Tunnel::CollectAddresses(std::set<boost::asio::ip::address>& collection)
+	{
+		for (auto& peer: GetInvertedPeers())
+		{
+			auto r = data::netdb.FindRouter(peer->GetIdentHash()).get();
+			if (r != nullptr)
+			{
+				for (auto& host: r->GetAllHostAddresses())
+				{
+					if (!host.is_unspecified())
+						collection.insert(host);
+				}
+			}
+		}
+	}
+
 	void InboundTunnel::HandleTunnelDataMsg (std::shared_ptr<I2NPMessage>&& msg)
 	{
 		if (!IsEstablished () && GetState () != eTunnelStateExpiring)
@@ -906,9 +949,10 @@ namespace tunnel
 		{
 			// trying to create one more outbound tunnel
 			auto inboundTunnel = GetNextInboundTunnel ();
+			auto inUse = GetRoutersInUse();
 			auto router = i2p::transport::transports.RoutesRestricted() ?
 				i2p::transport::transports.GetRestrictedPeer() :
-				i2p::data::netdb.GetRandomRouter (i2p::context.GetSharedRouterInfo (), false, true, false); // reachable by us
+				i2p::data::netdb.GetRandomRouter (i2p::context.GetSharedRouterInfo (), false, true, false, inUse); // reachable by us
 			if (!inboundTunnel || !router) return;
 			LogPrint (eLogDebug, "Tunnel: Creating one hop outbound tunnel");
 			CreateTunnel<OutboundTunnel> (
@@ -973,11 +1017,12 @@ namespace tunnel
 
 		if (m_OutboundTunnels.empty () || m_InboundTunnels.size () < 3)
 		{
+			auto inUse = GetRoutersInUse();
 			// trying to create one more inbound tunnel
 			auto router = i2p::transport::transports.RoutesRestricted() ?
 				i2p::transport::transports.GetRestrictedPeer() :
 				// should be reachable by us because we send build request directly
-				i2p::data::netdb.GetRandomRouter (i2p::context.GetSharedRouterInfo (), false, true, false);
+				i2p::data::netdb.GetRandomRouter (i2p::context.GetSharedRouterInfo (), false, true, false, inUse);
 			if (!router) {
 				LogPrint (eLogWarning, "Tunnel: Can't find any router, skip creating tunnel");
 				return;
@@ -1041,16 +1086,19 @@ namespace tunnel
 
 	void Tunnels::AddPendingTunnel (uint32_t replyMsgID, std::shared_ptr<InboundTunnel> tunnel)
 	{
+		tunnel->PrintPeers("(unique_only) AddPendingTunnel inbound");
 		m_PendingInboundTunnels[replyMsgID] = tunnel;
 	}
 
 	void Tunnels::AddPendingTunnel (uint32_t replyMsgID, std::shared_ptr<OutboundTunnel> tunnel)
 	{
+		tunnel->PrintPeers("(unique_only) AddPendingTunnel outbound");
 		m_PendingOutboundTunnels[replyMsgID] = tunnel;
 	}
 
 	void Tunnels::AddOutboundTunnel (std::shared_ptr<OutboundTunnel> newTunnel)
 	{
+		newTunnel->PrintPeers("(unique_only) AddOutboundTunnel");
 		// we don't need to insert it to m_Tunnels
 		m_OutboundTunnels.push_back (newTunnel);
 		auto pool = newTunnel->GetTunnelPool ();
@@ -1062,12 +1110,14 @@ namespace tunnel
 
 	void Tunnels::AddInboundTunnel (std::shared_ptr<InboundTunnel> newTunnel)
 	{
+		newTunnel->PrintPeers("(unique_only) AddInboundTunnel");
 		if (AddTunnel (newTunnel))
 		{
 			m_InboundTunnels.push_back (newTunnel);
 			auto pool = newTunnel->GetTunnelPool ();
 			if (!pool)
 			{
+				newTunnel->PrintPeers("(unique_only)  Creating symmetric tunnel");
 				// build symmetric outbound tunnel
 				CreateTunnel<OutboundTunnel> (std::make_shared<TunnelConfig>(newTunnel->GetInvertedPeers (),
 						newTunnel->GetNextTunnelID (), newTunnel->GetNextIdentHash (), false), nullptr,
@@ -1153,6 +1203,70 @@ namespace tunnel
 			LogPrint (eLogDebug, "Tunnel: Max number of transit tunnels set to ", maxNumTransitTunnels);
 			m_MaxNumTransitTunnels = maxNumTransitTunnels;
 		}
+	}
+
+	util::RoutersInUse Tunnels::GetRoutersInUse() const
+	{
+		std::unique_lock<std::mutex> l(m_TunnelsMutex);
+		util::RoutersInUse result;
+		for (auto& tun: m_InboundTunnels)
+			tun->CollectRouters(result);
+		for (auto& pair: m_PendingInboundTunnels)
+		{
+			auto tun = pair.second.get();
+			if (tun)
+				tun->CollectRouters(result);
+		}
+		for (auto& tun: m_OutboundTunnels)
+			tun->CollectRouters(result);
+		for (auto& pair: m_PendingOutboundTunnels)
+		{
+			auto tun = pair.second.get();
+			if (tun)
+				tun->CollectRouters(result);
+		}
+		std::string d = "(unique_only)  Hosts in use ";
+		for (auto& r: result.Hosts)
+		{
+			d += r.to_string() + " ";
+		}
+		LogPrint(eLogDebug, d);
+		std::string d2 = "(unique_only)  Hashes in use ";
+		for (auto& r: result.IdentHashesBase64)
+		{
+			d2 += r.substr(0, 4) + " ";
+		}
+		LogPrint(eLogDebug, d2);
+		return result;
+	}
+
+	std::set<boost::asio::ip::address> Tunnels::GetAddressesInUse() const
+	{
+		std::unique_lock<std::mutex> l(m_TunnelsMutex);
+		std::set<boost::asio::ip::address> result;
+		for (auto& tun: m_InboundTunnels)
+			tun->CollectAddresses(result);
+		for (auto& pair: m_PendingInboundTunnels)
+		{
+			auto tun = pair.second.get();
+			if (tun)
+				tun->CollectAddresses(result);
+		}
+		for (auto& tun: m_OutboundTunnels)
+			tun->CollectAddresses(result);
+		for (auto& pair: m_PendingOutboundTunnels)
+		{
+			auto tun = pair.second.get();
+			if (tun)
+				tun->CollectAddresses(result);
+		}
+		std::string d = "(TunnelPool) Addresses in use ";
+		for (auto& r: result)
+		{
+			d += r.to_string() + " ";
+		}
+		LogPrint(eLogDebug, d);
+		return result;
 	}
 }
 }

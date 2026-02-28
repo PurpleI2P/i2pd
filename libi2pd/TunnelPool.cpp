@@ -566,15 +566,16 @@ namespace tunnel
 	std::shared_ptr<const i2p::data::RouterInfo> TunnelPool::SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop,
 		bool reverse, bool endpoint) const
 	{
+		auto inUse = tunnels.GetRoutersInUse();
 		bool tryClient = !IsExploratory () && !i2p::context.IsLimitedConnectivity ();
 		std::shared_ptr<const i2p::data::RouterInfo> hop;
 		for (int i = 0; i < TUNNEL_POOL_MAX_HOP_SELECTION_ATTEMPTS; i++)
 		{
 			hop = tryClient ?
 				(m_IsHighBandwidth ?
-				 	i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop, reverse, endpoint) :
-				 	i2p::data::netdb.GetRandomRouter (prevHop, reverse, endpoint, true)):
-				i2p::data::netdb.GetRandomRouter (prevHop, reverse, endpoint, false);
+				 	i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop, reverse, endpoint, inUse) :
+				 	i2p::data::netdb.GetRandomRouter (prevHop, reverse, endpoint, true, inUse)):
+				i2p::data::netdb.GetRandomRouter (prevHop, reverse, endpoint, false, inUse);
 			if (hop)
 			{
 				if (!hop->HasProfile () || !hop->GetProfile ()->IsBad ())
@@ -588,8 +589,19 @@ namespace tunnel
 		return hop;
 	}
 
+	void printPath(Path & path, std::string msg)
+	{
+		std::string d = msg + " ";
+		for (auto& peer: path.peers)
+			if (peer.get())
+				d += peer.get()->GetIdentHash().ToBase64().substr(0, 4) + " ";
+		LogPrint(eLogDebug, d);
+	}
+
 	bool TunnelPool::StandardSelectPeers(Path & path, int numHops, bool inbound, SelectHopFunc nextHop)
 	{
+		printPath(path, "(unique_only) Path before select ");
+		auto inUse = tunnels.GetRoutersInUse();
 		int start = 0;
 		std::shared_ptr<const i2p::data::RouterInfo> prevHop = i2p::context.GetSharedRouterInfo ();
 		if(i2p::transport::transports.RoutesRestricted() || !m_TrustedRouters.empty ())
@@ -606,7 +618,7 @@ namespace tunnel
 			(inbound && (i2p::transport::transports.GetNumPeers () > 25 ||
             (i2p::context.IsLimitedConnectivity () && i2p::transport::transports.GetNumPeers () > 0))))
 		{
-			auto r = i2p::transport::transports.GetRandomPeer (m_IsHighBandwidth && !i2p::context.IsLimitedConnectivity ());
+			auto r = i2p::transport::transports.GetRandomPeer (m_IsHighBandwidth && !i2p::context.IsLimitedConnectivity (), inUse);
 			if (r && r->IsECIES () && (!r->HasProfile () || !r->GetProfile ()->IsBad ()) &&
 				(numHops > 1 || (r->IsV4 () && (!inbound || r->IsPublished (true))))) // first inbound must be published ipv4
 			{
@@ -616,13 +628,15 @@ namespace tunnel
 			}
 		}
 
+		printPath(path, "(unique_only) Path before select2 ");
+
 		for(int i = start; i < numHops; i++ )
 		{
 			auto hop = nextHop (prevHop, inbound, i == numHops - 1);
 			if (!hop && !i) // if no suitable peer found for first hop, try already connected
 			{
 				LogPrint (eLogInfo, "Tunnels: Can't select first hop for a tunnel. Trying already connected");
-				hop = i2p::transport::transports.GetRandomPeer (false);
+				hop = i2p::transport::transports.GetRandomPeer (false, inUse);
 				if (hop && !hop->IsECIES ()) hop = nullptr;
 			}
 			if (!hop)
@@ -634,6 +648,7 @@ namespace tunnel
 			path.Add (hop);
 		}
 		path.farEndTransports = prevHop->GetCompatibleTransports (inbound); // last hop
+		printPath(path, "(unique_only) Path after select ");
 		return true;
 	}
 

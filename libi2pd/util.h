@@ -19,6 +19,7 @@
 #include <utility>
 #include <charconv>
 #include <boost/asio.hpp>
+#include <set>
 
 #ifdef ANDROID
 #ifndef __clang__
@@ -330,6 +331,13 @@ namespace util
 		bool IsYggdrasilAddress (const boost::asio::ip::address& addr);
 		bool IsPortInReservedRange (const uint16_t port) noexcept;
 	}
+
+	class RoutersInUse
+	{
+	public:
+		std::set<boost::asio::ip::address> Hosts;
+		std::set<std::string> IdentHashesBase64;
+	};
 }
 }
 

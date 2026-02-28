@@ -39,7 +39,7 @@ namespace data
 		m_BufferLen = len;
 	}
 
-	RouterInfo::RouterInfo (): m_Buffer (nullptr)
+	RouterInfo::RouterInfo (): m_Buffer (nullptr), m_LastPickTs(0)
 	{
 		m_Addresses = AddressesPtr(new Addresses ()); // create empty list
 	}
@@ -48,7 +48,7 @@ namespace data
 		m_FamilyID (0), m_IsUpdated (false), m_IsUnreachable (false), m_IsFloodfill (false),
 		m_IsBufferScheduledToDelete (false), m_SupportedTransports (0),
 		m_ReachableTransports (0), m_PublishedTransports (0), m_Caps (0), m_Version (0),
-		m_Congestion (eLowCongestion)
+		m_Congestion (eLowCongestion), m_LastPickTs(0)
 	{
 		m_Addresses = AddressesPtr(new Addresses ()); // create empty list
 		m_Buffer = RouterInfo::NewBuffer (); // always RouterInfo's
@@ -58,7 +58,7 @@ namespace data
 	RouterInfo::RouterInfo (std::shared_ptr<Buffer>&& buf, size_t len):
 		m_FamilyID (0), m_IsUpdated (true), m_IsUnreachable (false), m_IsFloodfill (false),
 		m_IsBufferScheduledToDelete (false), m_SupportedTransports (0), m_ReachableTransports (0), m_PublishedTransports (0),
-		m_Caps (0), m_Version (0), m_Congestion (eLowCongestion)
+		m_Caps (0), m_Version (0), m_Congestion (eLowCongestion), m_LastPickTs(0)
 	{
 		if (len <= MAX_RI_BUFFER_SIZE)
 		{
@@ -1017,6 +1017,77 @@ namespace data
 		return profile;
 	}
 
+	const uint64_t RANDOM_PICK_TIMEOUT_MS = 30000;
+
+	// there's some time between a router being randomly picked in NetDb::GetRandomRouter()
+	// and the same router appearing in Tunnels::GetAddressesInUse()
+	// to avoid double pick, introduce RANDOM_PICK_TIMEOUT_MS
+	bool RouterInfo::RecheckTsAndUpdate (uint64_t currentMillis)
+	{
+		auto lastPickTs = LastPickTs();
+		if (lastPickTs + RANDOM_PICK_TIMEOUT_MS > currentMillis || !UpdateLastPickTs(lastPickTs, currentMillis))
+		{
+			LogPrint(eLogDebug, "(unique_only) Last pick ts check failed ", GetIdentHashBase64().substr(0, 4));
+			return false;
+		}
+
+		return true;
+	}
+
+	std::vector<boost::asio::ip::address> RouterInfo::GetAllHostAddresses () const
+	{
+		std::vector<boost::asio::ip::address> result(static_cast<int>(eNumTransports));
+		auto addresses = GetAddresses().get();
+		if (addresses != nullptr) {
+			for (const auto& address : *addresses)
+				if (address && !address.get()->host.is_unspecified()) result.push_back(address.get()->host);
+		}
+		return result;
+	}
+
+	bool RouterInfo::IsMatch(i2p::util::RoutersInUse inUse) const
+	{
+		if (inUse.IdentHashesBase64.count(GetIdentHashBase64()))
+		{
+			LogPrint(eLogDebug, "(unique_only) Filtered hash ", GetIdentHashBase64().substr(0, 4));
+			return true;
+		}
+		return GetAddress([inUse](const std::shared_ptr<const Address>& address)->bool
+		{
+			auto a = address.get();
+			if (a == nullptr || a->host.is_unspecified())
+			{
+				return false;
+			}
+			if (inUse.Hosts.count(a->host))
+			{
+				LogPrint(eLogDebug, "(unique_only) Filtered address ", a->host.to_string());
+				return true;
+			}
+			return false;
+		}) != nullptr;
+	}
+
+	bool RouterInfo::IsOneOfHosts(std::set<boost::asio::ip::address>* addresses) const
+	{
+		if (addresses == nullptr)
+			return false;
+		return GetAddress([addresses](std::shared_ptr<const Address> address)->bool
+		{
+			auto a = address.get();
+			if (a == nullptr || a->host.is_unspecified())
+			{
+				return false;
+			}
+			if (addresses->count(a->host))
+			{
+				LogPrint(eLogDebug, "Filtered address ", a->host.to_string());
+				return true;
+			}
+			return false;
+		}) != nullptr;
+	}
+
 	void RouterInfo::Encrypt (const uint8_t * data, uint8_t * encrypted) const
 	{
 		auto encryptor = m_RouterIdentity->CreateEncryptor (nullptr);
@@ -1215,7 +1286,7 @@ namespace data
 			{
 				auto addr1 = (*addresses1)[i], addr2 = (*addresses2)[i];
 				if (addr1 && addr2 && !addr1->host.is_unspecified () && !addr2->host.is_unspecified ())
-					return addr1->IsSameSubnet (*addr2); // first adddess with IPs
+					return addr1->IsSameSubnet (*addr2); // first address with IPs
 			}
 		return false;
 	}

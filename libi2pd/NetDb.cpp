@@ -63,12 +63,13 @@ namespace data
 			m_Requests->Start ();
 		}
 
+		util::RoutersInUse noRouters;
 		uint16_t threshold; i2p::config::GetOption("reseed.threshold", threshold);
 		if (m_RouterInfos.size () < threshold || m_Floodfills.GetSize () < NETDB_MIN_FLOODFILLS) // reseed if # of router less than threshold or too few floodfiils
 		{
 			Reseed ();
 		}
-		else if (!GetRandomRouter (i2p::context.GetSharedRouterInfo (), false, false, false))
+		else if (!GetRandomRouter (i2p::context.GetSharedRouterInfo (), false, false, false, noRouters))
 			Reseed (); // we don't have a router we can connect to. Trying to reseed
 
 		auto it = m_RouterInfos.find (i2p::context.GetIdentHash ());
@@ -1145,23 +1146,44 @@ namespace data
 		}
 	}
 
-	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter () const
+	const uint64_t RANDOM_PICK_TIMEOUT_MS = 30000;
+
+	std::shared_ptr<RouterInfo> recheck(std::shared_ptr<RouterInfo> candidate, uint64_t currentMillis)
 	{
-		return GetRandomRouter (
-			[](std::shared_ptr<const RouterInfo> router)->bool
+		if (candidate.get())
+		{
+			if (!candidate->RecheckTsAndUpdate(currentMillis))
 			{
-				return !router->IsHidden ();
-			});
+				return {nullptr};
+			}
+		}
+		return candidate;
 	}
 
-	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith,
-		bool reverse, bool endpoint, bool clientTunnel) const
+	std::shared_ptr<RouterInfo> NetDb::GetRandomRouter (util::RoutersInUse& inUse) const
+	{
+		uint64_t currentMillis = util::GetMillisecondsSinceEpoch ();
+		return recheck(GetRandomRouter (
+			[inUse, currentMillis](std::shared_ptr<const RouterInfo> router)->bool
+			{
+				return !router->IsHidden () &&
+					router->LastPickTs() + RANDOM_PICK_TIMEOUT_MS < currentMillis && !router->IsMatch(inUse);
+			}), currentMillis);
+	}
+
+	std::shared_ptr<RouterInfo> NetDb::GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith,
+		bool reverse, bool endpoint, bool clientTunnel, util::RoutersInUse& inUse) const
 	{
 		bool checkIsReal = clientTunnel && i2p::tunnel::tunnels.GetPreciseTunnelCreationSuccessRate () < NETDB_TUNNEL_CREATION_RATE_THRESHOLD && // too low rate
 			context.GetUptime () > NETDB_CHECK_FOR_EXPIRATION_UPTIME; // after 10 minutes uptime
-		return GetRandomRouter (
-			[compatibleWith, reverse, endpoint, clientTunnel, checkIsReal](std::shared_ptr<const RouterInfo> router)->bool
+		uint64_t currentMillis = util::GetMillisecondsSinceEpoch ();
+		return recheck(GetRandomRouter (
+			[compatibleWith, reverse, endpoint, clientTunnel, checkIsReal, inUse, currentMillis](std::shared_ptr<const RouterInfo> router)->bool
 			{
+				if (router->LastPickTs() + RANDOM_PICK_TIMEOUT_MS >= currentMillis)
+				{
+					LogPrint(eLogDebug, "(unique_only) Filtered by pick time ", router.get()->GetIdentHashBase64().substr(0, 4));
+				}
 				return !router->IsHidden () && router != compatibleWith &&
 					(reverse ? (compatibleWith->IsReachableFrom (*router) && router->GetCompatibleTransports (true)):
 						router->IsReachableFrom (*compatibleWith)) && !router->IsNAT2NATOnly (*compatibleWith) &&
@@ -1169,11 +1191,12 @@ namespace data
 					router->IsECIES () && !router->IsHighCongestion (clientTunnel) &&
 					(!i2p::transport::transports.IsCheckReserved () || !router->IsSameSubnet (*compatibleWith)) &&
 					(!checkIsReal || router->GetProfile ()->IsReal ()) &&
-					(!endpoint || (router->IsV4 () && (!reverse || router->IsPublished (true)))); // endpoint must be ipv4 and published if inbound(reverse)
-			});
+					(!endpoint || (router->IsV4 () && (!reverse || router->IsPublished (true)))) && // endpoint must be ipv4 and published if inbound(reverse)
+					router->LastPickTs() + RANDOM_PICK_TIMEOUT_MS < currentMillis && !router->IsMatch(inUse);
+			}), currentMillis);
 	}
 
-	std::shared_ptr<const RouterInfo> NetDb::GetRandomSSU2PeerTestRouter (bool v4, const std::unordered_set<IdentHash>& excluded) const
+	std::shared_ptr<RouterInfo> NetDb::GetRandomSSU2PeerTestRouter (bool v4, const std::unordered_set<IdentHash>& excluded) const
 	{
 		return GetRandomRouter (
 			[v4, &excluded](std::shared_ptr<const RouterInfo> router)->bool
@@ -1183,7 +1206,7 @@ namespace data
 			});
 	}
 
-	std::shared_ptr<const RouterInfo> NetDb::GetRandomSSU2Introducer (bool v4, const std::unordered_set<IdentHash>& excluded) const
+	std::shared_ptr<RouterInfo> NetDb::GetRandomSSU2Introducer (bool v4, const std::unordered_set<IdentHash>& excluded) const
 	{
 		return GetRandomRouter (
 			[v4, &excluded](std::shared_ptr<const RouterInfo> router)->bool
@@ -1193,14 +1216,19 @@ namespace data
 			});
 	}
 
-	std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith,
-		bool reverse, bool endpoint) const
+	std::shared_ptr<RouterInfo> NetDb::GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith,
+		bool reverse, bool endpoint, util::RoutersInUse& inUse) const
 	{
 		bool checkIsReal = i2p::tunnel::tunnels.GetPreciseTunnelCreationSuccessRate () < NETDB_TUNNEL_CREATION_RATE_THRESHOLD && // too low rate
 			context.GetUptime () > NETDB_CHECK_FOR_EXPIRATION_UPTIME; // after 10 minutes uptime
-		return GetRandomRouter (
-			[compatibleWith, reverse, endpoint, checkIsReal](std::shared_ptr<const RouterInfo> router)->bool
+		uint64_t currentMillis = util::GetMillisecondsSinceEpoch ();
+		return recheck(GetRandomRouter (
+			[compatibleWith, reverse, endpoint, checkIsReal, inUse, currentMillis](std::shared_ptr<RouterInfo> router)->bool
 			{
+				if (router->LastPickTs() + RANDOM_PICK_TIMEOUT_MS >= currentMillis)
+				{
+					LogPrint(eLogDebug, "(unique_only) Filtered by pick time ", router.get()->GetIdentHashBase64().substr(0, 4));
+				}
 				return !router->IsHidden () && router != compatibleWith &&
 					(reverse ? (compatibleWith->IsReachableFrom (*router) && router->GetCompatibleTransports (true)) :
 						router->IsReachableFrom (*compatibleWith)) && !router->IsNAT2NATOnly (*compatibleWith) &&
@@ -1209,13 +1237,14 @@ namespace data
 					router->IsECIES () && !router->IsHighCongestion (true) &&
 					(!i2p::transport::transports.IsCheckReserved () || !router->IsSameSubnet (*compatibleWith)) &&
 					(!checkIsReal || router->GetProfile ()->IsReal ()) &&
-					(!endpoint || (router->IsV4 () && (!reverse || router->IsPublished (true)))); // endpoint must be ipv4 and published if inbound(reverse)
+					(!endpoint || (router->IsV4 () && (!reverse || router->IsPublished (true)))) && // endpoint must be ipv4 and published if inbound(reverse)
+					router->LastPickTs() + RANDOM_PICK_TIMEOUT_MS < currentMillis && !router->IsMatch(inUse);
 
-			});
+			}), currentMillis);
 	}
 
 	template<typename Filter>
-	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter (Filter filter) const
+	std::shared_ptr<RouterInfo> NetDb::GetRandomRouter (Filter filter) const
 	{
 		if (m_RouterInfos.empty())
 			return nullptr;
@@ -1285,7 +1314,7 @@ namespace data
 			m_Requests->PostDatabaseSearchReplyMsg (msg);
 	}
 
-	std::shared_ptr<const RouterInfo> NetDb::GetClosestFloodfill (const IdentHash& destination,
+	std::shared_ptr<RouterInfo> NetDb::GetClosestFloodfill (const IdentHash& destination,
 		const std::unordered_set<IdentHash>& excluded, bool nextDay) const
 	{
 		IdentHash destKey = CreateRoutingKey (destination, nextDay);
@@ -1323,7 +1352,7 @@ namespace data
 		return res;
 	}
 
-	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouterInFamily (FamilyID fam) const
+	std::shared_ptr<RouterInfo> NetDb::GetRandomRouterInFamily (FamilyID fam) const
 	{
 		return GetRandomRouter(
 			[fam](std::shared_ptr<const RouterInfo> router)->bool

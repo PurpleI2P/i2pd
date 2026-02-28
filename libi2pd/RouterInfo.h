@@ -18,6 +18,7 @@
 #include <array>
 #include <iostream>
 #include <memory>
+#include <set>
 #include <boost/asio.hpp>
 #ifndef __cpp_lib_atomic_shared_ptr
 #include <boost/shared_ptr.hpp>
@@ -25,6 +26,7 @@
 #include "Identity.h"
 #include "Profiling.h"
 #include "Family.h"
+#include "util.h"
 
 namespace i2p
 {
@@ -315,6 +317,10 @@ namespace data
 			static bool SaveToFile (const std::string& fullPath, std::shared_ptr<Buffer> buf);
 
 			std::shared_ptr<RouterProfile> GetProfile () const;
+			bool RecheckTsAndUpdate(uint64_t currentMillis);
+			std::vector<boost::asio::ip::address> GetAllHostAddresses() const;
+			bool IsMatch(util::RoutersInUse inUse) const;
+			bool IsOneOfHosts(std::set<boost::asio::ip::address>* addresses) const;
 			void DropProfile () { m_Profile = nullptr; };
 			bool HasProfile () const { return (bool)m_Profile; };
 
@@ -329,6 +335,9 @@ namespace data
 			void Encrypt (const uint8_t * data, uint8_t * encrypted) const;
 
 			bool IsDestination () const { return false; };
+
+		    uint64_t LastPickTs() const { return m_LastPickTs.load(); }
+		    bool UpdateLastPickTs(uint64_t oldTs, uint64_t newTs) { return m_LastPickTs.compare_exchange_strong(oldTs, newTs); }
 
 		protected:
 
@@ -377,6 +386,7 @@ namespace data
 			int m_Version;
 			Congestion m_Congestion;
 			mutable std::shared_ptr<RouterProfile> m_Profile;
+		    std::atomic<uint64_t> m_LastPickTs; // in milliseconds
 
 		public:
 
