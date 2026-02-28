@@ -1017,8 +1017,6 @@ namespace data
 		return profile;
 	}
 
-	const uint64_t RANDOM_PICK_TIMEOUT_MS = 30000;
-
 	// there's some time between a router being randomly picked in NetDb::GetRandomRouter()
 	// and the same router appearing in Tunnels::GetAddressesInUse()
 	// to avoid double pick, introduce RANDOM_PICK_TIMEOUT_MS
@@ -1047,6 +1045,13 @@ namespace data
 
 	bool RouterInfo::IsMatch(i2p::util::RoutersInUse inUse) const
 	{
+		std::string d = "(unique_only) Looking for " + GetIdentHashBase64().substr(0, 4) + " among ";
+		for (auto& i: inUse.IdentHashesBase64)
+		{
+			d += i.substr(0, 4) + " ";
+		}
+		LogPrint(eLogDebug, d);
+
 		if (inUse.IdentHashesBase64.count(GetIdentHashBase64()))
 		{
 			LogPrint(eLogDebug, "(unique_only) Filtered hash ", GetIdentHashBase64().substr(0, 4));

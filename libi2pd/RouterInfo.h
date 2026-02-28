@@ -73,6 +73,7 @@ namespace data
 	const size_t MAX_RI_BUFFER_SIZE = 3072; // if RouterInfo exceeds 3K we consider it as malformed, might extend later
 	const int HIGH_CONGESTION_INTERVAL = 15*60; // in seconds, 15 minutes
 	const int INTRODUCER_UPDATE_INTERVAL = 20*60*1000; // in milliseconds, 20 minutes
+	const uint64_t RANDOM_PICK_TIMEOUT_MS = 60000;
 
 	class RouterInfo: public RoutingDestination
 	{

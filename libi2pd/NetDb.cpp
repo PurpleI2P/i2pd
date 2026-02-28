@@ -1146,17 +1146,11 @@ namespace data
 		}
 	}
 
-	const uint64_t RANDOM_PICK_TIMEOUT_MS = 30000;
-
 	std::shared_ptr<RouterInfo> recheck(std::shared_ptr<RouterInfo> candidate, uint64_t currentMillis)
 	{
 		if (candidate.get())
-		{
 			if (!candidate->RecheckTsAndUpdate(currentMillis))
-			{
 				return {nullptr};
-			}
-		}
 		return candidate;
 	}
 

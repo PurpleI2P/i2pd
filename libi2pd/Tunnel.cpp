@@ -279,21 +279,32 @@ namespace tunnel
 	void Tunnel::PrintPeers(std::string msg)
 	{
 		std::string d = "Tunnel peers: ";
+		if (m_Config && m_Config.get())
+		{
+			for (auto& peer: m_Config.get()->GetPeers())
+			{
+				d += peer.get()->GetIdentHash().ToBase64().substr(0, 4) + " ";
+			}
+		}
 		for (auto& peer: GetInvertedPeers())
 		{
 			d += peer.get()->GetIdentHash().ToBase64().substr(0, 4) + " ";
 		}
-		LogPrint(eLogDebug, d + " " + msg);
+
+		LogPrint(eLogDebug, msg + " " + d);
 	}
 
-	void Tunnel::CollectRouters(i2p::util::RoutersInUse& collection)
+	void collectRoutersFromPeers(i2p::util::RoutersInUse& collection, std::vector<std::shared_ptr<const i2p::data::IdentityEx> > peers)
 	{
-		for (auto& peer: GetInvertedPeers())
+		for (auto& peer: peers)
 		{
+			if (!peer.get())
+				continue;
+
+			collection.IdentHashesBase64.insert(peer->GetIdentHash().ToBase64());
 			auto r = data::netdb.FindRouter(peer->GetIdentHash()).get();
-			if (r != nullptr)
+			if (r)
 			{
-				collection.IdentHashesBase64.insert(peer->GetIdentHash().ToBase64());
 				for (auto& host: r->GetAllHostAddresses())
 				{
 					if (!host.is_unspecified())
@@ -301,6 +312,13 @@ namespace tunnel
 				}
 			}
 		}
+	}
+
+	void Tunnel::CollectRouters(i2p::util::RoutersInUse& collection)
+	{
+		if (m_Config && m_Config.get())
+			collectRoutersFromPeers(collection, m_Config.get()->GetPeers()); // pending tunnels have m_Config & no m_Hops
+		collectRoutersFromPeers(collection, GetInvertedPeers()); // established tunnels have no m_Config & m_Hops
 	}
 
 	void Tunnel::CollectAddresses(std::set<boost::asio::ip::address>& collection)
@@ -1211,20 +1229,23 @@ namespace tunnel
 		util::RoutersInUse result;
 		for (auto& tun: m_InboundTunnels)
 			tun->CollectRouters(result);
-		for (auto& pair: m_PendingInboundTunnels)
-		{
-			auto tun = pair.second.get();
-			if (tun)
-				tun->CollectRouters(result);
-		}
 		for (auto& tun: m_OutboundTunnels)
 			tun->CollectRouters(result);
+		auto sizeBefore = result.IdentHashesBase64.size();
 		for (auto& pair: m_PendingOutboundTunnels)
 		{
 			auto tun = pair.second.get();
 			if (tun)
 				tun->CollectRouters(result);
 		}
+		for (auto& pair: m_PendingInboundTunnels)
+		{
+			auto tun = pair.second.get();
+			if (tun)
+				tun->CollectRouters(result);
+		}
+		auto sizeAfter = result.IdentHashesBase64.size();
+		LogPrint(eLogDebug, "(unique_only) Hashes in pending tunnels size ", sizeAfter - sizeBefore);
 		std::string d = "(unique_only)  Hosts in use ";
 		for (auto& r: result.Hosts)
 		{
