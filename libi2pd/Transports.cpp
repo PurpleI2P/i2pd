@@ -1220,7 +1220,6 @@ namespace transport
 
 	std::shared_ptr<i2p::data::RouterInfo> Transports::GetRandomPeer (bool isHighBandwidth, util::RoutersInUse& inUse) const
 	{
-		LogPrint (eLogInfo, "(unique_only) Transports::GetRandomPeer");
 		uint64_t currentMillis = util::GetMillisecondsSinceEpoch ();
 		return recheck(GetRandomPeer (
 			[isHighBandwidth](const std::shared_ptr<Peer>& peer)->bool

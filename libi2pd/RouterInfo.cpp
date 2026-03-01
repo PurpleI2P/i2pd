@@ -1024,10 +1024,7 @@ namespace data
 	{
 		auto lastPickTs = LastPickTs();
 		if (lastPickTs + RANDOM_PICK_TIMEOUT_MS > currentMillis || !UpdateLastPickTs(lastPickTs, currentMillis))
-		{
-			LogPrint(eLogDebug, "(unique_only) Last pick ts check failed ", GetIdentHashBase64().substr(0, 4));
 			return false;
-		}
 		return true;
 	}
 
@@ -1044,30 +1041,15 @@ namespace data
 
 	bool RouterInfo::IsMatch(const i2p::util::RoutersInUse& inUse) const
 	{
-		std::string d = "(unique_only) Looking for " + GetIdentHashBase64().substr(0, 4) + " among ";
-		for (auto& i: inUse.IdentHashesBase64)
-		{
-			d += i.substr(0, 4) + " ";
-		}
-		LogPrint(eLogDebug, d);
-
 		if (inUse.IdentHashesBase64.count(GetIdentHashBase64()))
-		{
-			LogPrint(eLogDebug, "(unique_only) Filtered hash ", GetIdentHashBase64().substr(0, 4));
 			return true;
-		}
 		return GetAddress([inUse](const std::shared_ptr<const Address>& address)->bool
 		{
 			auto a = address.get();
 			if (a == nullptr || a->host.is_unspecified())
-			{
 				return false;
-			}
 			if (inUse.Hosts.count(a->host))
-			{
-				LogPrint(eLogDebug, "(unique_only) Filtered address ", a->host.to_string());
 				return true;
-			}
 			return false;
 		}) != nullptr;
 	}
@@ -1080,14 +1062,9 @@ namespace data
 		{
 			auto a = address.get();
 			if (a == nullptr || a->host.is_unspecified())
-			{
 				return false;
-			}
 			if (addresses->count(a->host))
-			{
-				LogPrint(eLogDebug, "Filtered address ", a->host.to_string());
 				return true;
-			}
 			return false;
 		}) != nullptr;
 	}

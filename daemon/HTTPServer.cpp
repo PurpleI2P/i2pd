@@ -544,7 +544,6 @@ namespace http {
 			s << "<b>" << tr("Inbound tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
 			for (auto & it : pool->GetInboundTunnels ()) {
 				s << "<div class=\"listitem\">";
-				s << it.get()->GetCreationTime() << "  ";
 				// for each tunnel hop if not zero-hop
 				if (it->GetNumHops ())
 				{
@@ -567,7 +566,6 @@ namespace http {
 			s << "<b>" << tr("Outbound tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
 			for (auto & it : pool->GetOutboundTunnels ()) {
 				s << "<div class=\"listitem\">";
-				s << it.get()->GetCreationTime() << "  ";
 				s << it->GetTunnelID () << ":me &#8658;";
 				// for each tunnel hop if not zero-hop
 				if (it->GetNumHops ())

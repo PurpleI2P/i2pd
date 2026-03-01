@@ -573,8 +573,8 @@ namespace tunnel
 		{
 			hop = tryClient ?
 				(m_IsHighBandwidth ?
-				 	i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop, reverse, endpoint, inUse) :
-				 	i2p::data::netdb.GetRandomRouter (prevHop, reverse, endpoint, true, inUse)):
+					i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop, reverse, endpoint, inUse) :
+					i2p::data::netdb.GetRandomRouter (prevHop, reverse, endpoint, true, inUse)):
 				i2p::data::netdb.GetRandomRouter (prevHop, reverse, endpoint, false, inUse);
 			if (hop)
 			{
@@ -589,18 +589,8 @@ namespace tunnel
 		return hop;
 	}
 
-	void printPath(Path & path, std::string msg)
-	{
-		std::string d = msg + " ";
-		for (auto& peer: path.peers)
-			if (peer.get())
-				d += peer.get()->GetIdentHash().ToBase64().substr(0, 4) + " ";
-		LogPrint(eLogDebug, d);
-	}
-
 	bool TunnelPool::StandardSelectPeers(Path & path, int numHops, bool inbound, SelectHopFunc nextHop)
 	{
-		printPath(path, "(unique_only) Path before select ");
 		auto inUse = tunnels.GetRoutersInUse();
 		int start = 0;
 		std::shared_ptr<const i2p::data::RouterInfo> prevHop = i2p::context.GetSharedRouterInfo ();
@@ -628,8 +618,6 @@ namespace tunnel
 			}
 		}
 
-		printPath(path, "(unique_only) Path before select2 ");
-
 		for(int i = start; i < numHops; i++ )
 		{
 			auto hop = nextHop (prevHop, inbound, i == numHops - 1);
@@ -648,7 +636,6 @@ namespace tunnel
 			path.Add (hop);
 		}
 		path.farEndTransports = prevHop->GetCompatibleTransports (inbound); // last hop
-		printPath(path, "(unique_only) Path after select ");
 		return true;
 	}
 

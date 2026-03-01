@@ -1180,10 +1180,6 @@ namespace data
 		return RecheckRouterTs(GetRandomRouter (
 			[compatibleWith, reverse, endpoint, clientTunnel, checkIsReal, inUse, uniqueOnly, currentMillis](const std::shared_ptr<const RouterInfo>& router)->bool
 			{
-				if (router->LastPickTs() + RANDOM_PICK_TIMEOUT_MS >= currentMillis)
-				{
-					LogPrint(eLogDebug, "(unique_only) Filtered by pick time ", router.get()->GetIdentHashBase64().substr(0, 4));
-				}
 				return !router->IsHidden () && router != compatibleWith &&
 					(reverse ? (compatibleWith->IsReachableFrom (*router) && router->GetCompatibleTransports (true)):
 						router->IsReachableFrom (*compatibleWith)) && !router->IsNAT2NATOnly (*compatibleWith) &&
@@ -1196,7 +1192,7 @@ namespace data
 			}), currentMillis);
 	}
 
-	std::shared_ptr<RouterInfo> NetDb::GetRandomSSU2PeerTestRouter (bool v4, const std::unordered_set<IdentHash>& excluded) const
+	std::shared_ptr<const RouterInfo> NetDb::GetRandomSSU2PeerTestRouter (bool v4, const std::unordered_set<IdentHash>& excluded) const
 	{
 		return GetRandomRouter (
 			[v4, &excluded](std::shared_ptr<const RouterInfo> router)->bool
@@ -1206,7 +1202,7 @@ namespace data
 			});
 	}
 
-	std::shared_ptr<RouterInfo> NetDb::GetRandomSSU2Introducer (bool v4, const std::unordered_set<IdentHash>& excluded) const
+	std::shared_ptr<const RouterInfo> NetDb::GetRandomSSU2Introducer (bool v4, const std::unordered_set<IdentHash>& excluded) const
 	{
 		return GetRandomRouter (
 			[v4, &excluded](std::shared_ptr<const RouterInfo> router)->bool
@@ -1226,10 +1222,6 @@ namespace data
 		return RecheckRouterTs(GetRandomRouter (
 			[compatibleWith, reverse, endpoint, checkIsReal, inUse, uniqueOnly, currentMillis](const std::shared_ptr<RouterInfo>& router)->bool
 			{
-				if (router->LastPickTs() + RANDOM_PICK_TIMEOUT_MS >= currentMillis)
-				{
-					LogPrint(eLogDebug, "(unique_only) Filtered by pick time ", router.get()->GetIdentHashBase64().substr(0, 4));
-				}
 				return !router->IsHidden () && router != compatibleWith &&
 					(reverse ? (compatibleWith->IsReachableFrom (*router) && router->GetCompatibleTransports (true)) :
 						router->IsReachableFrom (*compatibleWith)) && !router->IsNAT2NATOnly (*compatibleWith) &&
@@ -1314,7 +1306,7 @@ namespace data
 			m_Requests->PostDatabaseSearchReplyMsg (msg);
 	}
 
-	std::shared_ptr<RouterInfo> NetDb::GetClosestFloodfill (const IdentHash& destination,
+	std::shared_ptr<const RouterInfo> NetDb::GetClosestFloodfill (const IdentHash& destination,
 		const std::unordered_set<IdentHash>& excluded, bool nextDay) const
 	{
 		IdentHash destKey = CreateRoutingKey (destination, nextDay);
@@ -1352,7 +1344,7 @@ namespace data
 		return res;
 	}
 
-	std::shared_ptr<RouterInfo> NetDb::GetRandomRouterInFamily (FamilyID fam) const
+	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouterInFamily (FamilyID fam) const
 	{
 		return GetRandomRouter(
 			[fam](std::shared_ptr<const RouterInfo> router)->bool

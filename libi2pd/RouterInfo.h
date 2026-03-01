@@ -337,8 +337,8 @@ namespace data
 
 			bool IsDestination () const { return false; };
 
-		    uint64_t LastPickTs() const { return m_LastPickTs.load(); }
-		    bool UpdateLastPickTs(uint64_t oldTs, uint64_t newTs) { return m_LastPickTs.compare_exchange_strong(oldTs, newTs); }
+			uint64_t LastPickTs() const { return m_LastPickTs.load(); }
+			bool UpdateLastPickTs(uint64_t oldTs, uint64_t newTs) { return m_LastPickTs.compare_exchange_strong(oldTs, newTs); }
 
 		protected:
 
@@ -387,7 +387,7 @@ namespace data
 			int m_Version;
 			Congestion m_Congestion;
 			mutable std::shared_ptr<RouterProfile> m_Profile;
-		    std::atomic<uint64_t> m_LastPickTs; // in milliseconds
+			std::atomic<uint64_t> m_LastPickTs; // in milliseconds
 
 		public:
 

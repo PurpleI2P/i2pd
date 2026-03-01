@@ -122,11 +122,10 @@ namespace tunnel
 
 			/** visit all hops we currently store */
 			void VisitTunnelHops(TunnelHopVisitor v);
-		void PrintPeers(std::string msg);
-
-	private:
 
 			void CollectRouters(i2p::util::RoutersInUse& collection) const;
+
+		private:
 
 			std::shared_ptr<TunnelConfig> m_Config;
 			std::vector<TunnelHop> m_Hops;

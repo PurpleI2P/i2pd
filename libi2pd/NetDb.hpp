@@ -93,13 +93,13 @@ namespace data
 			std::shared_ptr<RouterInfo> GetRandomRouter (util::RoutersInUse& inUse) const;
 			std::shared_ptr<RouterInfo> GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse, bool endpoint, bool clientTunnel, util::RoutersInUse& inUse) const;
 			std::shared_ptr<RouterInfo> GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse, bool endpoint, util::RoutersInUse& inUse) const;
-			std::shared_ptr<RouterInfo> GetRandomSSU2PeerTestRouter (bool v4, const std::unordered_set<IdentHash>& excluded) const;
-			std::shared_ptr<RouterInfo> GetRandomSSU2Introducer (bool v4, const std::unordered_set<IdentHash>& excluded) const;
-			std::shared_ptr<RouterInfo> GetClosestFloodfill (const IdentHash& destination, const std::unordered_set<IdentHash>& excluded, bool nextDay = false) const;
+			std::shared_ptr<const RouterInfo> GetRandomSSU2PeerTestRouter (bool v4, const std::unordered_set<IdentHash>& excluded) const;
+			std::shared_ptr<const RouterInfo> GetRandomSSU2Introducer (bool v4, const std::unordered_set<IdentHash>& excluded) const;
+			std::shared_ptr<const RouterInfo> GetClosestFloodfill (const IdentHash& destination, const std::unordered_set<IdentHash>& excluded, bool nextDay = false) const;
 			std::vector<IdentHash> GetClosestFloodfills (const IdentHash& destination, size_t num,
 				std::unordered_set<IdentHash>& excluded, bool closeThanUsOnly = false) const;
 			std::vector<IdentHash> GetExploratoryNonFloodfill (const IdentHash& destination, size_t num, const std::unordered_set<IdentHash>& excluded);
-			std::shared_ptr<RouterInfo> GetRandomRouterInFamily (FamilyID fam) const;
+			std::shared_ptr<const RouterInfo> GetRandomRouterInFamily (FamilyID fam) const;
 			void SetUnreachable (const IdentHash& ident, bool unreachable);
 			void ExcludeReachableTransports (const IdentHash& ident, RouterInfo::CompatibleTransports transports);
 
@@ -203,7 +203,7 @@ namespace data
 			uint64_t m_LastExploratorySelectionUpdateTime; // in monotonic seconds
 			std::mt19937 m_Rng;
 
-		    bool m_uniqueOnly;
+			bool m_uniqueOnly;
 			std::shared_ptr<RouterInfo> RecheckRouterTs(std::shared_ptr<RouterInfo> candidate, uint64_t currentMillis) const;
 	};
 
