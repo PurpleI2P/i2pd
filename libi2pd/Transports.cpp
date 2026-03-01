@@ -1212,7 +1212,7 @@ namespace transport
 
 	std::shared_ptr<RouterInfo> recheck(std::shared_ptr<RouterInfo> candidate, uint64_t currentMillis, util::RoutersInUse& inUse)
 	{
-		if (candidate.get())
+		if (netdb.OnlyUniqueHosts() && candidate.get())
 			if (candidate->IsMatch(inUse) && !candidate->RecheckTsAndUpdate(currentMillis))
 				return {nullptr};
 		return candidate;

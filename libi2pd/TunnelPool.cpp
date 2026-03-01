@@ -319,7 +319,7 @@ namespace tunnel
 			for (const auto& it : m_InboundTunnels)
 				if (it->IsEstablished ()) num++;
 		}
-		/*if (!num && !m_OutboundTunnels.empty () && m_NumOutboundHops > 0 &&
+		if (!data::netdb.OnlyUniqueHosts() && !num && !m_OutboundTunnels.empty () && m_NumOutboundHops > 0 &&
 		    m_NumInboundHops == m_NumOutboundHops)
 		{
 			for (auto it: m_OutboundTunnels)
@@ -329,7 +329,7 @@ namespace tunnel
 				num++;
 				if (num >= m_NumInboundTunnels) break;
 			}
-		}*/
+		}
 		num = m_NumInboundTunnels - num;
 		if (num > 0)
 		{

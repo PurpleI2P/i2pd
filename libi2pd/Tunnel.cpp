@@ -314,27 +314,11 @@ namespace tunnel
 		}
 	}
 
-	void Tunnel::CollectRouters(i2p::util::RoutersInUse& collection)
+	void Tunnel::CollectRouters (util::RoutersInUse& collection) const
 	{
 		if (m_Config && m_Config.get())
 			collectRoutersFromPeers(collection, m_Config.get()->GetPeers()); // pending tunnels have m_Config & no m_Hops
 		collectRoutersFromPeers(collection, GetInvertedPeers()); // established tunnels have no m_Config & m_Hops
-	}
-
-	void Tunnel::CollectAddresses(std::set<boost::asio::ip::address>& collection)
-	{
-		for (auto& peer: GetInvertedPeers())
-		{
-			auto r = data::netdb.FindRouter(peer->GetIdentHash()).get();
-			if (r != nullptr)
-			{
-				for (auto& host: r->GetAllHostAddresses())
-				{
-					if (!host.is_unspecified())
-						collection.insert(host);
-				}
-			}
-		}
 	}
 
 	void InboundTunnel::HandleTunnelDataMsg (std::shared_ptr<I2NPMessage>&& msg)
@@ -1225,8 +1209,11 @@ namespace tunnel
 
 	util::RoutersInUse Tunnels::GetRoutersInUse() const
 	{
-		std::unique_lock<std::mutex> l(m_TunnelsMutex);
 		util::RoutersInUse result;
+		if (!data::netdb.OnlyUniqueHosts())
+			return result;
+
+		std::unique_lock<std::mutex> l(m_TunnelsMutex);
 		for (auto& tun: m_InboundTunnels)
 			tun->CollectRouters(result);
 		for (auto& tun: m_OutboundTunnels)

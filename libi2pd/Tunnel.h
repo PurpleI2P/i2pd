@@ -89,8 +89,6 @@ namespace tunnel
 			std::shared_ptr<TunnelConfig> GetTunnelConfig () const { return m_Config; }
 			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > GetPeers () const;
 			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > GetInvertedPeers () const;
-			void CollectRouters(i2p::util::RoutersInUse& collection);
-		    void CollectAddresses(std::set<boost::asio::ip::address>& collection);
 			bool IsShortBuildMessage () const { return m_IsShortBuildMessage; }
 			i2p::data::RouterInfo::CompatibleTransports GetFarEndTransports () const { return m_FarEndTransports; };
 			TunnelState GetState () const { return m_State; };
@@ -127,6 +125,8 @@ namespace tunnel
 		void PrintPeers(std::string msg);
 
 	private:
+
+			void CollectRouters(i2p::util::RoutersInUse& collection) const;
 
 			std::shared_ptr<TunnelConfig> m_Config;
 			std::vector<TunnelHop> m_Hops;
@@ -255,12 +255,12 @@ namespace tunnel
 			std::shared_ptr<I2NPMessage> NewI2NPTunnelMessage (bool endpoint);
 
 			void SetMaxNumTransitTunnels (uint32_t maxNumTransitTunnels);
-			std::set<boost::asio::ip::address> GetAddressesInUse() const;
-		    util::RoutersInUse GetRoutersInUse() const;
 
 			uint32_t GetMaxNumTransitTunnels () const { return m_MaxNumTransitTunnels; };
 			int GetCongestionLevel() const { return m_MaxNumTransitTunnels ? CONGESTION_LEVEL_FULL * m_TransitTunnels.GetNumTransitTunnels () / m_MaxNumTransitTunnels : CONGESTION_LEVEL_FULL; }
 			std::mt19937& GetRng () { return m_Rng; }
+
+			util::RoutersInUse GetRoutersInUse() const;
 			
 		private:
 

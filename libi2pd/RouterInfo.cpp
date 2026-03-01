@@ -1028,7 +1028,6 @@ namespace data
 			LogPrint(eLogDebug, "(unique_only) Last pick ts check failed ", GetIdentHashBase64().substr(0, 4));
 			return false;
 		}
-
 		return true;
 	}
 
@@ -1043,7 +1042,7 @@ namespace data
 		return result;
 	}
 
-	bool RouterInfo::IsMatch(i2p::util::RoutersInUse inUse) const
+	bool RouterInfo::IsMatch(const i2p::util::RoutersInUse& inUse) const
 	{
 		std::string d = "(unique_only) Looking for " + GetIdentHashBase64().substr(0, 4) + " among ";
 		for (auto& i: inUse.IdentHashesBase64)
@@ -1077,7 +1076,7 @@ namespace data
 	{
 		if (addresses == nullptr)
 			return false;
-		return GetAddress([addresses](std::shared_ptr<const Address> address)->bool
+		return GetAddress([addresses](const std::shared_ptr<const Address>& address)->bool
 		{
 			auto a = address.get();
 			if (a == nullptr || a->host.is_unspecified())

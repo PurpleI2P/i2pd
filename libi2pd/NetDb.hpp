@@ -142,6 +142,8 @@ namespace data
 			std::shared_ptr<IdentityEx> NewIdentity (const uint8_t * buf, size_t len) { return m_IdentitiesPool.AcquireSharedMt (buf, len); };
 			std::shared_ptr<RouterProfile> NewRouterProfile () { return m_RouterProfilesPool.AcquireSharedMt (); };
 
+			bool OnlyUniqueHosts () const { return m_uniqueOnly; };
+
 		private:
 
 			void Load ();
@@ -200,6 +202,9 @@ namespace data
 			std::vector<std::shared_ptr<const RouterInfo> > m_ExploratorySelection;
 			uint64_t m_LastExploratorySelectionUpdateTime; // in monotonic seconds
 			std::mt19937 m_Rng;
+
+		    bool m_uniqueOnly;
+			std::shared_ptr<RouterInfo> RecheckRouterTs(std::shared_ptr<RouterInfo> candidate, uint64_t currentMillis) const;
 	};
 
 	extern NetDb netdb;

@@ -85,6 +85,7 @@ namespace data
 			m_Floodfills.Insert (i2p::context.GetSharedRouterInfo ());
 
 		i2p::config::GetOption("persist.profiles", m_PersistProfiles);
+		i2p::config::GetOption("unique", m_uniqueOnly);
 
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&NetDb::Run, this));
@@ -1146,9 +1147,12 @@ namespace data
 		}
 	}
 
-	std::shared_ptr<RouterInfo> recheck(std::shared_ptr<RouterInfo> candidate, uint64_t currentMillis)
+	// there's some time between a router being randomly picked in NetDb::GetRandomRouter()
+	// and the same router appearing in Tunnels::GetAddressesInUse()
+	// to avoid double pick, introduce RANDOM_PICK_TIMEOUT_MS
+	std::shared_ptr<RouterInfo> NetDb::RecheckRouterTs(std::shared_ptr<RouterInfo> candidate, uint64_t currentMillis) const
 	{
-		if (candidate.get())
+		if (OnlyUniqueHosts() && candidate.get())
 			if (!candidate->RecheckTsAndUpdate(currentMillis))
 				return {nullptr};
 		return candidate;
@@ -1157,11 +1161,12 @@ namespace data
 	std::shared_ptr<RouterInfo> NetDb::GetRandomRouter (util::RoutersInUse& inUse) const
 	{
 		uint64_t currentMillis = util::GetMillisecondsSinceEpoch ();
-		return recheck(GetRandomRouter (
-			[inUse, currentMillis](std::shared_ptr<const RouterInfo> router)->bool
+		bool uniqueOnly = OnlyUniqueHosts();
+		return RecheckRouterTs(GetRandomRouter (
+			[inUse, currentMillis, uniqueOnly](const std::shared_ptr<const RouterInfo>& router)->bool
 			{
 				return !router->IsHidden () &&
-					router->LastPickTs() + RANDOM_PICK_TIMEOUT_MS < currentMillis && !router->IsMatch(inUse);
+					(!uniqueOnly || (router->LastPickTs() + RANDOM_PICK_TIMEOUT_MS < currentMillis && !router->IsMatch(inUse)));
 			}), currentMillis);
 	}
 
@@ -1171,8 +1176,9 @@ namespace data
 		bool checkIsReal = clientTunnel && i2p::tunnel::tunnels.GetPreciseTunnelCreationSuccessRate () < NETDB_TUNNEL_CREATION_RATE_THRESHOLD && // too low rate
 			context.GetUptime () > NETDB_CHECK_FOR_EXPIRATION_UPTIME; // after 10 minutes uptime
 		uint64_t currentMillis = util::GetMillisecondsSinceEpoch ();
-		return recheck(GetRandomRouter (
-			[compatibleWith, reverse, endpoint, clientTunnel, checkIsReal, inUse, currentMillis](std::shared_ptr<const RouterInfo> router)->bool
+		bool uniqueOnly = OnlyUniqueHosts();
+		return RecheckRouterTs(GetRandomRouter (
+			[compatibleWith, reverse, endpoint, clientTunnel, checkIsReal, inUse, uniqueOnly, currentMillis](const std::shared_ptr<const RouterInfo>& router)->bool
 			{
 				if (router->LastPickTs() + RANDOM_PICK_TIMEOUT_MS >= currentMillis)
 				{
@@ -1186,7 +1192,7 @@ namespace data
 					(!i2p::transport::transports.IsCheckReserved () || !router->IsSameSubnet (*compatibleWith)) &&
 					(!checkIsReal || router->GetProfile ()->IsReal ()) &&
 					(!endpoint || (router->IsV4 () && (!reverse || router->IsPublished (true)))) && // endpoint must be ipv4 and published if inbound(reverse)
-					router->LastPickTs() + RANDOM_PICK_TIMEOUT_MS < currentMillis && !router->IsMatch(inUse);
+					(!uniqueOnly || (router->LastPickTs() + RANDOM_PICK_TIMEOUT_MS < currentMillis && !router->IsMatch(inUse)));
 			}), currentMillis);
 	}
 
@@ -1216,8 +1222,9 @@ namespace data
 		bool checkIsReal = i2p::tunnel::tunnels.GetPreciseTunnelCreationSuccessRate () < NETDB_TUNNEL_CREATION_RATE_THRESHOLD && // too low rate
 			context.GetUptime () > NETDB_CHECK_FOR_EXPIRATION_UPTIME; // after 10 minutes uptime
 		uint64_t currentMillis = util::GetMillisecondsSinceEpoch ();
-		return recheck(GetRandomRouter (
-			[compatibleWith, reverse, endpoint, checkIsReal, inUse, currentMillis](std::shared_ptr<RouterInfo> router)->bool
+		bool uniqueOnly = OnlyUniqueHosts();
+		return RecheckRouterTs(GetRandomRouter (
+			[compatibleWith, reverse, endpoint, checkIsReal, inUse, uniqueOnly, currentMillis](const std::shared_ptr<RouterInfo>& router)->bool
 			{
 				if (router->LastPickTs() + RANDOM_PICK_TIMEOUT_MS >= currentMillis)
 				{
@@ -1232,8 +1239,7 @@ namespace data
 					(!i2p::transport::transports.IsCheckReserved () || !router->IsSameSubnet (*compatibleWith)) &&
 					(!checkIsReal || router->GetProfile ()->IsReal ()) &&
 					(!endpoint || (router->IsV4 () && (!reverse || router->IsPublished (true)))) && // endpoint must be ipv4 and published if inbound(reverse)
-					router->LastPickTs() + RANDOM_PICK_TIMEOUT_MS < currentMillis && !router->IsMatch(inUse);
-
+					(!uniqueOnly || (router->LastPickTs() + RANDOM_PICK_TIMEOUT_MS < currentMillis && !router->IsMatch(inUse)));
 			}), currentMillis);
 	}
 
