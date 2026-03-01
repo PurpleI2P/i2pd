@@ -566,7 +566,7 @@ namespace tunnel
 	std::shared_ptr<const i2p::data::RouterInfo> TunnelPool::SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop,
 		bool reverse, bool endpoint) const
 	{
-		auto inUse = tunnels.GetRoutersInUse();
+		auto inUse = tunnels.GetAllRoutersInUse();
 		bool tryClient = !IsExploratory () && !i2p::context.IsLimitedConnectivity ();
 		std::shared_ptr<const i2p::data::RouterInfo> hop;
 		for (int i = 0; i < TUNNEL_POOL_MAX_HOP_SELECTION_ATTEMPTS; i++)
@@ -591,7 +591,7 @@ namespace tunnel
 
 	bool TunnelPool::StandardSelectPeers(Path & path, int numHops, bool inbound, SelectHopFunc nextHop)
 	{
-		auto inUse = tunnels.GetRoutersInUse();
+		auto inUse = tunnels.GetAllRoutersInUse();
 		int start = 0;
 		std::shared_ptr<const i2p::data::RouterInfo> prevHop = i2p::context.GetSharedRouterInfo ();
 		if(i2p::transport::transports.RoutesRestricted() || !m_TrustedRouters.empty ())
@@ -760,7 +760,7 @@ namespace tunnel
 				config = std::make_shared<TunnelConfig> (path.peers, path.isShort, path.farEndTransports);
 			}
 			auto tunnel = tunnels.CreateInboundTunnel (config, shared_from_this (), outboundTunnel);
-			if (tunnel->IsEstablished ()) // zero hops
+			if (tunnel && tunnel.get() && tunnel->IsEstablished ()) // zero hops
 				TunnelCreated (tunnel);
 		}
 		else
@@ -789,10 +789,13 @@ namespace tunnel
 		if (!m_NumInboundHops || config)
 		{
 			auto newTunnel = tunnels.CreateInboundTunnel (config, shared_from_this(), outboundTunnel);
-			if (newTunnel->IsEstablished ()) // zero hops
-				TunnelCreated (newTunnel);
-			else
-				newTunnel->SetRecreated (true);
+			if (newTunnel && newTunnel.get())
+			{
+				if (newTunnel->IsEstablished ()) // zero hops
+					TunnelCreated (newTunnel);
+				else
+					newTunnel->SetRecreated (true);
+			}
 		}
 	}
 
@@ -827,11 +830,12 @@ namespace tunnel
 			{
 				// TODO: implement it better
 				tunnel = tunnels.CreateOutboundTunnel (config, inboundTunnel->GetTunnelPool ());
-				tunnel->SetTunnelPool (shared_from_this ());
+				if (tunnel && tunnel.get())
+					tunnel->SetTunnelPool (shared_from_this ());
 			}
 			else
 				tunnel = tunnels.CreateOutboundTunnel (config, shared_from_this ());
-			if (tunnel && tunnel->IsEstablished ()) // zero hops
+			if (tunnel && tunnel.get() && tunnel->IsEstablished ()) // zero hops
 				TunnelCreated (tunnel);
 		}
 		else
@@ -862,7 +866,7 @@ namespace tunnel
 			if (!m_NumOutboundHops || config)
 			{
 				auto newTunnel = tunnels.CreateOutboundTunnel (config, shared_from_this ());
-				if (newTunnel->IsEstablished ()) // zero hops
+				if (newTunnel && newTunnel.get() && newTunnel->IsEstablished ()) // zero hops
 					TunnelCreated (newTunnel);
 			}
 		}
@@ -877,7 +881,7 @@ namespace tunnel
 			m_NumOutboundHops > 0 ? std::make_shared<TunnelConfig>(outboundTunnel->GetInvertedPeers (),
 				outboundTunnel->IsShortBuildMessage ()) : nullptr,
 				shared_from_this (), outboundTunnel);
-		if (tunnel->IsEstablished ()) // zero hops
+		if (tunnel && tunnel.get() && tunnel->IsEstablished ()) // zero hops
 			TunnelCreated (tunnel);
 	}
 

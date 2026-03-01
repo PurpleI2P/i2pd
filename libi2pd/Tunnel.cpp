@@ -29,9 +29,9 @@ namespace i2p
 {
 namespace tunnel
 {
-	Tunnel::Tunnel (std::shared_ptr<TunnelConfig> config):
-		TunnelBase (config->GetTunnelID (), config->GetNextTunnelID (), config->GetNextIdentHash ()),
-		m_Config (config), m_IsShortBuildMessage (false), m_Pool (nullptr),
+	Tunnel::Tunnel (const std::shared_ptr<TunnelConfig>& config):
+		TunnelBase (config->GetTunnelID (), config->GetNextTunnelID (), config->GetNextIdentHash (), config),
+		m_IsShortBuildMessage (false), m_Pool (nullptr),
 		m_State (eTunnelStatePending), m_FarEndTransports (i2p::data::RouterInfo::eAllTransports),
 		m_IsRecreated (false), m_Latency (UNKNOWN_LATENCY)
 	{
@@ -242,22 +242,6 @@ namespace tunnel
 		LogPrint (eLogWarning, "Tunnel: Can't send I2NP messages without delivery instructions");
 	}
 
-	std::vector<std::shared_ptr<const i2p::data::IdentityEx> > Tunnel::GetPeers () const
-	{
-		auto peers = GetInvertedPeers ();
-		std::reverse (peers.begin (), peers.end ());
-		return peers;
-	}
-
-	std::vector<std::shared_ptr<const i2p::data::IdentityEx> > Tunnel::GetInvertedPeers () const
-	{
-		// hops are in inverted order
-		std::vector<std::shared_ptr<const i2p::data::IdentityEx> > ret;
-		for (const auto& it: m_Hops)
-			ret.push_back (it.ident);
-		return ret;
-	}
-
 	void Tunnel::SetState(TunnelState state)
 	{
 		m_State = state;
@@ -463,6 +447,44 @@ namespace tunnel
 		SendTunnelDataMsgs (blocks);
 	}
 
+	bool areInUse(const util::RoutersInUse& inUse, const std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers)
+	{
+		for (auto& peer: peers)
+		{
+			if (!peer || !peer.get())
+				continue;
+			if (inUse.IdentHashesBase64.count(peer->GetIdentHash().ToBase64()))
+				return true;
+			auto r = data::netdb.FindRouter(peer->GetIdentHash());
+			if (r && r.get() && r->IsMatch(inUse))
+				return true;
+		}
+		return false;
+	}
+
+	bool TunnelBase::ArePeersAlreadyInUse(const util::RoutersInUse& inUse) const
+	{
+		if (m_Config && m_Config.get() && areInUse(inUse, m_Config->GetPeers()))
+			return true;
+		return areInUse(inUse, GetInvertedPeers());
+	}
+
+	bool Tunnels::AreTunnelPeersAlreadyInUsePending(const std::shared_ptr<TunnelBase>& tun) const
+	{
+		// this is transition none -> pending
+		// forbid to match already pending & already established
+		return tun->ArePeersAlreadyInUse(GetAllRoutersInUse());
+	}
+
+	bool Tunnels::AreTunnelPeersAlreadyInUseEstablished(const std::shared_ptr<TunnelBase>& tun) const
+	{
+		// this is transition pending -> established
+		// forbid to match already established
+		util::RoutersInUse inUse;
+		CollectEstablished(inUse);
+		return tun->ArePeersAlreadyInUse(inUse);
+	}
+
 	Tunnels tunnels;
 
 	Tunnels::Tunnels (): m_IsRunning (false), m_Thread (nullptr), m_MaxNumTransitTunnels (DEFAULT_MAX_NUM_TRANSIT_TUNNELS),
@@ -479,23 +501,26 @@ namespace tunnel
 
 	std::shared_ptr<TunnelBase> Tunnels::GetTunnel (uint32_t tunnelID)
 	{
-		std::lock_guard<std::mutex> l(m_TunnelsMutex);
+		std::lock_guard<std::recursive_mutex> l(m_TunnelsMutex);
 		auto it = m_Tunnels.find(tunnelID);
 		if (it != m_Tunnels.end ())
 			return it->second;
 		return nullptr;
 	}
 
-	bool Tunnels::AddTunnel (std::shared_ptr<TunnelBase> tunnel)
+	bool Tunnels::AddTunnel (std::shared_ptr<TunnelBase> tunnel, bool skipCheck)
 	{
 		if (!tunnel) return false;
-		std::lock_guard<std::mutex> l(m_TunnelsMutex);
+		std::lock_guard<std::recursive_mutex> l(m_TunnelsMutex);
+		// do final recheck for non-unique hosts in newTunnel
+		if (data::netdb.OnlyUniqueHosts() && !skipCheck && AreTunnelPeersAlreadyInUseEstablished(tunnel))
+			return false;
 		return m_Tunnels.emplace (tunnel->GetTunnelID (), tunnel).second;
 	}
 
 	void Tunnels::RemoveTunnel (uint32_t tunnelID)
 	{
-		std::lock_guard<std::mutex> l(m_TunnelsMutex);
+		std::lock_guard<std::recursive_mutex> l(m_TunnelsMutex);
 		m_Tunnels.erase (tunnelID);
 	}
 
@@ -929,7 +954,7 @@ namespace tunnel
 		{
 			// trying to create one more outbound tunnel
 			auto inboundTunnel = GetNextInboundTunnel ();
-			auto inUse = GetRoutersInUse();
+			auto inUse = GetAllRoutersInUse();
 			auto router = i2p::transport::transports.RoutesRestricted() ?
 				i2p::transport::transports.GetRestrictedPeer() :
 				i2p::data::netdb.GetRandomRouter (i2p::context.GetSharedRouterInfo (), false, true, false, inUse); // reachable by us
@@ -997,7 +1022,7 @@ namespace tunnel
 
 		if (m_OutboundTunnels.empty () || m_InboundTunnels.size () < 3)
 		{
-			auto inUse = GetRoutersInUse();
+			auto inUse = GetAllRoutersInUse();
 			// trying to create one more inbound tunnel
 			auto router = i2p::transport::transports.RoutesRestricted() ?
 				i2p::transport::transports.GetRestrictedPeer() :
@@ -1042,7 +1067,15 @@ namespace tunnel
 		newTunnel->SetTunnelPool (pool);
 		uint32_t replyMsgID;
 		RAND_bytes ((uint8_t *)&replyMsgID, 4);
-		AddPendingTunnel (replyMsgID, newTunnel);
+		
+		{
+			// do final recheck for non-unique hosts in newTunnel
+			std::lock_guard<std::recursive_mutex> l(m_TunnelsMutex); // mutex ensures no tunnels will be added during recheck
+			if (data::netdb.OnlyUniqueHosts() && AreTunnelPeersAlreadyInUsePending(newTunnel))
+				return {nullptr};
+			AddPendingTunnel (replyMsgID, newTunnel);
+		}
+
 		newTunnel->Build (replyMsgID, outboundTunnel);
 		return newTunnel;
 	}
@@ -1087,18 +1120,18 @@ namespace tunnel
 
 	void Tunnels::AddInboundTunnel (std::shared_ptr<InboundTunnel> newTunnel)
 	{
-		if (AddTunnel (newTunnel))
+		if (AddTunnel (newTunnel, false))
 		{
 			m_InboundTunnels.push_back (newTunnel);
 			auto pool = newTunnel->GetTunnelPool ();
-			if (!pool)
+			if (!pool && !data::netdb.OnlyUniqueHosts())
 			{
 				// build symmetric outbound tunnel
 				CreateTunnel<OutboundTunnel> (std::make_shared<TunnelConfig>(newTunnel->GetInvertedPeers (),
 						newTunnel->GetNextTunnelID (), newTunnel->GetNextIdentHash (), false), nullptr,
 					GetNextOutboundTunnel ());
 			}
-			else
+			else if (pool)
 			{
 				if (pool->IsActive ())
 					pool->TunnelCreated (newTunnel);
@@ -1117,7 +1150,7 @@ namespace tunnel
 		inboundTunnel->SetTunnelPool (pool);
 		inboundTunnel->SetState (eTunnelStateEstablished);
 		m_InboundTunnels.push_back (inboundTunnel);
-		AddTunnel (inboundTunnel);
+		AddTunnel (inboundTunnel, true);
 		return inboundTunnel;
 	}
 
@@ -1180,30 +1213,41 @@ namespace tunnel
 		}
 	}
 
-	util::RoutersInUse Tunnels::GetRoutersInUse() const
+	util::RoutersInUse Tunnels::GetAllRoutersInUse() const
 	{
 		util::RoutersInUse result;
 		if (!data::netdb.OnlyUniqueHosts())
 			return result;
 
-		std::unique_lock<std::mutex> l(m_TunnelsMutex);
+		std::lock_guard<std::recursive_mutex> l(m_TunnelsMutex);
+		CollectEstablished(result);
+		CollectPending(result);
+
+		return result;
+	}
+
+	void Tunnels::CollectEstablished (util::RoutersInUse& collection) const
+	{
 		for (auto& tun: m_InboundTunnels)
-			tun->CollectRouters(result);
+			tun->CollectRouters(collection);
 		for (auto& tun: m_OutboundTunnels)
-			tun->CollectRouters(result);
+			tun->CollectRouters(collection);
+	}
+
+	void Tunnels::CollectPending (util::RoutersInUse& collection) const
+	{
 		for (auto& pair: m_PendingOutboundTunnels)
 		{
 			auto tun = pair.second.get();
 			if (tun)
-				tun->CollectRouters(result);
+				tun->CollectRouters(collection);
 		}
 		for (auto& pair: m_PendingInboundTunnels)
 		{
 			auto tun = pair.second.get();
 			if (tun)
-				tun->CollectRouters(result);
+				tun->CollectRouters(collection);
 		}
-		return result;
 	}
 }
 }

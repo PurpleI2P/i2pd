@@ -27,7 +27,7 @@ namespace tunnel
 	TransitTunnel::TransitTunnel (uint32_t receiveTunnelID,
 		const i2p::data::IdentHash& nextIdent, uint32_t nextTunnelID,
 		const i2p::crypto::AESKey& layerKey, const i2p::crypto::AESKey& ivKey):
-			TunnelBase (receiveTunnelID, nextTunnelID, nextIdent),
+			TunnelBase (receiveTunnelID, nextTunnelID, nextIdent, nullptr),
 			m_LayerKey (layerKey), m_IVKey (ivKey)
 	{
 	}
@@ -567,7 +567,7 @@ namespace tunnel
 		LogPrint (eLogDebug, "TransitTunnel: VariableTunnelBuild ", num, " records");
 		if (num > i2p::tunnel::MAX_NUM_RECORDS)
 		{
-			LogPrint (eLogError, "TransitTunnle: Too many records in VaribleTunnelBuild message ", num);
+			LogPrint (eLogError, "TransitTunnel: Too many records in VaribleTunnelBuild message ", num);
 			return;
 		}
 		if (len < num*TUNNEL_BUILD_RECORD_SIZE + 1)
@@ -595,7 +595,7 @@ namespace tunnel
 
 	bool TransitTunnels::AddTransitTunnel (std::shared_ptr<TransitTunnel> tunnel)
 	{
-		if (tunnels.AddTunnel (tunnel))
+		if (tunnels.AddTunnel (tunnel, true))
 			m_TransitTunnels.push_back (tunnel);
 		else
 		{

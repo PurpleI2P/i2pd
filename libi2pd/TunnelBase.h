@@ -26,6 +26,7 @@ namespace transport
 	
 namespace tunnel
 {
+	class TunnelConfig;
 	const size_t TUNNEL_DATA_MSG_SIZE = 1028;
 	const size_t TUNNEL_DATA_ENCRYPTED_SIZE = 1008;
 	const size_t TUNNEL_DATA_MAX_PAYLOAD_SIZE = 1003;
@@ -43,15 +44,21 @@ namespace tunnel
 		uint32_t tunnelID;
 		std::shared_ptr<I2NPMessage> data;
 	};
+	struct TunnelHop
+	{
+		std::shared_ptr<const i2p::data::IdentityEx> ident;
+		i2p::crypto::TunnelDecryption decryption;
+	};
 
 	class TunnelBase
 	{
 		public:
 
-			TunnelBase (uint32_t tunnelID, uint32_t nextTunnelID, const i2p::data::IdentHash& nextIdent):
-				m_TunnelID (tunnelID), m_NextTunnelID (nextTunnelID), m_NextIdent (nextIdent),
+			TunnelBase (uint32_t tunnelID, uint32_t nextTunnelID, const i2p::data::IdentHash& nextIdent,
+					const std::shared_ptr<TunnelConfig>& config):
+		        m_Config(config), m_TunnelID (tunnelID), m_NextTunnelID (nextTunnelID), m_NextIdent (nextIdent),
 				m_CreationTime (i2p::util::GetSecondsSinceEpoch ()) {};
-			virtual ~TunnelBase () {};
+			virtual ~TunnelBase () {}
 			virtual void Cleanup () {};
 
 			virtual void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg) = 0;
@@ -64,6 +71,14 @@ namespace tunnel
 
 			uint32_t GetCreationTime () const { return m_CreationTime; };
 			void SetCreationTime (uint32_t t) { m_CreationTime = t; };
+
+			virtual std::vector<std::shared_ptr<const i2p::data::IdentityEx> > GetInvertedPeers () const;
+			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > GetPeers () const;
+			virtual bool ArePeersAlreadyInUse(const util::RoutersInUse& inUse) const;
+
+		protected:
+			std::shared_ptr<TunnelConfig> m_Config;
+			std::vector<TunnelHop> m_Hops;
 
 		private:
 

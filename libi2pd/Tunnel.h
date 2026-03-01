@@ -70,25 +70,18 @@ namespace tunnel
 	class Tunnel: public TunnelBase,
 		 public std::enable_shared_from_this<Tunnel>
 	{
-		struct TunnelHop
-		{
-			std::shared_ptr<const i2p::data::IdentityEx> ident;
-			i2p::crypto::TunnelDecryption decryption;
-		};
 
 		public:
 
 			/** function for visiting a hops stored in a tunnel */
 			typedef std::function<void(std::shared_ptr<const i2p::data::IdentityEx>)> TunnelHopVisitor;
 
-			Tunnel (std::shared_ptr<TunnelConfig> config);
+			Tunnel (const std::shared_ptr<TunnelConfig>& config);
 			~Tunnel ();
 
 			void Build (uint32_t replyMsgID, std::shared_ptr<OutboundTunnel> outboundTunnel = nullptr);
 
 			std::shared_ptr<TunnelConfig> GetTunnelConfig () const { return m_Config; }
-			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > GetPeers () const;
-			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > GetInvertedPeers () const;
 			bool IsShortBuildMessage () const { return m_IsShortBuildMessage; }
 			i2p::data::RouterInfo::CompatibleTransports GetFarEndTransports () const { return m_FarEndTransports; };
 			TunnelState GetState () const { return m_State; };
@@ -125,10 +118,7 @@ namespace tunnel
 
 			void CollectRouters(i2p::util::RoutersInUse& collection) const;
 
-		private:
-
-			std::shared_ptr<TunnelConfig> m_Config;
-			std::vector<TunnelHop> m_Hops;
+	private:
 			bool m_IsShortBuildMessage;
 			std::shared_ptr<TunnelPool> m_Pool; // pool, tunnel belongs to, or null
 			TunnelState m_State;
@@ -222,8 +212,10 @@ namespace tunnel
 	class Tunnels
 	{
 		public:
-
-			Tunnels ();
+		bool AreTunnelPeersAlreadyInUse(const std::shared_ptr<TunnelBase>& tun, bool isEstablished) const;
+		bool AreTunnelPeersAlreadyInUsePending(const std::shared_ptr<TunnelBase>& tun) const;
+		bool AreTunnelPeersAlreadyInUseEstablished(const std::shared_ptr<TunnelBase>& tun) const;
+		Tunnels ();
 			~Tunnels ();
 			void Start ();
 			void Stop ();
@@ -234,7 +226,7 @@ namespace tunnel
 			std::shared_ptr<OutboundTunnel> GetNextOutboundTunnel ();
 			std::shared_ptr<TunnelPool> GetExploratoryPool () const { return m_ExploratoryPool; };
 			std::shared_ptr<TunnelBase> GetTunnel (uint32_t tunnelID);
-			bool AddTunnel (std::shared_ptr<TunnelBase> tunnel);
+			bool AddTunnel (std::shared_ptr<TunnelBase> tunnel, bool skipCheck);
 			void RemoveTunnel (uint32_t tunnelID);
 			int GetTransitTunnelsExpirationTimeout ();
 			void AddOutboundTunnel (std::shared_ptr<OutboundTunnel> newTunnel);
@@ -259,9 +251,11 @@ namespace tunnel
 			int GetCongestionLevel() const { return m_MaxNumTransitTunnels ? CONGESTION_LEVEL_FULL * m_TransitTunnels.GetNumTransitTunnels () / m_MaxNumTransitTunnels : CONGESTION_LEVEL_FULL; }
 			std::mt19937& GetRng () { return m_Rng; }
 
-			util::RoutersInUse GetRoutersInUse() const;
-			
-		private:
+			util::RoutersInUse GetAllRoutersInUse() const;
+		void CollectEstablished(util::RoutersInUse& collection) const;
+		void CollectPending(util::RoutersInUse& collection) const;
+
+	private:
 
 			template<class TTunnel>
 			std::shared_ptr<TTunnel> CreateTunnel (std::shared_ptr<TunnelConfig> config,
@@ -315,7 +309,7 @@ namespace tunnel
 			std::map<uint32_t, std::shared_ptr<OutboundTunnel> > m_PendingOutboundTunnels; // by replyMsgID
 			std::list<std::shared_ptr<InboundTunnel> > m_InboundTunnels;
 			std::list<std::shared_ptr<OutboundTunnel> > m_OutboundTunnels;
-			mutable std::mutex m_TunnelsMutex;
+			mutable std::recursive_mutex m_TunnelsMutex;
 			std::unordered_map<uint32_t, std::shared_ptr<TunnelBase> > m_Tunnels; // tunnelID->tunnel known by this id
 			mutable std::mutex m_PoolsMutex;
 			std::list<std::shared_ptr<TunnelPool>> m_Pools;

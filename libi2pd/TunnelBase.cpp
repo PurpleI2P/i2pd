@@ -66,6 +66,22 @@ namespace tunnel
 		m_CurrentTransport.reset ();
 		if (m_PendingTransport.valid ())
 			m_PendingTransport = std::future<std::shared_ptr<i2p::transport::TransportSession> >();
-	}	
+	}
+
+	std::vector<std::shared_ptr<const i2p::data::IdentityEx> > TunnelBase::GetPeers () const
+	{
+		auto peers = GetInvertedPeers ();
+		std::reverse (peers.begin (), peers.end ());
+		return peers;
+	}
+
+	std::vector<std::shared_ptr<const i2p::data::IdentityEx> > TunnelBase::GetInvertedPeers () const
+	{
+		// hops are in inverted order
+		std::vector<std::shared_ptr<const i2p::data::IdentityEx> > ret;
+		for (const auto& it: m_Hops)
+			ret.push_back (it.ident);
+		return ret;
+	}
 }
 }
