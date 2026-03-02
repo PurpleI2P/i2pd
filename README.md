@@ -5,7 +5,7 @@
 [![Docker Pulls](https://img.shields.io/docker/pulls/purplei2p/i2pd)](https://hub.docker.com/r/purplei2p/i2pd)
 [![Github Downloads](https://img.shields.io/github/downloads/PurpleI2P/i2pd/total.svg)]()
 [![Crowdin](https://badges.crowdin.net/i2pd/localized.svg)](https://crowdin.com/project/i2pd)
-
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/PurpleI2P/i2pd)
 *Note: i2pd for Android can be found in the [i2pd-android](https://github.com/PurpleI2P/i2pd-android) repository and with a Qt GUI in the [i2pd-qt](https://github.com/PurpleI2P/i2pd-qt) repository. For macOS, a GUI version can be found in the [gui-i2pd](https://github.com/MetanoicArmor/gui-i2pd) repository.*
 
 i2pd
