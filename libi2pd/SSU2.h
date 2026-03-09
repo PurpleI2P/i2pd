@@ -198,7 +198,7 @@ namespace transport
 			i2p::util::MemoryPool<SSU2SentPacket> m_SentPacketsPool;
 			i2p::util::MemoryPool<SSU2IncompleteMessage> m_IncompleteMessagesPool;
 			i2p::util::MemoryPool<SSU2IncompleteMessage::Fragment> m_FragmentsPool;
-			boost::asio::deadline_timer m_TerminationTimer, m_CleanupTimer, m_ResendTimer,
+			boost::asio::steady_timer m_TerminationTimer, m_CleanupTimer, m_ResendTimer,
 				m_IntroducersUpdateTimer, m_IntroducersUpdateTimerV6;
 			std::shared_ptr<SSU2Session> m_LastSession;
 			bool m_IsPublished; // if we maintain introducers
@@ -222,7 +222,7 @@ namespace transport
 			std::unique_ptr<boost::asio::ip::tcp::endpoint> m_ProxyEndpoint;
 			std::unique_ptr<boost::asio::ip::tcp::socket> m_UDPAssociateSocket;
 			std::unique_ptr<boost::asio::ip::udp::endpoint> m_ProxyRelayEndpoint;
-			std::unique_ptr<boost::asio::deadline_timer> m_ProxyConnectRetryTimer;
+			std::unique_ptr<boost::asio::steady_timer> m_ProxyConnectRetryTimer;
 
 		public:
 

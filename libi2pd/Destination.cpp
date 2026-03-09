@@ -140,7 +140,7 @@ namespace client
 		LoadTags ();
 		m_Pool->SetLocalDestination (shared_from_this ());
 		m_Pool->SetActive (true);
-		m_CleanupTimer.expires_from_now (boost::posix_time::seconds (DESTINATION_CLEANUP_TIMEOUT));
+		m_CleanupTimer.expires_after (std::chrono::seconds (DESTINATION_CLEANUP_TIMEOUT));
 		m_CleanupTimer.async_wait (std::bind (&LeaseSetDestination::HandleCleanupTimer,
 			shared_from_this (), std::placeholders::_1));
 	}
@@ -580,7 +580,7 @@ namespace client
 			m_ExcludedFloodfills.clear ();
 			m_PublishReplyToken = 0;
 			// schedule verification
-			m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_VERIFICATION_TIMEOUT +
+			m_PublishVerificationTimer.expires_after (std::chrono::seconds(PUBLISH_VERIFICATION_TIMEOUT +
 				GetRng ()() % PUBLISH_VERIFICATION_TIMEOUT_VARIANCE));
 			m_PublishVerificationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishVerificationTimer,
 			shared_from_this (), std::placeholders::_1));
@@ -615,7 +615,7 @@ namespace client
 		{
 			LogPrint (eLogDebug, "Destination: Publishing LeaseSet is too fast. Wait for ", PUBLISH_MIN_INTERVAL, " seconds");
 			m_PublishDelayTimer.cancel ();
-			m_PublishDelayTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_MIN_INTERVAL));
+			m_PublishDelayTimer.expires_after (std::chrono::seconds(PUBLISH_MIN_INTERVAL));
 			m_PublishDelayTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishDelayTimer,
 				shared_from_this (), std::placeholders::_1));
 			return;
@@ -661,7 +661,7 @@ namespace client
 				m_PublishReplyToken = 1; // dummy non-zero value
 				// try again after a while
 				LogPrint (eLogInfo, "Destination: Can't publish LeasetSet because destination is not ready. Try publishing again after ", PUBLISH_CONFIRMATION_TIMEOUT, " milliseconds");
-				m_PublishConfirmationTimer.expires_from_now (boost::posix_time::milliseconds(PUBLISH_CONFIRMATION_TIMEOUT));
+				m_PublishConfirmationTimer.expires_after (std::chrono::milliseconds(PUBLISH_CONFIRMATION_TIMEOUT));
 				m_PublishConfirmationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishConfirmationTimer,
 					shared_from_this (), std::placeholders::_1));
 				return;
@@ -680,7 +680,7 @@ namespace client
 						s->HandlePublishConfirmationTimer (boost::system::error_code());
 					});
 			};
-		m_PublishConfirmationTimer.expires_from_now (boost::posix_time::milliseconds(PUBLISH_CONFIRMATION_TIMEOUT));
+		m_PublishConfirmationTimer.expires_after (std::chrono::milliseconds(PUBLISH_CONFIRMATION_TIMEOUT));
 		m_PublishConfirmationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishConfirmationTimer,
 			shared_from_this (), std::placeholders::_1));
 		outbound->SendTunnelDataMsgTo (floodfill->GetIdentHash (), 0, msg);
@@ -720,7 +720,7 @@ namespace client
 						{
 							// we got latest LeasetSet
 							LogPrint (eLogDebug, "Destination: Published LeaseSet verified for ", s->GetIdentHash().ToBase32());
-							s->m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_REGULAR_VERIFICATION_INTERNAL));
+							s->m_PublishVerificationTimer.expires_after (std::chrono::seconds(PUBLISH_REGULAR_VERIFICATION_INTERNAL));
 							s->m_PublishVerificationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishVerificationTimer, s, std::placeholders::_1));
 							return;
 						}
@@ -887,7 +887,7 @@ namespace client
 						nextFloodfill->GetIdentHash (), 0, msg
 					}
 				});
-			request->requestTimeoutTimer.expires_from_now (boost::posix_time::milliseconds(LEASESET_REQUEST_TIMEOUT));
+			request->requestTimeoutTimer.expires_after (std::chrono::milliseconds(LEASESET_REQUEST_TIMEOUT));
 			request->requestTimeoutTimer.async_wait (std::bind (&LeaseSetDestination::HandleRequestTimoutTimer,
 				shared_from_this (), std::placeholders::_1, dest));
 		}
@@ -941,7 +941,7 @@ namespace client
 			CleanupExpiredTags ();
 			CleanupRemoteLeaseSets ();
 			CleanupDestination ();
-			m_CleanupTimer.expires_from_now (boost::posix_time::seconds (DESTINATION_CLEANUP_TIMEOUT +
+			m_CleanupTimer.expires_after (std::chrono::seconds (DESTINATION_CLEANUP_TIMEOUT +
 				GetRng ()() % DESTINATION_CLEANUP_TIMEOUT_VARIANCE));
 			m_CleanupTimer.async_wait (std::bind (&LeaseSetDestination::HandleCleanupTimer,
 				shared_from_this (), std::placeholders::_1));

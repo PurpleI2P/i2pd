@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2025, The PurpleI2P Project
+* Copyright (c) 2013-2026, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -22,6 +22,8 @@ namespace i2p
 {
 namespace client
 {
+	constexpr int I2P_SERVICE_READINESS_CHECK_INTERVAL = 1; // in seconds
+
 	class I2PServiceHandler;
 	class I2PService : public std::enable_shared_from_this<I2PService>
 	{
@@ -47,7 +49,7 @@ namespace client
 			}
 			void ClearHandlers ();
 
-			void SetConnectTimeout(uint32_t timeout);
+			void SetConnectTimeout(uint64_t timeout);
 
 			void AddReadyCallback(ReadyCallback cb);
 
@@ -66,7 +68,7 @@ namespace client
 			virtual void Start () = 0;
 			virtual void Stop () = 0;
 
-			virtual const char* GetName() { return "Generic I2P Service"; }
+			virtual const char* GetName() const { return "Generic I2P Service"; }
 
 		private:
 
@@ -78,10 +80,10 @@ namespace client
 			std::shared_ptr<ClientDestination> m_LocalDestination;
 			std::unordered_set<std::shared_ptr<I2PServiceHandler> > m_Handlers;
 			std::mutex m_HandlersMutex;
-			std::vector<std::pair<ReadyCallback, uint32_t> > m_ReadyCallbacks;
-			boost::asio::deadline_timer m_ReadyTimer;
+			std::vector<std::pair<ReadyCallback, uint64_t> > m_ReadyCallbacks;
+			boost::asio::steady_timer m_ReadyTimer;
 			bool m_ReadyTimerTriggered;
-			uint32_t m_ConnectTimeout;
+			uint64_t m_ConnectTimeout;
 
 			const size_t NEVER_TIMES_OUT = 0;
 
@@ -95,20 +97,22 @@ namespace client
 	{
 		public:
 
-			I2PServiceHandler(I2PService * parent) : m_Service(parent), m_Dead(false) { }
+			I2PServiceHandler(I2PService * parent) : m_Service(parent)
+#if __cplusplus < 202002L // C++20
+				, m_Dead (ATOMIC_FLAG_INIT)
+#endif
+			{ }
 			virtual ~I2PServiceHandler() { }
 			//If you override this make sure you call it from the children
 			virtual void Handle() {}; //Start handling the socket
-			virtual void Start () {}; 
+			virtual void Start () {};
 
 			void Terminate () { Kill (); };
 
 		protected:
 
 			// Call when terminating or handing over to avoid race conditions
-			inline bool Kill () { return m_Dead.exchange(true); }
-			// Call to know if the handler is dead
-			inline bool Dead () { return m_Dead; }
+			inline bool Kill () { return m_Dead.test_and_set (); }
 			// Call when done to clean up (make sure Kill is called first)
 			inline void Done (std::shared_ptr<I2PServiceHandler> me) { if(m_Service) m_Service->RemoveHandler(me); }
 			// Call to talk with the owner
@@ -117,14 +121,14 @@ namespace client
 		private:
 
 			I2PService *m_Service;
-			std::atomic<bool> m_Dead; //To avoid cleaning up multiple times
+			std::atomic_flag m_Dead; //To avoid cleaning up multiple times
 	};
 
 	const size_t SOCKETS_PIPE_BUFFER_SIZE = 8192 * 8;
 
 	// bidirectional pipe for 2 stream sockets
 	template<typename SocketUpstream, typename SocketDownstream>
-	class SocketsPipe: public I2PServiceHandler, 
+	class SocketsPipe: public I2PServiceHandler,
 		public std::enable_shared_from_this<SocketsPipe<SocketUpstream, SocketDownstream> >
 	{
 		public:
@@ -135,14 +139,14 @@ namespace client
 				boost::asio::socket_base::receive_buffer_size option(SOCKETS_PIPE_BUFFER_SIZE);
 				upstream->set_option(option);
 				downstream->set_option(option);
-			}	
+			}
 			~SocketsPipe() { Terminate(); }
-			
+
 			void Start() override
 			{
 				Transfer (m_up, m_down, m_upstream_to_down_buf, SOCKETS_PIPE_BUFFER_SIZE); // receive from upstream
 				Transfer (m_down, m_up, m_downstream_to_up_buf, SOCKETS_PIPE_BUFFER_SIZE); // receive from upstream
-			}	
+			}
 
 		private:
 
@@ -163,7 +167,7 @@ namespace client
 				}
 				Done(SocketsPipe<SocketUpstream, SocketDownstream>::shared_from_this());
 			}
-			
+
 			template<typename From, typename To>
 			void Transfer (std::shared_ptr<From> from, std::shared_ptr<To> to, uint8_t * buf, size_t len)
 			{
@@ -186,20 +190,20 @@ namespace client
 									{
 										LogPrint(eLogWarning, "SocketsPipe: Write error:" , ecode.message());
 										s->Terminate();
-									}	
-								});	
-						}	
+									}
+								});
+						}
 						else
 						{
 							LogPrint(eLogWarning, "SocketsPipe: Read error:" , ecode.message());
 							s->Terminate();
-						}	
-					});	
+						}
+					});
 			}
-			
+
 		private:
 
-			uint8_t m_upstream_to_down_buf[SOCKETS_PIPE_BUFFER_SIZE], m_downstream_to_up_buf[SOCKETS_PIPE_BUFFER_SIZE];			
+			uint8_t m_upstream_to_down_buf[SOCKETS_PIPE_BUFFER_SIZE], m_downstream_to_up_buf[SOCKETS_PIPE_BUFFER_SIZE];
 			std::shared_ptr<SocketUpstream> m_up;
 			std::shared_ptr<SocketDownstream> m_down;
 	};
@@ -208,8 +212,8 @@ namespace client
 	std::shared_ptr<I2PServiceHandler> CreateSocketsPipe (I2PService * owner, std::shared_ptr<SocketUpstream> upstream, std::shared_ptr<SocketDownstream> downstream)
 	{
 		return std::make_shared<SocketsPipe<SocketUpstream, SocketDownstream> >(owner, upstream, downstream);
-	}	
-	
+	}
+
 	//This is a service that listens for connections on the IP network or local socket and interacts with I2P
 	template<typename Protocol>
 	class ServiceAcceptor: public I2PService
@@ -218,7 +222,7 @@ namespace client
 
 			ServiceAcceptor (const typename Protocol::endpoint& localEndpoint, std::shared_ptr<ClientDestination> localDestination = nullptr) :
 				I2PService(localDestination), m_LocalEndpoint (localEndpoint) {}
-			
+
 			virtual ~ServiceAcceptor () { Stop(); }
 			void Start () override
 			{
@@ -227,9 +231,9 @@ namespace client
 				m_LocalEndpoint = m_Acceptor->local_endpoint();
 				m_Acceptor->listen ();
 				Accept ();
-			}	
+			}
 			void Stop () override
-			{	
+			{
 				if (m_Acceptor)
 				{
 					m_Acceptor->close();
@@ -239,7 +243,7 @@ namespace client
 			}
 			const typename Protocol::endpoint& GetLocalEndpoint () const { return m_LocalEndpoint; };
 
-			const char* GetName() override { return "Generic TCP/IP accepting daemon"; }
+			const char* GetName() const override { return "Generic TCP/IP accepting daemon"; }
 
 		protected:
 
@@ -266,14 +270,14 @@ namespace client
 							else
 								newSocket->close();
 							Accept();
-						}	
+						}
 						else
 							LogPrint (eLogError, "ServiceAcceptor: ", GetName(), " closing socket on accept because: ", ecode.message ());
-					});	
-			}	
-			
+					});
+			}
+
 		private:
-			
+
 			typename Protocol::endpoint m_LocalEndpoint;
 			std::unique_ptr<typename Protocol::acceptor> m_Acceptor;
 	};
@@ -284,7 +288,7 @@ namespace client
 
 			TCPIPAcceptor (const std::string& address, uint16_t port, std::shared_ptr<ClientDestination> localDestination = nullptr) :
 				ServiceAcceptor (boost::asio::ip::tcp::endpoint (boost::asio::ip::make_address(address), port), localDestination) {}
-	};	
+	};
 }
 }
 

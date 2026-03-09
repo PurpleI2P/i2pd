@@ -135,7 +135,7 @@ namespace client
 			std::map<i2p::data::CryptoKeyType, std::shared_ptr<i2p::crypto::LocalEncryptionKey> > m_EncryptionKeys; // last is most preferable
 			uint64_t m_LeaseSetExpirationTime;
 			bool m_IsCreatingLeaseSet, m_IsSameThread;
-			boost::asio::deadline_timer m_LeaseSetCreationTimer, m_ReadinessCheckTimer;
+			boost::asio::steady_timer m_LeaseSetCreationTimer, m_ReadinessCheckTimer;
 			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_MAX_MESSAGE_SIZE> > m_I2NPMsgsPool;
 	};
 

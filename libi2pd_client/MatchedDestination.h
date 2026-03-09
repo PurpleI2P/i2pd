@@ -39,7 +39,7 @@ namespace client
 			std::string m_RemoteName;
 			i2p::data::IdentHash m_RemoteIdent;
 			std::shared_ptr<const i2p::data::LeaseSet> m_RemoteLeaseSet;
-			std::shared_ptr<boost::asio::deadline_timer> m_ResolveTimer;
+			std::shared_ptr<boost::asio::steady_timer> m_ResolveTimer;
 	};
 }
 }

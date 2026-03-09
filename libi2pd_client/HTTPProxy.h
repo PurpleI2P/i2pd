@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2026, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -9,13 +9,15 @@
 #ifndef HTTP_PROXY_H__
 #define HTTP_PROXY_H__
 
-namespace i2p {
-namespace proxy {
+namespace i2p
+{
+namespace proxy
+{
 	class HTTPProxy: public i2p::client::TCPIPAcceptor
 	{
 		public:
 
-			HTTPProxy(const std::string& name, const std::string& address, uint16_t port, const std::string & outproxy, 
+			HTTPProxy(const std::string& name, const std::string& address, uint16_t port, const std::string & outproxy,
 				bool addresshelper, bool senduseragent, std::shared_ptr<i2p::client::ClientDestination> localDestination);
 			HTTPProxy(const std::string& name, const std::string& address, uint16_t port, std::shared_ptr<i2p::client::ClientDestination> localDestination = nullptr) :
 				HTTPProxy(name, address, port, "", true, false, localDestination) {} ;
@@ -28,8 +30,8 @@ namespace proxy {
 		protected:
 
 			// Implements TCPIPAcceptor
-			std::shared_ptr<i2p::client::I2PServiceHandler> CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket);
-			const char* GetName() { return m_Name.c_str (); }
+			std::shared_ptr<i2p::client::I2PServiceHandler> CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket) override;
+			const char* GetName() const override { return m_Name.c_str (); }
 
 		private:
 

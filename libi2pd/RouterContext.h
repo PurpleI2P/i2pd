@@ -264,14 +264,14 @@ namespace garlic
 			i2p::crypto::NoiseSymmetricState m_InitialNoiseState, m_CurrentNoiseState;
 			// publish
 			std::unique_ptr<RouterService> m_Service;
-			std::unique_ptr<boost::asio::deadline_timer> m_PublishTimer, m_CongestionUpdateTimer, m_CleanupTimer;
+			std::unique_ptr<boost::asio::steady_timer> m_PublishTimer, m_CongestionUpdateTimer, m_CleanupTimer;
 			std::unordered_set<i2p::data::IdentHash> m_PublishExcluded;
 			uint32_t m_PublishReplyToken;
 			bool m_IsHiddenMode; // not publish
 			mutable std::mutex m_RouterInfoMutex;
 			std::shared_ptr<i2p::data::RouterInfo::Buffer> m_SaveBuffer;
 			std::mutex m_SaveBufferMutex; // TODO: make m_SaveBuffer atomic
-			std::atomic<bool> m_IsSaving;
+			std::atomic_flag m_IsSaving;
 	};
 
 	extern RouterContext context;

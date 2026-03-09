@@ -258,6 +258,12 @@ namespace tunnel
 		return ret;
 	}
 
+	bool Tunnel::IsEstablished () const
+	{
+		auto state = m_State.load ();
+		return state == eTunnelStateEstablished || state == eTunnelStateTestFailed;
+	}
+
 	void Tunnel::SetState(TunnelState state)
 	{
 		m_State = state;
@@ -871,6 +877,7 @@ namespace tunnel
 
 	void Tunnels::ManageOutboundTunnels (uint64_t ts, std::vector<std::shared_ptr<Tunnel> >& toRecreate)
 	{
+		size_t numEstablishedOutboundTunnels = 0;
 		for (auto it = m_OutboundTunnels.begin (); it != m_OutboundTunnels.end ();)
 		{
 			auto tunnel = *it;
@@ -897,12 +904,13 @@ namespace tunnel
 					}
 					if (ts + TUNNEL_EXPIRATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 						tunnel->SetState (eTunnelStateExpiring);
+					numEstablishedOutboundTunnels++;
 				}
 				++it;
 			}
 		}
 
-		if (m_OutboundTunnels.size () < 3)
+		if (numEstablishedOutboundTunnels < 3)
 		{
 			// trying to create one more outbound tunnel
 			auto inboundTunnel = GetNextInboundTunnel ();
@@ -920,6 +928,7 @@ namespace tunnel
 
 	void Tunnels::ManageInboundTunnels (uint64_t ts, std::vector<std::shared_ptr<Tunnel> >& toRecreate)
 	{
+		size_t numEstablishedInboundTunnels = 0;
 		for (auto it = m_InboundTunnels.begin (); it != m_InboundTunnels.end ();)
 		{
 			auto tunnel = *it;
@@ -949,12 +958,13 @@ namespace tunnel
 						tunnel->SetState (eTunnelStateExpiring);
 					else // we don't need to cleanup expiring tunnels
 						tunnel->Cleanup ();
+					numEstablishedInboundTunnels++;
 				}
 				it++;
 			}
 		}
 
-		if (m_InboundTunnels.empty ())
+		if (!numEstablishedInboundTunnels)
 		{
 			LogPrint (eLogDebug, "Tunnel: Creating zero hops inbound tunnel");
 			CreateZeroHopsInboundTunnel (nullptr);
@@ -971,7 +981,7 @@ namespace tunnel
 			return;
 		}
 
-		if (m_OutboundTunnels.empty () || m_InboundTunnels.size () < 3)
+		if (m_OutboundTunnels.empty () || numEstablishedInboundTunnels < 3)
 		{
 			// trying to create one more inbound tunnel
 			auto router = i2p::transport::transports.RoutesRestricted() ?

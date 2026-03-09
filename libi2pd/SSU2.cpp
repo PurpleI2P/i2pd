@@ -1085,7 +1085,7 @@ namespace transport
 
 	void SSU2Server::ScheduleTermination ()
 	{
-		m_TerminationTimer.expires_from_now (boost::posix_time::seconds(
+		m_TerminationTimer.expires_after (std::chrono::seconds(
 			SSU2_TERMINATION_CHECK_TIMEOUT + m_Rng () % SSU2_TERMINATION_CHECK_TIMEOUT_VARIANCE));
 		m_TerminationTimer.async_wait (std::bind (&SSU2Server::HandleTerminationTimer,
 			this, std::placeholders::_1));
@@ -1133,7 +1133,7 @@ namespace transport
 
 	void SSU2Server::ScheduleCleanup ()
 	{
-		m_CleanupTimer.expires_from_now (boost::posix_time::seconds(SSU2_CLEANUP_INTERVAL));
+		m_CleanupTimer.expires_after (std::chrono::seconds(SSU2_CLEANUP_INTERVAL));
 		m_CleanupTimer.async_wait (std::bind (&SSU2Server::HandleCleanupTimer,
 			this, std::placeholders::_1));
 	}
@@ -1215,7 +1215,7 @@ namespace transport
 
 	void SSU2Server::ScheduleResend (bool more)
 	{
-		m_ResendTimer.expires_from_now (boost::posix_time::milliseconds (more ?
+		m_ResendTimer.expires_after (std::chrono::milliseconds (more ?
 		    (SSU2_RESEND_CHECK_MORE_TIMEOUT + m_Rng () % SSU2_RESEND_CHECK_MORE_TIMEOUT_VARIANCE):
 			(SSU2_RESEND_CHECK_TIMEOUT + m_Rng () % SSU2_RESEND_CHECK_TIMEOUT_VARIANCE)));
 		m_ResendTimer.async_wait (std::bind (&SSU2Server::HandleResendTimer,
@@ -1442,7 +1442,7 @@ namespace transport
 	{
 		if (m_IsPublished)
 		{
-			m_IntroducersUpdateTimer.expires_from_now (boost::posix_time::seconds(
+			m_IntroducersUpdateTimer.expires_after (std::chrono::seconds(
 				SSU2_KEEP_ALIVE_INTERVAL + m_Rng () % SSU2_KEEP_ALIVE_INTERVAL_VARIANCE));
 			m_IntroducersUpdateTimer.async_wait (std::bind (&SSU2Server::HandleIntroducersUpdateTimer,
 				this, std::placeholders::_1, true));
@@ -1456,7 +1456,7 @@ namespace transport
 			m_IntroducersUpdateTimer.cancel ();
 			i2p::context.ClearSSU2Introducers (true);
 			m_Introducers.clear ();
-			m_IntroducersUpdateTimer.expires_from_now (boost::posix_time::seconds(
+			m_IntroducersUpdateTimer.expires_after (std::chrono::seconds(
 				(SSU2_KEEP_ALIVE_INTERVAL + m_Rng () % SSU2_KEEP_ALIVE_INTERVAL_VARIANCE)/2));
 			m_IntroducersUpdateTimer.async_wait (std::bind (&SSU2Server::HandleIntroducersUpdateTimer,
 				this, std::placeholders::_1, true));
@@ -1467,7 +1467,7 @@ namespace transport
 	{
 		if (m_IsPublished)
 		{
-			m_IntroducersUpdateTimerV6.expires_from_now (boost::posix_time::seconds(
+			m_IntroducersUpdateTimerV6.expires_after (std::chrono::seconds(
 				SSU2_KEEP_ALIVE_INTERVAL + m_Rng () % SSU2_KEEP_ALIVE_INTERVAL_VARIANCE));
 			m_IntroducersUpdateTimerV6.async_wait (std::bind (&SSU2Server::HandleIntroducersUpdateTimer,
 				this, std::placeholders::_1, false));
@@ -1481,7 +1481,7 @@ namespace transport
 			m_IntroducersUpdateTimerV6.cancel ();
 			i2p::context.ClearSSU2Introducers (false);
 			m_IntroducersV6.clear ();
-			m_IntroducersUpdateTimerV6.expires_from_now (boost::posix_time::seconds(
+			m_IntroducersUpdateTimerV6.expires_after (std::chrono::seconds(
 				(SSU2_KEEP_ALIVE_INTERVAL + m_Rng () % SSU2_KEEP_ALIVE_INTERVAL_VARIANCE)/2));
 			m_IntroducersUpdateTimerV6.async_wait (std::bind (&SSU2Server::HandleIntroducersUpdateTimer,
 				this, std::placeholders::_1, false));
@@ -1789,8 +1789,8 @@ namespace transport
 		if (m_ProxyConnectRetryTimer)
 			m_ProxyConnectRetryTimer->cancel ();
 		else
-			m_ProxyConnectRetryTimer.reset (new boost::asio::deadline_timer (m_ReceiveService.GetService ()));
-		m_ProxyConnectRetryTimer->expires_from_now (boost::posix_time::seconds (SSU2_PROXY_CONNECT_RETRY_TIMEOUT));
+			m_ProxyConnectRetryTimer.reset (new boost::asio::steady_timer (m_ReceiveService.GetService ()));
+		m_ProxyConnectRetryTimer->expires_after (std::chrono::seconds (SSU2_PROXY_CONNECT_RETRY_TIMEOUT));
 		m_ProxyConnectRetryTimer->async_wait (
 			[this](const boost::system::error_code& ecode)
 			{

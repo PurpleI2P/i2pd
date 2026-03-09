@@ -227,7 +227,7 @@ namespace transport
 	{
 		if (m_NumResends < SSU2_PEER_TEST_MAX_NUM_RESENDS)
 		{
-			m_PeerTestResendTimer.expires_from_now (boost::posix_time::milliseconds(
+			m_PeerTestResendTimer.expires_after (std::chrono::milliseconds(
 				SSU2_PEER_TEST_RESEND_INTERVAL + GetServer ().GetRng ()() % SSU2_PEER_TEST_RESEND_INTERVAL_VARIANCE));
 			std::weak_ptr<SSU2PeerTestSession> s(std::static_pointer_cast<SSU2PeerTestSession>(shared_from_this ()));
 			m_PeerTestResendTimer.async_wait ([s, msg](const boost::system::error_code& ecode)
@@ -322,7 +322,7 @@ namespace transport
 	{
 		if (m_NumResends < SSU2_HOLE_PUNCH_MAX_NUM_RESENDS)
 		{
-			m_HolePunchResendTimer.expires_from_now (boost::posix_time::milliseconds(
+			m_HolePunchResendTimer.expires_after (std::chrono::milliseconds(
 				SSU2_HOLE_PUNCH_RESEND_INTERVAL + GetServer ().GetRng ()() % SSU2_HOLE_PUNCH_RESEND_INTERVAL_VARIANCE));
 			std::weak_ptr<SSU2HolePunchSession> s(std::static_pointer_cast<SSU2HolePunchSession>(shared_from_this ()));
 			m_HolePunchResendTimer.async_wait ([s](const boost::system::error_code& ecode)

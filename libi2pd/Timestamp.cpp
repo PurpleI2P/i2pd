@@ -200,7 +200,7 @@ namespace util
 
 		if (m_IsRunning)
 		{
-			m_Timer.expires_from_now (boost::posix_time::hours (m_SyncInterval));
+			m_Timer.expires_after (std::chrono::hours (m_SyncInterval));
 			m_Timer.async_wait ([this](const boost::system::error_code& ecode)
 			{
 				if (ecode != boost::asio::error::operation_aborted)

@@ -15,6 +15,7 @@
 #include <utility>
 #include <mutex>
 #include <memory>
+#include <random>
 #include "Identity.h"
 #include "LeaseSet.h"
 #include "RouterInfo.h"
@@ -151,6 +152,7 @@ namespace tunnel
 			uint64_t m_NextManageTime; // in seconds
 			std::mutex m_CustomPeerSelectorMutex;
 			ITunnelPeerSelector * m_CustomPeerSelector;
+			std::mt19937 m_Rng; // for tunnel selection
 
 			int m_MinLatency = 0; // if > 0 this tunnel pool will try building tunnels with minimum latency by ms
 			int m_MaxLatency = 0; // if > 0 this tunnel pool will try building tunnels with maximum latency by ms

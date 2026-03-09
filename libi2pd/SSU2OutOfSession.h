@@ -50,7 +50,7 @@ namespace transport
 			uint8_t m_MsgNumReceived, m_NumResends;
 			bool m_IsConnectedRecently, m_IsStatusChanged;
 			std::vector<uint8_t> m_SignedData; // for resends
-			boost::asio::deadline_timer m_PeerTestResendTimer;
+			boost::asio::steady_timer m_PeerTestResendTimer;
 			boost::asio::ip::udp::endpoint m_OurEndpoint; // as seen by peer
 	};	
 
@@ -78,7 +78,7 @@ namespace transport
 
 			int m_NumResends;
 			std::vector<uint8_t> m_RelayResponseBlock;
-			boost::asio::deadline_timer m_HolePunchResendTimer;
+			boost::asio::steady_timer m_HolePunchResendTimer;
 	};	
 }
 }

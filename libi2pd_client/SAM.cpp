@@ -475,7 +475,7 @@ namespace client
 				SendSessionCreateReplyOk ();
 			else
 			{
-				m_Timer.expires_from_now (boost::posix_time::seconds(SAM_SESSION_READINESS_CHECK_INTERVAL));
+				m_Timer.expires_after (std::chrono::seconds(SAM_SESSION_READINESS_CHECK_INTERVAL));
 				m_Timer.async_wait (std::bind (&SAMSocket::HandleSessionReadinessCheckTimer,
 					shared_from_this (), std::placeholders::_1));
 			}
@@ -497,7 +497,7 @@ namespace client
 						SendSessionCreateReplyOk ();
 					else
 					{
-						m_Timer.expires_from_now (boost::posix_time::seconds(SAM_SESSION_READINESS_CHECK_INTERVAL));
+						m_Timer.expires_after (std::chrono::seconds(SAM_SESSION_READINESS_CHECK_INTERVAL));
 						m_Timer.async_wait (std::bind (&SAMSocket::HandleSessionReadinessCheckTimer,
 							shared_from_this (), std::placeholders::_1));
 					}
@@ -1591,13 +1591,13 @@ namespace client
 
 	void SAMBridge::ScheduleSessionCleanupTimer (std::shared_ptr<SAMSession> session)
 	{
-		auto timer = std::make_shared<boost::asio::deadline_timer>(GetService ());
-		timer->expires_from_now (boost::posix_time::seconds(5)); // postpone destination clean for 5 seconds
+		auto timer = std::make_shared<boost::asio::steady_timer>(GetService ());
+		timer->expires_after (std::chrono::seconds(5)); // postpone destination clean for 5 seconds
 		timer->async_wait (std::bind (&SAMBridge::HandleSessionCleanupTimer, this, std::placeholders::_1, session, timer));
 	}
 
 	void SAMBridge::HandleSessionCleanupTimer (const boost::system::error_code& ecode,
-		std::shared_ptr<SAMSession> session, std::shared_ptr<boost::asio::deadline_timer> timer)
+		std::shared_ptr<SAMSession> session, std::shared_ptr<boost::asio::steady_timer> timer)
 	{
 		if (ecode != boost::asio::error::operation_aborted && session)
 		{

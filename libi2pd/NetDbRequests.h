@@ -121,7 +121,7 @@ namespace data
 			i2p::util::MemoryPoolMt<RequestedDestination> m_RequestedDestinationsPool;
 			std::unordered_map<IdentHash, std::shared_ptr<RequestedDestination> > m_RequestedDestinations;
 			std::list<IdentHash> m_DiscoveredRouterHashes;
-			boost::asio::deadline_timer m_ManageRequestsTimer, m_ExploratoryTimer,
+			boost::asio::steady_timer m_ManageRequestsTimer, m_ExploratoryTimer,
 				m_CleanupTimer, m_DiscoveredRoutersTimer;
 			std::mt19937 m_Rng;
 	};

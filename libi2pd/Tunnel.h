@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2025, The PurpleI2P Project
+* Copyright (c) 2013-2026, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -93,7 +93,7 @@ namespace tunnel
 			i2p::data::RouterInfo::CompatibleTransports GetFarEndTransports () const { return m_FarEndTransports; };
 			TunnelState GetState () const { return m_State; };
 			void SetState (TunnelState state);
-			bool IsEstablished () const { return m_State == eTunnelStateEstablished || m_State == eTunnelStateTestFailed; };
+			bool IsEstablished () const;
 			bool IsFailed () const { return m_State == eTunnelStateFailed; };
 			bool IsRecreated () const { return m_IsRecreated; };
 			void SetRecreated (bool recreated) { m_IsRecreated = recreated; };
@@ -129,7 +129,7 @@ namespace tunnel
 			std::vector<TunnelHop> m_Hops;
 			bool m_IsShortBuildMessage;
 			std::shared_ptr<TunnelPool> m_Pool; // pool, tunnel belongs to, or null
-			TunnelState m_State;
+			std::atomic<TunnelState> m_State;
 			i2p::data::RouterInfo::CompatibleTransports m_FarEndTransports;
 			bool m_IsRecreated; // if tunnel is replaced by new, or new tunnel requested to replace
 			int m_Latency; // in microseconds
@@ -156,8 +156,8 @@ namespace tunnel
 
 		protected:
 
-			static TunnelMessageBlock CreateTunnelMessageBlock (const uint8_t * gwHash, uint32_t gwTunnel); 
-			
+			static TunnelMessageBlock CreateTunnelMessageBlock (const uint8_t * gwHash, uint32_t gwTunnel);
+
 		private:
 
 			std::mutex m_SendMutex;
@@ -180,11 +180,11 @@ namespace tunnel
 
 		protected:
 
-			std::shared_ptr<InboundTunnel> GetSharedFromThis () 
+			std::shared_ptr<InboundTunnel> GetSharedFromThis ()
 			{
 				return std::static_pointer_cast<InboundTunnel>(shared_from_this ());
 			}
-			
+
 		private:
 
 			TunnelEndpoint m_Endpoint;
@@ -243,8 +243,8 @@ namespace tunnel
 			void PostTunnelData (std::list<std::shared_ptr<I2NPMessage> >& msgs); // and cleanup msgs
 			void AddPendingTunnel (uint32_t replyMsgID, std::shared_ptr<InboundTunnel> tunnel);
 			void AddPendingTunnel (uint32_t replyMsgID, std::shared_ptr<OutboundTunnel> tunnel);
-			std::shared_ptr<TunnelPool> CreateTunnelPool (int numInboundHops, 
-			    int numOuboundHops, int numInboundTunnels, int numOutboundTunnels, 
+			std::shared_ptr<TunnelPool> CreateTunnelPool (int numInboundHops,
+			    int numOuboundHops, int numInboundTunnels, int numOutboundTunnels,
 			    int inboundVariance, int outboundVariance,  bool isHighBandwidth);
 			void DeleteTunnelPool (std::shared_ptr<TunnelPool> pool);
 			void StopTunnelPool (std::shared_ptr<TunnelPool> pool);
@@ -255,7 +255,7 @@ namespace tunnel
 			uint32_t GetMaxNumTransitTunnels () const { return m_MaxNumTransitTunnels; };
 			int GetCongestionLevel() const { return m_MaxNumTransitTunnels ? CONGESTION_LEVEL_FULL * m_TransitTunnels.GetNumTransitTunnels () / m_MaxNumTransitTunnels : CONGESTION_LEVEL_FULL; }
 			std::mt19937& GetRng () { return m_Rng; }
-			
+
 		private:
 
 			template<class TTunnel>
@@ -269,7 +269,7 @@ namespace tunnel
 			void HandleShortTunnelBuildMsg (std::shared_ptr<I2NPMessage> msg);
 			void HandleVariableTunnelBuildMsg (std::shared_ptr<I2NPMessage> msg);
 			void HandleTunnelBuildReplyMsg (std::shared_ptr<I2NPMessage> msg, bool isShort);
-			
+
 			void Run ();
 			void ManageTunnels (uint64_t ts);
 			void ManageOutboundTunnels (uint64_t ts, std::vector<std::shared_ptr<Tunnel> >& toRecreate);
@@ -323,7 +323,7 @@ namespace tunnel
 			int m_TunnelCreationAttemptsNum;
 			std::mt19937 m_Rng;
 			TransitTunnels m_TransitTunnels;
-			
+
 		public:
 
 			// for HTTP only

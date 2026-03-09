@@ -186,7 +186,7 @@ namespace client
 		if (!pool || pool->GetOutboundTunnels ().empty ())
 		{
 			// try again later
-			m_ReadinessCheckTimer.expires_from_now (boost::posix_time::seconds(I2CP_DESTINATION_READINESS_CHECK_INTERVAL));
+			m_ReadinessCheckTimer.expires_after (std::chrono::seconds(I2CP_DESTINATION_READINESS_CHECK_INTERVAL));
 			m_ReadinessCheckTimer.async_wait(
 				[s=GetSharedFromThis (), tunnels=std::move(tunnels)](const boost::system::error_code& ecode)
 			    {
@@ -209,7 +209,7 @@ namespace client
 				htobe16buf (leases - 3, sessionID);
 				size_t l = 2/*sessionID*/ + 1/*num leases*/ + i2p::data::LEASE_SIZE*numLeases;
 				m_Owner->SendI2CPMessage (I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE, leases - 3, l);
-				m_LeaseSetCreationTimer.expires_from_now (boost::posix_time::seconds (I2CP_LEASESET_CREATION_TIMEOUT));
+				m_LeaseSetCreationTimer.expires_after (std::chrono::seconds (I2CP_LEASESET_CREATION_TIMEOUT));
 				auto s = GetSharedFromThis ();
 				m_LeaseSetCreationTimer.async_wait ([s](const boost::system::error_code& ecode)
 				{

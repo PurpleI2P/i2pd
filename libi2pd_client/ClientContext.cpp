@@ -123,7 +123,7 @@ namespace client
 		// start UDP cleanup
 		if (!m_ServerForwards.empty ())
 		{
-			m_CleanupUDPTimer.reset (new boost::asio::deadline_timer(m_SharedLocalDestination->GetService ()));
+			m_CleanupUDPTimer.reset (new boost::asio::steady_timer(m_SharedLocalDestination->GetService ()));
 			ScheduleCleanupUDP();
 		}
 	}
@@ -1043,7 +1043,7 @@ namespace client
 		if (m_CleanupUDPTimer)
 		{
 			// schedule cleanup in 17 seconds
-			m_CleanupUDPTimer->expires_from_now (boost::posix_time::seconds (17));
+			m_CleanupUDPTimer->expires_after (std::chrono::seconds (17));
 			m_CleanupUDPTimer->async_wait(std::bind(&ClientContext::CleanupUDP, this, std::placeholders::_1));
 		}
 	}

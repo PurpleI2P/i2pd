@@ -142,7 +142,7 @@ namespace data
 
 	void NetDbRequests::ScheduleCleanup ()
 	{
-		m_CleanupTimer.expires_from_now (boost::posix_time::seconds(REQUESTED_DESTINATIONS_POOL_CLEANUP_INTERVAL));
+		m_CleanupTimer.expires_after (std::chrono::seconds(REQUESTED_DESTINATIONS_POOL_CLEANUP_INTERVAL));
 		m_CleanupTimer.async_wait (std::bind (&NetDbRequests::HandleCleanupTimer,
 			this, std::placeholders::_1));
 	}	
@@ -333,7 +333,7 @@ namespace data
 
 	void NetDbRequests::ScheduleManageRequests ()
 	{
-		m_ManageRequestsTimer.expires_from_now (boost::posix_time::milliseconds(MANAGE_REQUESTS_INTERVAL +
+		m_ManageRequestsTimer.expires_after (std::chrono::milliseconds(MANAGE_REQUESTS_INTERVAL +
 			m_Rng () % MANAGE_REQUESTS_INTERVAL_VARIANCE));
 		m_ManageRequestsTimer.async_wait (std::bind (&NetDbRequests::HandleManageRequestsTimer,
 			this, std::placeholders::_1));
@@ -508,7 +508,7 @@ namespace data
 
 	void NetDbRequests::ScheduleExploratory (uint64_t interval)
 	{
-		m_ExploratoryTimer.expires_from_now (boost::posix_time::seconds(interval));
+		m_ExploratoryTimer.expires_after (std::chrono::seconds(interval));
 		m_ExploratoryTimer.async_wait (std::bind (&NetDbRequests::HandleExploratoryTimer,
 			this, std::placeholders::_1));
 	}
@@ -539,7 +539,7 @@ namespace data
 
 	void NetDbRequests::ScheduleDiscoveredRoutersRequest ()
 	{
-		m_DiscoveredRoutersTimer.expires_from_now (boost::posix_time::milliseconds(
+		m_DiscoveredRoutersTimer.expires_after (std::chrono::milliseconds(
 			DISCOVERED_REQUEST_INTERVAL + m_Rng () % DISCOVERED_REQUEST_INTERVAL_VARIANCE));
 		m_DiscoveredRoutersTimer.async_wait (std::bind (&NetDbRequests::HandleDiscoveredRoutersTimer,
 			this, std::placeholders::_1));

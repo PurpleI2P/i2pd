@@ -68,7 +68,7 @@ namespace transport
 			std::condition_variable m_Started;
 			std::mutex m_StartedMutex;
 			boost::asio::io_context m_Service;
-			boost::asio::deadline_timer m_Timer;
+			boost::asio::steady_timer m_Timer;
 			bool m_upnpUrlsInitialized = false;
 			struct UPNPUrls m_upnpUrls;
 			struct IGDdatas m_upnpData;

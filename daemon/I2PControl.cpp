@@ -405,7 +405,7 @@ namespace client
 	{
 		LogPrint (eLogInfo, "I2PControl: Shutdown requested");
 		InsertParam (results, "Shutdown", "");
-		m_ShutdownTimer.expires_from_now (boost::posix_time::seconds(1)); // 1 second to make sure response has been sent
+		m_ShutdownTimer.expires_after (std::chrono::seconds(1)); // 1 second to make sure response has been sent
 		m_ShutdownTimer.async_wait (
 			[](const boost::system::error_code& ecode)
 			{
@@ -419,7 +419,7 @@ namespace client
 		int timeout = i2p::tunnel::tunnels.GetTransitTunnelsExpirationTimeout ();
 		LogPrint (eLogInfo, "I2PControl: Graceful shutdown requested, ", timeout, " seconds remains");
 		InsertParam (results, "ShutdownGraceful", "");
-		m_ShutdownTimer.expires_from_now (boost::posix_time::seconds(timeout + 1)); // + 1 second
+		m_ShutdownTimer.expires_after (std::chrono::seconds(timeout + 1)); // + 1 second
 		m_ShutdownTimer.async_wait (
 			[](const boost::system::error_code& ecode)
 			{

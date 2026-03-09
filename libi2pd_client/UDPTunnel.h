@@ -47,7 +47,7 @@ namespace client
 		std::list<std::pair<uint32_t, uint64_t> > m_UnackedDatagrams; // list of sent but not acked repliable datagrams(seqn, timestamp) in ascending order
 		uint64_t m_RTT = 0; // milliseconds
 
-		boost::asio::deadline_timer m_AckTimer;
+		boost::asio::steady_timer m_AckTimer;
 		uint32_t m_AckTimerSeqn = 0;
 		bool m_IsSendingAllowed = true;
 		bool m_IsFirstPacket = true;

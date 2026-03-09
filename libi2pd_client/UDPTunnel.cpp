@@ -195,7 +195,7 @@ namespace client
 		if (!m_AckTimerSeqn)
 		{
 			m_AckTimerSeqn = seqn;
-			m_AckTimer.expires_from_now (boost::posix_time::milliseconds (m_RTT ? 2*m_RTT : I2P_UDP_MAX_UNACKED_DATAGRAM_TIME));
+			m_AckTimer.expires_after (std::chrono::milliseconds (m_RTT ? 2*m_RTT : I2P_UDP_MAX_UNACKED_DATAGRAM_TIME));
 			m_AckTimer.async_wait ([this](const boost::system::error_code& ecode)
 				{
 					if (ecode != boost::asio::error::operation_aborted)

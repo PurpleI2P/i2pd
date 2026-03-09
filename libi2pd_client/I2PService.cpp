@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2025, The PurpleI2P Project
+* Copyright (c) 2013-2026, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -32,8 +32,7 @@ namespace client
 	I2PService::I2PService (i2p::data::SigningKeyType kt):
 		m_LocalDestination (i2p::client::context.CreateNewLocalDestination (false, kt)),
 		m_ReadyTimer(m_LocalDestination->GetService()),
-		m_ConnectTimeout(0),
-		isUpdated (true)
+		m_ConnectTimeout(0), isUpdated (true)
 	{
 		m_LocalDestination->Acquire ();
 	}
@@ -54,15 +53,15 @@ namespace client
 		m_Handlers.clear();
 	}
 
-	void I2PService::SetConnectTimeout(uint32_t timeout)
+	void I2PService::SetConnectTimeout(uint64_t timeout)
 	{
 		m_ConnectTimeout = timeout;
 	}
 
 	void I2PService::AddReadyCallback(ReadyCallback cb)
 	{
-		uint32_t now = i2p::util::GetSecondsSinceEpoch();
-		uint32_t tm = (m_ConnectTimeout) ? now + m_ConnectTimeout : NEVER_TIMES_OUT;
+		uint64_t now = i2p::util::GetMonotonicSeconds ();
+		uint64_t tm = (m_ConnectTimeout) ? now + m_ConnectTimeout : NEVER_TIMES_OUT;
 
 		LogPrint(eLogDebug, "I2PService::AddReadyCallback() ", tm, " ", now);
 		m_ReadyCallbacks.push_back({cb, tm});
@@ -71,24 +70,24 @@ namespace client
 
 	void I2PService::TriggerReadyCheckTimer()
 	{
-		m_ReadyTimer.expires_from_now(boost::posix_time::seconds (1));
+		m_ReadyTimer.expires_after(std::chrono::seconds (I2P_SERVICE_READINESS_CHECK_INTERVAL));
 		m_ReadyTimer.async_wait(std::bind(&I2PService::HandleReadyCheckTimer, shared_from_this (), std::placeholders::_1));
 		m_ReadyTimerTriggered = true;
-
 	}
 
 	void I2PService::HandleReadyCheckTimer(const boost::system::error_code &ec)
 	{
-		if(ec || m_LocalDestination->IsReady())
+		bool isReady = (!ec) ? m_LocalDestination->IsReady() : false;
+		if(ec || isReady)
 		{
 			for(auto & itr : m_ReadyCallbacks)
 				itr.first(ec);
 			m_ReadyCallbacks.clear();
 		}
-		else if(!m_LocalDestination->IsReady())
+		else if(!isReady)
 		{
 			// expire timed out requests
-			uint32_t now = i2p::util::GetSecondsSinceEpoch ();
+			uint64_t now = i2p::util::GetMonotonicSeconds ();
 			auto itr = m_ReadyCallbacks.begin();
 			while(itr != m_ReadyCallbacks.end())
 			{

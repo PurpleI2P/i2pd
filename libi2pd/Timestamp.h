@@ -14,7 +14,7 @@
 #include <vector>
 #include <string>
 #include <boost/asio.hpp>
-#include <boost/asio/deadline_timer.hpp> // for boost 1.89 
+#include <boost/asio/steady_timer.hpp> // for boost 1.89 
 
 namespace i2p
 {
@@ -54,7 +54,7 @@ namespace util
 			bool m_IsRunning;
 			std::unique_ptr<std::thread> m_Thread;
 			boost::asio::io_context m_Service;
-			boost::asio::deadline_timer m_Timer;
+			boost::asio::steady_timer m_Timer;
 			int m_SyncInterval;
 			std::vector<std::string> m_NTPServersList;
 	};

@@ -178,7 +178,7 @@ namespace transport
 			if (address && !address->host.is_v6 () && address->port)
 				TryPortMapping (address);
 		}
-		m_Timer.expires_from_now (boost::posix_time::minutes(UPNP_PORT_FORWARDING_INTERVAL)); // every 20 minutes
+		m_Timer.expires_after (std::chrono::minutes(UPNP_PORT_FORWARDING_INTERVAL)); // every 20 minutes
 		m_Timer.async_wait ([this](const boost::system::error_code& ecode)
 		{
 			if (ecode != boost::asio::error::operation_aborted)

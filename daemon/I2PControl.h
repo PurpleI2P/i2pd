@@ -94,7 +94,7 @@ namespace client
 			std::unique_ptr<boost::asio::local::stream_protocol::acceptor> m_LocalAcceptor;
 #endif		
 			boost::asio::ssl::context m_SSLContext;
-			boost::asio::deadline_timer m_ShutdownTimer;
+			boost::asio::steady_timer m_ShutdownTimer;
 			std::set<std::string> m_Tokens;
 
 			std::map<std::string, MethodHandler> m_MethodHandlers;

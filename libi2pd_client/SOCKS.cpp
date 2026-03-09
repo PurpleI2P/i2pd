@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2025, The PurpleI2P Project
+* Copyright (c) 2013-2026, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -155,7 +155,7 @@ namespace proxy
 			std::shared_ptr<boost::asio::ip::tcp::socket> m_sock, m_upstreamSock;
 #if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
 			std::shared_ptr<boost::asio::local::stream_protocol::socket> m_upstreamLocalSock;
-#endif			
+#endif
 			std::shared_ptr<i2p::stream::Stream> m_stream;
 			uint8_t *m_remaining_data; //Data left to be sent
 			uint8_t *m_remaining_upstream_data; //upstream data left to be forwarded
@@ -189,7 +189,7 @@ namespace proxy
 				{ m_address.ip = 0; EnterState(GET_SOCKSV); }
 
 			~SOCKSHandler() { Terminate(); }
-			void Handle() { AsyncSockRead(); }
+			void Handle() override { AsyncSockRead(); }
 	};
 
 	void SOCKSHandler::AsyncSockRead()
@@ -226,18 +226,19 @@ namespace proxy
 			m_upstreamLocalSock->close();
 			m_upstreamLocalSock = nullptr;
 		}
-#endif		
+#endif
 		if (m_stream)
 		{
 			LogPrint(eLogDebug, "SOCKS: Closing stream");
-			m_stream.reset ();
+			m_stream->AsyncClose ();
+			m_stream = nullptr;
 		}
 		if (m_UDPTunnel)
 		{
 			m_UDPTunnel->Stop ();
 			GetServer ()->ReleaseLocalUDPPort (m_UDPTunnel->GetLocalEndpoint ().port ());
 			m_UDPTunnel = nullptr;
-		}	
+		}
 		Done(shared_from_this());
 	}
 
@@ -315,10 +316,10 @@ namespace proxy
 		m_response[0] = 1; // Version of the subnegotiation
 		m_response[1] = 0; // Response code
 		LogPrint(eLogDebug, "SOCKS: v5 user/password response");
-		boost::asio::async_write(*m_sock, boost::asio::const_buffer(m_response, 2), 
+		boost::asio::async_write(*m_sock, boost::asio::const_buffer(m_response, 2),
 			std::bind(&SOCKSHandler::SentSocksResponse, shared_from_this(), std::placeholders::_1));
-	}	
-	
+	}
+
 	/* All hope is lost beyond this point */
 	void SOCKSHandler::SocksRequestFailed(SOCKSHandler::errTypes error)
 	{
@@ -358,14 +359,14 @@ namespace proxy
 					// TODO: implement ipv6
 					ad.ip = m_UDPTunnel->GetLocalEndpoint ().address ().to_v4 ().to_uint ();
 					response = GenerateSOCKS5Response(SOCKS5_OK, ADDR_IPV4, ad, m_UDPTunnel->GetLocalEndpoint ().port ());
-				}	
+				}
 				else
-				{	
+				{
 					auto s = i2p::client::context.GetAddressBook().ToAddress(GetOwner()->GetLocalDestination()->GetIdentHash());
 					address ad; ad.dns.FromString(s);
 					// HACK only 16 bits passed in port as SOCKS5 doesn't allow for more
 					response = GenerateSOCKS5Response(SOCKS5_OK, ADDR_DNS, ad, m_stream ? m_stream->GetRecvStreamID() : 0);
-				}		
+				}
 			break;
 		}
 		boost::asio::async_write(*m_sock, response, std::bind(&SOCKSHandler::SentSocksDone, shared_from_this(), std::placeholders::_1));
@@ -450,7 +451,7 @@ namespace proxy
 						if (!Socks5ChooseAuth()) return false;
 						if (m_authchosen == AUTH_USERPASSWD)
 							EnterState(GET5_USERPASSWD);
-						else	
+						else
 							EnterState(GET5_REQUESTV);
 					}
 				break;
@@ -572,14 +573,14 @@ namespace proxy
 						SocksRequestFailed(SOCKS5_GEN_FAIL);
 						return false;
 					}
-					EnterState(GET5_USER_SIZE);	
-				break;		
+					EnterState(GET5_USER_SIZE);
+				break;
 				case GET5_USER_SIZE:
 					if (*sock_buff)
 						EnterState(GET5_USER, *sock_buff);
 					else // empty user
 						EnterState(GET5_PASSWD_SIZE);
-				break;	
+				break;
 				case GET5_USER:
 					// skip user for now
 					m_parseleft--;
@@ -592,17 +593,17 @@ namespace proxy
 					{
 						Socks5UserPasswdResponse ();
 						EnterState(GET5_REQUESTV);
-					}		
+					}
 				break;
 				case GET5_PASSWD:
 					// skip passwd for now
 					m_parseleft--;
-					if (m_parseleft == 0) 
+					if (m_parseleft == 0)
 					{
 						Socks5UserPasswdResponse ();
 						EnterState(GET5_REQUESTV);
-					}	
-				break;	
+					}
+				break;
 				default:
 					LogPrint(eLogError, "SOCKS: Parse state?? ", m_state);
 					Terminate();
@@ -638,7 +639,7 @@ namespace proxy
 				LogPrint(eLogInfo, "SOCKS: Requested ", addr, ":" , m_port);
 				const size_t addrlen = addr.size();
 				// does it end with .i2p?
-				if (addr.rfind(".i2p") == addrlen - 4) 
+				if (addr.rfind(".i2p") == addrlen - 4)
 				{
 					// yes it does
 					switch (m_cmd)
@@ -647,21 +648,21 @@ namespace proxy
 							//make an i2p session
 							GetOwner()->CreateStream ( std::bind (&SOCKSHandler::HandleStreamRequestComplete,
 								shared_from_this(), std::placeholders::_1), m_address.dns.ToString(), m_port);
-						break;	
+						break;
 						case CMD_UDP:
 							// create UDP client tunnel
-							LogPrint (eLogInfo, "SOCKS: New UDP associate connection");	
+							LogPrint (eLogInfo, "SOCKS: New UDP associate connection");
 							m_UDPTunnel = std::make_unique<i2p::client::I2PUDPClientTunnel>("", addr,
 								GetServer ()->GetNextLocalUDPEndpoint (),
 							    GetOwner ()->GetLocalDestination (), m_port, false, i2p::datagram::eDatagramV3);
 							boost::asio::post (GetOwner ()->GetService (), [this](void)
 								{
 									SocksRequestSuccess();
-								});			
+								});
 							break;
 						default: ;
-					}	
-				} 
+					}
+				}
 				else if (m_UseUpstreamProxy)
 					// forward it to upstream proxy
 					ForwardSOCKS();
@@ -686,20 +687,25 @@ namespace proxy
 		if (!ecode)
 		{
 			if (m_cmd == CMD_CONNECT)
-			{	
+			{
 				if (Kill()) return;
-				LogPrint (eLogInfo, "SOCKS: New I2PTunnel connection");
-				auto connection = std::make_shared<i2p::client::I2PTunnelConnection>(GetOwner(), m_sock, m_stream);
-				GetOwner()->AddHandler (connection);
-				connection->I2PConnect (m_remaining_data,m_remaining_data_len);
-				Done(shared_from_this());
+				if (m_sock && m_sock->is_open ())
+				{
+					LogPrint (eLogInfo, "SOCKS: New I2PTunnel connection");
+					auto connection = std::make_shared<i2p::client::I2PTunnelConnection>(GetOwner(), m_sock, m_stream);
+					GetOwner()->AddHandler (connection);
+					connection->I2PConnect (m_remaining_data,m_remaining_data_len);
+					Done(shared_from_this());
+				}
+				else
+					Terminate ();
 			}
 			else if (m_cmd == CMD_UDP && m_UDPTunnel)
 			{
 				LogPrint (eLogInfo, "SOCKS: Start UDP tunnel");
 				m_UDPTunnel->Start ();
 				AsyncSockRead (); // associate socket
-			}	
+			}
 		}
 		else
 		{
@@ -721,8 +727,13 @@ namespace proxy
 	{
 		if (stream)
 		{
-			m_stream = stream;
-			SocksRequestSuccess();
+			if (m_sock && m_sock->is_open ())
+			{
+				m_stream = stream;
+				SocksRequestSuccess();
+			}
+			else
+				stream->AsyncClose ();
 		}
 		else
 		{
@@ -735,21 +746,21 @@ namespace proxy
 	{
 		LogPrint(eLogInfo, "SOCKS: Forwarding to upstream");
 		if (m_UpstreamProxyPort) // TCP
-		{	
+		{
 			EnterState(UPSTREAM_RESOLVE);
-			m_proxy_resolver.async_resolve(m_UpstreamProxyAddress, std::to_string(m_UpstreamProxyPort), 
+			m_proxy_resolver.async_resolve(m_UpstreamProxyAddress, std::to_string(m_UpstreamProxyPort),
 				std::bind(&SOCKSHandler::HandleUpstreamResolved, shared_from_this(), std::placeholders::_1, std::placeholders::_2));
-		}	
+		}
 		else  if (!m_UpstreamProxyAddress.empty ())// local
 		{
-#if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)	
+#if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
 			EnterState(UPSTREAM_CONNECT);
 			m_upstreamLocalSock = std::make_shared<boost::asio::local::stream_protocol::socket>(GetOwner()->GetService());
 			auto s = shared_from_this ();
 			m_upstreamLocalSock->async_connect(m_UpstreamProxyAddress,
 			    [s](const boost::system::error_code& ecode)
 			    {
-					if (ecode) 
+					if (ecode)
 					{
 						LogPrint(eLogWarning, "SOCKS: Could not connect to local upstream proxy: ", ecode.message());
 						s->SocksRequestFailed(SOCKS5_NET_UNREACH);
@@ -767,7 +778,7 @@ namespace proxy
 		{
 			LogPrint(eLogError, "SOCKS: Incorrect upstream proxy address");
 			SocksRequestFailed(SOCKS5_ADDR_UNSUP);
-		}		
+		}
 	}
 
 	template<typename Socket>
@@ -801,26 +812,26 @@ namespace proxy
 	{
 		LogPrint(eLogInfo, "SOCKS: Negotiating with upstream proxy");
 		EnterState(UPSTREAM_HANDSHAKE);
-		if (upstreamSock) 
+		if (upstreamSock)
 		{
 			auto s = shared_from_this ();
 			i2p::transport::Socks5Handshake (*upstreamSock, std::make_pair(m_address.dns.ToString (), m_port),
 			    [s, &upstreamSock](const boost::system::error_code& ec)
 			    {
-					if (!ec) 
+					if (!ec)
 						s->SocksUpstreamSuccess(upstreamSock);
 					else
-					{	
+					{
 						s->SocksRequestFailed(SOCKS5_NET_UNREACH);
 						LogPrint(eLogError, "SOCKS: Upstream proxy failure: ", ec.message ());
 					}
-				});	
-		} 
-		else 
+				});
+		}
+		else
 			LogPrint(eLogError, "SOCKS: No upstream socket to send handshake to");
 	}
 
-	void SOCKSHandler::HandleUpstreamConnected(const boost::system::error_code & ecode, 
+	void SOCKSHandler::HandleUpstreamConnected(const boost::system::error_code & ecode,
 		const boost::asio::ip::tcp::endpoint&  ep)
 	{
 		if (ecode) {
@@ -832,7 +843,7 @@ namespace proxy
 		SendUpstreamRequest(m_upstreamSock);
 	}
 
-	void SOCKSHandler::HandleUpstreamResolved(const boost::system::error_code & ecode, 
+	void SOCKSHandler::HandleUpstreamResolved(const boost::system::error_code & ecode,
 		boost::asio::ip::tcp::resolver::results_type endpoints)
 	{
 		if (ecode) {
@@ -878,18 +889,18 @@ namespace proxy
 		uint16_t port = localEndpoint.port ();
 #if __cplusplus >= 202002L // C++20
 		while (m_UDPPorts.contains (port))
-#else		
+#else
 		while (m_UDPPorts.count (port) > 0)
-#endif	
+#endif
 			port++;
 		m_UDPPorts.insert (port);
-		
+
 		return boost::asio::ip::udp::endpoint (localEndpoint.address (), port); // use proxy address
-	}		
+	}
 
 	void SOCKSServer::ReleaseLocalUDPPort (uint16_t port)
 	{
 		m_UDPPorts.erase (port);
-	}	
+	}
 }
 }

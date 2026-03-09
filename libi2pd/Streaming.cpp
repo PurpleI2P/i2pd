@@ -89,7 +89,7 @@ namespace stream
 		m_LastConfirmedReceivedSequenceNumber (0), // for limit inbound speed
 		m_Status (eStreamStatusNew), m_IsIncoming (false), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false),
 		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true),
-		m_IsWinDropped (true), m_IsChoking2 (false), m_IsClientChoked (false), m_IsClientChoked2 (false),
+		m_IsWinDropped (true), m_IsChoking2 (false), m_IsChoking3 (false), m_IsClientChoked (false), m_IsClientChoked2 (false),
 		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_IsRemoteLeaseChangeInProgress (false),
 		m_IsBufferEmpty (false), m_IsJavaClient (false), m_DontSign (local.GetOwner ()->IsStreamingDontSign ()),
 		m_LocalDestination (local), m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service),
@@ -123,7 +123,7 @@ namespace stream
 		m_LastConfirmedReceivedSequenceNumber (0), // for limit inbound speed
 		m_Status (eStreamStatusNew), m_IsIncoming (true), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false),
 		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true),
-		m_IsWinDropped (true), m_IsChoking2 (false), m_IsClientChoked (false), m_IsClientChoked2 (false),
+		m_IsWinDropped (true), m_IsChoking2 (false), m_IsChoking3 (false), m_IsClientChoked (false), m_IsClientChoked2 (false),
 		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_IsRemoteLeaseChangeInProgress (false),
 		m_IsBufferEmpty (false), m_IsJavaClient (false), m_DontSign (local.GetOwner ()->IsStreamingDontSign ()),
 		m_LocalDestination (local),m_ReceiveTimer (m_Service), m_SendTimer (m_Service),
@@ -249,6 +249,21 @@ namespace stream
 		}
 
 		LogPrint (eLogDebug, "Streaming: Received seqn=", receivedSeqn, " on sSID=", m_SendStreamID);
+		if (m_ReceiveQueue.size () > m_MaxWindowSize*3)
+		{
+			LogPrint (eLogDebug, "Streaming: ReceiveQueue is full, delete packet");
+			m_LocalDestination.DeletePacket (packet);
+			m_IsChoking3 = true;
+			if (!m_IsAckSendScheduled)
+			{
+				SendQuickAck ();
+				auto ackTimeout = m_RTT/10;
+				if (ackTimeout > m_AckDelay) ackTimeout = m_AckDelay;
+				ScheduleAck (ackTimeout);
+			}
+			return;
+		}
+
 		if (receivedSeqn == m_LastReceivedSequenceNumber + 1)
 		{
 			// we have received next in sequence message
@@ -428,13 +443,20 @@ namespace stream
 				if (delayRequested < m_RTT)
 				{
 					m_IsAckSendScheduled = true;
-					m_AckSendTimer.expires_from_now (boost::posix_time::milliseconds(delayRequested));
+					m_AckSendTimer.expires_after (std::chrono::milliseconds(delayRequested));
 					m_AckSendTimer.async_wait (std::bind (&Stream::HandleAckSendTimer,
 						shared_from_this (), std::placeholders::_1));
 				}
 				if (delayRequested >= DELAY_CHOKING)
 				{
-					if (delayRequested == 65535)
+					if (delayRequested == DELAY_CHOKING_3)
+					{
+						m_NumResendAttempts = 0;
+						m_WindowDropTargetSize = MIN_WINDOW_SIZE;
+						m_IsClientChoked = true;
+						ResetWindowSize ();
+					}
+					else if (delayRequested == DELAY_CHOKING_2)
 					{
 						m_IsClientChoked2 = true;
 						m_DropWindowDelaySequenceNumber = m_SequenceNumber-1;
@@ -1188,7 +1210,7 @@ namespace stream
 		htobe32buf (packet + size, lastReceivedSeqn);
 		size += 4; // ack Through
 		uint8_t numNacks = 0;
-		bool choking = m_IsChoking2;
+		bool choking = (m_IsChoking2 || m_IsChoking3);
 		if (lastReceivedSeqn > m_LastReceivedSequenceNumber)
 		{
 			// fill NACKs
@@ -1238,7 +1260,9 @@ namespace stream
 		if (choking || requestImmediateAck)
 		{
 			htobe16buf (packet + size, 2); // 2 bytes delay interval
-			if (m_IsChoking2)
+			if (m_IsChoking3)
+				htobe16buf (packet + size + 2, DELAY_CHOKING_3); // set choking3
+			else if (m_IsChoking2)
 				htobe16buf (packet + size + 2, DELAY_CHOKING_2); // set choking2
 			else
 				htobe16buf (packet + size + 2, choking ? DELAY_CHOKING : 0); // set choking or immediate ack interval
@@ -1258,6 +1282,7 @@ namespace stream
 		m_LastACKSendTime = ts; // for limit inbound speed
 		m_LastConfirmedReceivedSequenceNumber = lastReceivedSeqn; // for limit inbound speed
 		m_IsChoking2 = false;
+		m_IsChoking3 = false;
 		LogPrint (eLogDebug, "Streaming: Quick Ack sent. ", (int)numNacks, " NACKs");
 	}
 
@@ -1326,6 +1351,7 @@ namespace stream
 				}
 			break;
 			case eStreamStatusClosed:
+			case eStreamStatusNew:
 				// already closed
 				Terminate ();
 			break;
@@ -1576,7 +1602,7 @@ namespace stream
 			m_SendTimer.cancel ();
 			uint64_t interval = SEND_INTERVAL + m_LocalDestination.GetRandom () % SEND_INTERVAL_VARIANCE;
 			if (interval < m_PacingTime) interval = m_PacingTime;
-			m_SendTimer.expires_from_now (boost::posix_time::microseconds(interval));
+			m_SendTimer.expires_after (std::chrono::microseconds(interval));
 			m_SendTimer.async_wait (std::bind (&Stream::HandleSendTimer,
 				shared_from_this (), std::placeholders::_1));
 		}
@@ -1669,7 +1695,7 @@ namespace stream
 			m_ResendTimer.cancel ();
 			// check for invalid value
 			if (m_RTO <= 0) m_RTO = INITIAL_RTO;
-			m_ResendTimer.expires_from_now (boost::posix_time::milliseconds(m_RTO));
+			m_ResendTimer.expires_after (std::chrono::milliseconds(m_RTO));
 			m_ResendTimer.async_wait (std::bind (&Stream::HandleResendTimer,
 				shared_from_this (), std::placeholders::_1));
 		}
@@ -1771,7 +1797,7 @@ namespace stream
 					UpdatePacingTime ();
 				}
 			}
-			else if (m_IsTimeOutResend)
+			else if (m_IsTimeOutResend && m_NumResendAttempts > 1)
 			{
 				m_RTO = INITIAL_RTO; // drop RTO to initial upon tunnels pair change
 				m_WindowDropTargetSize = INITIAL_WINDOW_SIZE;
@@ -1818,7 +1844,7 @@ namespace stream
 			m_AckSendTimer.cancel ();
 		m_IsAckSendScheduled = true;
 		if (timeout < MIN_SEND_ACK_TIMEOUT) timeout = MIN_SEND_ACK_TIMEOUT;
-		m_AckSendTimer.expires_from_now (boost::posix_time::milliseconds(timeout));
+		m_AckSendTimer.expires_after (std::chrono::milliseconds(timeout));
 		m_AckSendTimer.async_wait (std::bind (&Stream::HandleAckSendTimer,
 			shared_from_this (), std::placeholders::_1));
 	}
@@ -2184,7 +2210,7 @@ namespace stream
 					{
 						m_PendingIncomingStreams.push_back (incomingStream);
 						m_PendingIncomingTimer.cancel ();
-						m_PendingIncomingTimer.expires_from_now (boost::posix_time::seconds(PENDING_INCOMING_TIMEOUT));
+						m_PendingIncomingTimer.expires_after (std::chrono::seconds(PENDING_INCOMING_TIMEOUT));
 						m_PendingIncomingTimer.async_wait (std::bind (&StreamingDestination::HandlePendingIncomingTimer,
 							shared_from_this (), std::placeholders::_1));
 						LogPrint (eLogDebug, "Streaming: Pending incoming stream added, rSID=", receiveStreamID);
@@ -2213,8 +2239,8 @@ namespace stream
 				else
 				{
 					m_SavedPackets[receiveStreamID] = std::list<Packet *>{ packet };
-					auto timer = std::make_shared<boost::asio::deadline_timer> (m_Owner->GetService ());
-					timer->expires_from_now (boost::posix_time::seconds(PENDING_INCOMING_TIMEOUT));
+					auto timer = std::make_shared<boost::asio::steady_timer> (m_Owner->GetService ());
+					timer->expires_after (std::chrono::seconds(PENDING_INCOMING_TIMEOUT));
 					auto s = shared_from_this ();
 					timer->async_wait ([s,timer,receiveStreamID](const boost::system::error_code& ecode)
 					{

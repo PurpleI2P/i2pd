@@ -224,7 +224,7 @@ namespace transport
 			std::thread * m_Thread;
 			boost::asio::io_context * m_Service;
 			boost::asio::executor_work_guard<boost::asio::io_context::executor_type> * m_Work;
-			boost::asio::deadline_timer * m_PeerCleanupTimer, * m_PeerTestTimer, * m_UpdateBandwidthTimer;
+			boost::asio::steady_timer * m_PeerCleanupTimer, * m_PeerTestTimer, * m_UpdateBandwidthTimer;
 
 			SSU2Server * m_SSU2Server;
 			NTCP2Server * m_NTCP2Server;

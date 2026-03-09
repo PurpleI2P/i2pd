@@ -46,7 +46,7 @@ namespace client
 		}
 		else
 		{
-			m_ResolveTimer->expires_from_now(boost::posix_time::seconds(1));
+			m_ResolveTimer->expires_after(std::chrono::seconds(1));
 			m_ResolveTimer->async_wait([&](const boost::system::error_code & ec) {
 				if(!ec)	ResolveCurrentLeaseSet();
 			});
@@ -57,7 +57,7 @@ namespace client
 	void MatchedTunnelDestination::Start()
 	{
 		ClientDestination::Start();
-		m_ResolveTimer = std::make_shared<boost::asio::deadline_timer>(GetService());
+		m_ResolveTimer = std::make_shared<boost::asio::steady_timer>(GetService());
 		GetTunnelPool()->SetCustomPeerSelector(this);
 		ResolveCurrentLeaseSet();
 	}

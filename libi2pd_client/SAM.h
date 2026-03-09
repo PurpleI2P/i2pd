@@ -185,7 +185,7 @@ namespace client
 
 			SAMBridge& m_Owner;
 			Socket_t m_Socket;
-			boost::asio::deadline_timer m_Timer;
+			boost::asio::steady_timer m_Timer;
 			char m_Buffer[SAM_SOCKET_BUFFER_SIZE + 1];
 			size_t m_BufferOffset; // for session only
 			uint8_t m_StreamBuffer[SAM_STREAM_BUFFER_SIZE];
@@ -294,7 +294,7 @@ namespace client
 
 			void ScheduleSessionCleanupTimer (std::shared_ptr<SAMSession> session);
 			void HandleSessionCleanupTimer (const boost::system::error_code& ecode,
-				std::shared_ptr<SAMSession> session, std::shared_ptr<boost::asio::deadline_timer> timer);
+				std::shared_ptr<SAMSession> session, std::shared_ptr<boost::asio::steady_timer> timer);
 
 		private:
 

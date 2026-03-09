@@ -154,7 +154,7 @@ namespace client
 			BOBCommandChannel * m_BOBCommandChannel;
 			I2CPServer * m_I2CPServer;
 
-			std::unique_ptr<boost::asio::deadline_timer> m_CleanupUDPTimer;
+			std::unique_ptr<boost::asio::steady_timer> m_CleanupUDPTimer;
 
 			// i18n
 			std::shared_ptr<const i2p::i18n::Locale> m_Language;

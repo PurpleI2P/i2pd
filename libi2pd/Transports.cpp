@@ -184,9 +184,9 @@ namespace transport
 		{
 			m_Service = new boost::asio::io_context ();
 			m_Work = new boost::asio::executor_work_guard<boost::asio::io_context::executor_type> (m_Service->get_executor ());
-			m_PeerCleanupTimer = new boost::asio::deadline_timer (*m_Service);
-			m_PeerTestTimer = new boost::asio::deadline_timer (*m_Service);
-			m_UpdateBandwidthTimer = new boost::asio::deadline_timer (*m_Service);
+			m_PeerCleanupTimer = new boost::asio::steady_timer (*m_Service);
+			m_PeerTestTimer = new boost::asio::steady_timer (*m_Service);
+			m_UpdateBandwidthTimer = new boost::asio::steady_timer (*m_Service);
 			m_BanListCleanupTimer = std::make_unique<boost::asio::steady_timer>(*m_Service);
 		}
 
@@ -327,7 +327,7 @@ namespace transport
 		if (m_SSU2Server) m_SSU2Server->Start ();
 		if (m_SSU2Server) DetectExternalIP ();
 
-		m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(5 * SESSION_CREATION_TIMEOUT));
+		m_PeerCleanupTimer->expires_after (std::chrono::seconds(5 * SESSION_CREATION_TIMEOUT));
 		m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
 
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
@@ -340,12 +340,12 @@ namespace transport
 		}
 		m_TrafficSamplePtr = TRAFFIC_SAMPLE_COUNT - 1;
 
-		m_UpdateBandwidthTimer->expires_from_now (boost::posix_time::seconds(1));
+		m_UpdateBandwidthTimer->expires_after (std::chrono::seconds(1));
 		m_UpdateBandwidthTimer->async_wait (std::bind (&Transports::HandleUpdateBandwidthTimer, this, std::placeholders::_1));
 
 		if (m_IsNAT)
 		{
-			m_PeerTestTimer->expires_from_now (boost::posix_time::seconds(PEER_TEST_INTERVAL + m_Rng() % PEER_TEST_INTERVAL_VARIANCE));
+			m_PeerTestTimer->expires_after (std::chrono::seconds(PEER_TEST_INTERVAL + m_Rng() % PEER_TEST_INTERVAL_VARIANCE));
 			m_PeerTestTimer->async_wait (std::bind (&Transports::HandlePeerTestTimer, this, std::placeholders::_1));
 		}
 		m_BanListCleanupTimer->expires_after (std::chrono::seconds(BAN_LIST_CLEANUP_INTERVAL + m_Rng () % BAN_LIST_CLEANUP_INTERVAL_VARIANCE));
@@ -434,7 +434,7 @@ namespace transport
 			UpdateBandwidthValues (15, m_InBandwidth15s, m_OutBandwidth15s, m_TransitBandwidth15s);
 			UpdateBandwidthValues (300, m_InBandwidth5m, m_OutBandwidth5m, m_TransitBandwidth5m);
 
-			m_UpdateBandwidthTimer->expires_from_now (boost::posix_time::seconds(1));
+			m_UpdateBandwidthTimer->expires_after (std::chrono::seconds(1));
 			m_UpdateBandwidthTimer->async_wait (std::bind (&Transports::HandleUpdateBandwidthTimer, this, std::placeholders::_1));
 		}
 	}
@@ -828,8 +828,8 @@ namespace transport
 						testDelay += PEER_TEST_DELAY_INTERVAL + m_Rng() % PEER_TEST_DELAY_INTERVAL_VARIANCE;
 						if (m_Service)
 						{
-							auto delayTimer = std::make_shared<boost::asio::deadline_timer>(*m_Service);
-							delayTimer->expires_from_now (boost::posix_time::milliseconds (testDelay));
+							auto delayTimer = std::make_shared<boost::asio::steady_timer>(*m_Service);
+							delayTimer->expires_after (std::chrono::milliseconds (testDelay));
 							delayTimer->async_wait (
 								[this, router, delayTimer](const boost::system::error_code& ecode)
 								{
@@ -866,8 +866,8 @@ namespace transport
 						testDelay += PEER_TEST_DELAY_INTERVAL + m_Rng() % PEER_TEST_DELAY_INTERVAL_VARIANCE;
 						if (m_Service)
 						{
-							auto delayTimer = std::make_shared<boost::asio::deadline_timer>(*m_Service);
-							delayTimer->expires_from_now (boost::posix_time::milliseconds (testDelay));
+							auto delayTimer = std::make_shared<boost::asio::steady_timer>(*m_Service);
+							delayTimer->expires_after (std::chrono::milliseconds (testDelay));
 							delayTimer->async_wait (
 								[this, router, delayTimer](const boost::system::error_code& ecode)
 								{
@@ -1078,7 +1078,7 @@ namespace transport
 			// if still testing or unknown, repeat peer test
 			if (ipv4Testing || ipv6Testing)
 				PeerTest (ipv4Testing, ipv6Testing);
-			m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(2 * SESSION_CREATION_TIMEOUT + m_Rng() % SESSION_CREATION_TIMEOUT));
+			m_PeerCleanupTimer->expires_after (std::chrono::seconds(2 * SESSION_CREATION_TIMEOUT + m_Rng() % SESSION_CREATION_TIMEOUT));
 			m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
 		}
 	}
@@ -1088,7 +1088,7 @@ namespace transport
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			PeerTest ();
-			m_PeerTestTimer->expires_from_now (boost::posix_time::seconds(PEER_TEST_INTERVAL + m_Rng() % PEER_TEST_INTERVAL_VARIANCE));
+			m_PeerTestTimer->expires_after (std::chrono::seconds(PEER_TEST_INTERVAL + m_Rng() % PEER_TEST_INTERVAL_VARIANCE));
 			m_PeerTestTimer->async_wait (std::bind (&Transports::HandlePeerTestTimer, this, std::placeholders::_1));
 		}
 	}

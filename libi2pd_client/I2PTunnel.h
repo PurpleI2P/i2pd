@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2025, The PurpleI2P Project
+* Copyright (c) 2013-2026, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -70,14 +70,14 @@ namespace client
 			std::shared_ptr<i2p::stream::Stream> GetStream () const { return m_Stream; };
 			std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket&> > GetSSL () const { return m_SSL; };
 			uint8_t * GetStreamBuffer () { return m_StreamBuffer; };
-		
+
 		private:
 
 			void HandleConnect (const boost::system::error_code& ecode);
 			void HandleHandshake (const boost::system::error_code& ecode);
 			void HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleWrite (const boost::system::error_code& ecode);
-			
+
 		private:
 
 			uint8_t m_Buffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE], m_StreamBuffer[I2P_TUNNEL_CONNECTION_STREAM_BUFFER_SIZE];
@@ -153,7 +153,7 @@ namespace client
 		protected:
 
 			// Implements TCPIPAcceptor
-			std::shared_ptr<I2PServiceHandler> CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket);
+			std::shared_ptr<I2PServiceHandler> CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket) override;
 
 		public:
 
@@ -161,10 +161,10 @@ namespace client
 				const std::string& address, uint16_t port, std::shared_ptr<ClientDestination> localDestination, uint16_t destinationPort = 0);
 			~I2PClientTunnel () {}
 
-			void Start ();
-			void Stop ();
+			void Start () override;
+			void Stop () override;
 
-			const char* GetName() { return m_Name.c_str (); }
+			const char* GetName() const override { return m_Name.c_str (); }
 			void SetKeepAliveInterval (uint32_t keepAliveInterval);
 
 		private:
@@ -180,7 +180,7 @@ namespace client
 			std::shared_ptr<const Address> m_Address;
 			uint16_t m_DestinationPort;
 			uint32_t m_KeepAliveInterval;
-			std::unique_ptr<boost::asio::deadline_timer> m_KeepAliveTimer;
+			std::unique_ptr<boost::asio::steady_timer> m_KeepAliveTimer;
 	};
 
 	class I2PServerTunnel: public I2PService
@@ -190,8 +190,8 @@ namespace client
 			I2PServerTunnel (const std::string& name, const std::string& address, uint16_t port,
 				std::shared_ptr<ClientDestination> localDestination, uint16_t inport = 0, bool gzip = true);
 
-			void Start ();
-			void Stop ();
+			void Start () override;
+			void Stop () override;
 
 			void SetAccessList (const std::set<i2p::data::IdentHash>& accessList);
 
@@ -208,7 +208,7 @@ namespace client
 			uint16_t GetLocalPort () const { return m_PortDestination->GetLocalPort (); };
 			const boost::asio::ip::tcp::endpoint& GetEndpoint () const { return m_Endpoint; }
 
-			const char* GetName() { return m_Name.c_str (); }
+			const char* GetName() const override { return m_Name.c_str (); }
 
 		private:
 

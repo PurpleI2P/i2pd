@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2025, The PurpleI2P Project
+* Copyright (c) 2025-2026, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -19,15 +19,15 @@ namespace i2p
 namespace crypto
 {
 	MLKEMKeys::MLKEMKeys (MLKEMTypes type):
-		m_Name (std::get<0>(MLKEMS[type])), m_KeyLen (std::get<1>(MLKEMS[type])), 
+		m_Name (std::get<0>(MLKEMS[type])), m_KeyLen (std::get<1>(MLKEMS[type])),
 		m_CTLen (std::get<2>(MLKEMS[type])), m_Pkey (nullptr)
 	{
 	}
-	
+
 	MLKEMKeys::~MLKEMKeys ()
 	{
 		if (m_Pkey) EVP_PKEY_free (m_Pkey);
-	}	
+	}
 
 	void MLKEMKeys::GenerateKeys ()
 	{
@@ -36,26 +36,26 @@ namespace crypto
 	}
 
 	void MLKEMKeys::GetPublicKey (uint8_t * pub) const
-	{	
+	{
 		if (m_Pkey)
-		{	
+		{
 			size_t len = m_KeyLen;
 		    EVP_PKEY_get_octet_string_param (m_Pkey, OSSL_PKEY_PARAM_PUB_KEY, pub, m_KeyLen, &len);
-		}	
+		}
 	}
 
 	void MLKEMKeys::SetPublicKey (const uint8_t * pub)
 	{
 		if (m_Pkey)
-		{	
+		{
 			EVP_PKEY_free (m_Pkey);
 			m_Pkey = nullptr;
-		}	
+		}
 		OSSL_PARAM params[] =
 		{
 			OSSL_PARAM_octet_string (OSSL_PKEY_PARAM_PUB_KEY, (uint8_t *)pub, m_KeyLen),
 			OSSL_PARAM_END
-		};		
+		};
 		EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_from_name (NULL, m_Name.c_str (), NULL);
 		if (ctx)
 		{
@@ -72,7 +72,7 @@ namespace crypto
 		if (!m_Pkey) return;
 		auto ctx = EVP_PKEY_CTX_new_from_pkey (NULL, m_Pkey, NULL);
 		if (ctx)
-		{	
+		{
 			EVP_PKEY_encapsulate_init (ctx, NULL);
 			size_t len = m_CTLen, sharedLen = 32;
 			EVP_PKEY_encapsulate (ctx, ciphertext, &len, shared, &sharedLen);
@@ -80,14 +80,14 @@ namespace crypto
 		}
 		else
 			LogPrint (eLogError, "MLKEM can't create PKEY context");
-	}	
+	}
 
 	void MLKEMKeys::Decaps (const uint8_t * ciphertext, uint8_t * shared)
 	{
 		if (!m_Pkey) return;
 		auto ctx = EVP_PKEY_CTX_new_from_pkey (NULL, m_Pkey, NULL);
 		if (ctx)
-		{	
+		{
 			EVP_PKEY_decapsulate_init (ctx, NULL);
 			size_t sharedLen = 32;
 			EVP_PKEY_decapsulate (ctx, shared, &sharedLen, ciphertext, m_CTLen);
@@ -95,14 +95,14 @@ namespace crypto
 		}
 		else
 			LogPrint (eLogError, "MLKEM can't create PKEY context");
-	}	
+	}
 
 	std::unique_ptr<MLKEMKeys> CreateMLKEMKeys (i2p::data::CryptoKeyType type)
 	{
 		if (type <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ||
 		    type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD > (int)MLKEMS.size ()) return nullptr;
 		return std::make_unique<MLKEMKeys>((MLKEMTypes)(type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD - 1));
-	}	
+	}
 
 	static constexpr std::array NoiseIKInitMLKEMKeys =
 	{
@@ -110,7 +110,7 @@ namespace crypto
 		(
 			std::array<uint8_t, 32>
 		 	{
-				0xb0, 0x8f, 0xb1, 0x73, 0x92, 0x66, 0xc9, 0x90, 0x45, 0x7f, 0xdd, 0xc6, 0x4e, 0x55, 0x40, 0xd8, 
+				0xb0, 0x8f, 0xb1, 0x73, 0x92, 0x66, 0xc9, 0x90, 0x45, 0x7f, 0xdd, 0xc6, 0x4e, 0x55, 0x40, 0xd8,
 				0x0a, 0x37, 0x99, 0x06, 0x92, 0x2a, 0x78, 0xc4, 0xb1, 0xef, 0x86, 0x06, 0xd0, 0x15, 0x9f, 0x4d
 			}, // SHA256("Noise_IKhfselg2_25519+MLKEM512_ChaChaPoly_SHA256")
 			std::array<uint8_t, 32>
@@ -146,7 +146,7 @@ namespace crypto
 			} // SHA256 (first)
 		)
 	};
-		
+
 	void InitNoiseIKStateMLKEM (NoiseSymmetricState& state, i2p::data::CryptoKeyType type, const uint8_t * pub)
 	{
 		if (type <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ||
@@ -204,8 +204,47 @@ namespace crypto
 		    type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD > (int)NoiseXKInitMLKEMKeys.size ()) return;
 		auto ind = type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD - 1;
 		state.Init (NoiseXKInitMLKEMKeys[ind].first.data(), NoiseXKInitMLKEMKeys[ind].second.data(), pub);
-	}	
-}	
-}	
+	}
+
+	static constexpr std::array NoiseXKInitMLKEMKeys1 =
+	{
+		std::make_pair
+		(
+			std::array<uint8_t, 32>
+		 	{
+				0x16, 0x22, 0x45, 0x4d, 0xbe, 0xa3, 0xf7, 0x7b, 0xcf, 0x5a, 0x0b, 0x60, 0xf8, 0x56, 0xe0, 0x54,
+				0xa6, 0x79, 0x72, 0x74, 0x2a, 0xb7, 0x1a, 0xdf, 0x39, 0x38, 0x7d, 0x35, 0xf8, 0x90, 0x41, 0x68
+			}, // SHA256("Noise_XKhfschaobfse+hs1+hs2+hs3_25519+MLKEM512_ChaChaPoly_SHA256")
+			std::array<uint8_t, 32>
+		 	{
+				0xb1, 0x84, 0xaf, 0x89, 0xb5, 0xd2, 0x7f, 0xbd, 0xa4, 0x62, 0xbe, 0x35, 0xa4, 0xc0, 0x17, 0x77,
+				0xfb, 0x70, 0xc7, 0x39, 0x28, 0x72, 0xcf, 0x74, 0x4a, 0xbf, 0x3c, 0xc5, 0xb8, 0x6c, 0xaf, 0xcf
+			} // SHA256 (first)
+		),
+		std::make_pair
+		(
+			std::array<uint8_t, 32>
+		 	{
+				0x06, 0x45, 0x8d, 0x7f, 0x4a, 0x0e, 0x53, 0xd3, 0x7b, 0xdb, 0xbb, 0x74, 0x77, 0x99, 0xa1, 0x04,
+				0xc7, 0x52, 0x00, 0x0b, 0xe0, 0xd1, 0x2a, 0x83, 0x03, 0x7b, 0xe3, 0xd1, 0xdb, 0x77, 0xf2, 0x90
+			}, // SHA256("Noise_XKhfschaobfse+hs1+hs2+hs3_25519+MLKEM768_ChaChaPoly_SHA256")
+			std::array<uint8_t, 32>
+		 	{
+				0xd6, 0xae, 0x20, 0x15, 0x44, 0x5f, 0x61, 0xa5, 0xa7, 0xe2, 0x87, 0xcf, 0x64, 0xe0, 0x0c, 0xcc,
+				0x97, 0xeb, 0xea, 0x1c, 0x5d, 0xd0, 0x8c, 0x26, 0x34, 0x32, 0x06, 0xf5, 0x5e, 0x28, 0xad, 0x12
+			} // SHA256 (first)
+		)
+		// no ML-KEM-1024
+	};
+
+	void InitNoiseXKStateMLKEM1 (NoiseSymmetricState& state, i2p::data::CryptoKeyType type, const uint8_t * pub)
+	{
+		if (type <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ||
+		    type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD > (int)NoiseXKInitMLKEMKeys1.size ()) return;
+		auto ind = type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD - 1;
+		state.Init (NoiseXKInitMLKEMKeys1[ind].first.data(), NoiseXKInitMLKEMKeys1[ind].second.data(), pub);
+	}
+}
+}
 
 #endif

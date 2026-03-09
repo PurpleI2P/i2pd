@@ -866,8 +866,8 @@ namespace client
 			SendReplyError ("No streaming destination");
 			return;
 		}
-		auto timer = std::make_shared<boost::asio::deadline_timer>(localDestination->GetService ());
-		timer->expires_from_now (boost::posix_time::milliseconds(BOB_PING_TIMEOUT));
+		auto timer = std::make_shared<boost::asio::steady_timer>(localDestination->GetService ());
+		timer->expires_after (std::chrono::milliseconds(BOB_PING_TIMEOUT));
 		timer->async_wait ([streamingDestination, s = shared_from_this ()](const boost::system::error_code& ecode)
 		{
 			if (ecode != boost::asio::error::operation_aborted)
