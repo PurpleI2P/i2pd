@@ -64,6 +64,8 @@ namespace log {
 			std::string m_TimeFormat;
 			volatile bool m_IsRunning;
 			std::thread * m_Thread;
+			size_t m_LogFileSizeLimit;
+			size_t m_LogFileBytes;
 
 		private:
 
@@ -73,6 +75,9 @@ namespace log {
 
 			void Run ();
 			void Process (std::shared_ptr<LogMsg> msg);
+
+			/** @brief Truncate logfile and reopen it from scratch */
+			void Rotate ();
 
 			/**
 			 * @brief Makes formatted string from unix timestamp
@@ -116,6 +121,14 @@ namespace log {
 			 * @param format String with timestamp format
 			 */
 			void SetTimeFormat (std::string format) { m_TimeFormat = format; };
+
+			/**
+			 * @brief Sets maximum logfile size in bytes
+			 * @param limit Maximum logfile size in bytes (0 - no limit).
+			 *              When the file exceeds this size it is truncated
+			 *              and a new one is started in its place.
+			 */
+			void SetLogFileSizeLimit (size_t limit) { m_LogFileSizeLimit = limit; };
 
 	#ifndef _WIN32
 			/**

@@ -71,8 +71,17 @@ namespace log {
 	Log::Log():
 	m_Destination(eLogStdout), m_MinLevel(eLogInfo),
 	m_LogStream (nullptr), m_Logfile(""), m_HasColors(true), m_TimeFormat("%H:%M:%S"),
-	m_IsRunning (false), m_Thread (nullptr)
+	m_IsRunning (false), m_Thread (nullptr), m_LogFileSizeLimit (0), m_LogFileBytes (0)
 	{
+	}
+
+	/** @brief Returns the current size of @a path on disk, or 0 if it can't be read. */
+	static size_t GetFileSizeOnDisk (const std::string& path)
+	{
+		std::ifstream f (path, std::ios::binary | std::ios::ate);
+		if (!f.is_open ()) return 0;
+		std::streamoff sz = f.tellg ();
+		return sz > 0 ? (size_t)sz : 0;
 	}
 
 	Log::~Log ()
@@ -175,10 +184,19 @@ namespace log {
 			case eLogFile:
 			case eLogStream:
 				if (m_LogStream)
+				{
 					*m_LogStream << TimeAsString(msg->timestamp)
 						<< "@" << short_tid
 						<< "/" << g_LogLevelStr[msg->level]
 						<< " - " << msg->text << std::endl;
+					if (m_Destination == eLogFile && m_LogFileSizeLimit > 0)
+					{
+						// Approximate written bytes: timestamp(8) + "@" + 3 + "/" + level(8) + " - " + msg + "\n"
+						m_LogFileBytes += msg->text.size () + 24;
+						if (m_LogFileBytes >= m_LogFileSizeLimit)
+							Rotate ();
+					}
+				}
 				break;
 			case eLogStdout:
 			default:
@@ -222,6 +240,7 @@ namespace log {
 			m_Logfile = path;
 			m_Destination = eLogFile;
 			m_LogStream = os;
+			m_LogFileBytes = GetFileSizeOnDisk (path);
 			return;
 		}
 		LogPrint(eLogCritical, "Log: Can't open file ", path);
@@ -246,6 +265,22 @@ namespace log {
 	void Log::Reopen() {
 		if (m_Destination == eLogFile)
 			SendTo(m_Logfile);
+	}
+
+	void Log::Rotate() {
+		if (m_Destination != eLogFile || m_Logfile.empty ()) return;
+		m_LogStream = nullptr; // close previous
+		auto flags = std::ofstream::out | std::ofstream::trunc;
+		auto os = std::make_shared<std::ofstream> (m_Logfile, flags);
+		if (os->is_open ())
+		{
+			m_HasColors = false;
+			m_LogStream = os;
+			m_LogFileBytes = 0;
+			return;
+		}
+		// fall back to plain reopen if truncation failed for any reason
+		SendTo (m_Logfile);
 	}
 
 	Log & Logger() {

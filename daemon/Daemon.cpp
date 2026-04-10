@@ -9,6 +9,8 @@
 #include <thread>
 #include <memory>
 #include <regex>
+#include <cctype>
+#include <cstdint>
 
 #include "Daemon.h"
 
@@ -54,6 +56,39 @@ namespace util
 	Daemon_Singleton::Daemon_Singleton() : isDaemon(false), running(true), d(*new Daemon_Singleton_Private()) {}
 	Daemon_Singleton::~Daemon_Singleton() {
 		delete &d;
+	}
+
+	/**
+	 * Parse a size value with an optional K/M/G/T suffix (case-insensitive,
+	 * trailing 'B' permitted, e.g. "5G", "15mb", "1024"). Returns 0 on
+	 * empty/invalid input or when the parsed value is 0.
+	 */
+	static size_t ParseSizeWithSuffix (const std::string& s)
+	{
+		if (s.empty ()) return 0;
+		size_t i = 0;
+		while (i < s.size () && std::isspace ((unsigned char)s[i])) i++;
+		size_t start = i;
+		while (i < s.size () && std::isdigit ((unsigned char)s[i])) i++;
+		if (i == start) return 0;
+		uint64_t value = 0;
+		try { value = std::stoull (s.substr (start, i - start)); }
+		catch (...) { return 0; }
+		while (i < s.size () && std::isspace ((unsigned char)s[i])) i++;
+		uint64_t mult = 1;
+		if (i < s.size ())
+		{
+			char c = std::tolower ((unsigned char)s[i]);
+			switch (c)
+			{
+				case 'k': mult = 1024ULL; break;
+				case 'm': mult = 1024ULL * 1024; break;
+				case 'g': mult = 1024ULL * 1024 * 1024; break;
+				case 't': mult = 1024ULL * 1024 * 1024 * 1024; break;
+				default: return 0; // unknown suffix
+			}
+		}
+		return (size_t)(value * mult);
 	}
 
 	bool Daemon_Singleton::IsService () const
@@ -135,6 +170,11 @@ namespace util
 			if (logfile == "")
 				logfile = i2p::fs::DataDirPath("i2pd.log");
 			LogPrint(eLogInfo, "Log: Sending messages to ", logfile);
+			std::string logfilesize; i2p::config::GetOption("limits.logfilesize", logfilesize);
+			size_t limit = ParseSizeWithSuffix (logfilesize);
+			if (limit > 0)
+				LogPrint(eLogInfo, "Log: Logfile size limit set to ", limit, " bytes");
+			i2p::log::Logger().SetLogFileSizeLimit (limit);
 			i2p::log::Logger().SendTo (logfile);
 #ifndef _WIN32
 		} else if (logs == "syslog") {

@@ -94,6 +94,7 @@ namespace config {
 			("limits.openfiles", value<uint16_t>()->default_value(0),         "Maximum number of open files (0 - use system default)")
 #endif
 			("limits.transittunnels", value<uint32_t>()->default_value(25000), "Maximum active transit tunnels (default:25000)")
+			("limits.logfilesize", value<std::string>()->default_value("0"),  "Maximum log file size before truncation. Accepts plain bytes or values with K/M/G suffix (e.g. 15M, 5G). 0 disables (default: 0)")
 			("limits.zombies", value<double>()->default_value(0),             "Minimum percentage of successfully created tunnels under which tunnel cleanup is paused (default [%]: 0.00)")
 			("limits.ntcpsoft", value<uint16_t>()->default_value(0),          "Ignored")
 			("limits.ntcphard", value<uint16_t>()->default_value(0),          "Ignored")
