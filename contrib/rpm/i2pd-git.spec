@@ -55,6 +55,7 @@ cd build
 
 %if 0%{?rhel} >= 9 || 0%{?fedora} >= 35 || 0%{?eln}
   pushd redhat-linux-build
+  ls -la
 %else
   %if 0%{?fedora} >= 33
     pushd %{_target_platform}
