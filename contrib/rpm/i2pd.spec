@@ -63,7 +63,11 @@ cd build
   %endif
 %endif
 
-make %{?_smp_mflags}
+%if 0%{?fedora} >= 44 || 0%{?eln}
+  ninja %{?_smp_mflags}
+%else
+  make %{?_smp_mflags}
+%endif
 
 %if 0%{?rhel} >= 9 || 0%{?fedora} >= 33 || 0%{?mageia} > 7
   popd
