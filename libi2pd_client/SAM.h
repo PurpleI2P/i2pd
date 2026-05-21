@@ -162,7 +162,7 @@ namespace client
 			void ProcessSessionAdd (std::string_view buf);
 			void ProcessSessionRemove (std::string_view buf);
 			void ProcessPing (std::string_view text);
-			void SendReplyWithMessage (const char * reply, const std::string & msg);
+			void SendReplyWithMessage (const char * reply, const std::string & msg, bool close);
 			void SendSessionI2PError(const std::string & msg);
 			void SendStreamI2PError(const std::string & msg);
 			void SendStreamCantReachPeer(const std::string & msg);
