@@ -6,8 +6,8 @@ on:
     - '*'
     paths:
     - .github/workflows/build-windows-msvc.yml
-    - build/CMakeLists.txt
-    - build/cmake_modules/**
+    - CMakeLists.txt
+    - cmake/**
     - daemon/**
     - i18n/**
     - libi2pd/**
@@ -65,8 +65,10 @@ jobs:
         xcopy /s /y "${{env.openssl_path}}\lib\VC\x64\MTd" "${{env.openssl_path}}\lib"
 
     - name: Configure
-      working-directory: build
-      run: cmake -DBoost_ROOT="${{env.boost_path}}" -DOPENSSL_ROOT_DIR="${{env.openssl_path}}" -DWITH_STATIC=ON .
+      run: |
+        mkdir build
+        cd build
+        cmake -DBoost_ROOT="${{env.boost_path}}" -DOPENSSL_ROOT_DIR="${{env.openssl_path}}" -DWITH_STATIC=ON ..
 
     - name: Build
       working-directory: build

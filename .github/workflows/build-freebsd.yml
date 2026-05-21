@@ -6,8 +6,8 @@ on:
     - '*'
     paths:
     - .github/workflows/build-freebsd.yml
-    - build/CMakeLists.txt
-    - build/cmake_modules/**
+    - CMakeLists.txt
+    - cmake/**
     - daemon/**
     - i18n/**
     - libi2pd/**
@@ -39,8 +39,9 @@ jobs:
         copyback: true
         prepare: pkg install -y devel/cmake devel/gmake devel/boost-libs security/openssl net/miniupnpc
         run: |
+          mkdir build
           cd build
-          cmake -DWITH_UPNP=ON -DCMAKE_BUILD_TYPE=Release .
+          cmake -DWITH_UPNP=ON -DCMAKE_BUILD_TYPE=Release ..
           gmake -j2
 
     - name: Upload artifacts
