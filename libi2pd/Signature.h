@@ -447,7 +447,7 @@ namespace crypto
 		public:
 
 			EDDSA25519phSigner (const uint8_t * signingPrivateKey);
-		
+
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
 	};
 #elif defined(USE_LIBSODIUM_ED25519PH)
@@ -456,6 +456,7 @@ namespace crypto
 		public:
 
 			EDDSA25519phSigner (const uint8_t * signingPrivateKey);
+			~EDDSA25519phSigner ();
 
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
 

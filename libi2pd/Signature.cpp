@@ -7,6 +7,7 @@
 */
 
 #include <memory>
+#include <openssl/crypto.h>
 #include <openssl/evp.h>
 #if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
 #include <openssl/core_names.h>
@@ -504,6 +505,12 @@ namespace crypto
 		m_IsPrivateKeySet = true;
 	}
 
+	EDDSA25519phSigner::~EDDSA25519phSigner ()
+	{
+		sodium_memzero (m_PrivateKey, sizeof(m_PrivateKey));
+		m_IsPrivateKeySet = false;
+	}
+
 	void EDDSA25519phSigner::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{
 		if (!EnsureSodiumInit ())
@@ -677,6 +684,8 @@ namespace crypto
 	{
 #if OPENSSL_PQ
 		if (m_Pkey) EVP_PKEY_free (m_Pkey);
+#else
+		OPENSSL_cleanse (m_PrivateKey, sizeof(m_PrivateKey));
 #endif
 	}
 

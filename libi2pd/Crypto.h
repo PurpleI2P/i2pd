@@ -39,7 +39,7 @@
 #	define OPENSSL_MLDSA 1
 #endif
 
-#if defined(OPENSSL_PQ) || defined(LIBRESSL_VERSION_NUMBER)
+#if defined(OPENSSL_PQ) || (defined(LIBRESSL_VERSION_NUMBER) && (LIBRESSL_VERSION_NUMBER >= 0x4030200fL))
 #	define OPENSSL_MLKEM 1
 #endif
 
