@@ -18,10 +18,6 @@
 
 #if OPENSSL_PQ
 
-#if OPENSSL_PQ_LIBRESSL
-#include <openssl/mlkem.h>
-#endif
-
 namespace i2p
 {
 namespace crypto
@@ -95,9 +91,11 @@ namespace crypto
 			const std::string m_Name;
 			EVP_PKEY * m_Pkey;
 #elif OPENSSL_PQ_LIBRESSL
+			static constexpr size_t MLKEMSeedLength = 64;
 			int m_Rank;
-			MLKEM_private_key * m_PrivKey;
-			MLKEM_public_key * m_PubKey;
+			std::array<uint8_t, MLKEMSeedLength> m_Seed;
+			std::array<uint8_t, MLKEM1024_KEY_LENGTH> m_PublicKey;
+			bool m_HasSeed, m_HasPublicKey;
 #endif
 	};
 

@@ -16,6 +16,7 @@
 #include <openssl/core_names.h>
 #endif
 #if OPENSSL_PQ_LIBRESSL
+#include <openssl/mlkem.h>
 #include <cstdlib>
 #endif
 
@@ -48,7 +49,7 @@ namespace crypto
 		m_CTLen (std::get<2>(MLKEMS[type])), m_Pkey (nullptr)
 #elif OPENSSL_PQ_LIBRESSL
 		m_KeyLen (std::get<1>(MLKEMS[type])), m_CTLen (std::get<2>(MLKEMS[type])),
-		m_Rank (MLKEMTypeToRank (type)), m_PrivKey (nullptr), m_PubKey (nullptr)
+		m_Rank (MLKEMTypeToRank (type)), m_Seed {}, m_PublicKey {}, m_HasSeed (false), m_HasPublicKey (false)
 #endif
 	{
 	}
@@ -59,10 +60,9 @@ namespace crypto
 		if (m_Pkey) EVP_PKEY_free (m_Pkey);
 		m_Pkey = nullptr;
 #elif OPENSSL_PQ_LIBRESSL
-		if (m_PrivKey) MLKEM_private_key_free (m_PrivKey);
-		if (m_PubKey) MLKEM_public_key_free (m_PubKey);
-		m_PrivKey = nullptr;
-		m_PubKey = nullptr;
+		if (m_HasSeed) OPENSSL_cleanse (m_Seed.data (), MLKEMSeedLength);
+		m_HasSeed = false;
+		m_HasPublicKey = false;
 #endif
 	}
 
@@ -79,17 +79,27 @@ namespace crypto
 #elif OPENSSL_PQ_LIBRESSL
 		FreeKeys ();
 		if (m_Rank < 0) return;
-		m_PrivKey = MLKEM_private_key_new (m_Rank);
-		if (!m_PrivKey) return;
+		MLKEM_private_key * privateKey = MLKEM_private_key_new (m_Rank);
+		if (!privateKey) return;
 		uint8_t * encodedPublicKey = nullptr;
 		size_t encodedPublicKeyLen = 0;
-		if (!MLKEM_generate_key (m_PrivKey, &encodedPublicKey, &encodedPublicKeyLen, nullptr, nullptr))
+		uint8_t * seed = nullptr;
+		size_t seedLen = 0;
+		if (!MLKEM_generate_key (privateKey, &encodedPublicKey, &encodedPublicKeyLen, &seed, &seedLen))
 		{
-			MLKEM_private_key_free (m_PrivKey);
-			m_PrivKey = nullptr;
+			MLKEM_private_key_free (privateKey);
 			return;
 		}
+		MLKEM_private_key_free (privateKey);
+		if (seedLen == MLKEMSeedLength && encodedPublicKeyLen == m_KeyLen)
+		{
+			memcpy (m_Seed.data (), seed, MLKEMSeedLength);
+			memcpy (m_PublicKey.data (), encodedPublicKey, m_KeyLen);
+			m_HasSeed = true;
+			m_HasPublicKey = true;
+		}
 		free (encodedPublicKey);
+		FreeLibreSSLBuffer (seed, seedLen);
 #endif
 	}
 
@@ -102,24 +112,8 @@ namespace crypto
 		    EVP_PKEY_get_octet_string_param (m_Pkey, OSSL_PKEY_PARAM_PUB_KEY, pub, m_KeyLen, &len);
 		}
 #elif OPENSSL_PQ_LIBRESSL
-		const MLKEM_public_key * publicKey = m_PubKey;
-		MLKEM_public_key * derivedPublicKey = nullptr;
-		if (!publicKey && m_PrivKey)
-		{
-			derivedPublicKey = MLKEM_public_key_new (m_Rank);
-			if (derivedPublicKey && MLKEM_public_from_private (m_PrivKey, derivedPublicKey))
-				publicKey = derivedPublicKey;
-		}
-		if (publicKey)
-		{
-			uint8_t * encodedPublicKey = nullptr;
-			size_t encodedPublicKeyLen = 0;
-			if (MLKEM_marshal_public_key (publicKey, &encodedPublicKey, &encodedPublicKeyLen) &&
-			    encodedPublicKeyLen == m_KeyLen)
-				memcpy (pub, encodedPublicKey, m_KeyLen);
-			free (encodedPublicKey);
-		}
-		if (derivedPublicKey) MLKEM_public_key_free (derivedPublicKey);
+		if (m_HasPublicKey)
+			memcpy (pub, m_PublicKey.data (), m_KeyLen);
 #endif
 	}
 
@@ -147,14 +141,8 @@ namespace crypto
 			LogPrint (eLogError, "MLKEM can't create PKEY context");
 #elif OPENSSL_PQ_LIBRESSL
 		FreeKeys ();
-		if (m_Rank < 0) return;
-		m_PubKey = MLKEM_public_key_new (m_Rank);
-		if (!m_PubKey || !MLKEM_parse_public_key (m_PubKey, pub, m_KeyLen))
-		{
-			MLKEM_public_key_free (m_PubKey);
-			m_PubKey = nullptr;
-			LogPrint (eLogError, "MLKEM can't parse public key");
-		}
+		memcpy (m_PublicKey.data (), pub, m_KeyLen);
+		m_HasPublicKey = true;
 #endif
 	}
 
@@ -173,15 +161,23 @@ namespace crypto
 		else
 			LogPrint (eLogError, "MLKEM can't create PKEY context");
 #elif OPENSSL_PQ_LIBRESSL
-		if (!m_PubKey) return;
+		if (!m_HasPublicKey) return;
+		MLKEM_public_key * publicKey = MLKEM_public_key_new (m_Rank);
+		if (!publicKey || !MLKEM_parse_public_key (publicKey, m_PublicKey.data (), m_KeyLen))
+		{
+			MLKEM_public_key_free (publicKey);
+			LogPrint (eLogError, "MLKEM can't parse public key");
+			return;
+		}
 		uint8_t * outCiphertext = nullptr, * outSharedSecret = nullptr;
 		size_t outCiphertextLen = 0, outSharedSecretLen = 0;
-		if (MLKEM_encap (m_PubKey, &outCiphertext, &outCiphertextLen, &outSharedSecret, &outSharedSecretLen) &&
+		if (MLKEM_encap (publicKey, &outCiphertext, &outCiphertextLen, &outSharedSecret, &outSharedSecretLen) &&
 		    outCiphertextLen == m_CTLen && outSharedSecretLen == MLKEMSharedSecretLen)
 		{
 			memcpy (ciphertext, outCiphertext, m_CTLen);
 			memcpy (shared, outSharedSecret, MLKEMSharedSecretLen);
 		}
+		MLKEM_public_key_free (publicKey);
 		free (outCiphertext);
 		FreeLibreSSLBuffer (outSharedSecret, outSharedSecretLen);
 #endif
@@ -202,12 +198,20 @@ namespace crypto
 		else
 			LogPrint (eLogError, "MLKEM can't create PKEY context");
 #elif OPENSSL_PQ_LIBRESSL
-		if (!m_PrivKey) return;
+		if (!m_HasSeed) return;
+		MLKEM_private_key * privateKey = MLKEM_private_key_new (m_Rank);
+		if (!privateKey || !MLKEM_private_key_from_seed (privateKey, m_Seed.data (), MLKEMSeedLength))
+		{
+			MLKEM_private_key_free (privateKey);
+			LogPrint (eLogError, "MLKEM can't restore private key");
+			return;
+		}
 		uint8_t * outSharedSecret = nullptr;
 		size_t outSharedSecretLen = 0;
-		if (MLKEM_decap (m_PrivKey, ciphertext, m_CTLen, &outSharedSecret, &outSharedSecretLen) &&
+		if (MLKEM_decap (privateKey, ciphertext, m_CTLen, &outSharedSecret, &outSharedSecretLen) &&
 		    outSharedSecretLen == MLKEMSharedSecretLen)
 			memcpy (shared, outSharedSecret, MLKEMSharedSecretLen);
+		MLKEM_private_key_free (privateKey);
 		FreeLibreSSLBuffer (outSharedSecret, outSharedSecretLen);
 #endif
 	}
