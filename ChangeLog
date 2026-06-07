@@ -3,6 +3,7 @@
 
 ## [2.60.0] - 2026-04-20
 ### Added
+- Post-quantum crypto (ML-KEM-768, ML-KEM-1024) support with LibreSSL >= 4.1.0
 - "i2cp.closeIdleTime" and "i2cp.newDestOnResume" client tunnel and proxy params
 - Sequence reset flag for UDP tunnels
 - Post-quantum SSU2 crypto(ML-KEM-512, ML-KEM-768) support if openssl >= 3.5.0

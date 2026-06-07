@@ -14,6 +14,7 @@
 #include <charconv>
 #include <boost/algorithm/string.hpp>
 #include "Crypto.h"
+#include "PostQuantum.h"
 #include "ECIESX25519AEADRatchetSession.h"
 #include "Log.h"
 #include "FS.h"
@@ -1001,6 +1002,9 @@ namespace client
 						i2p::data::CryptoKeyType cryptoType = std::stoi(it1);
 #if !OPENSSL_PQ
 						if (cryptoType <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) // skip PQ keys if not supported
+#elif OPENSSL_PQ
+						if (cryptoType <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ||
+						    i2p::crypto::IsMLKEMCryptoTypeSupported (cryptoType)) // skip unsupported PQ variants
 #endif
 						{
 							if (!m_PreferredCryptoType && cryptoType)

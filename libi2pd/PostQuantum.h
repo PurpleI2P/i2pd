@@ -18,6 +18,10 @@
 
 #if OPENSSL_PQ
 
+#if OPENSSL_PQ_LIBRESSL
+#include <openssl/mlkem.h>
+#endif
+
 namespace i2p
 {
 namespace crypto
@@ -57,6 +61,16 @@ namespace crypto
 		return std::get<2>(MLKEMS[type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD - 1]);
 	}
 
+	constexpr bool IsMLKEMCryptoTypeSupported (i2p::data::CryptoKeyType type)
+	{
+		if (type <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ||
+		    type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD > (int)MLKEMS.size ()) return false;
+#if !OPENSSL_PQ_MLKEM512
+		if (type == i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD) return false;
+#endif
+		return true;
+	}
+
 	class MLKEMKeys
 	{
 		public:
@@ -74,9 +88,17 @@ namespace crypto
 
 		private:
 
-			const std::string m_Name;
+			void FreeKeys ();
+
 			const size_t m_KeyLen, m_CTLen;
+#if OPENSSL_PQ_OPENSSL
+			const std::string m_Name;
 			EVP_PKEY * m_Pkey;
+#elif OPENSSL_PQ_LIBRESSL
+			int m_Rank;
+			MLKEM_private_key * m_PrivKey;
+			MLKEM_public_key * m_PubKey;
+#endif
 	};
 
 	std::unique_ptr<MLKEMKeys> CreateMLKEMKeys (i2p::data::CryptoKeyType type);
