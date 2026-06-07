@@ -127,7 +127,7 @@ namespace transport
 		i2p::data::IdentHash m_RemoteIdentHash;
 		uint16_t m3p2Len;
 
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
         std::unique_ptr<i2p::crypto::MLKEMKeys> m_PQKeys;
         static constexpr size_t m_MaxMsgSize = 2*i2p::crypto::MLKEM1024_KEY_LENGTH + 160;
 #else
@@ -187,7 +187,7 @@ namespace transport
 			void HandleSessionRequestReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void ProcessSessionRequest (size_t len, bool first = true);
 			void HandleSessionRequestPaddingReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
             void HandleSessionRequestMLKEMReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 #endif
 			void HandleSessionCreatedSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);

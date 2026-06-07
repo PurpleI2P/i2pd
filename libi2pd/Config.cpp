@@ -136,7 +136,7 @@ namespace config {
 			("httpproxy.addresshelper", value<bool>()->default_value(true),           "Enable or disable addresshelper")
 			("httpproxy.senduseragent", value<bool>()->default_value(false),          "Pass through user's User-Agent if enabled. Disabled by default")
 			("httpproxy.i2cp.leaseSetType", value<std::string>()->default_value("3"), "Local destination's LeaseSet type")
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 			("httpproxy.i2cp.leaseSetEncType", value<std::string>()->default_value("6,4,0"), "Local destination's LeaseSet encryption type")
 #else
 			("httpproxy.i2cp.leaseSetEncType", value<std::string>()->default_value("4,0"), "Local destination's LeaseSet encryption type")
@@ -170,7 +170,7 @@ namespace config {
 			("socksproxy.outproxy", value<std::string>()->default_value("127.0.0.1"),  "Upstream outproxy address for SOCKS Proxy")
 			("socksproxy.outproxyport", value<uint16_t>()->default_value(9050),        "Upstream outproxy port for SOCKS Proxy")
 			("socksproxy.i2cp.leaseSetType", value<std::string>()->default_value("3"), "Local destination's LeaseSet type")
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 			("socksproxy.i2cp.leaseSetEncType", value<std::string>()->default_value("6,4,0"), "Local destination's LeaseSet encryption type")
 #else
 			("socksproxy.i2cp.leaseSetEncType", value<std::string>()->default_value("4,0"), "Local destination's LeaseSet encryption type")
@@ -191,7 +191,7 @@ namespace config {
 			("shareddest.inbound.quantity", value<std::string>()->default_value("3"),  "Shared local destination inbound tunnels quantity")
 			("shareddest.outbound.quantity", value<std::string>()->default_value("3"), "Shared local destination outbound tunnels quantity")
 			("shareddest.i2cp.leaseSetType", value<std::string>()->default_value("3"), "Shared local destination's LeaseSet type")
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 			("shareddest.i2cp.leaseSetEncType", value<std::string>()->default_value("6,4,0"), "Shared local destination's LeaseSet encryption type")
 #else
 			("shareddest.i2cp.leaseSetEncType", value<std::string>()->default_value("4,0"), "Shared local destination's LeaseSet encryption type")
@@ -331,7 +331,7 @@ namespace config {
 			("ntcp2.port", value<uint16_t>()->default_value(0),            "Port to listen for incoming NTCP2 connections (default: auto)")
 			("ntcp2.addressv6", value<std::string>()->default_value("::"), "Address to publish NTCP2 with")
 			("ntcp2.proxy", value<std::string>()->default_value(""),       "Proxy URL for NTCP2 transport")
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 			("ntcp2.version", value<int>()->default_value(4),              "Protocol version. 2 - standard, 3,4,5 - post quantum (default: 4")
 #else
 			("ntcp2.version", value<int>()->default_value(2),              "Protocol version. 2 - standard, 3,4,5 - post quantum (default: 2")
