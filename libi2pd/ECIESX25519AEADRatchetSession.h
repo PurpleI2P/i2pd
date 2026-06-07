@@ -237,7 +237,7 @@ namespace garlic
 			uint8_t m_Aepk[32]; // Alice's ephemeral keys, for incoming only
 			uint8_t m_NSREncodedKey[32], m_NSRH[32], m_NSRKey[32]; // new session reply, for incoming only
 			std::shared_ptr<i2p::crypto::X25519Keys> m_EphemeralKeys;
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 			std::unique_ptr<i2p::crypto::MLKEMKeys> m_PQKeys;
 			std::unique_ptr<std::array<uint8_t, 64> > m_NSRCK; // before cipher text encryptio
 #endif
@@ -285,4 +285,3 @@ namespace garlic
 }
 
 #endif
-

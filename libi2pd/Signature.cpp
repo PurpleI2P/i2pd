@@ -12,6 +12,13 @@
 #include <openssl/core_names.h>
 #include <openssl/param_build.h>
 #endif
+#if defined(USE_LIBSODIUM_ED25519PH)
+#include <sodium.h>
+#endif
+#if defined(USE_LIBOQS_MLDSA)
+#include <oqs/oqs.h>
+#include <oqs/sig_ml_dsa.h>
+#endif
 #include "Log.h"
 #include "Signature.h"
 
@@ -19,6 +26,14 @@ namespace i2p
 {
 namespace crypto
 {
+#if defined(USE_LIBSODIUM_ED25519PH)
+	static bool EnsureSodiumInit ()
+	{
+		static bool isInitialized = sodium_init () >= 0;
+		return isInitialized;
+	}
+#endif
+
 #if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
 	DSAVerifier::DSAVerifier ():
 		m_PublicKey (nullptr)
@@ -455,21 +470,92 @@ namespace crypto
 			LogPrint (eLogError, "EdDSA signing key is not set");
 	}		
 #endif	
-		
-#if OPENSSL_PQ
+
+#if defined(USE_LIBSODIUM_ED25519PH) && (OPENSSL_VERSION_NUMBER < 0x030000000)
+	bool EDDSA25519phVerifier::Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
+	{
+		if (!EnsureSodiumInit ())
+		{
+			LogPrint (eLogError, "libsodium initialization failed");
+			return false;
+		}
+		crypto_sign_ed25519ph_state state;
+		crypto_sign_ed25519ph_init (&state);
+		crypto_sign_ed25519ph_update (&state, buf, len);
+		return crypto_sign_ed25519ph_final_verify (&state, signature, m_PublicKey) == 0;
+	}
+
+	EDDSA25519phSigner::EDDSA25519phSigner (const uint8_t * signingPrivateKey)
+	{
+		memset (m_PrivateKey, 0, sizeof(m_PrivateKey));
+		if (!EnsureSodiumInit ())
+		{
+			LogPrint (eLogError, "libsodium initialization failed");
+			return;
+		}
+		uint8_t publicKey[EDDSA25519_PUBLIC_KEY_LENGTH];
+		crypto_sign_ed25519_seed_keypair (publicKey, m_PrivateKey, signingPrivateKey);
+	}
+
+	void EDDSA25519phSigner::Sign (const uint8_t * buf, int len, uint8_t * signature) const
+	{
+		if (!EnsureSodiumInit ())
+		{
+			LogPrint (eLogError, "libsodium initialization failed");
+			return;
+		}
+		crypto_sign_ed25519ph_state state;
+		crypto_sign_ed25519ph_init (&state);
+		crypto_sign_ed25519ph_update (&state, buf, len);
+		if (crypto_sign_ed25519ph_final_create (&state, signature, nullptr, m_PrivateKey) != 0)
+			LogPrint (eLogError, "Ed25519ph signing failed");
+	}
+#endif
+
+#if (OPENSSL_VERSION_NUMBER >= 0x030000000) || defined(USE_LIBSODIUM_ED25519PH)
+	void CreateEDDSA25519phRandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
+	{
+#if defined(USE_LIBSODIUM_ED25519PH) && (OPENSSL_VERSION_NUMBER < 0x030000000)
+		if (!EnsureSodiumInit ())
+		{
+			memset (signingPrivateKey, 0, EDDSA25519_PRIVATE_KEY_LENGTH);
+			memset (signingPublicKey, 0, EDDSA25519_PUBLIC_KEY_LENGTH);
+			LogPrint (eLogError, "libsodium initialization failed");
+			return;
+		}
+		randombytes_buf (signingPrivateKey, EDDSA25519_PRIVATE_KEY_LENGTH);
+		uint8_t secretKey[64];
+		crypto_sign_ed25519_seed_keypair (signingPublicKey, secretKey, signingPrivateKey);
+#else
+		CreateEDDSA25519RandomKeys (signingPrivateKey, signingPublicKey);
+#endif
+	}
+#endif
+
+#if OPENSSL_MLDSA
 		
 	MLDSA44Verifier::MLDSA44Verifier ():
+#if OPENSSL_PQ
 		m_Pkey (nullptr)
+#else
+		m_IsPublicKeySet (false)
+#endif
 	{
+#if !OPENSSL_PQ
+		memset (m_PublicKey, 0, MLDSA44_PUBLIC_KEY_LENGTH);
+#endif
 	}
 
 	MLDSA44Verifier::~MLDSA44Verifier ()
 	{
+#if OPENSSL_PQ
 		EVP_PKEY_free (m_Pkey);
+#endif
 	}
 
 	void MLDSA44Verifier::SetPublicKey (const uint8_t * signingKey)
 	{
+#if OPENSSL_PQ
 		if (m_Pkey) 
 		{ 
 			EVP_PKEY_free (m_Pkey);
@@ -489,10 +575,15 @@ namespace crypto
 		}
 		else
 			LogPrint (eLogError, "MLDSA44 can't create PKEY context");
+#else
+		memcpy (m_PublicKey, signingKey, MLDSA44_PUBLIC_KEY_LENGTH);
+		m_IsPublicKeySet = true;
+#endif
 	}
 
 	bool MLDSA44Verifier::Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
 	{
+#if OPENSSL_PQ
 		bool ret = false;
 		if (m_Pkey)
 		{	
@@ -520,11 +611,30 @@ namespace crypto
 		else
 			LogPrint (eLogError, "MLDSA44 verification key is not set");
 		return ret;
+#else
+#if defined(USE_LIBOQS_MLDSA) && defined(OQS_ENABLE_SIG_ml_dsa_44)
+		if (!m_IsPublicKeySet)
+		{
+			LogPrint (eLogError, "MLDSA44 verification key is not set");
+			return false;
+		}
+		return OQS_SIG_ml_dsa_44_verify (buf, len, signature, MLDSA44_SIGNATURE_LENGTH, m_PublicKey) == OQS_SUCCESS;
+#else
+		(void)buf; (void)len; (void)signature;
+		LogPrint (eLogError, "MLDSA44 is not available in linked liboqs");
+		return false;
+#endif
+#endif
 	}
 
 	MLDSA44Signer::MLDSA44Signer (const uint8_t * signingPrivateKey):
+#if OPENSSL_PQ
 		m_Pkey (nullptr)
+#else
+		m_IsPrivateKeySet (false)
+#endif
 	{
+#if OPENSSL_PQ
 		OSSL_PARAM params[] =
 		{
 			OSSL_PARAM_octet_string (OSSL_PKEY_PARAM_PRIV_KEY, (uint8_t *)signingPrivateKey, MLDSA44_PRIVATE_KEY_LENGTH),
@@ -539,15 +649,22 @@ namespace crypto
 		}
 		else
 			LogPrint (eLogError, "MLDSA44 can't create PKEY context");
+#else
+		memcpy (m_PrivateKey, signingPrivateKey, MLDSA44_PRIVATE_KEY_LENGTH);
+		m_IsPrivateKeySet = true;
+#endif
 	}
 
 	MLDSA44Signer::~MLDSA44Signer ()
 	{
+#if OPENSSL_PQ
 		if (m_Pkey) EVP_PKEY_free (m_Pkey);
+#endif
 	}
 
 	void MLDSA44Signer::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{
+#if OPENSSL_PQ
 		if (m_Pkey)
 		{	
 			EVP_PKEY_CTX * sctx = EVP_PKEY_CTX_new_from_pkey (NULL, m_Pkey, NULL);
@@ -574,7 +691,45 @@ namespace crypto
 		}	
 		else
 			LogPrint (eLogError, "MLDSA44 signing key is not set");
+#else
+#if defined(USE_LIBOQS_MLDSA) && defined(OQS_ENABLE_SIG_ml_dsa_44)
+		if (!m_IsPrivateKeySet)
+		{
+			LogPrint (eLogError, "MLDSA44 signing key is not set");
+			return;
+		}
+		size_t siglen = MLDSA44_SIGNATURE_LENGTH;
+		if (OQS_SIG_ml_dsa_44_sign (signature, &siglen, buf, len, m_PrivateKey) != OQS_SUCCESS || siglen != MLDSA44_SIGNATURE_LENGTH)
+			LogPrint (eLogError, "MLDSA44 signing failed");
+#else
+		(void)buf; (void)len; (void)signature;
+		LogPrint (eLogError, "MLDSA44 is not available in linked liboqs");
+#endif
+#endif
 	}	
+
+	void CreateMLDSA44RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
+	{
+#if OPENSSL_PQ
+		EVP_PKEY * pkey = EVP_PKEY_Q_keygen (NULL, NULL, "ML-DSA-44");
+		size_t len = MLDSA44_PUBLIC_KEY_LENGTH;
+		EVP_PKEY_get_octet_string_param (pkey, OSSL_PKEY_PARAM_PUB_KEY, signingPublicKey, MLDSA44_PUBLIC_KEY_LENGTH, &len);
+		len = MLDSA44_PRIVATE_KEY_LENGTH;
+		EVP_PKEY_get_octet_string_param (pkey, OSSL_PKEY_PARAM_PRIV_KEY, signingPrivateKey, MLDSA44_PRIVATE_KEY_LENGTH, &len);
+		EVP_PKEY_free (pkey);
+#elif defined(USE_LIBOQS_MLDSA) && defined(OQS_ENABLE_SIG_ml_dsa_44)
+		if (OQS_SIG_ml_dsa_44_keypair (signingPublicKey, signingPrivateKey) != OQS_SUCCESS)
+		{
+			memset (signingPrivateKey, 0, MLDSA44_PRIVATE_KEY_LENGTH);
+			memset (signingPublicKey, 0, MLDSA44_PUBLIC_KEY_LENGTH);
+			LogPrint (eLogError, "MLDSA44 key generation failed");
+		}
+#else
+		memset (signingPrivateKey, 0, MLDSA44_PRIVATE_KEY_LENGTH);
+		memset (signingPublicKey, 0, MLDSA44_PUBLIC_KEY_LENGTH);
+		LogPrint (eLogError, "MLDSA44 is not available");
+#endif
+	}
 		
 #endif		
 }

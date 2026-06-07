@@ -384,6 +384,24 @@ namespace crypto
 
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
 	};
+#elif defined(USE_LIBSODIUM_ED25519PH)
+	class EDDSA25519phVerifier: public Verifier
+	{
+		public:
+
+			EDDSA25519phVerifier () { memset (m_PublicKey, 0, EDDSA25519_PUBLIC_KEY_LENGTH); }
+			void SetPublicKey (const uint8_t * signingKey) { memcpy (m_PublicKey, signingKey, EDDSA25519_PUBLIC_KEY_LENGTH); }
+
+			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
+
+			size_t GetPublicKeyLen () const { return EDDSA25519_PUBLIC_KEY_LENGTH; };
+			size_t GetSignatureLen () const { return EDDSA25519_SIGNATURE_LENGTH; };
+			size_t GetPrivateKeyLen () const { return EDDSA25519_PRIVATE_KEY_LENGTH; };
+
+		private:
+
+			uint8_t m_PublicKey[EDDSA25519_PUBLIC_KEY_LENGTH];
+	};
 #endif	
 	
 	class EDDSA25519SignerCompat: public Signer
@@ -432,7 +450,19 @@ namespace crypto
 		
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
 	};
-	
+#elif defined(USE_LIBSODIUM_ED25519PH)
+	class EDDSA25519phSigner: public Signer
+	{
+		public:
+
+			EDDSA25519phSigner (const uint8_t * signingPrivateKey);
+
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
+
+		private:
+
+			uint8_t m_PrivateKey[64];
+	};
 #endif	
 	
 	inline void CreateEDDSA25519RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
@@ -448,6 +478,10 @@ namespace crypto
 		EVP_PKEY_get_raw_private_key (pkey, signingPrivateKey, &len);
 		EVP_PKEY_free (pkey);
 	}
+
+#if (OPENSSL_VERSION_NUMBER >= 0x030000000) || defined(USE_LIBSODIUM_ED25519PH)
+	void CreateEDDSA25519phRandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey);
+#endif
 
 
 	// ГОСТ Р 34.11
@@ -610,8 +644,10 @@ namespace crypto
 		memcpy (signingPublicKey, signer.GetPublicKey (), EDDSA25519_PUBLIC_KEY_LENGTH);
 	}
 	
+#if OPENSSL_MLDSA
 #if OPENSSL_PQ
 #include <openssl/core_names.h>
+#endif
 	
 	// Post-Quantum
 	const size_t MLDSA44_PUBLIC_KEY_LENGTH = 1312;
@@ -632,8 +668,12 @@ namespace crypto
 			size_t GetPrivateKeyLen () const { return MLDSA44_PRIVATE_KEY_LENGTH; };
 
 		private:
-			
+#if OPENSSL_PQ
 			EVP_PKEY * m_Pkey;
+#else
+			uint8_t m_PublicKey[MLDSA44_PUBLIC_KEY_LENGTH];
+			bool m_IsPublicKeySet;
+#endif
 	};
 
 	class MLDSA44Signer: public Signer
@@ -646,19 +686,15 @@ namespace crypto
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
 			
 		private:
-
+#if OPENSSL_PQ
 			EVP_PKEY * m_Pkey;
+#else
+			uint8_t m_PrivateKey[MLDSA44_PRIVATE_KEY_LENGTH];
+			bool m_IsPrivateKeySet;
+#endif
 	};
 	
-	inline void CreateMLDSA44RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
-	{
-		EVP_PKEY * pkey = EVP_PKEY_Q_keygen (NULL, NULL, "ML-DSA-44");
-		size_t len = MLDSA44_PUBLIC_KEY_LENGTH;
-        EVP_PKEY_get_octet_string_param (pkey, OSSL_PKEY_PARAM_PUB_KEY, signingPublicKey, MLDSA44_PUBLIC_KEY_LENGTH, &len);
-		len = MLDSA44_PRIVATE_KEY_LENGTH;
-		EVP_PKEY_get_octet_string_param (pkey, OSSL_PKEY_PARAM_PRIV_KEY, signingPrivateKey, MLDSA44_PRIVATE_KEY_LENGTH, &len);
-		EVP_PKEY_free (pkey);
-	}	
+	void CreateMLDSA44RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey);
 #endif	
 }
 }

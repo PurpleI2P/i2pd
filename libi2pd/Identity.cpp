@@ -405,6 +405,10 @@ namespace data
 				return new i2p::crypto::ECDSAP521Verifier ();
 			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 				return new i2p::crypto::EDDSA25519Verifier ();
+#if (OPENSSL_VERSION_NUMBER >= 0x030000000) || defined(USE_LIBSODIUM_ED25519PH)
+			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519ph:
+				return new i2p::crypto::EDDSA25519phVerifier ();
+#endif
 			case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256:
 				return new i2p::crypto::GOSTR3410_256_Verifier (i2p::crypto::eGOSTR3410CryptoProA);
 			case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512:
@@ -432,7 +436,7 @@ namespace data
 				auto keyLen = verifier->GetPublicKeyLen ();
 				if (keyLen <= 128)
 					verifier->SetPublicKey (m_StandardIdentity.signingKey + 128 - keyLen);
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 				else if (keyLen > 384)
 				{
 					// for post-quantum
@@ -687,6 +691,11 @@ namespace data
 			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 				return new i2p::crypto::EDDSA25519Signer (priv, nullptr);
 			break;
+#if (OPENSSL_VERSION_NUMBER >= 0x030000000) || defined(USE_LIBSODIUM_ED25519PH)
+			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519ph:
+				return new i2p::crypto::EDDSA25519phSigner (priv);
+			break;
+#endif
 			case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256:
 				return new i2p::crypto::GOSTR3410_256_Signer (i2p::crypto::eGOSTR3410CryptoProA, priv);
 			break;
@@ -796,6 +805,11 @@ namespace data
 			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 				i2p::crypto::CreateEDDSA25519RandomKeys (priv, pub);
 			break;
+#if (OPENSSL_VERSION_NUMBER >= 0x030000000) || defined(USE_LIBSODIUM_ED25519PH)
+			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519ph:
+				i2p::crypto::CreateEDDSA25519phRandomKeys (priv, pub);
+			break;
+#endif
 			case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256:
 				i2p::crypto::CreateGOSTR3410RandomKeys (i2p::crypto::eGOSTR3410CryptoProA, priv, pub);
 			break;

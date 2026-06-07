@@ -44,6 +44,8 @@ option(WITH_GIT_VERSION     "Use git commit info as version"          OFF)
 option(WITH_ADDRSANITIZER   "Build with address sanitizer unix only"  OFF)
 option(WITH_THREADSANITIZER "Build with thread sanitizer unix only"   OFF)
 option(WITH_UNDEFSANITIZER  "Build with undefined sanitizer unix only" OFF)
+option(WITH_LIBSODIUM_ED25519PH "Use libsodium fallback for Ed25519ph when OpenSSL lacks it" ON)
+option(WITH_LIBOQS_MLDSA "Use liboqs fallback for ML-DSA when OpenSSL lacks it" ON)
 option(BUILD_TESTING        "Build tests"                             OFF)
 
 IF(BUILD_TESTING)
@@ -314,6 +316,35 @@ if(ZLIB_FOUND)
   link_directories(${ZLIB_ROOT}/lib)
 endif()
 
+set(EXTRA_CRYPTO_LIBS "")
+if(WITH_LIBSODIUM_ED25519PH)
+  find_path(SODIUM_INCLUDE_DIR sodium.h)
+  find_library(SODIUM_LIBRARY sodium)
+  if(SODIUM_INCLUDE_DIR AND SODIUM_LIBRARY)
+    add_definitions(-DUSE_LIBSODIUM_ED25519PH)
+    list(APPEND EXTRA_CRYPTO_LIBS ${SODIUM_LIBRARY})
+    message(STATUS "  LIBSODIUM_ED25519PH: ON (${SODIUM_LIBRARY})")
+  else()
+    message(STATUS "  LIBSODIUM_ED25519PH: OFF (libsodium not found)")
+  endif()
+else()
+  message(STATUS "  LIBSODIUM_ED25519PH: OFF (disabled)")
+endif()
+
+if(WITH_LIBOQS_MLDSA)
+  find_path(OQS_INCLUDE_DIR oqs/oqs.h)
+  find_library(OQS_LIBRARY oqs)
+  if(OQS_INCLUDE_DIR AND OQS_LIBRARY)
+    add_definitions(-DUSE_LIBOQS_MLDSA)
+    list(APPEND EXTRA_CRYPTO_LIBS ${OQS_LIBRARY})
+    message(STATUS "  LIBOQS_MLDSA       : ON (${OQS_LIBRARY})")
+  else()
+    message(STATUS "  LIBOQS_MLDSA       : OFF (liboqs not found)")
+  endif()
+else()
+  message(STATUS "  LIBOQS_MLDSA       : OFF (disabled)")
+endif()
+
 # C++ standard to use, based on compiler and version of boost
 if(NOT MSVC)
 # check for c++20 & c++17 support
@@ -335,7 +366,7 @@ if(NOT MSVC)
 endif()
 
 # load includes
-include_directories(SYSTEM ${Boost_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR})
+include_directories(SYSTEM ${OPENSSL_INCLUDE_DIR} ${Boost_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIR} ${SODIUM_INCLUDE_DIR} ${OQS_INCLUDE_DIR})
 
 # show summary
 message(STATUS "---------------------------------------")
@@ -362,7 +393,7 @@ message(STATUS "  THREADSANITIZER  : ${WITH_THREADSANITIZER}")
 message(STATUS "  UNDEFSANITIZER   : ${WITH_UNDEFSANITIZER}")
 message(STATUS "---------------------------------------")
 
-target_link_libraries(libi2pd PUBLIC ZLIB::ZLIB OpenSSL::SSL OpenSSL::Crypto ${Boost_LIBRARIES} Threads::Threads)
+target_link_libraries(libi2pd PUBLIC ZLIB::ZLIB OpenSSL::SSL OpenSSL::Crypto ${Boost_LIBRARIES} Threads::Threads ${EXTRA_CRYPTO_LIBS})
 
 if(WITH_BINARY)
   if(WIN32)
@@ -406,7 +437,7 @@ if(WITH_BINARY)
     set(DL_LIB ${CMAKE_DL_LIBS})
   endif()
 
-  target_link_libraries("${PROJECT_NAME}" libi2pd libi2pdclient libi2pdlang ${Boost_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto ${MINIUPNPC_LIBRARY} ZLIB::ZLIB Threads::Threads ${MINGW_EXTRA} ${DL_LIB} ${CMAKE_REQUIRED_LIBRARIES})
+  target_link_libraries("${PROJECT_NAME}" libi2pd libi2pdclient libi2pdlang ${Boost_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto ${MINIUPNPC_LIBRARY} ZLIB::ZLIB Threads::Threads ${EXTRA_CRYPTO_LIBS} ${MINGW_EXTRA} ${DL_LIB} ${CMAKE_REQUIRED_LIBRARIES})
 
   install(TARGETS "${PROJECT_NAME}" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)
   set(APPS "\${CMAKE_INSTALL_PREFIX}/bin/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX}")

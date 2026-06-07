@@ -65,6 +65,18 @@ set(test-eddsa_SRCS
   test-eddsa.cpp
 )
 
+set(test-eddsa-ph_SRCS
+  test-eddsa-ph.cpp
+)
+
+set(test-mldsa44_SRCS
+  test-mldsa44.cpp
+)
+
+set(test-identity-eddsa-ph_SRCS
+  test-identity-eddsa-ph.cpp
+)
+
 set(test-aes_SRCS
   test-aes.cpp
 )
@@ -81,6 +93,9 @@ add_executable(test-aeadchacha20poly1305 ${test-aeadchacha20poly1305_SRCS})
 add_executable(test-blinding ${test-blinding_SRCS})
 add_executable(test-elligator ${test-elligator_SRCS})
 add_executable(test-eddsa ${test-eddsa_SRCS})
+add_executable(test-eddsa-ph ${test-eddsa-ph_SRCS})
+add_executable(test-mldsa44 ${test-mldsa44_SRCS})
+add_executable(test-identity-eddsa-ph ${test-identity-eddsa-ph_SRCS})
 add_executable(test-aes ${test-aes_SRCS})
 
 set(LIBS
@@ -106,6 +121,9 @@ target_link_libraries(test-aeadchacha20poly1305 ${LIBS})
 target_link_libraries(test-blinding ${LIBS})
 target_link_libraries(test-elligator ${LIBS})
 target_link_libraries(test-eddsa ${LIBS})
+target_link_libraries(test-eddsa-ph ${LIBS})
+target_link_libraries(test-mldsa44 ${LIBS})
+target_link_libraries(test-identity-eddsa-ph ${LIBS})
 target_link_libraries(test-aes ${LIBS})
 
 add_test(test-http-merge_chunked ${TEST_PATH}/test-http-merge_chunked)
@@ -120,4 +138,7 @@ add_test(test-aeadchacha20poly1305 ${TEST_PATH}/test-aeadchacha20poly1305)
 add_test(test-blinding ${TEST_PATH}/test-blinding)
 add_test(test-elligator ${TEST_PATH}/test-elligator)
 add_test(test-eddsa ${TEST_PATH}/test-eddsa)
+add_test(test-eddsa-ph ${TEST_PATH}/test-eddsa-ph)
+add_test(test-mldsa44 ${TEST_PATH}/test-mldsa44)
+add_test(test-identity-eddsa-ph ${TEST_PATH}/test-identity-eddsa-ph)
 add_test(test-aes ${TEST_PATH}/test-aes)
