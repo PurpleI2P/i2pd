@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2025, The PurpleI2P Project
+* Copyright (c) 2013-2026, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -50,7 +50,7 @@ namespace crypto
 	class DSAVerifier: public Verifier
 	{
 		public:
-			
+
 			DSAVerifier ();
 			~DSAVerifier ();
 
@@ -59,14 +59,14 @@ namespace crypto
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const override;
 			size_t GetPublicKeyLen () const override { return DSA_PUBLIC_KEY_LENGTH; };
 			size_t GetSignatureLen () const override { return DSA_SIGNATURE_LENGTH; };
-			
+
 		private:
 
 #if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
 			EVP_PKEY * m_PublicKey;
-#else			
+#else
 			DSA * m_PublicKey;
-#endif			
+#endif
 	};
 
 	class DSASigner: public Signer
@@ -86,7 +86,7 @@ namespace crypto
 			EVP_PKEY * m_PrivateKey;
 #else
 			DSA * m_PrivateKey;
-#endif			
+#endif
 	};
 
 	void CreateDSARandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey);
@@ -95,7 +95,7 @@ namespace crypto
 	constexpr size_t ECDSAP256_KEY_LENGTH = 64;
 	constexpr size_t ECDSAP384_KEY_LENGTH = 96;
 	constexpr size_t ECDSAP521_KEY_LENGTH = 132;
-	
+
 #if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
 	class ECDSAVerifier: public Verifier
 	{
@@ -103,10 +103,10 @@ namespace crypto
 
 			ECDSAVerifier (int curve, size_t keyLen, const EVP_MD * hash);
 			~ECDSAVerifier ();
-		
+
 			void SetPublicKey (const uint8_t * signingKey);
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
-		
+
 			size_t GetPublicKeyLen () const { return m_KeyLen; };
 			size_t GetSignatureLen () const { return m_KeyLen; }; // signature length = key length
 
@@ -116,7 +116,7 @@ namespace crypto
 			size_t m_KeyLen;
 			const EVP_MD * m_Hash;
 			EVP_PKEY * m_PublicKey;
-	};		
+	};
 
 	class ECDSASigner: public Signer
 	{
@@ -126,23 +126,23 @@ namespace crypto
 			~ECDSASigner ();
 
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
-			
+
 		private:
 
 			size_t m_KeyLen;
 			const EVP_MD * m_Hash;
 			EVP_PKEY * m_PrivateKey;
-	};			
-	
+	};
+
 	void CreateECDSARandomKeys (int curve, size_t keyLen, uint8_t * signingPrivateKey, uint8_t * signingPublicKey);
 
-// ECDSA_SHA256_P256	
+// ECDSA_SHA256_P256
 	class ECDSAP256Verifier: public ECDSAVerifier
 	{
 		public:
-			
+
 			ECDSAP256Verifier (): ECDSAVerifier (NID_X9_62_prime256v1, ECDSAP256_KEY_LENGTH, EVP_sha256()) {};
-	};	
+	};
 
 	class ECDSAP256Signer: public ECDSASigner
 	{
@@ -150,8 +150,8 @@ namespace crypto
 
 			ECDSAP256Signer (const uint8_t * signingPrivateKey):
 				ECDSASigner (NID_X9_62_prime256v1, ECDSAP256_KEY_LENGTH, EVP_sha256(), signingPrivateKey) {};
-	};	
-	
+	};
+
 	inline void CreateECDSAP256RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
 	{
 		CreateECDSARandomKeys (NID_X9_62_prime256v1, ECDSAP256_KEY_LENGTH, signingPrivateKey, signingPublicKey);
@@ -161,9 +161,9 @@ namespace crypto
 	class ECDSAP384Verifier: public ECDSAVerifier
 	{
 		public:
-			
+
 			ECDSAP384Verifier (): ECDSAVerifier (NID_secp384r1, ECDSAP384_KEY_LENGTH, EVP_sha384()) {};
-	};	
+	};
 
 	class ECDSAP384Signer: public ECDSASigner
 	{
@@ -171,8 +171,8 @@ namespace crypto
 
 			ECDSAP384Signer (const uint8_t * signingPrivateKey):
 				ECDSASigner (NID_secp384r1, ECDSAP384_KEY_LENGTH, EVP_sha384(), signingPrivateKey) {};
-	};	
-	
+	};
+
 	inline void CreateECDSAP384RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
 	{
 		CreateECDSARandomKeys (NID_secp384r1, ECDSAP384_KEY_LENGTH, signingPrivateKey, signingPublicKey);
@@ -182,9 +182,9 @@ namespace crypto
 	class ECDSAP521Verifier: public ECDSAVerifier
 	{
 		public:
-			
+
 			ECDSAP521Verifier (): ECDSAVerifier (NID_secp521r1, ECDSAP521_KEY_LENGTH, EVP_sha512()) {};
-	};	
+	};
 
 	class ECDSAP521Signer: public ECDSASigner
 	{
@@ -192,15 +192,15 @@ namespace crypto
 
 			ECDSAP521Signer (const uint8_t * signingPrivateKey):
 				ECDSASigner (NID_secp521r1, ECDSAP521_KEY_LENGTH, EVP_sha512(), signingPrivateKey) {};
-	};	
-	
+	};
+
 	inline void CreateECDSAP521RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
 	{
 		CreateECDSARandomKeys (NID_secp521r1, ECDSAP521_KEY_LENGTH, signingPrivateKey, signingPublicKey);
 	}
-	
+
 #else
-	
+
 	struct SHA256Hash
 	{
 		static void CalculateHash (const uint8_t * buf, size_t len, uint8_t * digest)
@@ -351,7 +351,7 @@ namespace crypto
 	{
 		CreateECDSARandomKeys (NID_secp521r1, ECDSAP521_KEY_LENGTH, signingPrivateKey, signingPublicKey);
 	}
-	
+
 #endif
 
 	// EdDSA
@@ -369,9 +369,9 @@ namespace crypto
 			size_t GetSignatureLen () const { return EDDSA25519_SIGNATURE_LENGTH; };
 
 		private:
-			
+
 			EVP_PKEY * m_Pkey;
-			
+
 		protected:
 
 			EVP_PKEY * GetPkey () const { return m_Pkey; };
@@ -384,8 +384,8 @@ namespace crypto
 
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
 	};
-#endif	
-	
+#endif
+
 	class EDDSA25519SignerCompat: public Signer
 	{
 		public:
@@ -416,7 +416,7 @@ namespace crypto
 		protected:
 
 			EVP_PKEY * GetPkey () const { return m_Pkey; };
-			
+
 		private:
 
 			EVP_PKEY * m_Pkey;
@@ -429,12 +429,12 @@ namespace crypto
 		public:
 
 			EDDSA25519phSigner (const uint8_t * signingPrivateKey);
-		
+
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
 	};
-	
-#endif	
-	
+
+#endif
+
 	inline void CreateEDDSA25519RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
 	{
 		EVP_PKEY *pkey = NULL;
@@ -609,57 +609,6 @@ namespace crypto
 		RedDSA25519Signer signer (signingPrivateKey);
 		memcpy (signingPublicKey, signer.GetPublicKey (), EDDSA25519_PUBLIC_KEY_LENGTH);
 	}
-	
-#if OPENSSL_PQ
-#include <openssl/core_names.h>
-	
-	// Post-Quantum
-	const size_t MLDSA44_PUBLIC_KEY_LENGTH = 1312;
-	const size_t MLDSA44_SIGNATURE_LENGTH = 2420;
-	const size_t MLDSA44_PRIVATE_KEY_LENGTH = 2560;
-	class MLDSA44Verifier: public Verifier
-	{
-		public:
-
-			MLDSA44Verifier ();
-			void SetPublicKey (const uint8_t * signingKey);
-			~MLDSA44Verifier ();
-
-			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
-
-			size_t GetPublicKeyLen () const { return MLDSA44_PUBLIC_KEY_LENGTH; };
-			size_t GetSignatureLen () const { return MLDSA44_SIGNATURE_LENGTH; };
-			size_t GetPrivateKeyLen () const { return MLDSA44_PRIVATE_KEY_LENGTH; };
-
-		private:
-			
-			EVP_PKEY * m_Pkey;
-	};
-
-	class MLDSA44Signer: public Signer
-	{
-		public:
-
-			MLDSA44Signer (const uint8_t * signingPrivateKey);
-			~MLDSA44Signer ();
-
-			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
-			
-		private:
-
-			EVP_PKEY * m_Pkey;
-	};
-	
-	inline void CreateMLDSA44RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
-	{
-		EVP_PKEY * pkey = EVP_PKEY_Q_keygen (NULL, NULL, "ML-DSA-44");
-		size_t len = MLDSA44_PUBLIC_KEY_LENGTH;
-        EVP_PKEY_get_octet_string_param (pkey, OSSL_PKEY_PARAM_PUB_KEY, signingPublicKey, MLDSA44_PUBLIC_KEY_LENGTH, &len);
-		len = MLDSA44_PRIVATE_KEY_LENGTH;
-		EVP_PKEY_get_octet_string_param (pkey, OSSL_PKEY_PARAM_PRIV_KEY, signingPrivateKey, MLDSA44_PRIVATE_KEY_LENGTH, &len);
-		EVP_PKEY_free (pkey);
-	}	
-#endif	
 }
 }
 

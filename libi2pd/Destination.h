@@ -285,8 +285,8 @@ namespace client
             int GetStreamingMaxResends () const { return m_StreamingMaxResends; }
 
 			// datagram
-			i2p::datagram::DatagramDestination * GetDatagramDestination () const { return m_DatagramDestination; };
-			i2p::datagram::DatagramDestination * CreateDatagramDestination (bool gzip = true,
+			std::shared_ptr<i2p::datagram::DatagramDestination> GetDatagramDestination () const { return m_DatagramDestination; };
+			std::shared_ptr<i2p::datagram::DatagramDestination> CreateDatagramDestination (bool gzip = true,
 				i2p::datagram::DatagramVersion version = i2p::datagram::eDatagramV1);
 
 			// implements LocalDestination
@@ -330,7 +330,7 @@ namespace client
 			std::shared_ptr<i2p::stream::StreamingDestination> m_StreamingDestination; // default
 			std::map<uint16_t, std::shared_ptr<i2p::stream::StreamingDestination> > m_StreamingDestinationsByPorts;
 			std::shared_ptr<i2p::stream::StreamingDestination> m_LastStreamingDestination; uint16_t m_LastPort; // for server tunnels
-			i2p::datagram::DatagramDestination * m_DatagramDestination;
+			std::shared_ptr<i2p::datagram::DatagramDestination> m_DatagramDestination;
 			int m_RefCounter; // how many clients(tunnels) use this destination
 			uint64_t m_LastPublishedTimestamp;
 

@@ -1103,6 +1103,7 @@ namespace transport
 		{
 			auto ts = i2p::util::GetSecondsSinceEpoch ();
 			std::list<std::shared_ptr<TransportSession> > sessionsToRemove;
+			std::list<std::shared_ptr<Peer> > peersToRemove;
 
 			{
 				std::lock_guard<std::mutex> l(m_PeersMutex);
@@ -1134,6 +1135,7 @@ namespace transport
 							auto profile = i2p::data::GetRouterProfile (it->first);
 							if (profile) profile->Unreachable ();
 						}	*/
+						peersToRemove.emplace_back (peer); // defer peer destructor call after the loop
 						it = m_Peers.erase (it);
 					}
 					else
@@ -1162,7 +1164,7 @@ namespace transport
 				PeerTest (ipv4Testing, ipv6Testing);
 			m_PeerCleanupTimer->expires_after (std::chrono::seconds(2 * SESSION_CREATION_TIMEOUT + m_Rng() % SESSION_CREATION_TIMEOUT));
 			m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
-			// cleanup and delete sessionsToRemove here
+			// cleanup and delete sessionsToRemove and peersToRemove here
 		}
 	}
 

@@ -38,7 +38,7 @@ namespace client
 
 	struct UDPConnection
 	{
-		i2p::datagram::DatagramDestination * m_Destination;
+		std::shared_ptr<i2p::datagram::DatagramDestination> m_Destination;
 		std::weak_ptr<i2p::datagram::DatagramSession> m_LastDatagramSession;
 		uint64_t m_LastRepliableDatagramTime; // milliseconds
 		i2p::data::IdentHash Identity;
@@ -52,7 +52,7 @@ namespace client
 		bool m_IsSendingAllowed = true;
 		bool m_IsFirstPacket = true;
 
-		UDPConnection (boost::asio::io_context& service, i2p::datagram::DatagramDestination * destination):
+		UDPConnection (boost::asio::io_context& service, std::shared_ptr<i2p::datagram::DatagramDestination> destination):
 			m_Destination (destination), m_LastRepliableDatagramTime (0), m_AckTimer (service) {};
 		void SetIdentity (const i2p::data::IdentHash& ident) { Identity = ident; isIdentity = true; };
 

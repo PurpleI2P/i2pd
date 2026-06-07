@@ -979,8 +979,7 @@ namespace client
 		m_StreamingMaxWindowSize (i2p::stream::MAX_WINDOW_SIZE),
 		m_StreamingMaxResends (i2p::stream::MAX_NUM_RESEND_ATTEMPTS),
 		m_IsStreamingAnswerPings (DEFAULT_ANSWER_PINGS), m_IsStreamingDontSign (DEFAULT_DONT_SIGN),
-		m_LastPort (0), m_DatagramDestination (nullptr), m_RefCounter (0),
-		m_LastPublishedTimestamp (0), m_ReadyChecker(service)
+		m_LastPort (0), m_RefCounter (0), m_LastPublishedTimestamp (0), m_ReadyChecker(service)
 	{
 		if (keys.IsOfflineSignature () && GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_LEASESET)
 			SetLeaseSetType (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2); // offline keys can be published with LS2 only
@@ -1129,7 +1128,6 @@ namespace client
 		if (m_DatagramDestination)
 		{
 			LogPrint(eLogDebug, "Destination: -> Stopping Datagram Destination");
-			delete m_DatagramDestination;
 			m_DatagramDestination = nullptr;
 		}
 		LeaseSetDestination::Stop ();
@@ -1382,14 +1380,14 @@ namespace client
 		return nullptr;
 	}
 
-	i2p::datagram::DatagramDestination * ClientDestination::CreateDatagramDestination (bool gzip,
+	std::shared_ptr<i2p::datagram::DatagramDestination> ClientDestination::CreateDatagramDestination (bool gzip,
 		i2p::datagram::DatagramVersion version)
 	{
 		if (!m_DatagramDestination)
 		{
 			if (!GetNumRatchetInboundTags ())
 				SetNumRatchetInboundTags (i2p::garlic::ECIESX25519_MAX_NUM_GENERATED_TAGS); // set max tags if not specified
-			m_DatagramDestination = new i2p::datagram::DatagramDestination (GetSharedFromThis (), gzip, version);
+			m_DatagramDestination = std::make_shared<i2p::datagram::DatagramDestination> (GetSharedFromThis (), gzip, version);
 		}
 		return m_DatagramDestination;
 	}
