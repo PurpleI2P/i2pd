@@ -4,9 +4,11 @@ include_directories(${CHECK_INCLUDE_DIRS})
 
 # Compiler flags:
 if(APPLE)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g -Wl,-undefined,dynamic_lookup")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-undefined,dynamic_lookup")
 else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g -Wl,--unresolved-symbols=ignore-in-object-files")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--unresolved-symbols=ignore-in-object-files")
 endif()
 
 set(TEST_PATH ${CMAKE_CURRENT_BINARY_DIR})
@@ -69,10 +71,6 @@ set(test-aes_SRCS
   test-aes.cpp
 )
 
-set(test-postquantum_SRCS
-  test-postquantum.cpp
-)
-
 add_executable(test-http-merge_chunked ${test-http-merge_chunked_SRCS})
 add_executable(test-http-req ${test-http-req_SRCS})
 add_executable(test-http-res ${test-http-res_SRCS})
@@ -86,7 +84,12 @@ add_executable(test-blinding ${test-blinding_SRCS})
 add_executable(test-elligator ${test-elligator_SRCS})
 add_executable(test-eddsa ${test-eddsa_SRCS})
 add_executable(test-aes ${test-aes_SRCS})
-add_executable(test-postquantum ${test-postquantum_SRCS})
+if((OPENSSL_VERSION VERSION_GREATER_EQUAL "3.5.0") OR OPENSSL_HAS_MLKEM_API)
+  set(test-postquantum_SRCS
+    test-postquantum.cpp
+  )
+  add_executable(test-postquantum ${test-postquantum_SRCS})
+endif()
 
 set(LIBS
   libi2pd
@@ -112,7 +115,9 @@ target_link_libraries(test-blinding ${LIBS})
 target_link_libraries(test-elligator ${LIBS})
 target_link_libraries(test-eddsa ${LIBS})
 target_link_libraries(test-aes ${LIBS})
-target_link_libraries(test-postquantum ${LIBS})
+if(TARGET test-postquantum)
+  target_link_libraries(test-postquantum ${LIBS})
+endif()
 
 add_test(test-http-merge_chunked ${TEST_PATH}/test-http-merge_chunked)
 add_test(test-http-req ${TEST_PATH}/test-http-req)
@@ -127,4 +132,6 @@ add_test(test-blinding ${TEST_PATH}/test-blinding)
 add_test(test-elligator ${TEST_PATH}/test-elligator)
 add_test(test-eddsa ${TEST_PATH}/test-eddsa)
 add_test(test-aes ${TEST_PATH}/test-aes)
-add_test(test-postquantum ${TEST_PATH}/test-postquantum)
+if(TARGET test-postquantum)
+  add_test(test-postquantum ${TEST_PATH}/test-postquantum)
+endif()

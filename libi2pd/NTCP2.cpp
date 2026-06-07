@@ -50,7 +50,12 @@ namespace transport
         switch (version)
         {
             case 3:
+#if defined(LIBRESSL_VERSION_NUMBER)
+                 m_CryptoType = i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD; // ML-KEM-512 unsupported in LibreSSL native API
+                 m_IsLongPadding = false;
+#else
                  m_CryptoType = i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD;
+#endif
             break;
             case 4:
                  m_CryptoType = i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM768_X25519_AEAD;
@@ -699,7 +704,10 @@ namespace transport
 			size_t len = 64;
 #if OPENSSL_MLKEM
 			if (m_Establisher->m_CryptoType > i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
-                len += i2p::crypto::GetMLKEMCipherTextLen (m_Establisher->m_CryptoType) + 16;
+			{
+				auto ctLen = i2p::crypto::GetMLKEMCipherTextLen (m_Establisher->m_CryptoType);
+				if (ctLen > 0) len += ctLen + 16;
+			}
 #endif
 			boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_Buffer, len), boost::asio::transfer_all (),
 				std::bind(&NTCP2Session::HandleSessionCreatedReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
@@ -740,7 +748,13 @@ namespace transport
 #if OPENSSL_MLKEM
 			else if (pq)
 			{
-                auto keyLen = i2p::crypto::GetMLKEMPublicKeyLen (m_Establisher->m_CryptoType);
+				auto keyLen = i2p::crypto::GetMLKEMPublicKeyLen (m_Establisher->m_CryptoType);
+				if (!keyLen)
+				{
+					LogPrint (eLogWarning, "NTCP2: Unsupported ML-KEM type ", m_Establisher->m_CryptoType, " in SessionRequest");
+					boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+					return;
+				}
                 boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_Buffer + 64, keyLen + 16), boost::asio::transfer_all (),
 						std::bind(&NTCP2Session::HandleSessionRequestMLKEMReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 			}

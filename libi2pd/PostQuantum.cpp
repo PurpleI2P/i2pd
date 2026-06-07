@@ -25,25 +25,53 @@ namespace i2p
 {
 namespace crypto
 {
+	namespace
+	{
+		struct MLKEMParams
+		{
+			const char * name;
+			size_t keyLen;
+			size_t ctLen;
+#if defined(LIBRESSL_VERSION_NUMBER)
+			int rank;
+#endif
+		};
+
+		MLKEMParams GetMLKEMParams (MLKEMTypes type)
+		{
+#if defined(LIBRESSL_VERSION_NUMBER)
+			switch (type)
+			{
+				case eMLKEM768:
+					return { std::get<0>(MLKEMS[0]), std::get<1>(MLKEMS[0]), std::get<2>(MLKEMS[0]), MLKEM768_RANK };
+				case eMLKEM1024:
+					return { std::get<0>(MLKEMS[1]), std::get<1>(MLKEMS[1]), std::get<2>(MLKEMS[1]), MLKEM1024_RANK };
+				default:
+					return { "", 0, 0, 0 };
+			}
+#else
+			switch (type)
+			{
+				case eMLKEM512:
+					return { std::get<0>(MLKEMS[0]), std::get<1>(MLKEMS[0]), std::get<2>(MLKEMS[0]) };
+				case eMLKEM768:
+					return { std::get<0>(MLKEMS[1]), std::get<1>(MLKEMS[1]), std::get<2>(MLKEMS[1]) };
+				case eMLKEM1024:
+					return { std::get<0>(MLKEMS[2]), std::get<1>(MLKEMS[2]), std::get<2>(MLKEMS[2]) };
+				default:
+					return { "", 0, 0 };
+			}
+#endif
+		}
+	}
+
 	MLKEMKeys::MLKEMKeys (MLKEMTypes type):
-		m_Name (type == eMLKEM512 ? "ML-KEM-512" : type == eMLKEM768 ? "ML-KEM-768" : "ML-KEM-1024"),
+		m_Name (GetMLKEMParams(type).name),
 #if defined(LIBRESSL_VERSION_NUMBER)
-		m_Rank (type == eMLKEM768 ? MLKEM768_RANK : type == eMLKEM1024 ? MLKEM1024_RANK : 0),
+		m_Rank (GetMLKEMParams(type).rank),
 #endif
-		m_KeyLen (
-#if defined(LIBRESSL_VERSION_NUMBER)
-			type == eMLKEM768 ? MLKEM768_KEY_LENGTH : type == eMLKEM1024 ? MLKEM1024_KEY_LENGTH : 0
-#else
-			type == eMLKEM512 ? MLKEM512_KEY_LENGTH : type == eMLKEM768 ? MLKEM768_KEY_LENGTH : MLKEM1024_KEY_LENGTH
-#endif
-		),
-		m_CTLen (
-#if defined(LIBRESSL_VERSION_NUMBER)
-			type == eMLKEM768 ? MLKEM768_CIPHER_TEXT_LENGTH : type == eMLKEM1024 ? MLKEM1024_CIPHER_TEXT_LENGTH : 0
-#else
-			type == eMLKEM512 ? MLKEM512_CIPHER_TEXT_LENGTH : type == eMLKEM768 ? MLKEM768_CIPHER_TEXT_LENGTH : MLKEM1024_CIPHER_TEXT_LENGTH
-#endif
-		)
+		m_KeyLen (GetMLKEMParams(type).keyLen),
+		m_CTLen (GetMLKEMParams(type).ctLen)
 #if defined(LIBRESSL_VERSION_NUMBER)
 		, m_PrivateKey (nullptr), m_PublicKey (nullptr)
 #else
@@ -66,6 +94,7 @@ namespace crypto
 	void MLKEMKeys::GenerateKeys ()
 	{
 #if defined(LIBRESSL_VERSION_NUMBER)
+		m_PublicKeyEncoded.fill (0);
 		if (!m_Rank)
 		{
 			LogPrint (eLogError, "MLKEM ", m_Name, " is not supported by LibreSSL");
@@ -73,11 +102,17 @@ namespace crypto
 		}
 		if (m_PrivateKey) MLKEM_private_key_free (m_PrivateKey);
 		if (m_PublicKey) MLKEM_public_key_free (m_PublicKey);
+		m_PrivateKey = nullptr;
+		m_PublicKey = nullptr;
 		m_PrivateKey = MLKEM_private_key_new (m_Rank);
 		m_PublicKey = MLKEM_public_key_new (m_Rank);
 		if (!m_PrivateKey || !m_PublicKey)
 		{
 			LogPrint (eLogError, "MLKEM can't create native key objects");
+			if (m_PrivateKey) MLKEM_private_key_free (m_PrivateKey);
+			if (m_PublicKey) MLKEM_public_key_free (m_PublicKey);
+			m_PrivateKey = nullptr;
+			m_PublicKey = nullptr;
 			return;
 		}
 		uint8_t * pub = nullptr;
@@ -86,11 +121,23 @@ namespace crypto
 		{
 			LogPrint (eLogError, "MLKEM native key generation failed");
 			if (pub) free (pub);
+			MLKEM_private_key_free (m_PrivateKey);
+			MLKEM_public_key_free (m_PublicKey);
+			m_PrivateKey = nullptr;
+			m_PublicKey = nullptr;
+			return;
+		}
+		if (!MLKEM_parse_public_key (m_PublicKey, pub, pubLen))
+		{
+			LogPrint (eLogError, "MLKEM can't parse generated public key");
+			free (pub);
+			MLKEM_private_key_free (m_PrivateKey);
+			MLKEM_public_key_free (m_PublicKey);
+			m_PrivateKey = nullptr;
+			m_PublicKey = nullptr;
 			return;
 		}
 		memcpy (m_PublicKeyEncoded.data (), pub, pubLen);
-		if (!MLKEM_parse_public_key (m_PublicKey, pub, pubLen))
-			LogPrint (eLogError, "MLKEM can't parse generated public key");
 		free (pub);
 #else
 		if (m_Pkey) EVP_PKEY_free (m_Pkey);
@@ -116,6 +163,7 @@ namespace crypto
 	void MLKEMKeys::SetPublicKey (const uint8_t * pub)
 	{
 #if defined(LIBRESSL_VERSION_NUMBER)
+		m_PublicKeyEncoded.fill (0);
 		if (!m_Rank)
 		{
 			LogPrint (eLogError, "MLKEM ", m_Name, " is not supported by LibreSSL");
@@ -129,7 +177,12 @@ namespace crypto
 			return;
 		}
 		if (!MLKEM_parse_public_key (m_PublicKey, pub, m_KeyLen))
+		{
 			LogPrint (eLogError, "MLKEM can't parse native public key");
+			MLKEM_public_key_free (m_PublicKey);
+			m_PublicKey = nullptr;
+			return;
+		}
 		memcpy (m_PublicKeyEncoded.data (), pub, m_KeyLen);
 #else
 		if (m_Pkey)
