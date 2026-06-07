@@ -9,48 +9,135 @@
 #include "Log.h"
 #include "PostQuantum.h"
 
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 
+#include <string.h>
+
+#if defined(LIBRESSL_VERSION_NUMBER)
+#include <cstdlib>
+#include <openssl/mlkem.h>
+#else
 #include <openssl/param_build.h>
 #include <openssl/core_names.h>
+#endif
 
 namespace i2p
 {
 namespace crypto
 {
 	MLKEMKeys::MLKEMKeys (MLKEMTypes type):
-		m_Name (std::get<0>(MLKEMS[type])), m_KeyLen (std::get<1>(MLKEMS[type])),
-		m_CTLen (std::get<2>(MLKEMS[type])), m_Pkey (nullptr)
+		m_Name (type == eMLKEM512 ? "ML-KEM-512" : type == eMLKEM768 ? "ML-KEM-768" : "ML-KEM-1024"),
+#if defined(LIBRESSL_VERSION_NUMBER)
+		m_Rank (type == eMLKEM768 ? MLKEM768_RANK : type == eMLKEM1024 ? MLKEM1024_RANK : 0),
+#endif
+		m_KeyLen (
+#if defined(LIBRESSL_VERSION_NUMBER)
+			type == eMLKEM768 ? MLKEM768_KEY_LENGTH : type == eMLKEM1024 ? MLKEM1024_KEY_LENGTH : 0
+#else
+			type == eMLKEM512 ? MLKEM512_KEY_LENGTH : type == eMLKEM768 ? MLKEM768_KEY_LENGTH : MLKEM1024_KEY_LENGTH
+#endif
+		),
+		m_CTLen (
+#if defined(LIBRESSL_VERSION_NUMBER)
+			type == eMLKEM768 ? MLKEM768_CIPHER_TEXT_LENGTH : type == eMLKEM1024 ? MLKEM1024_CIPHER_TEXT_LENGTH : 0
+#else
+			type == eMLKEM512 ? MLKEM512_CIPHER_TEXT_LENGTH : type == eMLKEM768 ? MLKEM768_CIPHER_TEXT_LENGTH : MLKEM1024_CIPHER_TEXT_LENGTH
+#endif
+		)
+#if defined(LIBRESSL_VERSION_NUMBER)
+		, m_PrivateKey (nullptr), m_PublicKey (nullptr)
+#else
+		, m_Pkey (nullptr)
+#endif
 	{
+		m_PublicKeyEncoded.fill (0);
 	}
 
 	MLKEMKeys::~MLKEMKeys ()
 	{
+#if defined(LIBRESSL_VERSION_NUMBER)
+		if (m_PrivateKey) MLKEM_private_key_free (m_PrivateKey);
+		if (m_PublicKey) MLKEM_public_key_free (m_PublicKey);
+#else
 		if (m_Pkey) EVP_PKEY_free (m_Pkey);
+#endif
 	}
 
 	void MLKEMKeys::GenerateKeys ()
 	{
+#if defined(LIBRESSL_VERSION_NUMBER)
+		if (!m_Rank)
+		{
+			LogPrint (eLogError, "MLKEM ", m_Name, " is not supported by LibreSSL");
+			return;
+		}
+		if (m_PrivateKey) MLKEM_private_key_free (m_PrivateKey);
+		if (m_PublicKey) MLKEM_public_key_free (m_PublicKey);
+		m_PrivateKey = MLKEM_private_key_new (m_Rank);
+		m_PublicKey = MLKEM_public_key_new (m_Rank);
+		if (!m_PrivateKey || !m_PublicKey)
+		{
+			LogPrint (eLogError, "MLKEM can't create native key objects");
+			return;
+		}
+		uint8_t * pub = nullptr;
+		size_t pubLen = 0;
+		if (!MLKEM_generate_key (m_PrivateKey, &pub, &pubLen, nullptr, nullptr) || !pub || pubLen != m_KeyLen)
+		{
+			LogPrint (eLogError, "MLKEM native key generation failed");
+			if (pub) free (pub);
+			return;
+		}
+		memcpy (m_PublicKeyEncoded.data (), pub, pubLen);
+		if (!MLKEM_parse_public_key (m_PublicKey, pub, pubLen))
+			LogPrint (eLogError, "MLKEM can't parse generated public key");
+		free (pub);
+#else
 		if (m_Pkey) EVP_PKEY_free (m_Pkey);
-		m_Pkey = EVP_PKEY_Q_keygen(NULL, NULL, m_Name.c_str ());
+		m_Pkey = EVP_PKEY_Q_keygen (NULL, NULL, m_Name.c_str ());
+		if (!m_Pkey)
+		{
+			LogPrint (eLogError, "MLKEM can't generate keypair");
+			return;
+		}
+		size_t len = m_KeyLen;
+		if (!EVP_PKEY_get_octet_string_param (m_Pkey, OSSL_PKEY_PARAM_PUB_KEY,
+			m_PublicKeyEncoded.data (), m_PublicKeyEncoded.size (), &len) || len != m_KeyLen)
+			LogPrint (eLogError, "MLKEM can't read generated public key");
+#endif
 	}
 
 	void MLKEMKeys::GetPublicKey (uint8_t * pub) const
 	{
-		if (m_Pkey)
-		{
-			size_t len = m_KeyLen;
-		    EVP_PKEY_get_octet_string_param (m_Pkey, OSSL_PKEY_PARAM_PUB_KEY, pub, m_KeyLen, &len);
-		}
+		if (m_KeyLen)
+			memcpy (pub, m_PublicKeyEncoded.data (), m_KeyLen);
 	}
 
 	void MLKEMKeys::SetPublicKey (const uint8_t * pub)
 	{
+#if defined(LIBRESSL_VERSION_NUMBER)
+		if (!m_Rank)
+		{
+			LogPrint (eLogError, "MLKEM ", m_Name, " is not supported by LibreSSL");
+			return;
+		}
+		if (m_PublicKey) MLKEM_public_key_free (m_PublicKey);
+		m_PublicKey = MLKEM_public_key_new (m_Rank);
+		if (!m_PublicKey)
+		{
+			LogPrint (eLogError, "MLKEM can't create native public key");
+			return;
+		}
+		if (!MLKEM_parse_public_key (m_PublicKey, pub, m_KeyLen))
+			LogPrint (eLogError, "MLKEM can't parse native public key");
+		memcpy (m_PublicKeyEncoded.data (), pub, m_KeyLen);
+#else
 		if (m_Pkey)
 		{
 			EVP_PKEY_free (m_Pkey);
 			m_Pkey = nullptr;
 		}
+		memcpy (m_PublicKeyEncoded.data (), pub, m_KeyLen);
 		OSSL_PARAM params[] =
 		{
 			OSSL_PARAM_octet_string (OSSL_PKEY_PARAM_PUB_KEY, (uint8_t *)pub, m_KeyLen),
@@ -59,16 +146,35 @@ namespace crypto
 		EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_from_name (NULL, m_Name.c_str (), NULL);
 		if (ctx)
 		{
-			EVP_PKEY_fromdata_init (ctx);
-			EVP_PKEY_fromdata (ctx, &m_Pkey, OSSL_KEYMGMT_SELECT_PUBLIC_KEY, params);
+			if (EVP_PKEY_fromdata_init (ctx) <= 0 ||
+				EVP_PKEY_fromdata (ctx, &m_Pkey, OSSL_KEYMGMT_SELECT_PUBLIC_KEY, params) <= 0)
+					LogPrint (eLogError, "MLKEM can't create PKEY from params");
 			EVP_PKEY_CTX_free (ctx);
 		}
 		else
 			LogPrint (eLogError, "MLKEM can't create PKEY context");
+#endif
 	}
 
 	void MLKEMKeys::Encaps (uint8_t * ciphertext, uint8_t * shared)
 	{
+#if defined(LIBRESSL_VERSION_NUMBER)
+		if (!m_PublicKey) return;
+		uint8_t * ct = nullptr, * secret = nullptr;
+		size_t ctLen = 0, sharedLen = 0;
+		if (!MLKEM_encap (m_PublicKey, &ct, &ctLen, &secret, &sharedLen) || !ct || !secret ||
+			ctLen != m_CTLen || sharedLen != MLKEM_SHARED_SECRET_LENGTH)
+		{
+			LogPrint (eLogError, "MLKEM native encapsulation failed");
+			if (ct) free (ct);
+			if (secret) free (secret);
+			return;
+		}
+		memcpy (ciphertext, ct, ctLen);
+		memcpy (shared, secret, sharedLen);
+		free (ct);
+		free (secret);
+#else
 		if (!m_Pkey) return;
 		auto ctx = EVP_PKEY_CTX_new_from_pkey (NULL, m_Pkey, NULL);
 		if (ctx)
@@ -80,10 +186,25 @@ namespace crypto
 		}
 		else
 			LogPrint (eLogError, "MLKEM can't create PKEY context");
+#endif
 	}
 
 	void MLKEMKeys::Decaps (const uint8_t * ciphertext, uint8_t * shared)
 	{
+#if defined(LIBRESSL_VERSION_NUMBER)
+		if (!m_PrivateKey) return;
+		uint8_t * secret = nullptr;
+		size_t sharedLen = 0;
+		if (!MLKEM_decap (m_PrivateKey, ciphertext, m_CTLen, &secret, &sharedLen) || !secret ||
+			sharedLen != MLKEM_SHARED_SECRET_LENGTH)
+		{
+			LogPrint (eLogError, "MLKEM native decapsulation failed");
+			if (secret) free (secret);
+			return;
+		}
+		memcpy (shared, secret, sharedLen);
+		free (secret);
+#else
 		if (!m_Pkey) return;
 		auto ctx = EVP_PKEY_CTX_new_from_pkey (NULL, m_Pkey, NULL);
 		if (ctx)
@@ -95,13 +216,24 @@ namespace crypto
 		}
 		else
 			LogPrint (eLogError, "MLKEM can't create PKEY context");
+#endif
 	}
 
 	std::unique_ptr<MLKEMKeys> CreateMLKEMKeys (i2p::data::CryptoKeyType type)
 	{
-		if (type <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ||
-		    type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD > (int)MLKEMS.size ()) return nullptr;
-		return std::make_unique<MLKEMKeys>((MLKEMTypes)(type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD - 1));
+		switch (type)
+		{
+#if !defined(LIBRESSL_VERSION_NUMBER)
+			case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD:
+				return std::make_unique<MLKEMKeys> (eMLKEM512);
+#endif
+			case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM768_X25519_AEAD:
+				return std::make_unique<MLKEMKeys> (eMLKEM768);
+			case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM1024_X25519_AEAD:
+				return std::make_unique<MLKEMKeys> (eMLKEM1024);
+			default:
+				return nullptr;
+		}
 	}
 
 	static constexpr std::array NoiseIKInitMLKEMKeys =
@@ -149,9 +281,8 @@ namespace crypto
 
 	void InitNoiseIKStateMLKEM (NoiseSymmetricState& state, i2p::data::CryptoKeyType type, const uint8_t * pub)
 	{
-		if (type <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ||
-		    type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD > (int)NoiseIKInitMLKEMKeys.size ()) return;
-		auto ind = type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD - 1;
+		auto ind = GetMLKEMIndex (type);
+		if (ind < 0) return;
 		state.Init (NoiseIKInitMLKEMKeys[ind].first.data(), NoiseIKInitMLKEMKeys[ind].second.data(), pub);
 	}
 
@@ -200,9 +331,8 @@ namespace crypto
 
 	void InitNoiseXKStateMLKEM (NoiseSymmetricState& state, i2p::data::CryptoKeyType type, const uint8_t * pub)
 	{
-		if (type <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ||
-		    type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD > (int)NoiseXKInitMLKEMKeys.size ()) return;
-		auto ind = type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD - 1;
+		auto ind = GetMLKEMIndex (type);
+		if (ind < 0) return;
 		state.Init (NoiseXKInitMLKEMKeys[ind].first.data(), NoiseXKInitMLKEMKeys[ind].second.data(), pub);
 	}
 
@@ -239,9 +369,8 @@ namespace crypto
 
 	void InitNoiseXKStateMLKEM1 (NoiseSymmetricState& state, i2p::data::CryptoKeyType type, const uint8_t * pub)
 	{
-		if (type <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ||
-		    type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD > (int)NoiseXKInitMLKEMKeys1.size ()) return;
-		auto ind = type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD - 1;
+		auto ind = GetMLKEMIndex (type);
+		if (ind < 0 || ind >= (int)NoiseXKInitMLKEMKeys1.size ()) return;
 		state.Init (NoiseXKInitMLKEMKeys1[ind].first.data(), NoiseXKInitMLKEMKeys1[ind].second.data(), pub);
 	}
 }

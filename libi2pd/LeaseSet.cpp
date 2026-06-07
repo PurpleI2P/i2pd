@@ -422,8 +422,8 @@ namespace data
 			if (IsStoreLeases () && !preferredKeyFound) // create encryptor with leases only
 			{
 				// we pick max key type if preferred not found
-#if !OPENSSL_PQ
-				if (keyType <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) // skip PQ keys if not supported
+#if !OPENSSL_MLKEM
+				if (keyType <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) // skip PQ KEM keys if not supported
 #endif
 				{
 					if ((keyType == preferredKeyType || !m_Encryptor || keyType > m_EncryptionType) &&
