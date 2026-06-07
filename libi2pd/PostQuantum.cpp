@@ -27,13 +27,9 @@ namespace crypto
 {
 	MLKEMKeys::MLKEMKeys (MLKEMTypes type):
 		m_Name (type == eMLKEM512 ? "ML-KEM-512" : type == eMLKEM768 ? "ML-KEM-768" : "ML-KEM-1024"),
-		m_Rank (
 #if defined(LIBRESSL_VERSION_NUMBER)
-			type == eMLKEM768 ? MLKEM768_RANK : type == eMLKEM1024 ? MLKEM1024_RANK : 0
-#else
-			type + 2
+		m_Rank (type == eMLKEM768 ? MLKEM768_RANK : type == eMLKEM1024 ? MLKEM1024_RANK : 0),
 #endif
-		),
 		m_KeyLen (
 #if defined(LIBRESSL_VERSION_NUMBER)
 			type == eMLKEM768 ? MLKEM768_KEY_LENGTH : type == eMLKEM1024 ? MLKEM1024_KEY_LENGTH : 0
@@ -166,7 +162,8 @@ namespace crypto
 		if (!m_PublicKey) return;
 		uint8_t * ct = nullptr, * secret = nullptr;
 		size_t ctLen = 0, sharedLen = 0;
-		if (!MLKEM_encap (m_PublicKey, &ct, &ctLen, &secret, &sharedLen) || !ct || !secret || ctLen != m_CTLen)
+		if (!MLKEM_encap (m_PublicKey, &ct, &ctLen, &secret, &sharedLen) || !ct || !secret ||
+			ctLen != m_CTLen || sharedLen != MLKEM_SHARED_SECRET_LENGTH)
 		{
 			LogPrint (eLogError, "MLKEM native encapsulation failed");
 			if (ct) free (ct);
@@ -198,7 +195,8 @@ namespace crypto
 		if (!m_PrivateKey) return;
 		uint8_t * secret = nullptr;
 		size_t sharedLen = 0;
-		if (!MLKEM_decap (m_PrivateKey, ciphertext, m_CTLen, &secret, &sharedLen) || !secret)
+		if (!MLKEM_decap (m_PrivateKey, ciphertext, m_CTLen, &secret, &sharedLen) || !secret ||
+			sharedLen != MLKEM_SHARED_SECRET_LENGTH)
 		{
 			LogPrint (eLogError, "MLKEM native decapsulation failed");
 			if (secret) free (secret);

@@ -40,6 +40,7 @@ namespace crypto
 	constexpr size_t MLKEM768_CIPHER_TEXT_LENGTH = 1088;
 	constexpr size_t MLKEM1024_KEY_LENGTH = 1568;
 	constexpr size_t MLKEM1024_CIPHER_TEXT_LENGTH = 1568;
+	constexpr size_t MLKEM_SHARED_SECRET_LENGTH = 32;
 
 #if defined(LIBRESSL_VERSION_NUMBER)
 	constexpr std::array MLKEMS =
@@ -106,7 +107,9 @@ namespace crypto
 		private:
 
 			const std::string m_Name;
+#if defined(LIBRESSL_VERSION_NUMBER)
 			const int m_Rank;
+#endif
 			const size_t m_KeyLen, m_CTLen;
 			std::array<uint8_t, MLKEM1024_KEY_LENGTH> m_PublicKeyEncoded;
 #if defined(LIBRESSL_VERSION_NUMBER)

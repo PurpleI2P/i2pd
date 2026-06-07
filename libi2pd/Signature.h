@@ -462,6 +462,7 @@ namespace crypto
 		private:
 
 			uint8_t m_PrivateKey[64];
+			bool m_IsPrivateKeySet;
 	};
 #endif	
 	

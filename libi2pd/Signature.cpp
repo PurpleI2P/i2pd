@@ -26,7 +26,7 @@ namespace i2p
 {
 namespace crypto
 {
-#if defined(USE_LIBSODIUM_ED25519PH)
+#if defined(USE_LIBSODIUM_ED25519PH) && (OPENSSL_VERSION_NUMBER < 0x030000000)
 	static bool EnsureSodiumInit ()
 	{
 		static bool isInitialized = sodium_init () >= 0;
@@ -488,13 +488,20 @@ namespace crypto
 	EDDSA25519phSigner::EDDSA25519phSigner (const uint8_t * signingPrivateKey)
 	{
 		memset (m_PrivateKey, 0, sizeof(m_PrivateKey));
+		m_IsPrivateKeySet = false;
 		if (!EnsureSodiumInit ())
 		{
 			LogPrint (eLogError, "libsodium initialization failed");
 			return;
 		}
 		uint8_t publicKey[EDDSA25519_PUBLIC_KEY_LENGTH];
-		crypto_sign_ed25519_seed_keypair (publicKey, m_PrivateKey, signingPrivateKey);
+		if (crypto_sign_ed25519_seed_keypair (publicKey, m_PrivateKey, signingPrivateKey) != 0)
+		{
+			LogPrint (eLogError, "Ed25519ph key derivation failed");
+			memset (m_PrivateKey, 0, sizeof(m_PrivateKey));
+			return;
+		}
+		m_IsPrivateKeySet = true;
 	}
 
 	void EDDSA25519phSigner::Sign (const uint8_t * buf, int len, uint8_t * signature) const
@@ -502,6 +509,11 @@ namespace crypto
 		if (!EnsureSodiumInit ())
 		{
 			LogPrint (eLogError, "libsodium initialization failed");
+			return;
+		}
+		if (!m_IsPrivateKeySet)
+		{
+			LogPrint (eLogError, "Ed25519ph signing key is not set");
 			return;
 		}
 		crypto_sign_ed25519ph_state state;
@@ -525,7 +537,13 @@ namespace crypto
 		}
 		randombytes_buf (signingPrivateKey, EDDSA25519_PRIVATE_KEY_LENGTH);
 		uint8_t secretKey[64];
-		crypto_sign_ed25519_seed_keypair (signingPublicKey, secretKey, signingPrivateKey);
+		if (crypto_sign_ed25519_seed_keypair (signingPublicKey, secretKey, signingPrivateKey) != 0)
+		{
+			memset (signingPrivateKey, 0, EDDSA25519_PRIVATE_KEY_LENGTH);
+			memset (signingPublicKey, 0, EDDSA25519_PUBLIC_KEY_LENGTH);
+			LogPrint (eLogError, "Ed25519ph key generation failed");
+		}
+		sodium_memzero (secretKey, sizeof(secretKey));
 #else
 		CreateEDDSA25519RandomKeys (signingPrivateKey, signingPublicKey);
 #endif
@@ -712,10 +730,28 @@ namespace crypto
 	{
 #if OPENSSL_PQ
 		EVP_PKEY * pkey = EVP_PKEY_Q_keygen (NULL, NULL, "ML-DSA-44");
+		if (!pkey)
+		{
+			memset (signingPrivateKey, 0, MLDSA44_PRIVATE_KEY_LENGTH);
+			memset (signingPublicKey, 0, MLDSA44_PUBLIC_KEY_LENGTH);
+			LogPrint (eLogError, "MLDSA44 key generation failed");
+			return;
+		}
+		bool ok = true;
 		size_t len = MLDSA44_PUBLIC_KEY_LENGTH;
-		EVP_PKEY_get_octet_string_param (pkey, OSSL_PKEY_PARAM_PUB_KEY, signingPublicKey, MLDSA44_PUBLIC_KEY_LENGTH, &len);
+		if (EVP_PKEY_get_octet_string_param (pkey, OSSL_PKEY_PARAM_PUB_KEY, signingPublicKey, MLDSA44_PUBLIC_KEY_LENGTH, &len) != 1 ||
+			len != MLDSA44_PUBLIC_KEY_LENGTH)
+			ok = false;
 		len = MLDSA44_PRIVATE_KEY_LENGTH;
-		EVP_PKEY_get_octet_string_param (pkey, OSSL_PKEY_PARAM_PRIV_KEY, signingPrivateKey, MLDSA44_PRIVATE_KEY_LENGTH, &len);
+		if (EVP_PKEY_get_octet_string_param (pkey, OSSL_PKEY_PARAM_PRIV_KEY, signingPrivateKey, MLDSA44_PRIVATE_KEY_LENGTH, &len) != 1 ||
+			len != MLDSA44_PRIVATE_KEY_LENGTH)
+			ok = false;
+		if (!ok)
+		{
+			memset (signingPrivateKey, 0, MLDSA44_PRIVATE_KEY_LENGTH);
+			memset (signingPublicKey, 0, MLDSA44_PUBLIC_KEY_LENGTH);
+			LogPrint (eLogError, "MLDSA44 key extraction failed");
+		}
 		EVP_PKEY_free (pkey);
 #elif defined(USE_LIBOQS_MLDSA) && defined(OQS_ENABLE_SIG_ml_dsa_44)
 		if (OQS_SIG_ml_dsa_44_keypair (signingPublicKey, signingPrivateKey) != OQS_SUCCESS)
