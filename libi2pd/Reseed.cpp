@@ -602,6 +602,14 @@ namespace data
 
 		boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);
 		ctx.set_verify_mode(boost::asio::ssl::context::verify_none);
+#if OPENSSL_MLKEM
+		auto nativeCtx = ctx.native_handle ();
+		if (!SSL_CTX_set1_groups_list (nativeCtx, "X25519MLKEM768:X25519"))
+		{
+			LogPrint (eLogDebug, "Reseed: TLS group preference X25519MLKEM768 unavailable, falling back to X25519");
+			SSL_CTX_set1_groups_list (nativeCtx, "X25519");
+		}
+#endif
 		boost::asio::ssl::stream<boost::asio::ip::tcp::socket> s(service, ctx);
 
 		if(proxyUrl.schema.size())

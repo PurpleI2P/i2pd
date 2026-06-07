@@ -3458,7 +3458,11 @@ namespace transport
 		switch (version)
 		{
 			case 3:
+#if defined(LIBRESSL_VERSION_NUMBER)
+				m_Version = 2; // ML-KEM-512 is not available via LibreSSL native API
+#else
 				m_Version = 3;
+#endif
 			break;
 			case 4:
 				m_Version = (m_MaxPayloadSize >= SSU2_MLKEM768_MIN_PAYLOAD_SIZE) ? 4: 2;

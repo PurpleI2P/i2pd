@@ -1564,7 +1564,21 @@ namespace transport
 	void SSU2Server::SetVersion (int version)
 	{
 #if OPENSSL_MLKEM
-        m_Version = version;
+		switch (version)
+		{
+			case 3:
+#if defined(LIBRESSL_VERSION_NUMBER)
+				m_Version = 2; // ML-KEM-512 unsupported for LibreSSL native ML-KEM
+#else
+				m_Version = 3;
+#endif
+			break;
+			case 4:
+				m_Version = 4;
+			break;
+			default:
+				m_Version = 2;
+		}
 #endif
 	}
 
