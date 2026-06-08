@@ -565,10 +565,16 @@ namespace garlic
 
 		// KDF1
 #if OPENSSL_MLKEM
-		if (m_RemoteStaticKeyType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
+		auto mlkemKeyLen = i2p::crypto::GetMLKEMPublicKeyLen (m_RemoteStaticKeyType);
+		if (mlkemKeyLen)
 		{
 			i2p::crypto::InitNoiseIKStateMLKEM (GetNoiseState (), m_RemoteStaticKeyType, m_RemoteStaticKey); // bpk
 			m_PQKeys = i2p::crypto::CreateMLKEMKeys (m_RemoteStaticKeyType);
+			if (!m_PQKeys)
+			{
+				LogPrint (eLogError, "Garlic: Unsupported ML-KEM type ", m_RemoteStaticKeyType, " for outgoing session");
+				return false;
+			}
 			m_PQKeys->GenerateKeys ();
 		}
 		else
@@ -583,19 +589,18 @@ namespace garlic
 		}
 		MixKey (sharedSecret);
 #if OPENSSL_MLKEM
-		if (m_RemoteStaticKeyType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
+		if (mlkemKeyLen)
 		{
-			auto keyLen = i2p::crypto::GetMLKEMPublicKeyLen (m_RemoteStaticKeyType);
-			std::vector<uint8_t> encapsKey(keyLen);
+			std::vector<uint8_t> encapsKey(mlkemKeyLen);
 			m_PQKeys->GetPublicKey (encapsKey.data ());
 			// encrypt encapsKey
-			if (!Encrypt (encapsKey.data (), out + offset, keyLen))
+			if (!Encrypt (encapsKey.data (), out + offset, mlkemKeyLen))
 			{
 				LogPrint (eLogWarning, "Garlic: ML-KEM encap_key section AEAD encryption failed ");
 				return false;
 			}
-			MixHash (out + offset, keyLen + 16); // h = SHA256(h || ciphertext)
-			offset += keyLen + 16;
+			MixHash (out + offset, mlkemKeyLen + 16); // h = SHA256(h || ciphertext)
+			offset += mlkemKeyLen + 16;
 		}
 #endif
 		// encrypt flags/static key section
@@ -810,13 +815,18 @@ namespace garlic
 		}
 		MixKey (sharedSecret);
 #if OPENSSL_MLKEM
-		if (m_RemoteStaticKeyType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
+		auto cipherTextLen = i2p::crypto::GetMLKEMCipherTextLen (m_RemoteStaticKeyType);
+		if (cipherTextLen)
 		{
 			// decrypt kem_ciphertext section
-			size_t cipherTextLen = i2p::crypto::GetMLKEMCipherTextLen (m_RemoteStaticKeyType);
-			if (cipherTextLen + 16 > len || !cipherTextLen)
+			if (cipherTextLen + 16 > len)
 			{
 				LogPrint (eLogWarning, "Garlic: ML-KEM cipher test section is too short ", len, ". Expected ", cipherTextLen + 16);
+				return false;
+			}
+			if (!m_PQKeys)
+			{
+				LogPrint (eLogWarning, "Garlic: Missing ML-KEM keys for ciphertext processing");
 				return false;
 			}
 			std::vector<uint8_t> kemCiphertext(cipherTextLen);
@@ -1080,8 +1090,8 @@ namespace garlic
 					return nullptr;
 				len += 96;
 #if OPENSSL_MLKEM
-				if (m_RemoteStaticKeyType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
-					len += i2p::crypto::GetMLKEMPublicKeyLen (m_RemoteStaticKeyType) + 16;
+				if (auto keyLen = i2p::crypto::GetMLKEMPublicKeyLen (m_RemoteStaticKeyType); keyLen)
+					len += keyLen + 16;
 #endif
 			break;
 			case eSessionStateNewSessionReceived:
@@ -1089,8 +1099,8 @@ namespace garlic
 					return nullptr;
 				len += 72;
 #if OPENSSL_MLKEM
-				if (m_RemoteStaticKeyType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
-					len += i2p::crypto::GetMLKEMCipherTextLen (m_RemoteStaticKeyType) + 16;
+				if (auto ctLen = i2p::crypto::GetMLKEMCipherTextLen (m_RemoteStaticKeyType); ctLen)
+					len += ctLen + 16;
 #endif
 			break;
 			case eSessionStateNewSessionReplySent:
@@ -1098,8 +1108,8 @@ namespace garlic
 					return nullptr;
 				len += 72;
 #if OPENSSL_MLKEM
-				if (m_RemoteStaticKeyType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
-					len += i2p::crypto::GetMLKEMCipherTextLen (m_RemoteStaticKeyType) + 16;
+				if (auto ctLen = i2p::crypto::GetMLKEMCipherTextLen (m_RemoteStaticKeyType); ctLen)
+					len += ctLen + 16;
 #endif
 			break;
 			case eSessionStateOneTime:

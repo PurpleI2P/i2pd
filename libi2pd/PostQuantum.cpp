@@ -107,8 +107,8 @@ namespace crypto
 
 	void MLKEMKeys::GenerateKeys ()
 	{
-#if defined(LIBRESSL_VERSION_NUMBER)
 		m_PublicKeyEncoded.fill (0);
+#if defined(LIBRESSL_VERSION_NUMBER)
 		if (!m_Rank)
 		{
 			LogPrint (eLogError, "MLKEM ", m_Name, " is not supported by LibreSSL");
@@ -155,6 +155,7 @@ namespace crypto
 		free (pub);
 #else
 		if (m_Pkey) EVP_PKEY_free (m_Pkey);
+		m_Pkey = nullptr;
 		m_Pkey = EVP_PKEY_Q_keygen (NULL, NULL, m_Name.c_str ());
 		if (!m_Pkey)
 		{
@@ -164,7 +165,12 @@ namespace crypto
 		size_t len = m_KeyLen;
 		if (!EVP_PKEY_get_octet_string_param (m_Pkey, OSSL_PKEY_PARAM_PUB_KEY,
 			m_PublicKeyEncoded.data (), m_PublicKeyEncoded.size (), &len) || len != m_KeyLen)
+		{
 			LogPrint (eLogError, "MLKEM can't read generated public key");
+			EVP_PKEY_free (m_Pkey);
+			m_Pkey = nullptr;
+			return;
+		}
 #endif
 	}
 
@@ -176,8 +182,8 @@ namespace crypto
 
 	void MLKEMKeys::SetPublicKey (const uint8_t * pub)
 	{
-#if defined(LIBRESSL_VERSION_NUMBER)
 		m_PublicKeyEncoded.fill (0);
+#if defined(LIBRESSL_VERSION_NUMBER)
 		if (!m_Rank)
 		{
 			LogPrint (eLogError, "MLKEM ", m_Name, " is not supported by LibreSSL");
@@ -204,7 +210,6 @@ namespace crypto
 			EVP_PKEY_free (m_Pkey);
 			m_Pkey = nullptr;
 		}
-		memcpy (m_PublicKeyEncoded.data (), pub, m_KeyLen);
 		OSSL_PARAM params[] =
 		{
 			OSSL_PARAM_octet_string (OSSL_PKEY_PARAM_PUB_KEY, (uint8_t *)pub, m_KeyLen),
@@ -215,11 +220,24 @@ namespace crypto
 		{
 			if (EVP_PKEY_fromdata_init (ctx) <= 0 ||
 				EVP_PKEY_fromdata (ctx, &m_Pkey, OSSL_KEYMGMT_SELECT_PUBLIC_KEY, params) <= 0)
-					LogPrint (eLogError, "MLKEM can't create PKEY from params");
+			{
+				LogPrint (eLogError, "MLKEM can't create PKEY from params");
+				if (m_Pkey)
+				{
+					EVP_PKEY_free (m_Pkey);
+					m_Pkey = nullptr;
+				}
+				EVP_PKEY_CTX_free (ctx);
+				return;
+			}
 			EVP_PKEY_CTX_free (ctx);
 		}
 		else
+		{
 			LogPrint (eLogError, "MLKEM can't create PKEY context");
+			return;
+		}
+		memcpy (m_PublicKeyEncoded.data (), pub, m_KeyLen);
 #endif
 	}
 
