@@ -9,6 +9,7 @@
 #include <thread>
 #include <memory>
 #include <regex>
+#include <array>
 
 #include "Daemon.h"
 
@@ -34,6 +35,12 @@
 #include "UPnP.h"
 #include "Timestamp.h"
 #include "I18N.h"
+
+#ifdef __OpenBSD__
+#include <unistd.h>
+#include <errno.h>
+#include <cstring>
+#endif
 
 namespace i2p
 {
@@ -312,6 +319,56 @@ namespace util
 
 		std::string httpLang; i2p::config::GetOption("http.lang", httpLang);
 		i2p::i18n::SetLanguage(httpLang);
+
+#ifdef __OpenBSD__
+		auto unveilPath = [] (const std::string& path, const char * mask)
+		{
+			if (!path.empty ())
+			{
+				if (unveil (path.c_str (), mask) == -1)
+					LogPrint (eLogError, "Daemon: unveil failed for ", path, ": ", std::strerror (errno));
+			}
+		};
+
+		std::string tunconf; i2p::config::GetOption ("tunconf", tunconf);
+		if (tunconf.empty ()) tunconf = i2p::fs::DataDirPath ("tunnels.conf");
+		std::string tunnelsdir; i2p::config::GetOption ("tunnelsdir", tunnelsdir);
+		if (tunnelsdir.empty ()) tunnelsdir = i2p::fs::DataDirPath ("tunnels.d");
+		std::string pidfile; i2p::config::GetOption ("pidfile", pidfile);
+		if (pidfile.empty ()) pidfile = i2p::fs::DataDirPath ("i2pd.pid");
+		std::string reseedFile; i2p::config::GetOption ("reseed.file", reseedFile);
+		std::string reseedZipFile; i2p::config::GetOption ("reseed.zipfile", reseedZipFile);
+
+		// local reseed file only; URLs are network inputs and don't need unveil
+		if (reseedFile.rfind ("https://", 0) == 0) reseedFile.clear ();
+
+		// limit filesystem access to runtime paths determined from effective config/defaults
+		const std::array<std::pair<std::string, const char *>, 9> unveilRules =
+		{{
+			{config, "r"},
+			{datadir, "rwc"},
+			{certsdir, "r"},
+			{tunconf, "r"},
+			{tunnelsdir, "r"},
+			{pidfile, "rwc"},
+			{logfile, "rwc"},
+			{reseedFile, "r"},
+			{reseedZipFile, "r"}
+		}};
+		for (const auto& [path, mask]: unveilRules)
+			unveilPath (path, mask);
+
+		if (unveil (nullptr, nullptr) == -1)
+		{
+			LogPrint (eLogError, "Daemon: unveil lock failed: ", std::strerror (errno));
+			return false;
+		}
+		if (pledge ("stdio inet dns flock rpath wpath cpath", nullptr) == -1)
+		{
+			LogPrint (eLogError, "Daemon: pledge failed: ", std::strerror (errno));
+			return false;
+		}
+#endif
 
 		return true;
 	}
