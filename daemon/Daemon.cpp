@@ -10,6 +10,7 @@
 #include <memory>
 #include <regex>
 #include <array>
+#include <utility>
 
 #include "Daemon.h"
 
@@ -355,8 +356,8 @@ namespace util
 			{reseedFile, "r"},
 			{reseedZipFile, "r"}
 		}};
-		for (const auto& [path, mask]: unveilRules)
-			unveilPath (path, mask);
+		for (const auto& rule: unveilRules)
+			unveilPath (rule.first, rule.second);
 
 		if (unveil (nullptr, nullptr) == -1)
 		{
