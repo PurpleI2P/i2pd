@@ -9,7 +9,6 @@
 #include <string.h>
 #include "I2PEndian.h"
 #include "Crypto.h"
-#include "PostQuantum.h"
 #include "Log.h"
 #include "Tag.h"
 #include "Timestamp.h"
@@ -425,9 +424,6 @@ namespace data
 				// we pick max key type if preferred not found
 #if !OPENSSL_PQ
 				if (keyType <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) // skip PQ keys if not supported
-#elif OPENSSL_PQ
-				if (keyType <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ||
-				    i2p::crypto::IsMLKEMCryptoTypeSupported ((i2p::data::CryptoKeyType)keyType)) // skip unsupported PQ variants
 #endif
 				{
 					if ((keyType == preferredKeyType || !m_Encryptor || keyType > m_EncryptionType) &&
