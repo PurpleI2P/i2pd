@@ -27,6 +27,20 @@ namespace crypto
 {
 	namespace
 	{
+		constexpr int GetNoiseMLKEMIndex (i2p::data::CryptoKeyType type)
+		{
+			switch (type)
+			{
+				case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD: return 0;
+				case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM768_X25519_AEAD: return 1;
+				case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM1024_X25519_AEAD: return 2;
+				default: return -1;
+			}
+		}
+	}
+
+	namespace
+	{
 		struct MLKEMParams
 		{
 			const char * name;
@@ -334,7 +348,7 @@ namespace crypto
 
 	void InitNoiseIKStateMLKEM (NoiseSymmetricState& state, i2p::data::CryptoKeyType type, const uint8_t * pub)
 	{
-		auto ind = GetMLKEMIndex (type);
+		auto ind = GetNoiseMLKEMIndex (type);
 		if (ind < 0) return;
 		state.Init (NoiseIKInitMLKEMKeys[ind].first.data(), NoiseIKInitMLKEMKeys[ind].second.data(), pub);
 	}
@@ -384,7 +398,7 @@ namespace crypto
 
 	void InitNoiseXKStateMLKEM (NoiseSymmetricState& state, i2p::data::CryptoKeyType type, const uint8_t * pub)
 	{
-		auto ind = GetMLKEMIndex (type);
+		auto ind = GetNoiseMLKEMIndex (type);
 		if (ind < 0) return;
 		state.Init (NoiseXKInitMLKEMKeys[ind].first.data(), NoiseXKInitMLKEMKeys[ind].second.data(), pub);
 	}
@@ -422,7 +436,7 @@ namespace crypto
 
 	void InitNoiseXKStateMLKEM1 (NoiseSymmetricState& state, i2p::data::CryptoKeyType type, const uint8_t * pub)
 	{
-		auto ind = GetMLKEMIndex (type);
+		auto ind = GetNoiseMLKEMIndex (type);
 		if (ind < 0 || ind >= (int)NoiseXKInitMLKEMKeys1.size ()) return;
 		state.Init (NoiseXKInitMLKEMKeys1[ind].first.data(), NoiseXKInitMLKEMKeys1[ind].second.data(), pub);
 	}

@@ -1,0 +1,141 @@
+PQ4 runtime test report (Linux + Homebrew)
+Timestamp: 2026-06-08
+Branch: libressl-4.3.2-compat-parity-v3
+
+Goal
+- Run real runtime checks (not only unit test) with ntcp2.version=4.
+- Try real eepsite access through local HTTP proxy.
+- Verify linked crypto backend and observe pq=4 in transport sessions.
+
+Builds used
+1) OpenSSL build
+   - Binary: /tmp/i2pd-pq4-openssl-build/i2pd
+   - Linked libs:
+     - libssl.so.3 => /home/linuxbrew/.linuxbrew/lib/libssl.so.3
+     - libcrypto.so.3 => /home/linuxbrew/.linuxbrew/lib/libcrypto.so.3
+
+2) LibreSSL build
+   - Binary: /tmp/i2pd-pq4-libressl-build/i2pd
+   - Linked libs:
+     - libssl.so.60 => /home/linuxbrew/.linuxbrew/opt/libressl/lib/libssl.so.60
+     - libcrypto.so.57 => /home/linuxbrew/.linuxbrew/opt/libressl/lib/libcrypto.so.57
+
+Long-running daemons (left running to keep growing addressbook)
+- OpenSSL:  /tmp/i2pd-pq4-openssl-long/i2pd.conf
+  - PID: 229732
+  - WebConsole: http://127.0.0.1:27070/transports
+  - HTTP proxy: 127.0.0.1:24444
+- LibreSSL: /tmp/i2pd-pq4-libressl-long/i2pd.conf
+  - PID: 229743
+  - WebConsole: http://127.0.0.1:27071/transports
+  - HTTP proxy: 127.0.0.1:24445
+
+Observed runtime status
+- Addressbook progressed in both runs:
+  - OpenSSL log:  "Addressbook: 80 addresses saved"
+  - LibreSSL log: "Addressbook: 80 addresses saved"
+- Eepsite probe used: http://identiguy.i2p via each local proxy
+  - OpenSSL: timeout (curl 28, no bytes received)
+  - LibreSSL: timeout (curl 28, no bytes received)
+- Transport sessions page scan:
+  - OpenSSL: no "pq=4" entries observed yet
+  - LibreSSL: no "pq=4" entries observed yet
+  - Extracted pq values:
+    - OpenSSL: (none)
+    - LibreSSL: (none)
+
+Notes
+- This is a real runtime attempt (daemon + proxy + webconsole observation), not only test-postquantum.
+- i2pd instances are intentionally still running for further addressbook/tunnel maturation.
+
+Pass #2 (extended runtime with matured addressbook)
+- Both daemons were kept running and re-probed with multiple eepsites from addressbook:
+  - stats.i2p, i2pd.i2p, zzz.i2p, reg.i2p, torproject.i2p
+  - plus direct .b32.i2p forms for the same hosts.
+- Real HTTP responses observed through both proxies:
+  - OpenSSL: HTTP 200 for i2pd.i2p, reg.i2p, zzz.i2p (and their .b32 forms)
+  - LibreSSL: HTTP 200 for i2pd.i2p, reg.i2p, zzz.i2p (and their .b32 forms)
+  - torproject.i2p returned HTTP 421 in both runs
+  - stats.i2p remained unresolved/timeout in this pass
+- Traffic evidence:
+  - PASS2_OPENSSL_TOTAL_BYTES=305740
+  - PASS2_LIBRESSL_TOTAL_BYTES=297919
+- Addressbook remained populated in both:
+  - OpenSSL:  Addressbook: 80 addresses saved
+  - LibreSSL: Addressbook: 80 addresses saved
+- Transport session observation after pass #2:
+  - PASS2_OPENSSL_PQ4_OK=0
+  - PASS2_LIBRESSL_PQ4_OK=0
+  - No `pq=4` marker visible yet in `/transports` for either daemon.
+
+Pass #3 (aggressive high-concurrency traffic)
+- Method:
+  - 18 rounds of concurrent fanout against up to 160 URLs per round (mixed `.i2p` + `.b32.i2p` from addressbook),
+  - executed simultaneously against both local proxies (OpenSSL and LibreSSL builds),
+  - with periodic `/transports` sampling for `pq=*` markers.
+- Aggregate traffic/results:
+  - AGGR_OPENSSL_TOTAL_BYTES=115235692
+  - AGGR_LIBRESSL_TOTAL_BYTES=124082888
+  - AGGR_OPENSSL_HTTP200=1433
+  - AGGR_LIBRESSL_HTTP200=1462
+  - AGGR_OPENSSL_HTTP421=165
+  - AGGR_LIBRESSL_HTTP421=168
+- Addressbook status after aggressive pass:
+  - OpenSSL:  Addressbook: 80 addresses saved
+  - LibreSSL: Addressbook: 80 addresses saved
+- `pq=4` observation after aggressive pass:
+  - AGGR_OPENSSL_PQ4_OK=0
+  - AGGR_LIBRESSL_PQ4_OK=0
+  - No `pq=` markers visible in sampled `/transports` pages for either daemon.
+
+Investigation + retest (root cause and correction)
+- Root cause of previous false-negative checks:
+  - I was querying `http://127.0.0.1:<port>/transports` (main page), not the actual transports page.
+  - Correct endpoint is: `http://127.0.0.1:<port>/?page=transports`.
+
+- After correcting endpoint:
+  - OpenSSL run immediately showed active PQ transport sessions:
+    - `pq=4` markers present (example count snapshot: 12, later 30).
+  - LibreSSL run still showed no `pq=` markers in `/?page=transports`.
+
+- Additional restart test (LibreSSL):
+  - Restarted LibreSSL daemon and forced CLI overrides:
+    - `--ntcp2.version=4 --ssu2.version=4`
+  - Generated another aggressive wave (HTTP 200 responses and ~12 MB transferred).
+  - Result remained:
+    - `RESTART_LIBRESSL_PQ4_HITS=0`
+    - `RESTART_LIBRESSL_NOW_PQ4_COUNT=0`
+
+- Evidence suggesting why LibreSSL still does not show PQ sessions:
+  - Much higher NTCP2 handshake instability on LibreSSL path during stress:
+    - frequent `NTCP2: SessionCreated read error: End of file/Connection reset by peer/Operation canceled`.
+  - OpenSSL path under the same corrected observation method does establish PQ (`pq=4`) sessions.
+
+Interim conclusion
+- PQ transport operation is proven in this environment for OpenSSL build.
+- For LibreSSL build, runtime interoperability appears to degrade during NTCP2 PQ negotiation in live network conditions; despite successful PQ unit tests and heavy traffic, no established `pq=4` sessions were observed in webconsole.
+
+Fix + pass #4 (LibreSSL PQ interop restored)
+- Root cause fixed in code:
+  - `libi2pd/PostQuantum.cpp` used `GetMLKEMIndex()` to pick Noise protocol init constants.
+  - Under LibreSSL, `GetMLKEMIndex(mlkem768)` returns 0 (because LibreSSL API exposes only 768/1024), but Noise arrays are indexed as 512/768/1024.
+  - This mis-selected ML-KEM-512 Noise constants when ML-KEM-768 was negotiated, breaking live interop.
+  - Fix: introduce a dedicated Noise index mapping by crypto type:
+    - 512 -> 0, 768 -> 1, 1024 -> 2
+    - use this mapping in `InitNoiseIKStateMLKEM`, `InitNoiseXKStateMLKEM`, and `InitNoiseXKStateMLKEM1`.
+
+- Runtime retest after patch (fresh LibreSSL daemon, same environment):
+  - Aggressive fanout traffic (4 rounds, high concurrency via local proxy 127.0.0.1:24445).
+  - WebConsole checked at the correct endpoint: `http://127.0.0.1:27071/?page=transports`.
+  - Result:
+    - `pq_counts: 5 pq=4`
+    - Example live session lines:
+      - `23.128.248.68:7777 ... [pq=4]`
+      - `84.74.100.14:19791 ... [pq=4]`
+      - `85.120.81.99:1488 ... [pq=4]`
+      - `95.216.113.179:21206 ... [pq=4]`
+      - `151.243.213.175:1488 ... [pq=4]`
+
+Final conclusion
+- OpenSSL build: PQ runtime already verified (`pq=4`).
+- LibreSSL build: PQ runtime now also verified (`pq=4`) after fixing Noise ML-KEM index selection.
