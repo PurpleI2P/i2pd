@@ -606,9 +606,9 @@ namespace data
 		auto nativeCtx = ctx.native_handle ();
 		if (!SSL_CTX_set1_groups_list (nativeCtx, "X25519MLKEM768:X25519"))
 		{
-			LogPrint (eLogDebug, "Reseed: TLS group preference X25519MLKEM768 unavailable, falling back to X25519");
+			LogPrint (eLogDebug, "Reseed: Preferred crypto groups X25519MLKEM768:X25519 unavailable, falling back to X25519");
 			if (!SSL_CTX_set1_groups_list (nativeCtx, "X25519"))
-				LogPrint (eLogWarning, "Reseed: TLS group fallback X25519 setup failed");
+				LogPrint (eLogWarning, "Reseed: Fallback crypto group X25519 setup failed");
 		}
 #endif
 		boost::asio::ssl::stream<boost::asio::ip::tcp::socket> s(service, ctx);
