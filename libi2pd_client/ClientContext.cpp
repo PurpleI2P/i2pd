@@ -963,10 +963,7 @@ namespace client
 			if (sigType > i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519) sigType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519;
 			LogPrint(eLogInfo, "Clients: Starting HTTP Proxy at ", httpProxyAddr, ":", httpProxyPort);
 			if (httpProxyKeys == "shareddest")
-			{
 				localDestination = m_SharedLocalDestination;
-				localDestination->Acquire ();
-			}
 			else if (httpProxyKeys.length () > 0)
 			{
 				i2p::data::PrivateKeys keys;
@@ -976,7 +973,6 @@ namespace client
 					ReadI2CPOptionsFromConfig ("httpproxy.", params);
 					params.Insert (I2CP_PARAM_OUTBOUND_NICKNAME, "HTTPProxy");
 					localDestination = CreateNewLocalDestination (keys, false, &params);
-					if (localDestination) localDestination->Acquire ();
 				}
 				else
 					LogPrint(eLogCritical, "Clients: Failed to load HTTP Proxy key");
@@ -1020,15 +1016,9 @@ namespace client
 			if (sigType > i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519) sigType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519;
 			LogPrint(eLogInfo, "Clients: Starting SOCKS Proxy at ", socksProxyAddr, ":", socksProxyPort);
 			if (socksProxyKeys == "shareddest")
-			{
 				localDestination = m_SharedLocalDestination;
-				localDestination->Acquire ();
-			}
 			else if (httpProxyKeys == socksProxyKeys && m_HttpProxy)
-			{
 				localDestination = m_HttpProxy->GetLocalDestination ();
-				localDestination->Acquire ();
-			}
 			else if (socksProxyKeys.length () > 0)
 			{
 				i2p::data::PrivateKeys keys;
@@ -1038,7 +1028,6 @@ namespace client
 					ReadI2CPOptionsFromConfig ("socksproxy.", params);
 					params.Insert (I2CP_PARAM_OUTBOUND_NICKNAME, "SOCKSProxy");
 					localDestination = CreateNewLocalDestination (keys, false, &params);
-					if (localDestination) localDestination->Acquire ();
 				}
 				else
 					LogPrint(eLogCritical, "Clients: Failed to load SOCKS Proxy key");
