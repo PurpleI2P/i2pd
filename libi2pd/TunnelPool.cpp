@@ -819,7 +819,7 @@ namespace tunnel
 				return;
 			}
 
-			if (m_LocalDestination && !m_LocalDestination->SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD))
+			if (m_LocalDestination && !m_LocalDestination->GetRatchetsHighestCryptoType ())
 				path.isShort = false; // because can't handle ECIES encrypted reply
 
 			std::shared_ptr<TunnelConfig> config;
