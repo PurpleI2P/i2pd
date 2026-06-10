@@ -431,7 +431,7 @@ namespace tunnel
 			newTests.push_back(std::make_pair (*it1, *it2));
 			++it1; ++it2;
 		}
-		bool isECIES = m_LocalDestination->SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD);
+		bool isECIES = m_LocalDestination->GetRatchetsHighestCryptoType () > 0;
 		for (auto& it: newTests)
 		{
 			uint32_t msgID;
