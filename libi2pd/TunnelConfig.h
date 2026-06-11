@@ -47,18 +47,13 @@ namespace tunnel
 		virtual uint64_t GetGarlicKey (uint8_t * key) const { return 0; }; // return tag
 	};
 
-	struct ECIESTunnelHopConfig: public TunnelHopConfig, public i2p::crypto::NoiseSymmetricState
-	{
-		ECIESTunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r):
-			TunnelHopConfig (r) {};
-		void EncryptECIES (const uint8_t * clearText, size_t len, uint8_t * encrypted);
-		bool DecryptECIES (const uint8_t * key, const uint8_t * nonce, const uint8_t * encrypted, size_t len, uint8_t * clearText) const;
-	};
-
-	struct ShortECIESTunnelHopConfig: public ECIESTunnelHopConfig
+	struct ShortECIESTunnelHopConfig: public TunnelHopConfig, public i2p::crypto::NoiseSymmetricState
 	{
 		ShortECIESTunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r):
-			ECIESTunnelHopConfig (r) {};
+			TunnelHopConfig (r) {};
+
+		void EncryptECIES (const uint8_t * clearText, uint8_t * encrypted);
+
 		uint8_t GetRetCode (const uint8_t * records) const override
 		{ return (records + recordIndex*SHORT_TUNNEL_BUILD_RECORD_SIZE)[SHORT_RESPONSE_RECORD_RET_OFFSET]; };
 		void CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID) override;
@@ -67,16 +62,12 @@ namespace tunnel
 		uint64_t GetGarlicKey (uint8_t * key) const override;
 	};
 
-	struct PhonyTunnelHopConfig: public ECIESTunnelHopConfig
+	struct ShortPhonyTunnelHopConfig: public TunnelHopConfig
 	{
-		PhonyTunnelHopConfig (): ECIESTunnelHopConfig (nullptr) {}
+		ShortPhonyTunnelHopConfig (): TunnelHopConfig (nullptr) {}
 		uint8_t GetRetCode (const uint8_t * records) const override { return 0; }
 		bool DecryptBuildResponseRecord (uint8_t * records) const override { return true; }
 		void DecryptRecord (uint8_t * records, int index) const override {} // do nothing
-	};
-
-	struct ShortPhonyTunnelHopConfig: public PhonyTunnelHopConfig
-	{
 		void CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID) override;
 	};
 

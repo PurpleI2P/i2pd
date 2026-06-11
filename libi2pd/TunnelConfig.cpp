@@ -83,7 +83,7 @@ namespace tunnel
 		decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, replyIV, record);
 	}
 
-	void ECIESTunnelHopConfig::EncryptECIES (const uint8_t * plainText, size_t len, uint8_t * encrypted)
+	void ShortECIESTunnelHopConfig::EncryptECIES (const uint8_t * plainText, uint8_t * encrypted)
 	{
 		if (!ident) return;
 		i2p::crypto::InitNoiseNState (*this, ident->GetEncryptionPublicKey ());
@@ -96,17 +96,12 @@ namespace tunnel
 		MixKey (sharedSecret);
 		uint8_t nonce[12];
 		memset (nonce, 0, 12);
-		if (!i2p::crypto::AEADChaCha20Poly1305 (plainText, len, m_H, 32, m_CK + 32, nonce, encrypted, len + 16, true)) // encrypt
+		if (!Encrypt (plainText, encrypted, SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE))
 		{
 			LogPrint (eLogWarning, "Tunnel: Plaintext AEAD encryption failed");
 			return;
 		}
-		MixHash (encrypted, len + 16); // h = SHA256(h || ciphertext)
-	}
-
-	bool ECIESTunnelHopConfig::DecryptECIES (const uint8_t * key, const uint8_t * nonce, const uint8_t * encrypted, size_t len, uint8_t * clearText) const
-	{
-		return i2p::crypto::AEADChaCha20Poly1305 (encrypted, len - 16, m_H, 32, key, nonce, clearText, len - 16, false); // decrypt
+		MixHash (encrypted, SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE + 16); // h = SHA256(h || ciphertext)
 	}
 
 	void ShortECIESTunnelHopConfig::CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID)
@@ -133,7 +128,7 @@ namespace tunnel
 				SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE - SHORT_REQUEST_RECORD_TUNNEL_BUILD_OPTIONS_OFFSET - optionsSize);
 		// encrypt
 		uint8_t * record = records + recordIndex*SHORT_TUNNEL_BUILD_RECORD_SIZE;
-		EncryptECIES (clearText, SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE, record + SHORT_REQUEST_RECORD_ENCRYPTED_OFFSET);
+		EncryptECIES (clearText, record + SHORT_REQUEST_RECORD_ENCRYPTED_OFFSET);
 		// derive keys
 		i2p::crypto::HKDF (m_CK, nullptr, 0, "SMTunnelReplyKey", m_CK);
 		memcpy (replyKey, m_CK + 32, 32);
@@ -156,7 +151,8 @@ namespace tunnel
 		uint8_t nonce[12];
 		memset (nonce, 0, 12);
 		nonce[4] = recordIndex; // nonce is record index
-		if (!DecryptECIES (replyKey, nonce, record, SHORT_TUNNEL_BUILD_RECORD_SIZE, record))
+		if (!i2p::crypto::AEADChaCha20Poly1305 (record, SHORT_TUNNEL_BUILD_RECORD_SIZE - 16,
+			m_H, 32, replyKey, nonce, record, SHORT_TUNNEL_BUILD_RECORD_SIZE - 16, false)) // decrypt
 		{
 			LogPrint (eLogWarning, "Tunnel: Response AEAD decryption failed");
 			return false;
