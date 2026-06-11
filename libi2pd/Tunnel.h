@@ -89,7 +89,6 @@ namespace tunnel
 			std::shared_ptr<TunnelConfig> GetTunnelConfig () const { return m_Config; }
 			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > GetPeers () const;
 			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > GetInvertedPeers () const;
-			bool IsShortBuildMessage () const { return m_IsShortBuildMessage; };
 			i2p::data::RouterInfo::CompatibleTransports GetFarEndTransports () const { return m_FarEndTransports; };
 			TunnelState GetState () const { return m_State; };
 			void SetState (TunnelState state);
@@ -127,7 +126,6 @@ namespace tunnel
 
 			std::shared_ptr<TunnelConfig> m_Config;
 			std::vector<TunnelHop> m_Hops;
-			bool m_IsShortBuildMessage;
 			std::shared_ptr<TunnelPool> m_Pool; // pool, tunnel belongs to, or null
 			std::atomic<TunnelState> m_State;
 			i2p::data::RouterInfo::CompatibleTransports m_FarEndTransports;

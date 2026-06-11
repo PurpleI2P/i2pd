@@ -44,7 +44,6 @@ namespace tunnel
 	struct Path
 	{
 		std::vector<Peer> peers;
-		bool isShort = true;
 		i2p::data::RouterInfo::CompatibleTransports farEndTransports = i2p::data::RouterInfo::eAllTransports;
 
 		void Add (std::shared_ptr<const i2p::data::RouterInfo> r);

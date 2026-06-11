@@ -31,7 +31,7 @@ namespace tunnel
 {
 	Tunnel::Tunnel (std::shared_ptr<TunnelConfig> config):
 		TunnelBase (config->GetTunnelID (), config->GetNextTunnelID (), config->GetNextIdentHash ()),
-		m_Config (config), m_IsShortBuildMessage (false), m_Pool (nullptr),
+		m_Config (config), m_Pool (nullptr),
 		m_State (eTunnelStatePending), m_FarEndTransports (i2p::data::RouterInfo::eAllTransports),
 		m_IsRecreated (false), m_Latency (UNKNOWN_LATENCY)
 	{
@@ -53,7 +53,7 @@ namespace tunnel
 		int numRecords = numHops <= STANDARD_NUM_RECORDS ? STANDARD_NUM_RECORDS : MAX_NUM_RECORDS;
 		auto msg = numRecords <= STANDARD_NUM_RECORDS ? NewI2NPShortMessage () : NewI2NPMessage ();
 		*msg->GetPayload () = numRecords;
-		const size_t recordSize = m_Config->IsShort () ? SHORT_TUNNEL_BUILD_RECORD_SIZE : TUNNEL_BUILD_RECORD_SIZE;
+		const size_t recordSize = SHORT_TUNNEL_BUILD_RECORD_SIZE;
 		msg->len += numRecords*recordSize + 1;
 		// shuffle records
 		std::vector<int> recordIndicies;
@@ -97,7 +97,7 @@ namespace tunnel
 		// delete phony hop after encryption
 		if (insertPhonyRecord) m_Config->DeletePhonyHop ();
 
-		msg->FillI2NPMessageHeader (m_Config->IsShort () ? eI2NPShortTunnelBuild : eI2NPVariableTunnelBuild);
+		msg->FillI2NPMessageHeader (eI2NPShortTunnelBuild);
 		auto s = shared_from_this ();
 		msg->onDrop = [s]()
 			{
@@ -108,21 +108,17 @@ namespace tunnel
 		// send message
 		if (outboundTunnel)
 		{
-			if (m_Config->IsShort ())
+			auto ident = m_Config->GetFirstHop () ? m_Config->GetFirstHop ()->ident : nullptr;
+			if (ident && ident->GetIdentHash () != outboundTunnel->GetEndpointIdentHash ()) // don't encrypt if IBGW = OBEP
 			{
-				auto ident = m_Config->GetFirstHop () ? m_Config->GetFirstHop ()->ident : nullptr;
-				if (ident && ident->GetIdentHash () != outboundTunnel->GetEndpointIdentHash ()) // don't encrypt if IBGW = OBEP
-				{
-					auto msg1 = i2p::garlic::WrapECIESX25519MessageForRouter (msg, ident->GetEncryptionPublicKey ());
-					if (msg1) msg = msg1;
-				}
+				auto msg1 = i2p::garlic::WrapECIESX25519MessageForRouter (msg, ident->GetEncryptionPublicKey ());
+				if (msg1) msg = msg1;
 			}
 			outboundTunnel->SendTunnelDataMsgTo (GetNextIdentHash (), 0, msg);
 		}
 		else
 		{
-			if (m_Config->IsShort () && m_Config->GetLastHop () &&
-				m_Config->GetLastHop ()->ident->GetIdentHash () != m_Config->GetLastHop ()->nextIdent)
+			if (m_Config->GetLastHop () && m_Config->GetLastHop ()->ident->GetIdentHash () != m_Config->GetLastHop ()->nextIdent)
 			{
 				// add garlic key/tag for reply
 				uint8_t key[32];
@@ -212,7 +208,6 @@ namespace tunnel
 				hop = hop->prev;
 				i++;
 			}
-			m_IsShortBuildMessage = m_Config->IsShort ();
 			m_FarEndTransports = m_Config->GetFarEndTransports ();
 			m_Config = nullptr;
 		}
