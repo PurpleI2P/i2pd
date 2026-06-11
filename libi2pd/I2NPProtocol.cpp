@@ -189,7 +189,7 @@ namespace i2p
 	std::shared_ptr<I2NPMessage> CreateLeaseSetDatabaseLookupMsg (const i2p::data::IdentHash& dest,
 		const std::unordered_set<i2p::data::IdentHash>& excludedFloodfills,
 		std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel, const uint8_t * replyKey,
-			const uint8_t * replyTag, bool replyECIES)
+			const uint8_t * replyTag)
 	{
 		int cnt = excludedFloodfills.size ();
 		auto m = cnt > 7 ? NewI2NPMessage () : NewI2NPShortMessage ();
@@ -198,9 +198,8 @@ namespace i2p
 		buf += 32;
 		memcpy (buf, replyTunnel->GetNextIdentHash (), 32); // reply tunnel GW
 		buf += 32;
-		*buf = DATABASE_LOOKUP_DELIVERY_FLAG | DATABASE_LOOKUP_TYPE_LEASESET_LOOKUP; // flags
-		*buf |= (replyECIES ? DATABASE_LOOKUP_ECIES_FLAG : DATABASE_LOOKUP_ENCRYPTION_FLAG);
-		buf ++;
+		*buf = DATABASE_LOOKUP_DELIVERY_FLAG | DATABASE_LOOKUP_TYPE_LEASESET_LOOKUP | DATABASE_LOOKUP_ECIES_FLAG; // flags
+		buf++;
 		htobe32buf (buf, replyTunnel->GetNextTunnelID ()); // reply tunnel ID
 		buf += 4;
 
@@ -223,16 +222,8 @@ namespace i2p
 		// encryption
 		memcpy (buf, replyKey, 32);
 		buf[32] = 1; // 1 tag
-		if (replyECIES)
-		{
-			memcpy (buf + 33, replyTag, 8); // 8 bytes tag
-			buf += 41;
-		}
-		else
-		{
-			memcpy (buf + 33, replyTag, 32); // 32 bytes tag
-			buf += 65;
-		}
+		memcpy (buf + 33, replyTag, 8); // 8 bytes tag
+		buf += 41;
 
 		m->len += (buf - m->GetPayload ());
 		m->FillI2NPMessageHeader (eI2NPDatabaseLookup);

@@ -507,11 +507,8 @@ namespace garlic
 		auto mod = length & 0x0f; // %16
 		buf += 4; // length
 
-		bool found = false;
-		bool supportsRatchets = SupportsRatchets ();
-		if (supportsRatchets)
-			// try ECIESx25519 tag
-			found = HandleECIESx25519TagMessage (buf, length);
+		// try ECIESx25519 tag, might be used even is ratchets not supported
+		bool found = HandleECIESx25519TagMessage (buf, length);
 		if (!found)
 		{
 			auto it = !mod ? m_Tags.find (SessionTag(buf)) : m_Tags.end (); // AES block is multiple of 16
@@ -546,7 +543,7 @@ namespace garlic
 					decryption->Decrypt(buf + 514, length - 514, iv, buf + 514);
 					HandleAESBlock (buf + 514, length - 514, decryption, msg->from);
 				}
-				else if (supportsRatchets)
+				else if (SupportsRatchets ())
 				{
 					// otherwise ECIESx25519
 					auto ts = i2p::util::GetMillisecondsSinceEpoch ();

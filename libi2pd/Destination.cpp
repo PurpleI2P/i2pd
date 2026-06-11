@@ -863,18 +863,13 @@ namespace client
 			request->excluded.insert (nextFloodfill->GetIdentHash ());
 			request->requestTimeoutTimer.cancel ();
 
-			bool isECIES = GetRatchetsHighestCryptoType () > 0 &&
-				nextFloodfill->GetVersion () >= MAKE_VERSION_NUMBER(0, 9, 46); // >= 0.9.46;
 			uint8_t replyKey[32], replyTag[32];
 			RAND_bytes (replyKey, 32); // random session key
-			RAND_bytes (replyTag, isECIES ? 8 : 32); // random session tag
-			if (isECIES)
-				AddECIESx25519Key (replyKey, replyTag);
-			else
-				AddSessionKey (replyKey, replyTag);
+			RAND_bytes (replyTag, 8); // random session tag
+			AddECIESx25519Key (replyKey, replyTag);
 
 			auto msg = WrapMessageForRouter (nextFloodfill,
-				CreateLeaseSetDatabaseLookupMsg (dest, request->excluded, request->replyTunnel, replyKey, replyTag, isECIES));
+				CreateLeaseSetDatabaseLookupMsg (dest, request->excluded, request->replyTunnel, replyKey, replyTag));
 			auto s = shared_from_this ();
 			msg->onDrop = [s, dest, request]()
 				{

@@ -431,7 +431,6 @@ namespace tunnel
 			newTests.push_back(std::make_pair (*it1, *it2));
 			++it1; ++it2;
 		}
-		bool isECIES = m_LocalDestination->GetRatchetsHighestCryptoType () > 0;
 		for (auto& it: newTests)
 		{
 			uint32_t msgID;
@@ -457,21 +456,11 @@ namespace tunnel
 					}
 				};
 			// encrypt
-			if (isECIES)
-			{
-				uint8_t key[32]; RAND_bytes (key, 32);
-				uint64_t tag; RAND_bytes ((uint8_t *)&tag, 8);
-				m_LocalDestination->SubmitECIESx25519Key (key, tag);
-				msg = i2p::garlic::WrapECIESX25519Message (msg, key, tag);
-			}
-			else
-			{
-				uint8_t key[32], tag[32];
-				RAND_bytes (key, 32); RAND_bytes (tag, 32);
-				m_LocalDestination->SubmitSessionKey (key, tag);
-				i2p::garlic::ElGamalAESSession garlic (key, tag);
-				msg = garlic.WrapSingleMessage (msg);
-			}
+			uint8_t key[32]; RAND_bytes (key, 32);
+			uint64_t tag; RAND_bytes ((uint8_t *)&tag, 8);
+			m_LocalDestination->SubmitECIESx25519Key (key, tag);
+			msg = i2p::garlic::WrapECIESX25519Message (msg, key, tag);
+			// send
 			outbound->SendTunnelDataMsgTo (it.second->GetNextIdentHash (), it.second->GetNextTunnelID (), msg);
 		}
 	}
@@ -818,9 +807,6 @@ namespace tunnel
 				LogPrint (eLogError, "Tunnels: Can't create outbound tunnel, no inbound tunnels found");
 				return;
 			}
-
-			if (m_LocalDestination && !m_LocalDestination->GetRatchetsHighestCryptoType ())
-				path.isShort = false; // because can't handle ECIES encrypted reply
 
 			std::shared_ptr<TunnelConfig> config;
 			if (m_NumOutboundHops > 0)
