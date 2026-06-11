@@ -88,11 +88,21 @@ namespace transport
 
 		void Done ()
 		{
-			for (auto& it: sessions)
-				it->Done ();
+			if (!sessions.empty ())
+			{
+				for (auto& it: sessions)
+					it->Done ();
+				decltype(sessions) tmp;
+				sessions.swap (tmp);
+			}
 			// drop not sent delayed messages
-			for (auto& it: delayedMessages)
-				it->Drop ();
+			if (!delayedMessages.empty ())
+			{
+				for (auto& it: delayedMessages)
+					it->Drop ();
+				decltype(delayedMessages) tmp;
+				delayedMessages.swap (tmp);
+			}
 		}
 
 		void SetRouter (std::shared_ptr<const i2p::data::RouterInfo> r)

@@ -1165,6 +1165,8 @@ namespace transport
 			m_PeerCleanupTimer->expires_after (std::chrono::seconds(2 * SESSION_CREATION_TIMEOUT + m_Rng() % SESSION_CREATION_TIMEOUT));
 			m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
 			// cleanup and delete sessionsToRemove and peersToRemove here
+			for (auto& it: peersToRemove)
+				it->Done ();
 		}
 	}
 
