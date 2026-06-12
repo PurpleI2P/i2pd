@@ -127,7 +127,6 @@ namespace tunnel
 			void CreateTunnels (uint64_t ts);
 			void CreateInboundTunnel (uint64_t ts);
 			void CreateOutboundTunnel (uint64_t ts);
-			void CreatePairedInboundTunnel (std::shared_ptr<OutboundTunnel> outboundTunnel);
 			template<class TTunnels>
 			typename TTunnels::value_type GetNextTunnel (TTunnels& tunnels,
 				typename TTunnels::value_type excluded, i2p::data::RouterInfo::CompatibleTransports compatible);
@@ -153,7 +152,7 @@ namespace tunnel
 			std::mutex m_CustomPeerSelectorMutex;
 			ITunnelPeerSelector * m_CustomPeerSelector;
 			std::mt19937 m_Rng; // for tunnel selection
-			i2p::data::PeerOrdering m_PeerOrdering;
+			i2p::data::PeerOrdering m_InboundPeerOrdering, m_OutboundPeerOrdering;
 
 			int m_MinLatency = 0; // if > 0 this tunnel pool will try building tunnels with minimum latency by ms
 			int m_MaxLatency = 0; // if > 0 this tunnel pool will try building tunnels with maximum latency by ms

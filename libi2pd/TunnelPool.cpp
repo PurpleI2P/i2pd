@@ -315,17 +315,6 @@ namespace tunnel
 			for (const auto& it : m_InboundTunnels)
 				if (it->IsEstablished ()) num++;
 		}
-		if (!num && !m_OutboundTunnels.empty () && m_NumOutboundHops > 0 &&
-		    m_NumInboundHops == m_NumOutboundHops)
-		{
-			for (auto it: m_OutboundTunnels)
-			{
-				// try to create inbound tunnel through the same path as successive outbound
-				CreatePairedInboundTunnel (it);
-				num++;
-				if (num >= m_NumInboundTunnels) break;
-			}
-		}
 		num = m_NumInboundTunnels - num;
 		if (num > 0)
 		{
@@ -468,7 +457,8 @@ namespace tunnel
 			{
 				CreateTunnels (ts);
 				TestTunnels (ts);
-				m_PeerOrdering.CleanUp (ts);
+				m_InboundPeerOrdering.CleanUp (ts);
+				m_OutboundPeerOrdering.CleanUp (ts);
 			}
 			m_NextManageTime = ts + TUNNEL_POOL_MANAGE_INTERVAL + (tunnels.GetRng ()() % TUNNEL_POOL_MANAGE_INTERVAL)/2;
 		}
@@ -561,8 +551,10 @@ namespace tunnel
 		{
 			hop = tryClient ?
 				(m_IsHighBandwidth ?
-				 	i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop, reverse, endpoint, &m_PeerOrdering) :
-				 	i2p::data::netdb.GetRandomRouter (prevHop, reverse, endpoint, true, &m_PeerOrdering)):
+				 	i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop, reverse, endpoint,
+						reverse ? &m_InboundPeerOrdering : &m_OutboundPeerOrdering) :
+				 	i2p::data::netdb.GetRandomRouter (prevHop, reverse, endpoint, true,
+						reverse ? &m_InboundPeerOrdering : &m_OutboundPeerOrdering)):
 				i2p::data::netdb.GetRandomRouter (prevHop, reverse, endpoint, false);
 			if (hop)
 			{
@@ -597,7 +589,7 @@ namespace tunnel
             (i2p::context.IsLimitedConnectivity () && i2p::transport::transports.GetNumPeers () > 0))))
 		{
 			auto r = i2p::transport::transports.GetRandomPeer (m_IsHighBandwidth && !i2p::context.IsLimitedConnectivity (),
-				&m_PeerOrdering);
+				inbound ? &m_InboundPeerOrdering : &m_OutboundPeerOrdering);
 			if (r && r->IsECIES () && (!r->HasProfile () || !r->GetProfile ()->IsBad ()) &&
 				(numHops > 1 || (r->IsV4 () && (!inbound || r->IsPublished (true))))) // first inbound must be published ipv4
 			{
@@ -613,7 +605,7 @@ namespace tunnel
 			if (!hop && !i) // if no suitable peer found for first hop, try already connected
 			{
 				LogPrint (eLogInfo, "Tunnels: Can't select first hop for a tunnel. Trying already connected");
-				hop = i2p::transport::transports.GetRandomPeer (false, &m_PeerOrdering);
+				hop = i2p::transport::transports.GetRandomPeer (false, inbound ? &m_InboundPeerOrdering: &m_OutboundPeerOrdering);
 				if (hop && !hop->IsECIES ()) hop = nullptr;
 			}
 			if (!hop)
@@ -851,16 +843,6 @@ namespace tunnel
 		}
 		else
 			LogPrint (eLogDebug, "Tunnels: Can't re-create outbound tunnel, no inbound tunnels found");
-	}
-
-	void TunnelPool::CreatePairedInboundTunnel (std::shared_ptr<OutboundTunnel> outboundTunnel)
-	{
-		LogPrint (eLogDebug, "Tunnels: Creating paired inbound tunnel...");
-		auto tunnel = tunnels.CreateInboundTunnel (
-			m_NumOutboundHops > 0 ? std::make_shared<TunnelConfig>(outboundTunnel->GetInvertedPeers ()) : nullptr,
-				shared_from_this (), outboundTunnel);
-		if (tunnel->IsEstablished ()) // zero hops
-			TunnelCreated (tunnel);
 	}
 
 	void TunnelPool::SetCustomPeerSelector(ITunnelPeerSelector * selector)
