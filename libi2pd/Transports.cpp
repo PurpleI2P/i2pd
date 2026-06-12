@@ -511,7 +511,14 @@ namespace transport
 			std::lock_guard<std::mutex> l(m_PeersMutex);
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
+			{
 				peer = it->second;
+				if (peer->isDone)
+				{
+					peer = nullptr;
+					m_Peers.erase (it);
+				}
+			}
 		}
 		if (!peer)
 		{
@@ -1135,6 +1142,7 @@ namespace transport
 							auto profile = i2p::data::GetRouterProfile (it->first);
 							if (profile) profile->Unreachable ();
 						}	*/
+						peer->isDone = true;
 						peersToRemove.emplace_back (peer); // defer peer destructor call after the loop
 						it = m_Peers.erase (it);
 					}
@@ -1224,7 +1232,7 @@ namespace transport
 		inds[0] %= count;
 		auto& [ident, peer] = peers[inds[0]];
 		// try random peer
-		if (ts > peer->lastSelectionTime + PEER_SELECTION_MIN_INTERVAL)
+		if (!peer->isDone && ts > peer->lastSelectionTime + PEER_SELECTION_MIN_INTERVAL)
 		{
 			bool eligibleForFirstHop = peerOrdering ? peerOrdering->IsFirstHop (ident) : true;
 			if (eligibleForFirstHop && filter (peer))
@@ -1258,7 +1266,7 @@ namespace transport
 			for (auto i = inds[1]; i < inds[2]; i++)
 			{
 				auto& [ident, peer] = peers[i];
-				if (ts > peer->lastSelectionTime + PEER_SELECTION_MIN_INTERVAL)
+				if (!peer->isDone && ts > peer->lastSelectionTime + PEER_SELECTION_MIN_INTERVAL)
 				{
 					bool eligibleForFirstHop = peerOrdering ? peerOrdering->IsFirstHop (ident) : true;
 					if (eligibleForFirstHop && filter (peer))
@@ -1277,7 +1285,7 @@ namespace transport
 				for (auto i = 0; i < inds[1]; i++)
 				{
 					auto& [ident, peer] = peers[i];
-					if (ts > peer->lastSelectionTime + PEER_SELECTION_MIN_INTERVAL)
+					if (!peer->isDone && ts > peer->lastSelectionTime + PEER_SELECTION_MIN_INTERVAL)
 					{
 						bool eligibleForFirstHop = peerOrdering ? peerOrdering->IsFirstHop (ident) : true;
 						if (eligibleForFirstHop && filter (peer))
@@ -1296,7 +1304,7 @@ namespace transport
 					for (auto i = inds[2]; i < peers.size (); i++)
 					{
 						auto& [ident, peer] = peers[i];
-						if (ts > peer->lastSelectionTime + PEER_SELECTION_MIN_INTERVAL)
+						if (!peer->isDone && ts > peer->lastSelectionTime + PEER_SELECTION_MIN_INTERVAL)
 						{
 							bool eligibleForFirstHop = peerOrdering ? peerOrdering->IsFirstHop (ident) : true;
 							if (eligibleForFirstHop && filter (peer))

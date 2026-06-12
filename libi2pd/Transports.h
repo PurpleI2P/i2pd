@@ -76,18 +76,19 @@ namespace transport
 		uint64_t creationTime, nextRouterInfoUpdateTime, lastSelectionTime;
 		std::list<std::shared_ptr<i2p::I2NPMessage> > delayedMessages;
 		std::vector<i2p::data::RouterInfo::SupportedTransports> priority;
-		bool isHighBandwidth, isEligible;
+		bool isHighBandwidth, isEligible, isDone;
 
 		Peer (std::shared_ptr<const i2p::data::RouterInfo> r, uint64_t ts):
 			numAttempts (0), router (r), creationTime (ts),
 			nextRouterInfoUpdateTime (ts + PEER_ROUTER_INFO_UPDATE_INTERVAL),
-			lastSelectionTime (0), isHighBandwidth (false), isEligible (false)
+			lastSelectionTime (0), isHighBandwidth (false), isEligible (false), isDone (false)
 		{
 			UpdateParams (router);
 		}
 
 		void Done ()
 		{
+			isDone = true;
 			if (!sessions.empty ())
 			{
 				for (auto& it: sessions)
