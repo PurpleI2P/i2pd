@@ -73,9 +73,12 @@ namespace data
 		std::string ident = identHash.ToBase64 ();
 		std::string path = g_ProfilesStorage.Path(ident);
 
-		try {
-			boost::property_tree::write_ini (path, pt);
-		} catch (std::exception& ex) {
+		try
+		{
+			boost::property_tree::write_ini (path, pt, 0, std::locale::classic());
+		}
+		catch (std::exception& ex)
+		{
 			/* boost exception verbose enough */
 			LogPrint (eLogError, "Profiling: ", ex.what ());
 		}
@@ -96,7 +99,7 @@ namespace data
 
 		try
 		{
-			boost::property_tree::read_ini (path, pt);
+			boost::property_tree::read_ini (path, pt, std::locale::classic());
 		} catch (std::exception& ex)
 		{
 			/* boost exception verbose enough */
