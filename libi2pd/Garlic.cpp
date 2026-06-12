@@ -1028,7 +1028,7 @@ namespace garlic
 			{
 				LogPrint (eLogDebug, "Garlic: Type local");
 				I2NPMessageType typeID = (I2NPMessageType)(buf[0]); buf++; // typeid
-				int32_t msgID = bufbe32toh (buf); buf += 4; // msgID
+				uint32_t msgID = bufbe32toh (buf); buf += 4; // msgID
 				buf += 4; // expiration
 				ptrdiff_t offset = buf - buf1;
 				if (offset <= (int)len)
