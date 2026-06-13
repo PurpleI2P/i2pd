@@ -2004,7 +2004,7 @@ namespace transport
 			if (*ranges > lastPacketNum) break;
 			lastPacketNum -= *ranges; ranges++; // nacks
 			if (*ranges > lastPacketNum + 1) break;
-			firstPacketNum = lastPacketNum - *ranges + 1; ranges++; // acks
+			firstPacketNum = lastPacketNum + 1 - *ranges; ranges++; // acks
 			len -= 2;
 			HandleAckRange (firstPacketNum, lastPacketNum, 0);
 		}

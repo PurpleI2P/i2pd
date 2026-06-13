@@ -1508,7 +1508,7 @@ namespace stream
 			ResetWindowSize ();
 		}
 		auto currentRemoteLease = m_CurrentRemoteLease;
-		if (!m_IsRemoteLeaseChangeInProgress && m_RemoteLeaseSet && m_CurrentRemoteLease && ts >= m_CurrentRemoteLease->endDate - i2p::data::LEASE_ENDDATE_THRESHOLD)
+		if (!m_IsRemoteLeaseChangeInProgress && m_RemoteLeaseSet && m_CurrentRemoteLease && ts + i2p::data::LEASE_ENDDATE_THRESHOLD >= m_CurrentRemoteLease->endDate)
 		{
 			auto leases = m_RemoteLeaseSet->GetNonExpiredLeases (false);
 			if (leases.size ())
