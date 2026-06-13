@@ -89,6 +89,16 @@ namespace tunnel
 		m_TrustedRouters.swap (routers);
 	}
 
+	void TunnelPool::SetInboundPeerOrderingKey (const uint8_t * key)
+	{
+		m_InboundPeerOrdering.SetKey (key);
+	}
+
+	void TunnelPool::SetOutboundPeerOrderingKey (const uint8_t * key)
+	{
+		m_OutboundPeerOrdering.SetKey (key);
+	}
+
 	void TunnelPool::DetachTunnels ()
 	{
 		{

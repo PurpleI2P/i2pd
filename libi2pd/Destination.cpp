@@ -41,7 +41,7 @@ namespace client
 		int numTags = DEFAULT_TAGS_TO_SEND;
 		bool isHighBandwidth = true;
 		std::shared_ptr<std::vector<i2p::data::IdentHash> > explicitPeers;
-		std::string_view explicitPeersStr, trustedRoutersStr;
+		std::string_view explicitPeersStr, trustedRoutersStr, inboundRandomKeyStr, outboundRandomKeyStr;
 		try
 		{
 			if (params)
@@ -63,6 +63,8 @@ namespace client
 				}
 				explicitPeersStr = (*params)[I2CP_PARAM_EXPLICIT_PEERS];
 				trustedRoutersStr = (*params)[I2CP_PARAM_TRUSTED_ROUTERS];
+				inboundRandomKeyStr = (*params)[I2CP_PARAM_INBOUND_RANDOM_KEY];
+				outboundRandomKeyStr = (*params)[I2CP_PARAM_OUTBOUND_RANDOM_KEY];
 				m_Nickname = (*params)[I2CP_PARAM_INBOUND_NICKNAME];
 				if (m_Nickname.empty ()) // try outbound
 					m_Nickname = (*params)[I2CP_PARAM_OUTBOUND_NICKNAME];
@@ -108,6 +110,18 @@ namespace client
 			m_Pool->SetExplicitPeers (i2p::data::ExtractIdentHashes (explicitPeersStr));
 		if (!trustedRoutersStr.empty ())
 			m_Pool->SetTrustedRouters (i2p::data::ExtractIdentHashes (trustedRoutersStr));
+		if (!inboundRandomKeyStr.empty ())
+		{
+			uint8_t key[32]; // might be 32 bytes, but only first 16 bytes are used
+			if (i2p::data::Base64ToByteStream (inboundRandomKeyStr, key, 32) >= 16)
+				m_Pool->SetInboundPeerOrderingKey (key);
+		}
+		if (!outboundRandomKeyStr.empty ())
+		{
+			uint8_t key[32]; // might be 32 bytes, but only first 16 bytes are used
+			if (i2p::data::Base64ToByteStream (outboundRandomKeyStr, key, 32) >= 16)
+				m_Pool->SetOutboundPeerOrderingKey (key);
+		}
 		if(params)
 		{
 			int maxLatency = 0;

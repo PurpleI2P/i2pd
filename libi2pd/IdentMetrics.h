@@ -47,6 +47,9 @@ namespace data
 			~PeerOrdering ();
 			void CleanUp (uint64_t ts);
 
+			void SetKey (const uint8_t * key);
+			const Tag<16>& GetKey () const { return m_PeerOrderingKey; }
+
 			int GetPeerOrderingGroup (const IdentHash& routerIdent);
 			bool IsFirstHop (const IdentHash& routerIdent) { return !GetPeerOrderingGroup (routerIdent); };
 			bool IsLastHop (const IdentHash& routerIdent) { return GetPeerOrderingGroup (routerIdent) & 0x02; }; // IBGW or OBEP

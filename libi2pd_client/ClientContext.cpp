@@ -521,6 +521,10 @@ namespace client
 		if (trustedRouters.length () > 0) options.Insert (I2CP_PARAM_TRUSTED_ROUTERS, trustedRouters);
 		std::string ratchetInboundTags = GetI2CPStringOption(section, I2CP_PARAM_RATCHET_INBOUND_TAGS, "");
 		if (ratchetInboundTags.length () > 0) options.Insert (I2CP_PARAM_RATCHET_INBOUND_TAGS, ratchetInboundTags);
+		std::string inboundRandomKey = GetI2CPStringOption(section, I2CP_PARAM_INBOUND_RANDOM_KEY, "");
+		if (inboundRandomKey.length () > 0) options.Insert (I2CP_PARAM_INBOUND_RANDOM_KEY, inboundRandomKey);
+		std::string outboundRandomKey = GetI2CPStringOption(section, I2CP_PARAM_OUTBOUND_RANDOM_KEY, "");
+		if (outboundRandomKey.length () > 0) options.Insert (I2CP_PARAM_OUTBOUND_RANDOM_KEY, outboundRandomKey);
 	}
 
 	void ClientContext::ReadI2CPOptionsFromConfig (const std::string& prefix, i2p::util::Mapping& options) const

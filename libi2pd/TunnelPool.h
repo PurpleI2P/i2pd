@@ -70,6 +70,8 @@ namespace tunnel
 			void SetLocalDestination (std::shared_ptr<i2p::garlic::GarlicDestination> destination) { m_LocalDestination = destination; };
 			void SetExplicitPeers (std::vector<i2p::data::IdentHash> explicitPeers);
 			void SetTrustedRouters (std::vector<i2p::data::IdentHash> routers);
+			void SetInboundPeerOrderingKey (const uint8_t * key);
+			void SetOutboundPeerOrderingKey (const uint8_t * key);
 
 			void CreateTunnels ();
 			void TunnelCreated (std::shared_ptr<InboundTunnel> createdTunnel);

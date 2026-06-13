@@ -45,19 +45,28 @@ namespace data
 
 	PeerOrdering::PeerOrdering ()
 	{
-		RAND_bytes (m_PeerOrderingKey, 16);
-#if OPENSSL_SIPHASH
-		EVP_PKEY * sipKey = EVP_PKEY_new_raw_private_key (EVP_PKEY_SIPHASH, nullptr, m_PeerOrderingKey, 16);
-		m_MDCtx = EVP_MD_CTX_create ();
-		EVP_DigestSignInit (m_MDCtx, nullptr, nullptr, nullptr, sipKey);
-		EVP_PKEY_free (sipKey);
-#endif
+		SetKey (nullptr);
 	}
 
 	PeerOrdering::~PeerOrdering ()
 	{
 #if OPENSSL_SIPHASH
 		if (m_MDCtx) EVP_MD_CTX_destroy (m_MDCtx);
+#endif
+	}
+
+	void PeerOrdering::SetKey (const uint8_t * key)
+	{
+		if (key)
+			memcpy (m_PeerOrderingKey, key, 16);
+		else
+			RAND_bytes (m_PeerOrderingKey, 16);
+#if OPENSSL_SIPHASH
+		if (m_MDCtx) EVP_MD_CTX_destroy (m_MDCtx); // delete previous
+		EVP_PKEY * sipKey = EVP_PKEY_new_raw_private_key (EVP_PKEY_SIPHASH, nullptr, m_PeerOrderingKey, 16);
+		m_MDCtx = EVP_MD_CTX_create ();
+		EVP_DigestSignInit (m_MDCtx, nullptr, nullptr, nullptr, sipKey);
+		EVP_PKEY_free (sipKey);
 #endif
 	}
 

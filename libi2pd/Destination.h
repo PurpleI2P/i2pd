@@ -65,7 +65,8 @@ namespace client
 	const int DEFAULT_OUTBOUND_TUNNELS_LENGTH_VARIANCE = 0;
 	const char I2CP_PARAM_EXPLICIT_PEERS[] = "explicitPeers";
 	const char I2CP_PARAM_TRUSTED_ROUTERS[] = "trustedRouters";
-	const int STREAM_REQUEST_TIMEOUT = 60; //in seconds
+	const char I2CP_PARAM_INBOUND_RANDOM_KEY[] = "inbound.randomKey";
+	const char I2CP_PARAM_OUTBOUND_RANDOM_KEY[] = "outbound.randomKey";
 	const char I2CP_PARAM_TAGS_TO_SEND[] = "crypto.tagsToSend";
 	const int DEFAULT_TAGS_TO_SEND = 40;
 	const char I2CP_PARAM_RATCHET_INBOUND_TAGS[] = "crypto.ratchet.inboundTags";
