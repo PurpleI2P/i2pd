@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2025, The PurpleI2P Project
+* Copyright (c) 2013-2026, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -130,7 +130,7 @@ namespace crypto
 
 	bool bn2buf (const BIGNUM * bn, uint8_t * buf, size_t len)
 	{
-		int offset = len - BN_num_bytes (bn);
+		int offset = (int)len - (int)BN_num_bytes (bn);
 		if (offset < 0) return false;
 		BN_bn2bin (bn, buf + offset);
 		memset (buf, 0, offset);
@@ -158,27 +158,27 @@ namespace crypto
 		OSSL_PARAM_BLD_push_BN(bld, OSSL_PKEY_PARAM_FFC_Q, dsaq);
 		OSSL_PARAM_BLD_push_BN(bld, OSSL_PKEY_PARAM_FFC_G, dsag);
 		if (pubKey)
-		{	
+		{
 			OSSL_PARAM_BLD_push_BN (bld, OSSL_PKEY_PARAM_PUB_KEY, pubKey);
 			selection = EVP_PKEY_PUBLIC_KEY;
-		}	
+		}
 		if (privKey)
-		{	
+		{
 			OSSL_PARAM_BLD_push_BN (bld, OSSL_PKEY_PARAM_PRIV_KEY, privKey);
 			selection = EVP_PKEY_KEYPAIR;
-		}	
+		}
 		auto params = OSSL_PARAM_BLD_to_param(bld);
-		
+
 		EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_from_name (NULL, "DSA", NULL);
 		EVP_PKEY_fromdata_init(ctx);
         EVP_PKEY_fromdata(ctx, &pkey, selection, params);
-		
+
 		EVP_PKEY_CTX_free(ctx);
 		OSSL_PARAM_free(params);
 		OSSL_PARAM_BLD_free(bld);
 		return pkey;
-	}	
-#else	
+	}
+#else
 	DSA * CreateDSA ()
 	{
 		DSA * dsa = DSA_new ();
@@ -187,7 +187,7 @@ namespace crypto
 		return dsa;
 	}
 #endif
-	
+
 // DH/ElGamal
 
 #if !IS_X86_64
@@ -552,13 +552,13 @@ namespace crypto
 	{
 		m_Ctx = EVP_CIPHER_CTX_new ();
 	}
-	
+
 	ECBEncryption::~ECBEncryption ()
 	{
 		if (m_Ctx)
 			EVP_CIPHER_CTX_free (m_Ctx);
-	}	
-	
+	}
+
 	void ECBEncryption::Encrypt (const uint8_t * in, uint8_t * out)
 	{
 		EVP_EncryptInit_ex (m_Ctx, EVP_aes_256_ecb(), NULL, m_Key, NULL);
@@ -572,13 +572,13 @@ namespace crypto
 	{
 		m_Ctx = EVP_CIPHER_CTX_new ();
 	}
-	
+
 	ECBDecryption::~ECBDecryption ()
 	{
 		if (m_Ctx)
 			EVP_CIPHER_CTX_free (m_Ctx);
-	}	
-	
+	}
+
 	void ECBDecryption::Decrypt (const uint8_t * in, uint8_t * out)
 	{
 		EVP_DecryptInit_ex (m_Ctx, EVP_aes_256_ecb(), NULL, m_Key, NULL);
@@ -589,17 +589,17 @@ namespace crypto
 	}
 
 
-	CBCEncryption::CBCEncryption () 
-	{ 
+	CBCEncryption::CBCEncryption ()
+	{
 		m_Ctx = EVP_CIPHER_CTX_new ();
 	}
-	
+
 	CBCEncryption::~CBCEncryption ()
 	{
 		if (m_Ctx)
 			EVP_CIPHER_CTX_free (m_Ctx);
-	}	
-	
+	}
+
 	void CBCEncryption::Encrypt (const uint8_t * in, size_t len, const uint8_t * iv, uint8_t * out)
 	{
 		// len/16
@@ -610,17 +610,17 @@ namespace crypto
 		EVP_EncryptFinal_ex (m_Ctx, out + l, &l);
 	}
 
-	CBCDecryption::CBCDecryption () 
-	{ 
+	CBCDecryption::CBCDecryption ()
+	{
 		m_Ctx = EVP_CIPHER_CTX_new ();
 	}
-	
+
 	CBCDecryption::~CBCDecryption ()
 	{
 		if (m_Ctx)
 			EVP_CIPHER_CTX_free (m_Ctx);
-	}	
-	
+	}
+
 	void CBCDecryption::Decrypt (const uint8_t * in, size_t len, const uint8_t * iv, uint8_t * out)
 	{
 		// len/16
@@ -649,7 +649,7 @@ namespace crypto
 
 // AEAD/ChaCha20/Poly1305
 
-	static bool AEADChaCha20Poly1305 (EVP_CIPHER_CTX * ctx, const uint8_t * msg, size_t msgLen, 
+	static bool AEADChaCha20Poly1305 (EVP_CIPHER_CTX * ctx, const uint8_t * msg, size_t msgLen,
 		const uint8_t * ad, size_t adLen, const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len, bool encrypt)
 	{
 		if (!ctx || len < msgLen) return false;
@@ -671,12 +671,12 @@ namespace crypto
 #if defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x4000000fL
 			std::vector<uint8_t> m(msgLen + 16);
 			if (msg == buf)
-			{	
+			{
 				// we have to use different buffers otherwise verification fails
 				memcpy (m.data (), msg, msgLen + 16);
 				msg = m.data ();
-			}	
-#endif			
+			}
+#endif
 			EVP_DecryptInit_ex(ctx, EVP_chacha20_poly1305(), 0, 0, 0);
 			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, 12, 0);
 			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, 16, (uint8_t *)(msg + msgLen));
@@ -688,7 +688,7 @@ namespace crypto
 		return ret;
 	}
 
-	bool AEADChaCha20Poly1305 (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen, 
+	bool AEADChaCha20Poly1305 (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen,
 		const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len, bool encrypt)
 	{
 		EVP_CIPHER_CTX * ctx = EVP_CIPHER_CTX_new ();
@@ -701,20 +701,20 @@ namespace crypto
 	{
 		m_Ctx = EVP_CIPHER_CTX_new ();
 	}
-	
+
 	AEADChaCha20Poly1305Encryptor::~AEADChaCha20Poly1305Encryptor ()
 	{
 		if (m_Ctx)
 			EVP_CIPHER_CTX_free (m_Ctx);
-	}	
+	}
 
 	bool AEADChaCha20Poly1305Encryptor::Encrypt (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen,
 		const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len)
 	{
 		return AEADChaCha20Poly1305 (m_Ctx, msg, msgLen, ad, adLen, key, nonce, buf, len, true);
-	}	
+	}
 
-	void AEADChaCha20Poly1305Encryptor::Encrypt (const std::vector<std::pair<uint8_t *, size_t> >& bufs, 
+	void AEADChaCha20Poly1305Encryptor::Encrypt (const std::vector<std::pair<uint8_t *, size_t> >& bufs,
 		const uint8_t * key, const uint8_t * nonce, uint8_t * mac)
 	{
 		if (bufs.empty ()) return;
@@ -726,18 +726,18 @@ namespace crypto
 			EVP_EncryptUpdate(m_Ctx, it.first, &outlen, it.first, it.second);
 		EVP_EncryptFinal_ex(m_Ctx, NULL, &outlen);
 		EVP_CIPHER_CTX_ctrl(m_Ctx, EVP_CTRL_AEAD_GET_TAG, 16, mac);
-	}	
-	
+	}
+
 	AEADChaCha20Poly1305Decryptor::AEADChaCha20Poly1305Decryptor ()
 	{
 		m_Ctx = EVP_CIPHER_CTX_new ();
 	}
-	
+
 	AEADChaCha20Poly1305Decryptor::~AEADChaCha20Poly1305Decryptor ()
 	{
 		if (m_Ctx)
 			EVP_CIPHER_CTX_free (m_Ctx);
-	}	
+	}
 
 	bool AEADChaCha20Poly1305Decryptor::Decrypt (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen,
 		const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len)
@@ -754,7 +754,7 @@ namespace crypto
 		EVP_EncryptUpdate(ctx, out, &outlen, msg, msgLen);
 		EVP_EncryptFinal_ex(ctx, NULL, &outlen);
 	}
-	
+
 	void ChaCha20 (const uint8_t * msg, size_t msgLen, const uint8_t * key, const uint8_t * nonce, uint8_t * out)
 	{
 		EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new ();
@@ -762,23 +762,23 @@ namespace crypto
 		EVP_CIPHER_CTX_free (ctx);
 	}
 
-	
+
 	ChaCha20Context::ChaCha20Context ()
 	{
 		m_Ctx = EVP_CIPHER_CTX_new ();
 	}
-	
+
 	ChaCha20Context::~ChaCha20Context ()
 	{
 		if (m_Ctx)
 			EVP_CIPHER_CTX_free (m_Ctx);
 	}
-	
+
 	void ChaCha20Context::operator ()(const uint8_t * msg, size_t msgLen, const uint8_t * key, const uint8_t * nonce, uint8_t * out)
 	{
 		ChaCha20 (m_Ctx, msg, msgLen, key, nonce, out);
-	}	
-	
+	}
+
 	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, std::string_view info,
 		uint8_t * out, size_t outLen)
 	{
@@ -818,8 +818,8 @@ namespace crypto
 		EVP_DigestFinal_ex (ctx, m_H, nullptr); // h = MixHash(pub) = SHA256(hh || pub)
 		EVP_MD_CTX_free (ctx);
 		m_N = 0;
-	}	
-	
+	}
+
 	void NoiseSymmetricState::MixHash (const uint8_t * buf, size_t len)
 	{
 		EVP_MD_CTX *ctx = EVP_MD_CTX_new ();
@@ -852,10 +852,10 @@ namespace crypto
 	{
 		uint8_t nonce[12];
 		if (m_N)
-		{	
+		{
 			memset (nonce, 0, 4);
 			htole64buf (nonce + 4, m_N);
-		}	
+		}
 		else
 			memset (nonce, 0, 12);
 		auto ret = AEADChaCha20Poly1305 (in, len, m_H, 32, m_CK + 32, nonce, out, len + 16, true);
@@ -867,7 +867,7 @@ namespace crypto
 	{
 		uint8_t nonce[12];
 		if (m_N)
-		{	
+		{
 			memset (nonce, 0, 4);
 			htole64buf (nonce + 4, m_N);
 		}
@@ -876,8 +876,8 @@ namespace crypto
 		auto ret = AEADChaCha20Poly1305 (in, len, m_H, 32, m_CK + 32, nonce, out, len, false);
 		if (ret) m_N++;
 		return ret;
-	}	
-	
+	}
+
 	void InitNoiseNState (NoiseSymmetricState& state, const uint8_t * pub)
 	{
 		static constexpr char protocolName[] = "Noise_N_25519_ChaChaPoly_SHA256"; // 31 chars
@@ -933,7 +933,7 @@ namespace crypto
 		}; // SHA256 (protocolNameHash)
 		state.Init (protocolNameHash, hh, pub);
 	}
-		
+
 // init and terminate
 
 /*	std::vector <std::unique_ptr<std::mutex> > m_OpenSSLMutexes;
