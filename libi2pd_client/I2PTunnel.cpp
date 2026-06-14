@@ -470,7 +470,7 @@ namespace client
 						else if (boost::iequals (line.substr (0, 11), "Connection:"))
 						{
 							auto x = line.find("pgrade");
-							if (x != std::string::npos && x && std::tolower(line[x - 1]) != 'u') // upgrade or Upgrade
+							if (x != std::string::npos && x && std::tolower(line[x - 1]) == 'u') // upgrade or Upgrade
 								m_OutHeader << line << "\n";
 							else
 								m_OutHeader << "Connection: close\r\n";
