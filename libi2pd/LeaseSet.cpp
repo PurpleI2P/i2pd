@@ -22,13 +22,14 @@ namespace i2p
 namespace data
 {
 	LeaseSet::LeaseSet (bool storeLeases):
-		m_IsValid (false), m_StoreLeases (storeLeases), m_ExpirationTime (0), m_EncryptionKey (nullptr),
-		m_Buffer (nullptr), m_BufferLen (0)
+		m_IsValid (false), m_IsIncompatibleCrypto (false), m_StoreLeases (storeLeases),
+		m_ExpirationTime (0), m_EncryptionKey (nullptr), m_Buffer (nullptr), m_BufferLen (0)
 	{
 	}
 
 	LeaseSet::LeaseSet (const uint8_t * buf, size_t len, bool storeLeases):
-		m_IsValid (true), m_StoreLeases (storeLeases), m_ExpirationTime (0), m_EncryptionKey (nullptr)
+		m_IsValid (true), m_IsIncompatibleCrypto (false), m_StoreLeases (storeLeases),
+		m_ExpirationTime (0), m_EncryptionKey (nullptr)
 	{
 		m_Buffer = new uint8_t[len];
 		memcpy (m_Buffer, buf, len);
@@ -410,6 +411,7 @@ namespace data
 		// key sections
 		CryptoKeyType preferredKeyType = m_EncryptionType;
 		m_EncryptionType = 0;
+		m_Encryptor = nullptr; // TODO: atomic
 		bool preferredKeyFound = false;
 		if (offset + 1 > len) return 0;
 		int numKeySections = buf[offset]; offset++;
@@ -441,6 +443,8 @@ namespace data
 			}
 			offset += encryptionKeyLen;
 		}
+		SetIsIncompatibleCrypto (!m_Encryptor);
+
 		// leases
 		if (offset + 1 > len) return 0;
 		int numLeases = buf[offset]; offset++;

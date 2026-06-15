@@ -445,7 +445,11 @@ namespace client
 				{
 					// add or replace
 					if (buf[DATABASE_STORE_TYPE_OFFSET] == i2p::data::NETDB_STORE_TYPE_LEASESET)
+					{
 						leaseSet = std::make_shared<i2p::data::LeaseSet> (buf + offset, len - offset); // LeaseSet
+						if (!SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ELGAMAL))
+							leaseSet->SetIsIncompatibleCrypto (true);
+					}
 					else
 					{
 						leaseSet = std::make_shared<i2p::data::LeaseSet2> (buf[DATABASE_STORE_TYPE_OFFSET],
@@ -1216,7 +1220,7 @@ namespace client
 		auto leaseSet = FindLeaseSet (dest);
 		if (leaseSet)
 		{
-			auto stream = CreateStream (leaseSet, port);
+			auto stream = (!leaseSet->IsIncompatibleCrypto ()) ? CreateStream (leaseSet, port) : nullptr;
 			boost::asio::post (GetService (), [streamRequestComplete, stream]()
 				{
 					streamRequestComplete(stream);
@@ -1228,7 +1232,7 @@ namespace client
 			RequestDestination (dest,
 				[s, streamRequestComplete, port](std::shared_ptr<const i2p::data::LeaseSet> ls)
 				{
-					if (ls)
+					if (ls && !ls->IsIncompatibleCrypto ())
 						streamRequestComplete(s->CreateStream (ls, port));
 					else
 						streamRequestComplete (nullptr);
@@ -1247,7 +1251,7 @@ namespace client
 		RequestDestinationWithEncryptedLeaseSet (dest,
 			[s, streamRequestComplete, port](std::shared_ptr<i2p::data::LeaseSet> ls)
 			{
-				if (ls)
+				if (ls && !ls->IsIncompatibleCrypto ())
 					streamRequestComplete(s->CreateStream (ls, port));
 				else
 					streamRequestComplete (nullptr);

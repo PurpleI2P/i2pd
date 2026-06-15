@@ -81,6 +81,8 @@ namespace data
 			const uint8_t * GetBuffer () const { return m_Buffer; };
 			size_t GetBufferLen () const { return m_BufferLen; };
 			bool IsValid () const { return m_IsValid; };
+			bool IsIncompatibleCrypto () const { return m_IsIncompatibleCrypto; };
+			void SetIsIncompatibleCrypto (bool isIncompatibleCrypto) { m_IsIncompatibleCrypto = isIncompatibleCrypto; };
 			const std::vector<std::shared_ptr<const Lease> > GetNonExpiredLeases (bool withThreshold = true) const;
 			const std::vector<std::shared_ptr<const Lease> > GetNonExpiredLeasesExcluding (LeaseInspectFunc exclude, bool withThreshold = true) const;
 			bool HasExpiredLeases () const;
@@ -125,7 +127,7 @@ namespace data
 
 		private:
 
-			bool m_IsValid, m_StoreLeases; // we don't need to store leases for floodfill
+			bool m_IsValid, m_IsIncompatibleCrypto, m_StoreLeases; // we don't need to store leases for floodfill
 			std::set<std::shared_ptr<Lease>, LeaseCmp> m_Leases;
 			uint64_t m_ExpirationTime; // in milliseconds
 			std::shared_ptr<const IdentityEx> m_Identity;

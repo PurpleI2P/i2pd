@@ -529,9 +529,12 @@ namespace http {
 				  << "<td>" << it.first.ToBase32 () << "</td>"
 				  << "<td><a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_EXPIRELEASE<< "&b32=" << dest->GetIdentHash ().ToBase32 ()
 				  << "&lease=" << it.first.ToBase32 () << "&token=" << token << "\" title=\"" << tr("Expire LeaseSet") << "\"> &#10008; </a></td>"
-				  << "<td>" << (int)it.second->GetStoreType () << "</td>"
-				  << "<td>" << (int)it.second->GetEncryptionType () <<"</td>"
-				  << "</tr>\r\n";
+				  << "<td>" << (int)it.second->GetStoreType () << "</td>";
+				if (!it.second->IsIncompatibleCrypto ())
+					s << "<td>" << (int)it.second->GetEncryptionType () <<"</td>";
+				else
+					s << "<td>n/a</td>";
+				s << "</tr>\r\n";
 			}
 			s << "</tbody>\r\n</table>\r\n";
 			s << "</div>\r\n</div>\r\n<br>\r\n";
