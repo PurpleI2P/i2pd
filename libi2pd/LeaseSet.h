@@ -154,7 +154,8 @@ namespace data
 	{
 		public:
 
-			LeaseSet2 (uint8_t storeType): LeaseSet (true), m_StoreType (storeType) {}; // for update
+			LeaseSet2 (uint8_t storeType): LeaseSet (true), m_StoreType (storeType),
+				m_EncryptionType (0), m_PreferredEncryptionType (0) {}; // for HTTPServer only
 			LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len, bool storeLeases = true,
 				std::shared_ptr<LocalDestination> dest = nullptr, CryptoKeyType preferredCrypto = CRYPTO_KEY_TYPE_ECIES_X25519_AEAD);
 			LeaseSet2 (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key,
@@ -194,6 +195,7 @@ namespace data
 			bool m_IsPublic = true, m_IsPublishedEncrypted = false;
 			std::shared_ptr<i2p::crypto::Verifier> m_TransientVerifier;
 			CryptoKeyType m_EncryptionType;
+			const CryptoKeyType m_PreferredEncryptionType;
 			std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> m_Encryptor; // for standardLS2
 			i2p::util::Mapping m_Properties;
 	};

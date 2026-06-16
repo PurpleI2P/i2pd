@@ -284,7 +284,8 @@ namespace data
 
 	LeaseSet2::LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len,
 	    bool storeLeases, std::shared_ptr<LocalDestination> dest, CryptoKeyType preferredCrypto):
-		LeaseSet (storeLeases), m_StoreType (storeType), m_EncryptionType (preferredCrypto)
+		LeaseSet (storeLeases), m_StoreType (storeType),
+		m_EncryptionType (0), m_PreferredEncryptionType (preferredCrypto)
 	{
 		SetBuffer (buf, len);
 		if (storeType == NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
@@ -295,7 +296,8 @@ namespace data
 
 	LeaseSet2::LeaseSet2 (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key,
 		std::shared_ptr<LocalDestination> dest, const uint8_t * secret, CryptoKeyType preferredCrypto):
-		LeaseSet (true), m_StoreType (NETDB_STORE_TYPE_ENCRYPTED_LEASESET2), m_EncryptionType (preferredCrypto)
+		LeaseSet (true), m_StoreType (NETDB_STORE_TYPE_ENCRYPTED_LEASESET2),
+		m_EncryptionType (0), m_PreferredEncryptionType (preferredCrypto)
 	{
 		ReadFromBufferEncrypted (buf, len, key, dest, secret);
 	}
@@ -409,9 +411,8 @@ namespace data
 			m_Properties.FromBuffer (buf + offset, len - offset);
 		offset += propertiesLen + 2;
 		// key sections
-		CryptoKeyType preferredKeyType = m_EncryptionType;
-		m_EncryptionType = 0;
-		m_Encryptor = nullptr; // TODO: atomic
+		CryptoKeyType newEncryptionType = 0;
+		std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> newEncryptor;
 		bool preferredKeyFound = false;
 		if (offset + 1 > len) return 0;
 		int numKeySections = buf[offset]; offset++;
@@ -428,22 +429,33 @@ namespace data
 				if (keyType <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) // skip PQ keys if not supported
 #endif
 				{
-					if ((keyType == preferredKeyType || !m_Encryptor || keyType > m_EncryptionType) &&
+					if ((keyType == m_PreferredEncryptionType || !newEncryptor || keyType > newEncryptionType) &&
 					    (!dest || dest->SupportsEncryptionType (keyType)))
 					{
 						auto encryptor = i2p::data::IdentityEx::CreateEncryptor (keyType, buf + offset);
 						if (encryptor)
 						{
-							m_Encryptor = encryptor; // TODO: atomic
-							m_EncryptionType = keyType;
-							if (keyType == preferredKeyType) preferredKeyFound = true;
+							newEncryptor = encryptor;
+							newEncryptionType = keyType;
+							if (keyType == m_PreferredEncryptionType) preferredKeyFound = true;
 						}
 					}
 				}
 			}
 			offset += encryptionKeyLen;
 		}
-		SetIsIncompatibleCrypto (!m_Encryptor);
+		if (newEncryptor)
+		{
+			m_EncryptionType = newEncryptionType;
+			m_Encryptor = newEncryptor; // TODO: atomic
+			SetIsIncompatibleCrypto (false);
+		}
+		else
+		{
+			m_EncryptionType = 0;
+			m_Encryptor = nullptr;
+			SetIsIncompatibleCrypto (true);
+		}
 
 		// leases
 		if (offset + 1 > len) return 0;
