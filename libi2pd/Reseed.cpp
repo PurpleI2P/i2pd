@@ -80,7 +80,7 @@ namespace data
 			while (!num)
 			{
 				num = ReseedFromServers ();
-				if (num) break; // success
+				if (num) break; // success or no reseed servers specified
 
 				if (i2p::util::GetMonotonicSeconds () < start + RESEED_GIVEUP_TIMEOUT)
 				{
@@ -90,7 +90,7 @@ namespace data
 				else
 					break; // give up
 			}
-			if (!num)
+			if (num <= 0)
 				LogPrint (eLogWarning, "Reseed: Failed to reseed from servers. Give up");
 		}
 	}
@@ -125,7 +125,7 @@ namespace data
 		if (httpsReseedHostList.empty () && yggReseedHostList.empty())
 		{
 			LogPrint (eLogWarning, "Reseed: No reseed servers specified");
-			return 0;
+			return -1;
 		}
 
 		int numReseeds = httpsReseedHostList.size () + yggReseedHostList.size ();
