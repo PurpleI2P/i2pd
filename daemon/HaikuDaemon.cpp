@@ -49,9 +49,9 @@ class MainWindow: public BWindow
 	private:
 		void MessageReceived (BMessage * msg) override;	
 		bool QuitRequested () override;
-	
+		void GetInfoAboutTunnel(BMessage * msg);	
 		void UpdateMainView ();
-	
+		template <class T> void DrawTunnel(T tun);
 	private:
 		BMessenger m_Messenger;
 		BStringView * m_MainView;
@@ -115,41 +115,54 @@ void MainWindow::UpdateMainView ()
 	m_MainView->SetText (s.str ().c_str ());
 }	
 
+template <class T>
+void MainWindow :: DrawTunnel(T tun) // idk about type, so todo: change to normal type
+{
+	m_MainView->SetText( i2p::client::context.GetAddressBook().ToAddress(tun).c_str() );	
+}
+
+void MainWindow :: GetInfoAboutTunnel(BMessage * msg)
+{
+	if(!msg) return;
+	bool isClient = false;
+	BString name{};
+	msg->FindString("tunnel_name", &name);
+	msg->FindBool("is_client_tunnel", &isClient);
+	if (isClient)
+	{
+		 for(auto it :i2p::client::context.GetClientTunnels () )
+		 {
+			if( BString(it.second->GetName()) == name )
+			{
+	     		  auto & ident = it.second->GetLocalDestination()->GetIdentHash();
+			  return DrawTunnel(ident); 
+					   //TODO:
+			}
+		 }
+	}else {
+		for(auto it: i2p::client::context.GetServerTunnels())
+		{
+			if( BString(it.second->GetName()) == name)
+			{
+	     		  auto & ident = it.second->GetLocalDestination()->GetIdentHash();
+			  return DrawTunnel(ident);
+						//TODO:
+			}
+		}	
+	}// if not client tunnel
+}
+
 void MainWindow::MessageReceived (BMessage * msg)
 {
 
 	if (!msg) return;
-	auto getInfoAboutTunnel = [&msg](){
-			bool isClient = false;
-			BString name{};
-			msg->FindString("tunnel_name", &name);
-			msg->FindBool("is_client_tunnel", &isClient);
-			if (isClient)
-			{
-			 for(auto it :i2p::client::context.GetClientTunnels () )
-			 {
-				if( BString(it.second->GetName()) == name )
-				{
-					   //TODO:
-				}
-			 }
-			}else {
-				for(auto it: i2p::client::context.GetServerTunnels())
-				{
-					if( BString(it.second->GetName()) == name)
-					{
-						//TODO:
-					}
-				}	
-			}// if not client tunnel
-		}; // end getInfoAboutTunnel lamda
 	switch (msg->what)
 	{
 		case C_MAIN_VIEW_UPDATE:
 			UpdateMainView ();
 		break;
 		case M_SHOW_TUNNEL:
-				getInfoAboutTunnel();
+				GetInfoAboutTunnel(msg);
 				break;
 		case M_GRACEFUL_SHUTDOWN:
 			if (!m_GracefulShutdownTimer)
