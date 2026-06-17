@@ -18,6 +18,8 @@
 #include <Window.h>
 #include <Application.h>
 #include <Alert.h>
+#include<sstream>
+//#include<Roster.h>
 
 #include "version.h"
 #include "Log.h"
@@ -35,7 +37,8 @@ enum
 	M_DUMMY_COMMAND,
 	C_GRACEFUL_SHUTDOWN_UPDATE,
 	C_MAIN_VIEW_UPDATE,
-	M_SHOW_TUNNEL
+	M_SHOW_TUNNEL,
+	C_OPENHTTP
 };	
 constexpr bigtime_t GRACEFUL_SHUTDOWN_UPDATE_INTERVAL = 1000*1100; // in microseconds, ~ 1 sec
 constexpr int GRACEFUL_SHUTDOWN_UPDATE_COUNT = 600; // 10 minutes
@@ -51,6 +54,7 @@ class MainWindow: public BWindow
 		bool QuitRequested () override;
 		void GetInfoAboutTunnel(BMessage * msg);	
 		void UpdateMainView ();
+		void OpenHTTPInterface(void);
 		template <class T> void DrawTunnel(T tun);
 	private:
 		BMessenger m_Messenger;
@@ -75,6 +79,7 @@ MainWindow::MainWindow ():
 	auto menuBar = new BMenuBar (r, "menubar");
 	AddChild (menuBar);
 	auto runMenu = new BMenu ("Run");
+	runMenu->AddItem (new BMenuItem ("Open web interface", new BMessage(C_OPENHTTP)));
 	runMenu->AddItem (new BMenuItem ("Graceful shutdown", new BMessage (M_GRACEFUL_SHUTDOWN), 'G'));
 	runMenu->AddItem (new BMenuItem ("Quit", new BMessage (B_QUIT_REQUESTED), 'Q'));
 	menuBar->AddItem (runMenu);
@@ -152,6 +157,26 @@ void MainWindow :: GetInfoAboutTunnel(BMessage * msg)
 	}// if not client tunnel
 }
 
+void MainWindow :: OpenHTTPInterface()
+{
+	bool enabled; i2p::config::GetOption("http.enabled", enabled);
+	uint16_t port; i2p::config::GetOption("http.port", port);
+	std::string address; i2p::config::GetOption("http.address", address);
+	if(!enabled)
+	{
+		return m_MainView->SetText("Not enabled http server");
+	}
+//	int pid;
+	std::ostringstream com;
+	com << "WebPositive http://" << address << ":" << port;
+	//char * argv[] = {(char*)url.str().c_str() , NULL, NULL};
+	//BRoster{}.Launch( "application/x-vnd.Haiku-WebPositive", 2, argv);
+	std::string url_s{url.str()};
+	std::thread ([url_s]() {
+		system(url_s.c_str());
+	}).detach();	
+}
+
 void MainWindow::MessageReceived (BMessage * msg)
 {
 
@@ -160,6 +185,10 @@ void MainWindow::MessageReceived (BMessage * msg)
 	{
 		case C_MAIN_VIEW_UPDATE:
 			UpdateMainView ();
+		break;
+		case C_OPENHTTP:
+			OpenHTTPInterface();
+
 		break;
 		case M_SHOW_TUNNEL:
 				GetInfoAboutTunnel(msg);
