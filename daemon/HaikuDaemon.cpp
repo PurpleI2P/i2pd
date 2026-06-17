@@ -171,7 +171,7 @@ void MainWindow :: OpenHTTPInterface()
 	com << "WebPositive http://" << address << ":" << port;
 	//char * argv[] = {(char*)url.str().c_str() , NULL, NULL};
 	//BRoster{}.Launch( "application/x-vnd.Haiku-WebPositive", 2, argv);
-	std::string url_s{url.str()};
+	std::string url_s{com.str()};
 	std::thread ([url_s]() {
 		system(url_s.c_str());
 	}).detach();	
