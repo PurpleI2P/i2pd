@@ -34,7 +34,8 @@ enum
 	M_RUN_PEER_TEST,
 	M_DUMMY_COMMAND,
 	C_GRACEFUL_SHUTDOWN_UPDATE,
-	C_MAIN_VIEW_UPDATE
+	C_MAIN_VIEW_UPDATE,
+	M_SHOW_TUNNEL
 };	
 constexpr bigtime_t GRACEFUL_SHUTDOWN_UPDATE_INTERVAL = 1000*1100; // in microseconds, ~ 1 sec
 constexpr int GRACEFUL_SHUTDOWN_UPDATE_COUNT = 600; // 10 minutes
@@ -82,9 +83,19 @@ MainWindow::MainWindow ():
 	menuBar->AddItem (commandsMenu);
 	auto tunnelsMenu = new BMenu ("Tunnels");
 	for (auto& it: i2p::client::context.GetClientTunnels ())
-		tunnelsMenu->AddItem (new BMenuItem (it.second->GetName (), new BMessage (M_DUMMY_COMMAND)));
+	{
+		auto msg = new BMessage{M_SHOW_TUNNEL};
+		msg->AddString("tunnel_name", BString(it.second->GetName()));
+		msg->AddBool("is_client_tunnel", true);
+		tunnelsMenu->AddItem (new BMenuItem (it.second->GetName (), msg));
+	}
 	for (auto& it: i2p::client::context.GetServerTunnels ())
-		tunnelsMenu->AddItem (new BMenuItem (it.second->GetName (), new BMessage (M_DUMMY_COMMAND)));	
+	{
+		auto msg = new BMessage{M_SHOW_TUNNEL};
+		msg->AddString("tunnel_name", BString(it.second->GetName()));
+		msg->AddBool("is_client_tunnel", false);
+		tunnelsMenu->AddItem (new BMenuItem (it.second->GetName (), msg));	
+	}
 	menuBar->AddItem (tunnelsMenu);
 	m_MainView = new BStringView (BRect (20, 21, 300, 250), nullptr, "Starting...", B_FOLLOW_ALL, B_WILL_DRAW);
 	m_MainView->SetViewColor (255, 255, 255);
@@ -106,12 +117,40 @@ void MainWindow::UpdateMainView ()
 
 void MainWindow::MessageReceived (BMessage * msg)
 {
+
 	if (!msg) return;
+	auto getInfoAboutTunnel = [&msg](){
+			bool isClient = false;
+			BString name{};
+			msg->FindString("tunnel_name", &name);
+			msg->FindBool("is_client_tunnel", &isClient);
+			if (isClient)
+			{
+			 for(auto it :i2p::client::context.GetClientTunnels () )
+			 {
+				if( BString(it.second->GetName()) == name )
+				{
+					   //TODO:
+				}
+			 }
+			}else {
+				for(auto it: i2p::client::context.GetServerTunnels())
+				{
+					if( BString(it.second->GetName()) == name)
+					{
+						//TODO:
+					}
+				}	
+			}// if not client tunnel
+		}; // end getInfoAboutTunnel lamda
 	switch (msg->what)
 	{
 		case C_MAIN_VIEW_UPDATE:
 			UpdateMainView ();
 		break;
+		case M_SHOW_TUNNEL:
+				getInfoAboutTunnel();
+				break;
 		case M_GRACEFUL_SHUTDOWN:
 			if (!m_GracefulShutdownTimer)
 			{
