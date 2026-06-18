@@ -121,6 +121,11 @@ namespace tunnel
 	const int TRANSIT_TUNNELS_QUEUE_WAIT_INTERVAL = 10; // in seconds
 	const int TRANSIT_TUNNELS_BUILD_MSG_QUEUE_MAX_SIZE = 100;
 
+	constexpr std::string_view TRANSIT_TUNNEL_MINIMUM_BANDWIDTH { "m" };
+	constexpr std::string_view TRANSIT_TUNNEL_REQUESTED_BANDWIDTH { "r" };
+	constexpr std::string_view TRANSIT_TUNNEL_LIMIT_BANDWIDTH { "l" };
+	constexpr std::string_view TRANSIT_TUNNEL_AVAILABLE_BANDWIDTH { "b" };
+
 	class TransitTunnels
 	{
 		public:

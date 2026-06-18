@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2026, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -9,6 +9,8 @@
 #ifndef GZIP_H__
 #define GZIP_H__
 
+#include <inttypes.h>
+#include <iostream>
 #include <zlib.h>
 #include <vector>
 
