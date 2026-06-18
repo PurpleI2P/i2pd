@@ -29,7 +29,6 @@
 #include "Transports.h"
 #include "Daemon.h"
 #include "ClientContext.h"
-
 enum
 {
 	M_GRACEFUL_SHUTDOWN = 1,
@@ -38,7 +37,8 @@ enum
 	C_GRACEFUL_SHUTDOWN_UPDATE,
 	C_MAIN_VIEW_UPDATE,
 	M_SHOW_TUNNEL,
-	C_OPENHTTP
+	C_OPENHTTP,
+	M_SHOWMAIN
 };	
 constexpr bigtime_t GRACEFUL_SHUTDOWN_UPDATE_INTERVAL = 1000*1100; // in microseconds, ~ 1 sec
 constexpr int GRACEFUL_SHUTDOWN_UPDATE_COUNT = 600; // 10 minutes
@@ -55,12 +55,14 @@ class MainWindow: public BWindow
 		void GetInfoAboutTunnel(BMessage * msg);	
 		void UpdateMainView ();
 		void OpenHTTPInterface(void);
-		template <class T> void DrawTunnel(T tun);
+		void DrawTunnel(std::stringstream & s);
 	private:
 		BMessenger m_Messenger;
 		BStringView * m_MainView;
 		std::unique_ptr<BMessageRunner> m_MainViewUpdateTimer, m_GracefulShutdownTimer;	
 		bool m_IsGracefulShutdownComplete = false;
+		bool m_IsDrawTunnel = false;
+		i2p::data::IdentHash m_IdentHash;
 };	
 
 class I2PApp: public BApplication
@@ -81,6 +83,7 @@ MainWindow::MainWindow ():
 	auto runMenu = new BMenu ("Run");
 	runMenu->AddItem (new BMenuItem ("Open web interface", new BMessage(C_OPENHTTP)));
 	runMenu->AddItem (new BMenuItem ("Graceful shutdown", new BMessage (M_GRACEFUL_SHUTDOWN), 'G'));
+	runMenu->AddItem (new BMenuItem ("Show Main page", new BMessage (M_SHOWMAIN), 'M'));
 	runMenu->AddItem (new BMenuItem ("Quit", new BMessage (B_QUIT_REQUESTED), 'Q'));
 	menuBar->AddItem (runMenu);
 	auto commandsMenu = new BMenu ("Commands");
@@ -116,14 +119,38 @@ MainWindow::MainWindow ():
 void MainWindow::UpdateMainView ()
 {
 	std::stringstream s;
-	i2p::util::PrintMainWindowText (s);
+	if(!m_IsDrawTunnel)
+	 i2p::util::PrintMainWindowText (s);
+	else 
+	  DrawTunnel(s);
+	////std::cout << s.str() << std::endl;
 	m_MainView->SetText (s.str ().c_str ());
 }	
 
-template <class T>
-void MainWindow :: DrawTunnel(T tun) // idk about type, so todo: change to normal type
+void MainWindow :: DrawTunnel(std::stringstream & s)
 {
-	m_MainView->SetText( i2p::client::context.GetAddressBook().ToAddress(tun).c_str() );	
+	s << "\r\n";
+	s << "I2P Address: " << i2p::client::context.GetAddressBook().ToAddress(m_IdentHash) << ".b32.i2p\r\n";
+	s << "\r\n";
+	auto dest = i2p::client::context.FindLocalDestination (m_IdentHash);
+	if(!dest)
+	{
+		s << "Can't found local dest\r\n";
+	}
+	else
+	{
+		s << "Streams: \r\n";
+		for (auto stream : dest->GetAllStreams())
+		{
+			auto streamDest = i2p::client::context.GetAddressBook().ToAddress(stream->GetRemoteIdentity());
+			std::string streamDestShort = streamDest.substr(0,12) + ".b32.i2p";
+			s << streamDestShort << "out:" << stream->GetNumSentBytes() << ";in:" << stream->GetNumReceivedBytes() << "\r\n";
+			/*
+			 * void ShowLocalDestination in daemon/HTTPServer.cpp
+			 */
+		}
+		s << "\r\n";
+	}
 }
 
 void MainWindow :: GetInfoAboutTunnel(BMessage * msg)
@@ -140,7 +167,9 @@ void MainWindow :: GetInfoAboutTunnel(BMessage * msg)
 			if( BString(it.second->GetName()) == name )
 			{
 	     		  auto & ident = it.second->GetLocalDestination()->GetIdentHash();
-			  return DrawTunnel(ident); 
+			  m_IdentHash = ident;
+			  m_IsDrawTunnel = true;
+			  return UpdateMainView(); 
 					   //TODO:
 			}
 		 }
@@ -150,7 +179,9 @@ void MainWindow :: GetInfoAboutTunnel(BMessage * msg)
 			if( BString(it.second->GetName()) == name)
 			{
 	     		  auto & ident = it.second->GetLocalDestination()->GetIdentHash();
-			  return DrawTunnel(ident);
+			  m_IdentHash = ident;
+			  m_IsDrawTunnel = true;
+			  return UpdateMainView();
 						//TODO:
 			}
 		}	
@@ -167,7 +198,7 @@ void MainWindow :: OpenHTTPInterface()
 		return m_MainView->SetText("Not enabled http server");
 	}
 	std::ostringstream com;
-	com << "WebPositive http://" << address << ":" << port;
+	com << "/bin/open 'http://" << address << ":" << port<<"'";
 	//char * argv[] = {(char*)url.str().c_str() , NULL, NULL};
 	//BRoster{}.Launch( "application/x-vnd.Haiku-WebPositive", 2, argv);
 	std::string com_s{com.str()};
@@ -182,6 +213,11 @@ void MainWindow::MessageReceived (BMessage * msg)
 	if (!msg) return;
 	switch (msg->what)
 	{
+		case M_SHOWMAIN:
+			m_IsDrawTunnel = false;
+			m_IdentHash = {};
+			UpdateMainView();
+		break;
 		case C_MAIN_VIEW_UPDATE:
 			UpdateMainView ();
 		break;
