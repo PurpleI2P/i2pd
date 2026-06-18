@@ -498,37 +498,43 @@ namespace tunnel
 		return nullptr;
 	}
 
-	std::shared_ptr<InboundTunnel> Tunnels::GetNextInboundTunnel ()
+	template<typename TTunnel>
+	std::shared_ptr<TTunnel> Tunnels::GetRandomTunnel (const std::list<std::shared_ptr<TTunnel> >& tunnels)
 	{
-		std::shared_ptr<InboundTunnel> tunnel;
-		size_t minReceived = 0;
-		for (const auto& it : m_InboundTunnels)
+		if (tunnels.empty ()) return nullptr;
+		auto ind = m_Rng () % tunnels.size ();
+		auto it = tunnels.begin ();
+		std::advance (it, ind);
+		auto it1 = it;
+		// try after
+		while (it != tunnels.end ())
 		{
-			if (!it->IsEstablished ()) continue;
-			if (!tunnel || it->GetNumReceivedBytes () < minReceived)
+			if ((*it)->IsEstablished ())
+				return *it;
+			it++;
+		}
+		if (ind)
+		{
+			// try before
+			it = tunnels.begin ();
+			while (it != it1)
 			{
-				tunnel = it;
-				minReceived = it->GetNumReceivedBytes ();
+				if ((*it)->IsEstablished ())
+					return *it;
+				it++;
 			}
 		}
-		return tunnel;
+		return nullptr;
+	}
+
+	std::shared_ptr<InboundTunnel> Tunnels::GetNextInboundTunnel ()
+	{
+		return GetRandomTunnel (m_InboundTunnels);
 	}
 
 	std::shared_ptr<OutboundTunnel> Tunnels::GetNextOutboundTunnel ()
 	{
-		if (m_OutboundTunnels.empty ()) return nullptr;
-		uint32_t ind = m_Rng () % m_OutboundTunnels.size (), i = 0;
-		std::shared_ptr<OutboundTunnel> tunnel;
-		for (const auto& it: m_OutboundTunnels)
-		{
-			if (it->IsEstablished ())
-			{
-				tunnel = it;
-				i++;
-			}
-			if (i > ind && tunnel) break;
-		}
-		return tunnel;
+		return GetRandomTunnel (m_OutboundTunnels);
 	}
 
 	std::shared_ptr<TunnelPool> Tunnels::CreateTunnelPool (int numInboundHops,

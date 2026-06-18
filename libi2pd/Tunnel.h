@@ -263,6 +263,9 @@ namespace tunnel
 			template<class TTunnel>
 			std::shared_ptr<TTunnel> GetPendingTunnel (uint32_t replyMsgID, const std::map<uint32_t, std::shared_ptr<TTunnel> >& pendingTunnels);
 
+			template<typename TTunnel>
+			std::shared_ptr<TTunnel> GetRandomTunnel (const std::list<std::shared_ptr<TTunnel> >& tunnels);
+
 			void HandleTunnelGatewayMsg (std::shared_ptr<TunnelBase> tunnel, std::shared_ptr<I2NPMessage> msg);
 			void HandleShortTunnelBuildMsg (std::shared_ptr<I2NPMessage> msg);
 			void HandleVariableTunnelBuildMsg (std::shared_ptr<I2NPMessage> msg);

@@ -846,9 +846,13 @@ namespace tunnel
 			}
 			if (!m_NumOutboundHops || config)
 			{
-				auto newTunnel = tunnels.CreateOutboundTunnel (config, shared_from_this ());
-				if (newTunnel->IsEstablished ()) // zero hops
-					TunnelCreated (newTunnel);
+				auto newTunnel = tunnels.CreateOutboundTunnel (config, inboundTunnel->GetTunnelPool ());
+				if (newTunnel)
+				{
+					newTunnel->SetTunnelPool (shared_from_this ());
+					if (tunnel->IsEstablished ()) // zero hops
+						TunnelCreated (tunnel);
+				}
 			}
 		}
 		else
