@@ -6,9 +6,7 @@
 * See full license text in LICENSE file at top of project tree
 */
 
-#include <inttypes.h>
 #include <string.h> /* memset */
-#include <iostream>
 #include "Log.h"
 #include "I2PEndian.h"
 #include "Gzip.h"
