@@ -374,7 +374,7 @@ namespace tunnel
 					{
 						bwLimit = i2p::context.GetBandwidthLimit ()*1024; // in bytes
 						bwUse = i2p::transport::transports.GetTransitBandwidth ();
-						if (bw + bwUse > bwLimit)
+						if (bw*1024 + bwUse > bwLimit)
 							retCode = 30;
 					}
 					if (!retCode && buildOptions.Get (TRANSIT_TUNNEL_REQUESTED_BANDWIDTH, bw))
@@ -386,10 +386,10 @@ namespace tunnel
 						if (bwUse < bwLimit)
 						{
 							availableBandwidth = bwLimit - bwUse;
-							if (bw > availableBandwidth)
+							if (bw*1204 > availableBandwidth)
 								availableBandwidth /= 1204;
 							else
-								availableBandwidth = 0; // reply with available bandwidth only if less then requested
+								availableBandwidth = bw; // reply with requested bandwidth
 						}
 						else
 							retCode = 30;
