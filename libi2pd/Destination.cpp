@@ -1167,6 +1167,29 @@ namespace client
 		if (m_StreamingDestination) m_StreamingDestination->Start ();
 	}
 
+	void ClientDestination::UpdateOfflineSignature (const i2p::data::PrivateKeys& keys)
+	{
+		// Adopt a refreshed offline-signature transient for the SAME identity: swap
+		// the signing keys and republish the LeaseSet so its offline-signature
+		// expiry is extended. Unlike SetPrivateKeys this keeps the tunnel pool,
+		// encryption keys and active streams intact, so the destination keeps
+		// serving uninterrupted (the identity, and thus the .b32 address, is
+		// unchanged). Used when a fresh transient of the same master is presented
+		// for an already-running destination (see ClientContext::CreateNewLocalDestination).
+		if (!keys.IsOfflineSignature () || !m_Keys.IsOfflineSignature ()) return;
+		if (keys.GetPublic ()->GetIdentHash () != GetIdentHash ()) return;
+		// Only move the transient forward in time; never accept a stale/replayed one.
+		const uint32_t expires = bufbe32toh (keys.GetOfflineSignature ().data ());
+		if (expires <= bufbe32toh (m_Keys.GetOfflineSignature ().data ())) return;
+		LogPrint (eLogInfo, "Destination: Refreshing offline signature for ",
+			GetIdentHash ().ToBase32 (), ", transient now expires ", expires);
+		boost::asio::post (GetService (), [s = GetSharedFromThis (), keys]()
+		{
+			s->m_Keys = keys;
+			s->UpdateLeaseSet (); // rebuild + republish, signed by the new transient
+		});
+	}
+
 	void ClientDestination::HandleDataMessage (const uint8_t * buf, size_t len,
 		i2p::garlic::ECIESX25519AEADRatchetSession * from)
 	{

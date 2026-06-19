@@ -410,6 +410,8 @@ namespace client
 		if (it != m_Destinations.end ())
 		{
 			LogPrint (eLogWarning, "Clients: Local destination ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " exists");
+			if (keys.IsOfflineSignature ())
+				it->second->UpdateOfflineSignature (keys); // adopt a refreshed offline transient of the same identity
 			it->second->Start (); // make sure to start
 			return it->second;
 		}
@@ -425,6 +427,8 @@ namespace client
 		if (it != m_Destinations.end ())
 		{
 			LogPrint (eLogWarning, "Clients: Local destination ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " exists");
+			if (keys.IsOfflineSignature ())
+				it->second->UpdateOfflineSignature (keys); // adopt a refreshed offline transient of the same identity
 			it->second->Start (); // make sure to start
 			return it->second;
 		}
