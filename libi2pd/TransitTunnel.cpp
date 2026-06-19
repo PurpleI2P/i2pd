@@ -386,8 +386,8 @@ namespace tunnel
 						if (bwUse < bwLimit)
 						{
 							availableBandwidth = bwLimit - bwUse;
-							if (bw*1204 > availableBandwidth)
-								availableBandwidth /= 1204;
+							if (bw*1024 > availableBandwidth)
+								availableBandwidth /= 1024;
 							else
 								availableBandwidth = bw; // reply with requested bandwidth
 						}
