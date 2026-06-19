@@ -1167,6 +1167,23 @@ namespace client
 		if (m_StreamingDestination) m_StreamingDestination->Start ();
 	}
 
+	void ClientDestination::UpdateOfflineSignature (const i2p::data::PrivateKeys& keys)
+	{
+		// Adopt a newer offline transient of the same identity in place: swap keys and
+		// republish the LeaseSet, keeping tunnels and streams (unlike SetPrivateKeys).
+		if (!keys.IsOfflineSignature () || !m_Keys.IsOfflineSignature ()) return;
+		if (keys.GetPublic ()->GetIdentHash () != GetIdentHash ()) return;
+		const uint32_t expires = bufbe32toh (keys.GetOfflineSignature ().data ());
+		if (expires <= bufbe32toh (m_Keys.GetOfflineSignature ().data ())) return; // only move forward
+		LogPrint (eLogInfo, "Destination: Refreshing offline signature for ",
+			GetIdentHash ().ToBase32 (), ", transient expires ", expires);
+		boost::asio::post (GetService (), [s = GetSharedFromThis (), keys]()
+		{
+			s->m_Keys = keys;
+			s->UpdateLeaseSet ();
+		});
+	}
+
 	void ClientDestination::HandleDataMessage (const uint8_t * buf, size_t len,
 		i2p::garlic::ECIESX25519AEADRatchetSession * from)
 	{
