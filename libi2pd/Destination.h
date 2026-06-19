@@ -186,10 +186,10 @@ namespace client
 			// I2CP
 			virtual void HandleDataMessage (const uint8_t * buf, size_t len, i2p::garlic::ECIESX25519AEADRatchetSession * from) = 0;
 			virtual void CreateNewLeaseSet (const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels) = 0;
+			void UpdateLeaseSet ();
 
 		private:
 
-			void UpdateLeaseSet ();
 			std::shared_ptr<const i2p::data::LocalLeaseSet> GetLeaseSetMt ();
 			void Publish ();
 			void HandlePublishConfirmationTimer (const boost::system::error_code& ecode);
@@ -252,6 +252,7 @@ namespace client
 
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
 			void SetPrivateKeys (const i2p::data::PrivateKeys& keys);
+			void UpdateOfflineSignature (const i2p::data::PrivateKeys& keys);
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Keys.Sign (buf, len, signature); };
 
 			// ref counter
