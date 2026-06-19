@@ -1378,7 +1378,9 @@ namespace client
 
 	void SAMSingleSession::StopLocalDestination ()
 	{
-		localDestination->Release ();
+		// Destination is ref-counted and may be shared by sessions whose SESSION
+		// CREATEs resolve to the same identity hash; only its last user may stop it.
+		if (localDestination->Release () > 0) return;
 		// stop accepting new streams
 		localDestination->StopAcceptingStreams ();
 		// terminate existing streams

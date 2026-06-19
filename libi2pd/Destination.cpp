@@ -1113,6 +1113,9 @@ namespace client
 
 	void ClientDestination::Start ()
 	{
+		// Idempotent: a second Start() on a running destination must not re-create
+		// m_StreamingDestination (orphaning the live one) nor re-arm leaseset/pool.
+		if (m_StreamingDestination) return;
 		LeaseSetDestination::Start ();
 		m_StreamingDestination = std::make_shared<i2p::stream::StreamingDestination> (GetSharedFromThis ()); // TODO:
 		m_StreamingDestination->Start ();
