@@ -19,6 +19,7 @@
 #include<ListView.h>
 #include<TabView.h>
 #include<ScrollView.h>
+#include<Button.h>
 #include <Window.h>
 #include <Application.h>
 #include <Alert.h>
@@ -43,7 +44,7 @@ enum
 	M_SHOW_TUNNEL,
 	C_OPENHTTP,
 	M_SHOWMAIN,
-         M_CLOSETUNNEL
+        M_CLOSETUNNEL
 };	
 constexpr bigtime_t GRACEFUL_SHUTDOWN_UPDATE_INTERVAL = 1000*1100; // in microseconds, ~ 1 sec
 constexpr int GRACEFUL_SHUTDOWN_UPDATE_COUNT = 600; // 10 minutes
@@ -149,7 +150,12 @@ void MainWindow::UpdateMainView ()
 	////std::cout << s.str() << std::endl;
 	m_MainView->SetText (s.str ().c_str ());
 }	
-
+/*
+ * Логика - создать вектор с streamID + vector dest.
+ * не перерисовывать каждый раз а лишь добавлять которых нет 
+ * и удалять те которые есть
+ * кнопка close работает
+ * */
 void MainWindow :: DrawTunnel(std::stringstream & s)
 {
        
@@ -181,12 +187,19 @@ void MainWindow :: DrawTunnel(std::stringstream & s)
 			auto bview = new BView(tabRect, streamDestShort.c_str(), B_FOLLOW_ALL, B_WILL_DRAW);
 			bview->SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
 
-			auto tunnel_view = new BStringView(BRect(0, 0, tabRect.right - 10, tabRect.bottom - 10),"tunnel_view", "tunnel_view...", B_FOLLOW_ALL);
+			auto tunnel_view = new BStringView(BRect(0, 0, tabRect.right - 100, tabRect.bottom - 100),"tunnel_view", "tunnel_view...", B_FOLLOW_ALL);
 
-			tunnel_view->SetText (s.str ().c_str ());
+			tunnel_view->SetText (s1.str ().c_str ());
+			BRect btnRect{10,10,90,35};//10+32,10+12);
+			auto msg = new BMessage(M_CLOSETUNNEL);
+			msg->AddUInt32("tunnel_val", stream->GetRecvStreamID());
+			BButton * closeButton = new BButton(
+			btnRect,"close leaseset", "close", msg
+					);
+			bview->AddChild(closeButton);
 			bview->AddChild(tunnel_view);
 
-
+			
 			m_tab_view->AddTab(bview);
 			m_tab_view->TabAt(++m_counter_streams)->SetLabel(streamDestShort.c_str());
 
@@ -256,12 +269,25 @@ void MainWindow :: OpenHTTPInterface()
 
 void MainWindow::MessageReceived (BMessage * msg)
 {
-
 	if (!msg) return;
+	uint32_t tunnel_val;// streamID (to method)
 	switch (msg->what)
 	{
+		// to method
                    case M_CLOSETUNNEL:
-                       std::cout << "Close Tunnel (DEBUG NOT WORKS)" << std::endl;
+                       //std::cout << "Close Tunnel (DEBUG NOT WORKS)" << std::endl;
+		       msg->FindUInt32("tunnel_val", &tunnel_val);
+		       if(tunnel_val)
+		       {
+				auto dest = 
+				i2p::client::context.FindLocalDestination
+				(m_IdentHash);
+				if(dest)
+				{
+					dest->DeleteStream(tunnel_val);
+				}
+		       }
+
                   break;
 		case M_SHOWMAIN:
 			m_IsDrawTunnel = false;
