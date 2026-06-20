@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #endif
 #include <charconv>
+#include <vector>
 #include "Base.h"
 #include "Identity.h"
 #include "Log.h"
@@ -779,18 +780,7 @@ namespace client
 			auto session = m_Owner.FindSession(m_ID);
 			if (session)
 			{
-				auto d = session->GetLocalDestination ()->GetDatagramDestination ();
-				if (d)
-				{
-					i2p::data::IdentityEx dest;
-					dest.FromBase64 (params[SAM_PARAM_DESTINATION]);
-					if (session->Type == SAMSessionType::eSAMSessionTypeDatagram)
-						d->SendDatagramTo ((const uint8_t *)data, size, dest.GetIdentHash ());
-					else // raw
-						d->SendRawDatagramTo ((const uint8_t *)data, size, dest.GetIdentHash ());
-				}
-				else
-					LogPrint (eLogError, "SAM: Missing datagram destination");
+				session->SendDatagram (params[SAM_PARAM_DESTINATION], (const uint8_t *)data, size, 0, 0);
 			}
 			else
 				LogPrint (eLogError, "SAM: Session is not created from DATAGRAM SEND");
@@ -1365,6 +1355,60 @@ namespace client
 		}
 	}
 
+	void SAMSession::SendDatagram (std::string_view destination, const uint8_t * payload, size_t len,
+		uint16_t fromPort, uint16_t toPort)
+	{
+		auto localDest = GetLocalDestination ();
+		auto datagramDest = localDest ? localDest->GetDatagramDestination () : nullptr;
+		if (!datagramDest)
+		{
+			LogPrint (eLogError, "SAM: Missing datagram destination for session ", Name);
+			return;
+		}
+		// Resolve like a stream connect: a full base64 destination, or a .i2p host
+		// that is either a plain b32 (ident hash) or a blinded b33 (encrypted leaseset).
+		std::shared_ptr<const Address> addr;
+		if (destination.find (".i2p") != std::string_view::npos)
+			addr = context.GetAddressBook ().GetAddress (std::string (destination));
+		else
+		{
+			auto dest = std::make_shared<i2p::data::IdentityEx> ();
+			if (dest->FromBase64 (std::string (destination)) > 0)
+			{
+				context.GetAddressBook ().InsertFullAddress (dest);
+				addr = std::make_shared<Address> (dest->GetIdentHash ());
+			}
+		}
+		if (!addr || !addr->IsValid ())
+		{
+			LogPrint (eLogError, "SAM: Datagram invalid destination ", destination);
+			return;
+		}
+		auto sendTo = [datagramDest, type = Type, fromPort, toPort]
+			(const uint8_t * p, size_t l, const i2p::data::IdentHash& ident)
+		{
+			if (type == SAMSessionType::eSAMSessionTypeDatagram)
+				datagramDest->SendDatagramTo (p, l, ident, fromPort, toPort);
+			else if (type == SAMSessionType::eSAMSessionTypeRaw)
+				datagramDest->SendRawDatagramTo (p, l, ident, fromPort, toPort);
+			else
+				LogPrint (eLogError, "SAM: Unexpected session type ", (int)type, " for datagram send");
+		};
+		if (addr->IsIdentHash ())
+			sendTo (payload, len, addr->identHash); // plain b32 / full dest: send straight away
+		else
+		{
+			// b33: the leaseset lookup is async and the receive buffer is reused, so copy
+			// the payload, then send to the resolved ident hash once the leaseset arrives.
+			auto data = std::make_shared<std::vector<uint8_t> > (payload, payload + len);
+			localDest->RequestDestinationWithEncryptedLeaseSet (addr->blindedPublicKey,
+				[sendTo, data](std::shared_ptr<i2p::data::LeaseSet> ls)
+				{
+					if (ls) sendTo (data->data (), data->size (), ls->GetIdentHash ());
+				});
+		}
+	}
+
 	SAMSingleSession::SAMSingleSession (SAMBridge & parent, std::string_view name, SAMSessionType type, std::shared_ptr<ClientDestination> dest):
 		SAMSession (parent, name, type),
 		localDestination (dest)
@@ -1691,43 +1735,7 @@ namespace client
 								LogPrint (eLogInfo, "SAM: Datagram params are FROM_PORT=", fromPort, " TO_PORT=", toPort);
 							}
 
-							auto localDest = session->GetLocalDestination ();
-							auto datagramDest = localDest ? localDest->GetDatagramDestination () : nullptr;
-							if (datagramDest)
-							{
-								i2p::data::IdentHash ident; bool isDest = false;
-								if (std::string_view (destination).find(".i2p") != std::string_view::npos)
-								{
-									auto addr = context.GetAddressBook().GetAddress (destination);
-									if (addr && addr->IsValid () && addr->IsIdentHash ())
-									{
-										ident = addr->identHash;
-										isDest = true;
-									}
-								}
-								else
-								{
-									i2p::data::IdentityEx dest;
-									if (dest.FromBase64 (destination) > 0)
-									{
-										ident = dest.GetIdentHash ();
-										isDest = true;
-									}
-								}
-								if (isDest)
-								{
-									if (session->Type == SAMSessionType::eSAMSessionTypeDatagram)
-										datagramDest->SendDatagramTo ((uint8_t *)eol, payloadLen, ident, fromPort, toPort);
-									else if (session->Type == SAMSessionType::eSAMSessionTypeRaw)
-										datagramDest->SendRawDatagramTo ((uint8_t *)eol, payloadLen, ident, fromPort, toPort);
-									else
-										LogPrint (eLogError, "SAM: Unexpected session type ", (int)session->Type, "for session ", sessionID);
-								}
-								else
-									LogPrint (eLogError, "SAM: Datagram unexpected destination ", destination);
-							}
-							else
-								LogPrint (eLogError, "SAM: Datagram destination is not set for session ", sessionID);
+							session->SendDatagram (destination, (const uint8_t *)eol, payloadLen, fromPort, toPort);
 						}
 						else
 							LogPrint (eLogError, "SAM: Session ", sessionID, " not found");

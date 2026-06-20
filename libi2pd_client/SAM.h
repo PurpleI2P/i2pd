@@ -225,6 +225,11 @@ namespace client
 		virtual void Close () { CloseStreams (); };
 
 		void CloseStreams ();
+		// Resolves a datagram destination - a full base64 destination, a plain b32
+		// or a blinded b33 .i2p host - the same way a stream connect does, then
+		// sends the payload. A b33 lookup is async, so the payload is copied.
+		void SendDatagram (std::string_view destination, const uint8_t * payload, size_t len,
+			uint16_t fromPort, uint16_t toPort);
 	};
 
 	struct SAMSingleSession: public SAMSession
