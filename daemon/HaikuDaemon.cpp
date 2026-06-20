@@ -15,6 +15,10 @@
 #include <StringView.h>
 #include <Font.h>
 #include <MessageRunner.h>
+#include<StringItem.h>
+#include<ListView.h>
+#include<TabView.h>
+#include<ScrollView.h>
 #include <Window.h>
 #include <Application.h>
 #include <Alert.h>
@@ -38,7 +42,8 @@ enum
 	C_MAIN_VIEW_UPDATE,
 	M_SHOW_TUNNEL,
 	C_OPENHTTP,
-	M_SHOWMAIN
+	M_SHOWMAIN,
+         M_CLOSETUNNEL
 };	
 constexpr bigtime_t GRACEFUL_SHUTDOWN_UPDATE_INTERVAL = 1000*1100; // in microseconds, ~ 1 sec
 constexpr int GRACEFUL_SHUTDOWN_UPDATE_COUNT = 600; // 10 minutes
@@ -56,8 +61,10 @@ class MainWindow: public BWindow
 		void UpdateMainView ();
 		void OpenHTTPInterface(void);
 		void DrawTunnel(std::stringstream & s);
+		size_t m_counter_streams = 0;
 	private:
 		BMessenger m_Messenger;
+		BTabView * m_tab_view;
 		BStringView * m_MainView;
 		std::unique_ptr<BMessageRunner> m_MainViewUpdateTimer, m_GracefulShutdownTimer;	
 		bool m_IsGracefulShutdownComplete = false;
@@ -105,51 +112,91 @@ MainWindow::MainWindow ():
 		tunnelsMenu->AddItem (new BMenuItem (it.second->GetName (), msg));	
 	}
 	menuBar->AddItem (tunnelsMenu);
-	m_MainView = new BStringView (BRect (20, 21, 300, 250), nullptr, "Starting...", B_FOLLOW_ALL, B_WILL_DRAW);
+
+	m_tab_view = new BTabView(Bounds().OffsetByCopy(0, 20), "tabview");
+	AddChild(m_tab_view);
+
+	BRect tabRect = m_tab_view->ContainerView()->Bounds();
+	auto bview = new BView(tabRect, "main_tab", B_FOLLOW_ALL, B_WILL_DRAW);
+	bview->SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
+
+	m_MainView = new BStringView(BRect(10, 10, tabRect.right - 10, tabRect.bottom - 10),"info_view", "Starting...", B_FOLLOW_ALL);
+	bview->AddChild(m_MainView);
+
+	m_tab_view->AddTab(bview);
+	m_tab_view->TabAt(m_counter_streams)->SetLabel("Info");
+
 	m_MainView->SetViewColor (255, 255, 255);
 	m_MainView->SetHighColor (0xD4, 0x3B, 0x69);
 	BFont font = *be_plain_font;
 	font.SetSize (12);
 	m_MainView->SetFont (&font);	
-	AddChild (m_MainView);
 	m_MainViewUpdateTimer = std::make_unique<BMessageRunner>(m_Messenger, 
 		BMessage (C_MAIN_VIEW_UPDATE), MAIN_VIEW_UPDATE_INTERVAL);
-}	
+}
 
 void MainWindow::UpdateMainView ()
 {
 	std::stringstream s;
 	if(!m_IsDrawTunnel)
+	{
 	 i2p::util::PrintMainWindowText (s);
+	}
 	else 
+	{
 	  DrawTunnel(s);
+        }
 	////std::cout << s.str() << std::endl;
 	m_MainView->SetText (s.str ().c_str ());
 }	
 
 void MainWindow :: DrawTunnel(std::stringstream & s)
 {
-	s << "\r\n";
+       
+	s << "\n";
 	s << "I2P Address: " << i2p::client::context.GetAddressBook().ToAddress(m_IdentHash) << ".b32.i2p\r\n";
-	s << "\r\n";
+
 	auto dest = i2p::client::context.FindLocalDestination (m_IdentHash);
+	while(m_tab_view->CountTabs() > 1)
+	{
+		m_tab_view->RemoveTab(m_tab_view->CountTabs() - 1);
+	}
+	m_counter_streams = 0;
+	//std::cout << "Draw List View" << std::endl;;
 	if(!dest)
 	{
 		s << "Can't found local dest\r\n";
 	}
 	else
 	{
-		s << "Streams: \r\n";
+		s << "Streams: \n";
 		for (auto stream : dest->GetAllStreams())
 		{
+			std::stringstream s1;
 			auto streamDest = i2p::client::context.GetAddressBook().ToAddress(stream->GetRemoteIdentity());
 			std::string streamDestShort = streamDest.substr(0,12) + ".b32.i2p";
-			s << streamDestShort << "out:" << stream->GetNumSentBytes() << ";in:" << stream->GetNumReceivedBytes() << "\r\n";
+			s1 << streamDestShort << "|out|" << stream->GetNumSentBytes() << "|in:" << stream->GetNumReceivedBytes() <<"|";
+
+			BRect tabRect = m_tab_view->ContainerView()->Bounds();
+			auto bview = new BView(tabRect, streamDestShort.c_str(), B_FOLLOW_ALL, B_WILL_DRAW);
+			bview->SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
+
+			auto tunnel_view = new BStringView(BRect(0, 0, tabRect.right - 10, tabRect.bottom - 10),"tunnel_view", "tunnel_view...", B_FOLLOW_ALL);
+
+			tunnel_view->SetText (s.str ().c_str ());
+			bview->AddChild(tunnel_view);
+
+
+			m_tab_view->AddTab(bview);
+			m_tab_view->TabAt(++m_counter_streams)->SetLabel(streamDestShort.c_str());
+
+
 			/*
 			 * void ShowLocalDestination in daemon/HTTPServer.cpp
 			 */
+			s << s1.str() << "\n";
 		}
-		s << "\r\n";
+		//s << "\r\n";
 	}
 }
 
@@ -213,6 +260,9 @@ void MainWindow::MessageReceived (BMessage * msg)
 	if (!msg) return;
 	switch (msg->what)
 	{
+                   case M_CLOSETUNNEL:
+                       std::cout << "Close Tunnel (DEBUG NOT WORKS)" << std::endl;
+                  break;
 		case M_SHOWMAIN:
 			m_IsDrawTunnel = false;
 			m_IdentHash = {};
