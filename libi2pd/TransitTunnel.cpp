@@ -363,6 +363,39 @@ namespace tunnel
 				else
 					retCode = 30;
 
+				uint32_t availableBandwidth = 0;
+				if (!retCode)
+				{
+					i2p::util::Mapping buildOptions;
+					buildOptions.FromBuffer (clearText + SHORT_REQUEST_RECORD_TUNNEL_BUILD_OPTIONS_OFFSET,
+						SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE - SHORT_REQUEST_RECORD_TUNNEL_BUILD_OPTIONS_OFFSET);
+					uint32_t bw = 0, bwLimit = 0, bwUse = 0;
+					if (buildOptions.Get (TRANSIT_TUNNEL_MINIMUM_BANDWIDTH, bw))
+					{
+						bwLimit = i2p::context.GetBandwidthLimit ()*1024; // in bytes
+						bwUse = i2p::transport::transports.GetTransitBandwidth ();
+						if (bw + bwUse > bwLimit)
+							retCode = 30;
+					}
+					if (!retCode && buildOptions.Get (TRANSIT_TUNNEL_REQUESTED_BANDWIDTH, bw))
+					{
+						if (!bwLimit)
+							bwLimit = i2p::context.GetBandwidthLimit ()*1024; // in bytes
+						if (!bwUse)
+							bwUse = i2p::transport::transports.GetTransitBandwidth ();
+						if (bwUse < bwLimit)
+						{
+							availableBandwidth = bwLimit - bwUse;
+							if (bw > availableBandwidth)
+								availableBandwidth /= 1204;
+							else
+								availableBandwidth = 0; // reply with available bandwidth only if less then requested
+						}
+						else
+							retCode = 30;
+					}
+				}
+
 				if (!retCode)
 				{
 					i2p::data::IdentHash nextIdent(clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET);
@@ -395,6 +428,8 @@ namespace tunnel
 					if (j == i)
 					{
 						i2p::util::Mapping replyOptions;
+						if (!retCode && availableBandwidth)
+							replyOptions.Put (TRANSIT_TUNNEL_AVAILABLE_BANDWIDTH, availableBandwidth);
 						size_t optionsSize = replyOptions.ToBuffer (reply + SHORT_RESPONSE_RECORD_OPTIONS_OFFSET,
 							SHORT_RESPONSE_RECORD_RET_OFFSET - SHORT_RESPONSE_RECORD_OPTIONS_OFFSET);
 						if (SHORT_RESPONSE_RECORD_OPTIONS_OFFSET + optionsSize < SHORT_RESPONSE_RECORD_RET_OFFSET)
