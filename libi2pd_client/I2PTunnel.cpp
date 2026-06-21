@@ -63,7 +63,24 @@ namespace client
 			if (msg)
 				m_Stream->Send (msg, len); // connect and send
 			else
-				m_Stream->Send (m_Buffer, 0); // connect
+			{
+				len = 0;
+				if (!m_SSL)
+				{
+					// check if something avaiable
+					boost::system::error_code ec;
+					len = m_Socket->available (ec);
+					if (!ec && len > 0)
+					{
+						if (len > I2P_TUNNEL_CONNECTION_BUFFER_SIZE) len = I2P_TUNNEL_CONNECTION_BUFFER_SIZE;
+						len = boost::asio::read (*m_Socket, boost::asio::buffer (m_Buffer, len), boost::asio::transfer_all (), ec);
+						if (ec) len = 0;
+					}
+					else
+						len = 0;
+				}
+				m_Stream->Send (m_Buffer, len); // connect and send if available
+			}
 			StreamReceive ();
 			Receive ();
 		}
