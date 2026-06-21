@@ -992,7 +992,7 @@ namespace stream
 		}
 		bool isNoAck = m_LastReceivedSequenceNumber < 0; // first packet
 		std::vector<Packet *> packets;
-		while ((m_Status == eStreamStatusNew) || (IsEstablished () && !m_SendBuffer.IsEmpty () && numMsgs > 0))
+		while ((m_Status == eStreamStatusNew) || (!m_SendBuffer.IsEmpty () && numMsgs > 0))
 		{
 			Packet * p = m_LocalDestination.NewPacket ();
 			uint8_t * packet = p->GetBuffer ();
