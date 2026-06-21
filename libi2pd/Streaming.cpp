@@ -104,7 +104,7 @@ namespace stream
 		m_RemoteLeaseChangeTime (0), m_LastWindowIncTime (0), m_LastACKRequestTime (0), m_LastACKSendTime (0),
 		m_PacketACKInterval (1), m_PacketACKIntervalRem (0), // for limit inbound speed
 		m_MaxNumResendAttempts (local.GetOwner ()->GetStreamingMaxResends ()),
-		m_NumResendAttempts (0), m_NumPacketsToSend (0), m_JitterAccum (0), m_JitterDiv (1), m_MTU (STREAMING_MTU)
+		m_NumResendAttempts (0), m_NumPacketsToSend (INITIAL_WINDOW_SIZE), m_JitterAccum (0), m_JitterDiv (1), m_MTU (STREAMING_MTU)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
 		m_RemoteIdentity = remote->GetIdentity ();
@@ -137,7 +137,7 @@ namespace stream
 		m_RemoteLeaseChangeTime (0), m_LastWindowIncTime (0), m_LastACKRequestTime (0),
 		m_LastACKSendTime (0), m_PacketACKInterval (1), m_PacketACKIntervalRem (0), // for limit inbound speed
 		m_MaxNumResendAttempts (local.GetOwner ()->GetStreamingMaxResends ()),
-		m_NumResendAttempts (0), m_NumPacketsToSend (INITIAL_WINDOW_SIZE), m_JitterAccum (0), m_JitterDiv (1), m_MTU (STREAMING_MTU)
+		m_NumResendAttempts (0), m_NumPacketsToSend (0), m_JitterAccum (0), m_JitterDiv (1), m_MTU (STREAMING_MTU)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
 		auto outboundSpeed = local.GetOwner ()->GetStreamingOutboundSpeed ();
