@@ -522,6 +522,14 @@ namespace stream
 				verified = true;
 				if (!(flags & PACKET_FLAG_SIGNATURE_INCLUDED))
 					m_DontSign = true; // don't sign if the remote didn't sign
+
+				if (m_IsIncoming && !m_NumPacketsToSend) // first incoming packet
+				{
+					if (!m_RoutingSession)
+						m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, false, false);
+					if (m_RoutingSession && m_RoutingSession->HasSharedRoutingPath ()) // ack was received in other stream
+						m_NumPacketsToSend = INITIAL_WINDOW_SIZE;
+				}
 			}
 		}
 
@@ -1729,7 +1737,7 @@ namespace stream
 	void Stream::ResendPacket ()
 	{
 		// check for resend attempts
-		if (m_IsIncoming && m_SequenceNumber == 1 && m_NumResendAttempts > 0)
+		if (m_IsIncoming && m_NumResendAttempts > 0 && m_RoutingSession && !m_RoutingSession->HasSharedRoutingPath ()) // ack not received
 		{
 			LogPrint (eLogWarning, "Streaming: SYNACK packet was not ACKed after ", m_NumResendAttempts, " attempts, terminate, rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
 			m_Status = eStreamStatusReset;

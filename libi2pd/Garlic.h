@@ -132,6 +132,7 @@ namespace garlic
 
 			std::shared_ptr<GarlicRoutingPath> GetSharedRoutingPath ();
 			void SetSharedRoutingPath (std::shared_ptr<GarlicRoutingPath> path);
+			bool HasSharedRoutingPath () const { return (bool)m_SharedRoutingPath; }
 
 			bool IsWithJava () const { return m_IsWithJava; }
 			void SetIsWithJava (bool isWithJava) { m_IsWithJava = isWithJava; }
