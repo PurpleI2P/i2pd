@@ -1169,17 +1169,21 @@ namespace client
 
 	void ClientDestination::UpdateOfflineSignature (const i2p::data::PrivateKeys& keys)
 	{
-		// Adopt a newer offline transient of the same identity in place: swap keys and
-		// republish the LeaseSet, keeping tunnels and streams (unlike SetPrivateKeys).
-		if (!keys.IsOfflineSignature () || !m_Keys.IsOfflineSignature ()) return;
-		if (keys.GetPublic ()->GetIdentHash () != GetIdentHash ()) return;
-		const uint32_t expires = bufbe32toh (keys.GetOfflineSignature ().data ());
-		if (expires <= bufbe32toh (m_Keys.GetOfflineSignature ().data ())) return; // only move forward
-		LogPrint (eLogInfo, "Destination: Refreshing offline signature for ",
-			GetIdentHash ().ToBase32 (), ", transient expires ", expires);
+		// Adopt a newer offline transient of the same identity in place, on the
+		// destination's service so it stays single-threaded with LeaseSet and stream
+		// signing. Only the transient is refreshed, the identity is unchanged.
+		if (!keys.IsOfflineSignature ()) return;
 		boost::asio::post (GetService (), [s = GetSharedFromThis (), keys]()
 		{
-			s->m_Keys = keys;
+			if (!s->m_Keys.IsOfflineSignature ()) return;
+			if (keys.GetPublic ()->GetIdentHash () != s->GetIdentHash ()) return;
+			const auto& next = keys.GetOfflineSignature ();
+			const auto& cur = s->m_Keys.GetOfflineSignature ();
+			if (next == cur) return; // same transient
+			if (bufbe32toh (next.data ()) < bufbe32toh (cur.data ())) return; // do not shorten validity
+			LogPrint (eLogInfo, "Destination: Refreshing offline signature for ",
+				s->GetIdentHash ().ToBase32 (), ", transient expires ", bufbe32toh (next.data ()));
+			s->m_Keys.UpdateOfflineSignature (keys);
 			s->UpdateLeaseSet ();
 		});
 	}
