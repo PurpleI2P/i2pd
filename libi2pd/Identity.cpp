@@ -643,6 +643,17 @@ namespace data
 		m_Signer->Sign (buf, len, signature);
 	}
 
+	void PrivateKeys::UpdateOfflineSignature (const PrivateKeys& other)
+	{
+		// same identity (m_Public): refresh only the transient material and the signer
+		m_SigningPrivateKey = other.m_SigningPrivateKey;
+		m_OfflineSignature = other.m_OfflineSignature;
+		m_TransientSignatureLen = other.m_TransientSignatureLen;
+		m_TransientSigningPrivateKeyLen = other.m_TransientSigningPrivateKeyLen;
+		m_Signer = nullptr;
+		CreateSigner ();
+	}
+
 	void PrivateKeys::CreateSigner () const
 	{
 		if (IsOfflineSignature ())
