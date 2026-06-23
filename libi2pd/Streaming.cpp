@@ -104,7 +104,7 @@ namespace stream
 		m_RemoteLeaseChangeTime (0), m_LastWindowIncTime (0), m_LastACKRequestTime (0), m_LastACKSendTime (0),
 		m_PacketACKInterval (1), m_PacketACKIntervalRem (0), // for limit inbound speed
 		m_MaxNumResendAttempts (local.GetOwner ()->GetStreamingMaxResends ()),
-		m_NumResendAttempts (0), m_NumPacketsToSend (INITIAL_WINDOW_SIZE), m_JitterAccum (0), m_JitterDiv (1), m_MTU (STREAMING_MTU)
+		m_NumResendAttempts (0), m_NumPacketsToSend (0), m_JitterAccum (0), m_JitterDiv (1), m_MTU (STREAMING_MTU)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
 		m_RemoteIdentity = remote->GetIdentity ();
@@ -522,14 +522,6 @@ namespace stream
 				verified = true;
 				if (!(flags & PACKET_FLAG_SIGNATURE_INCLUDED))
 					m_DontSign = true; // don't sign if the remote didn't sign
-
-				if (m_IsIncoming && !m_NumPacketsToSend) // first incoming packet
-				{
-					if (!m_RoutingSession)
-						m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, false, false);
-					if (m_RoutingSession && m_RoutingSession->HasSharedRoutingPath ()) // ack was received in other stream
-						m_NumPacketsToSend = INITIAL_WINDOW_SIZE;
-				}
 			}
 		}
 
@@ -1000,7 +992,7 @@ namespace stream
 		}
 		bool isNoAck = m_LastReceivedSequenceNumber < 0; // first packet
 		std::vector<Packet *> packets;
-		while ((m_Status == eStreamStatusNew) || (!m_SendBuffer.IsEmpty () && numMsgs > 0))
+		while ((m_Status == eStreamStatusNew) || (IsEstablished () && !m_SendBuffer.IsEmpty () && numMsgs > 0))
 		{
 			Packet * p = m_LocalDestination.NewPacket ();
 			uint8_t * packet = p->GetBuffer ();
@@ -1737,7 +1729,8 @@ namespace stream
 	void Stream::ResendPacket ()
 	{
 		// check for resend attempts
-		if (m_IsIncoming && m_NumResendAttempts > 0 && m_RoutingSession && !m_RoutingSession->HasSharedRoutingPath ()) // ack not received
+		if (m_IsIncoming && m_SequenceNumber == 1 && m_NumResendAttempts > 0 &&
+			(!m_RoutingSession || !m_RoutingSession->HasSharedRoutingPath ())) // ack not received
 		{
 			LogPrint (eLogWarning, "Streaming: SYNACK packet was not ACKed after ", m_NumResendAttempts, " attempts, terminate, rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
 			m_Status = eStreamStatusReset;
