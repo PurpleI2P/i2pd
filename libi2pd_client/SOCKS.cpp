@@ -40,6 +40,7 @@ namespace proxy
 			memcpy(value,str.c_str(),size);
 		}
 		std::string ToString() { return std::string(value, size); }
+		std::string_view GetString () const { return std::string_view(value, size); }
 		void push_back (char c) { value[size++] = c; }
 	};
 
@@ -637,16 +638,22 @@ namespace proxy
 		{
 			if (m_state == READY)
 			{
-				if (m_addrtype == ADDR_IPV4 && (m_address.ip & 0xFF000000) == 0xFF000000) // 255.x.x.x
+				std::string resolved;
+				if (m_addrtype == ADDR_IPV4)
 				{
-					boost::asio::ip::address_v4 addr(m_address.ip);
-					std::string resolved = GetServer ()->GetResolvedAddress (addr);
-					if (!resolved.empty ())
-					{
-						LogPrint(eLogInfo, "SOCKS: Replaced ", addr, " -> " , resolved);
-						m_address.dns.FromString (resolved);
-						m_addrtype = ADDR_DNS;
-					}
+					if ((m_address.ip & 0xFF000000) == 0xFF000000) // 255.x.x.x
+						resolved = GetServer ()->GetResolvedAddress (boost::asio::ip::address_v4(m_address.ip));
+				}
+				else if (m_addrtype == ADDR_DNS)
+				{
+					if (m_address.dns.GetString ().substr (0, 4) == "255.")
+						resolved = GetServer ()->GetResolvedAddress (boost::asio::ip::make_address (m_address.dns.GetString ()).to_v4());
+				}
+				if (!resolved.empty ())
+				{
+					LogPrint(eLogInfo, "SOCKS: Replaced to ", resolved);
+					m_address.dns.FromString (resolved);
+					m_addrtype = ADDR_DNS;
 				}
 
 				const std::string addr = m_address.dns.ToString();
@@ -681,7 +688,7 @@ namespace proxy
 								{
 									address ad;
 									ad.ip = GetServer ()->ResolveAddress (m_address.dns.ToString()).to_uint();
-									boost::asio::async_write(*m_sock, GenerateSOCKS5Response(SOCKS5_OK, ADDR_DNS, ad, m_port),
+									boost::asio::async_write(*m_sock, GenerateSOCKS5Response(SOCKS5_OK, ADDR_IPV4, ad, m_port),
 										std::bind(&SOCKSHandler::SentSocksDone, shared_from_this(), std::placeholders::_1));
 								});
 							break;
