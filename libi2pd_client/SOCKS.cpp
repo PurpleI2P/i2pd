@@ -107,7 +107,8 @@ namespace proxy
 			{
 				CMD_CONNECT = 1, // TCP Connect
 				CMD_BIND = 2, // TCP Bind
-				CMD_UDP = 3 // UDP associate
+				CMD_UDP = 3, // UDP associate
+				CMD_RESOLVE = 0xF0 // for torsocks
 			};
 			enum socksVersions
 			{
@@ -389,7 +390,7 @@ namespace proxy
 
 	bool SOCKSHandler::ValidateSOCKSRequest()
 	{
-		if ( m_cmd != CMD_CONNECT && m_cmd != CMD_UDP)
+		if ( m_cmd != CMD_CONNECT && m_cmd != CMD_UDP && m_cmd != CMD_RESOLVE)
 		{
 			// TODO: we need to support binds and other shit!
 			LogPrint(eLogError, "SOCKS: Unsupported command: ", m_cmd);
@@ -460,6 +461,7 @@ namespace proxy
 					{
 						case CMD_CONNECT:
 						case CMD_BIND:
+						case CMD_RESOLVE:
 						break;
 						case CMD_UDP:
 							if (m_socksv == SOCKS5) break;
@@ -635,6 +637,18 @@ namespace proxy
 		{
 			if (m_state == READY)
 			{
+				if (m_addrtype == ADDR_IPV4 && (m_address.ip & 0xFF000000) == 0xFF000000) // 255.x.x.x
+				{
+					boost::asio::ip::address_v4 addr(m_address.ip);
+					std::string resolved = GetServer ()->GetResolvedAddress (addr);
+					if (!resolved.empty ())
+					{
+						LogPrint(eLogInfo, "SOCKS: Replaced ", addr, " -> " , resolved);
+						m_address.dns.FromString (resolved);
+						m_addrtype = ADDR_DNS;
+					}
+				}
+
 				const std::string addr = m_address.dns.ToString();
 				LogPrint(eLogInfo, "SOCKS: Requested ", addr, ":" , m_port);
 				const size_t addrlen = addr.size();
@@ -659,6 +673,16 @@ namespace proxy
 							boost::asio::post (GetOwner ()->GetService (), [this](void)
 								{
 									SocksRequestSuccess();
+								});
+							break;
+						case CMD_RESOLVE:
+							// resolve to 255.x.x.x adddress
+							boost::asio::post (GetOwner ()->GetService (), [this](void)
+								{
+									address ad;
+									ad.ip = GetServer ()->ResolveAddress (m_address.dns.ToString()).to_uint();
+									boost::asio::async_write(*m_sock, GenerateSOCKS5Response(SOCKS5_OK, ADDR_DNS, ad, m_port),
+										std::bind(&SOCKSHandler::SentSocksDone, shared_from_this(), std::placeholders::_1));
 								});
 							break;
 						default: ;
@@ -921,6 +945,23 @@ namespace proxy
 	void SOCKSServer::ReleaseLocalUDPPort (uint16_t port)
 	{
 		m_UDPPorts.erase (port);
+	}
+
+	std::string SOCKSServer::GetResolvedAddress (const boost::asio::ip::address_v4& addr) const
+	{
+		auto it = m_Resolved.find (addr);
+		if (it != m_Resolved.end ())
+			return it->second.first;
+		return "";
+	}
+
+	const boost::asio::ip::address_v4& SOCKSServer::ResolveAddress (const std::string& resolved)
+	{
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		size_t h = std::hash<std::string>{}(resolved);
+		auto [it, inserted] = m_Resolved.emplace (0xFF000000 | (h & 0xFFFFFF), std::pair{ resolved, ts });
+		if (!inserted) it->second.second = ts;
+		return it->first;
 	}
 }
 }
