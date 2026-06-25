@@ -75,14 +75,6 @@ namespace tunnel
 		}
 	}
 
-	void TunnelHopConfig::DecryptRecord (uint8_t * records, int index) const
-	{
-		uint8_t * record = records + index*TUNNEL_BUILD_RECORD_SIZE;
-		i2p::crypto::CBCDecryption decryption;
-		decryption.SetKey (replyKey);
-		decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, replyIV, record);
-	}
-
 	void ShortECIESTunnelHopConfig::EncryptECIES (const uint8_t * plainText, uint8_t * encrypted)
 	{
 		if (!ident) return;
@@ -169,12 +161,9 @@ namespace tunnel
 		i2p::crypto::ChaCha20 (record, SHORT_TUNNEL_BUILD_RECORD_SIZE, replyKey, nonce, record);
 	}
 
-	uint64_t ShortECIESTunnelHopConfig::GetGarlicKey (uint8_t * key) const
+	std::pair<const uint8_t *, uint64_t> ShortECIESTunnelHopConfig::GetGarlicKey () const
 	{
-		uint64_t tag;
-		memcpy (&tag, m_CK, 8);
-		memcpy (key, m_CK + 32, 32);
-		return tag;
+		return { m_CK + 32, buf64toh (m_CK) };
 	}
 
 	void ShortPhonyTunnelHopConfig::CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID)

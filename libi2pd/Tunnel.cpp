@@ -120,8 +120,7 @@ namespace tunnel
 			if (m_Config->GetLastHop () && m_Config->GetLastHop ()->ident->GetIdentHash () != m_Config->GetLastHop ()->nextIdent)
 			{
 				// add garlic key/tag for reply
-				uint8_t key[32];
-				uint64_t tag = m_Config->GetLastHop ()->GetGarlicKey (key);
+				auto [key, tag] = m_Config->GetLastHop ()->GetGarlicKey ();
 				if (m_Pool && m_Pool->GetLocalDestination ())
 					m_Pool->GetLocalDestination ()->SubmitECIESx25519Key (key, tag);
 				else

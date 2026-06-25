@@ -26,7 +26,6 @@ namespace tunnel
 		uint8_t layerKey[32];
 		uint8_t ivKey[32];
 		uint8_t replyKey[32];
-		uint8_t replyIV[16];
 		bool isGateway, isEndpoint;
 
 		TunnelHopConfig * next, * prev;
@@ -43,8 +42,8 @@ namespace tunnel
 		virtual uint8_t GetRetCode (const uint8_t * records) const = 0;
 		virtual void CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID) = 0;
 		virtual bool DecryptBuildResponseRecord (uint8_t * records) const = 0;
-		virtual void DecryptRecord (uint8_t * records, int index) const; // AES
-		virtual uint64_t GetGarlicKey (uint8_t * key) const { return 0; }; // return tag
+		virtual void DecryptRecord (uint8_t * records, int index) const = 0;
+		virtual std::pair<const uint8_t *, uint64_t> GetGarlicKey () const { return { nullptr, 0}; }; // return [key,tag]
 	};
 
 	struct ShortECIESTunnelHopConfig: public TunnelHopConfig, public i2p::crypto::NoiseSymmetricState
@@ -59,7 +58,7 @@ namespace tunnel
 		void CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID) override;
 		bool DecryptBuildResponseRecord (uint8_t * records) const override;
 		void DecryptRecord (uint8_t * records, int index) const override; // Chacha20
-		uint64_t GetGarlicKey (uint8_t * key) const override;
+		std::pair<const uint8_t *, uint64_t> GetGarlicKey () const override;
 	};
 
 	struct ShortPhonyTunnelHopConfig: public TunnelHopConfig
