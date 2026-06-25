@@ -189,7 +189,7 @@ namespace i2p
 	std::shared_ptr<I2NPMessage> CreateLeaseSetDatabaseLookupMsg (const i2p::data::IdentHash& dest,
 		const std::unordered_set<i2p::data::IdentHash>& excludedFloodfills,
 		std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel, const uint8_t * replyKey,
-			const uint8_t * replyTag)
+			uint64_t replyTag)
 	{
 		int cnt = excludedFloodfills.size ();
 		auto m = cnt > 7 ? NewI2NPMessage () : NewI2NPShortMessage ();
@@ -222,7 +222,7 @@ namespace i2p
 		// encryption
 		memcpy (buf, replyKey, 32);
 		buf[32] = 1; // 1 tag
-		memcpy (buf + 33, replyTag, 8); // 8 bytes tag
+		memcpy (buf + 33, &replyTag, 8); // 8 bytes tag
 		buf += 41;
 
 		m->len += (buf - m->GetPayload ());

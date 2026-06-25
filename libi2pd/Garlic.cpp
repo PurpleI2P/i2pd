@@ -471,13 +471,6 @@ namespace garlic
 		}
 	}
 
-	void GarlicDestination::AddECIESx25519Key (const uint8_t * key, const uint8_t * tag)
-	{
-		uint64_t t;
-		memcpy (&t, tag, 8);
-		AddECIESx25519Key (key, t);
-	}
-
 	void GarlicDestination::AddECIESx25519Key (const uint8_t * key, uint64_t tag)
 	{
 		auto tagset = std::make_shared<SymmetricKeyTagSet>(this, key);

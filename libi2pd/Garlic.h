@@ -294,7 +294,6 @@ namespace garlic
 
 		protected:
 
-			void AddECIESx25519Key (const uint8_t * key, const uint8_t * tag); // one tag
 			bool HandleECIESx25519TagMessage (uint8_t * buf, size_t len); // return true if found
 			virtual void HandleI2NPMessage (const uint8_t * buf, size_t len) = 0; // called from clove only
 			virtual bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload,

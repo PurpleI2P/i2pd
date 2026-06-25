@@ -881,9 +881,10 @@ namespace client
 			request->excluded.insert (nextFloodfill->GetIdentHash ());
 			request->requestTimeoutTimer.cancel ();
 
-			uint8_t replyKey[32], replyTag[32];
+			uint8_t replyKey[32];
+			uint64_t replyTag;
 			RAND_bytes (replyKey, 32); // random session key
-			RAND_bytes (replyTag, 8); // random session tag
+			RAND_bytes ((uint8_t *)&replyTag, 8); // random session tag
 			AddECIESx25519Key (replyKey, replyTag);
 
 			auto msg = WrapMessageForRouter (nextFloodfill,
