@@ -40,9 +40,9 @@ USE_GIT_VERSION := $(or $(USE_GIT_VERSION),no)
 HOMEBREW        := $(or $(HOMEBREW),0)
 
 ifeq ($(DEBUG),yes)
-	CXX_DEBUG = -g
+	CXX_DEBUG = -g -O2
 else
-	CXX_DEBUG = -Os
+	CXX_DEBUG = -O3
 	LD_DEBUG = -s
 endif
 
@@ -172,6 +172,22 @@ last-dist:
 doxygen:
 	doxygen -s docs/Doxyfile
 
+# Optimization build targets
+.PHONY: optimize-thin
+optimize-thin: clean
+	@echo "Building i2pd with Thin LTO and native architecture tuning..."
+	$(MAKE) DEBUG=no USE_UPNP=yes LTO_MODE=thin NATIVE_ARCH=yes
+
+.PHONY: optimize-full
+optimize-full: clean
+	@echo "Building i2pd with Full LTO and native architecture tuning..."
+	$(MAKE) DEBUG=no USE_UPNP=yes LTO_MODE=full NATIVE_ARCH=yes
+
+.PHONY: debug-optimized
+debug-optimized:
+	@echo "Building i2pd in debug mode with O2 optimization and native tuning..."
+	$(MAKE) DEBUG=yes USE_UPNP=yes NATIVE_ARCH=yes
+
 .PHONY: all
 .PHONY: clean
 .PHONY: doxygen
@@ -184,3 +200,8 @@ doxygen:
 .PHONY: mk_obj_dir
 .PHONY: install
 .PHONY: strip
+.PHONY: optimize-thin
+.PHONY: optimize-full
+.PHONY: optimize-thin-znver2
+.PHONY: optimize-full-znver2
+.PHONY: debug-optimized

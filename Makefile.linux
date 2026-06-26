@@ -1,5 +1,7 @@
 # set defaults instead redefine
-CXXFLAGS ?= ${CXX_DEBUG} -Wall -Wextra -Wno-unused-parameter -pedantic -Wno-psabi
+# NOTE: We use = instead of ?= to allow MARCH/MTUNE to override environment CXXFLAGS
+# This ensures our LTO and architecture tuning flags take precedence
+CXXFLAGS = ${CXX_DEBUG} -Wall -Wextra -Wno-unused-parameter -pedantic -Wno-psabi
 LDFLAGS ?= ${LD_DEBUG}
 
 ## NOTE: The NEEDED_CXXFLAGS are here so that custom CXXFLAGS can be specified at build time
@@ -9,30 +11,90 @@ LDFLAGS ?= ${LD_DEBUG}
 ## -std=c++11. If you want to remove this variable please do so in a way that allows setting
 ## custom FDLAGS to work at build-time.
 
+# LTO configuration
+# LTO_MODE can be: thin (default, faster builds), full (maximum optimization), or off (no LTO)
+LTO_MODE ?= off
+
+# Native architecture tuning
+# NATIVE_ARCH=yes enables -march=native -mtune=native for the build machine
+NATIVE_ARCH ?= no
+
+# Alternative: specify custom -march and -mtune
+# Examples: MARCH=znver2 MTUNE=znver2, MARCH=cascadelake, etc.
+MARCH ?=
+MTUNE ?=
+
 # detect proper flag for c++20 support by compilers
 CXXVER := $(shell $(CXX) -dumpversion)
 ifeq ($(shell expr match $(CXX) 'clang'),5)
 	NEEDED_CXXFLAGS += -std=c++20
+	IS_CLANG := 1
 else ifeq ($(shell expr match ${CXXVER} "10"),2) # gcc 10
 	NEEDED_CXXFLAGS += -std=c++17
+	IS_CLANG := 0
 else ifeq ($(shell expr match ${CXXVER} "11"),2) # gcc 11
 	NEEDED_CXXFLAGS += -std=c++20
+	IS_CLANG := 0
 else ifeq ($(shell expr match ${CXXVER} "12"),2) # gcc 12
 # for Debian 12 with boost 1.74
 	NEEDED_CXXFLAGS += -std=c++17 -Wno-bidi-chars
+	IS_CLANG := 0
 else ifeq ($(shell expr match ${CXXVER} "1[3-9]"),2) # gcc 13+
 	NEEDED_CXXFLAGS += -std=c++20 -Wno-bidi-chars
+	IS_CLANG := 0
 else # not supported
 $(error Compiler too old)
 endif
 
 NEEDED_CXXFLAGS += -fPIC
 
+# Apply LTO flags
+ifeq ($(LTO_MODE),thin)
+	NEEDED_CXXFLAGS += -flto=thin
+	LDFLAGS += -flto=thin
+else ifeq ($(LTO_MODE),full)
+	NEEDED_CXXFLAGS += -flto=full
+	LDFLAGS += -flto=full
+endif
+
+# Apply native architecture tuning
+# NATIVE_ARCH takes precedence over MARCH/MTUNE
+ifeq ($(NATIVE_ARCH),yes)
+	NEEDED_CXXFLAGS += -march=native -mtune=native
+else
+	# Only apply MARCH/MTUNE if explicitly set (non-empty)
+	ifneq ($(MARCH),)
+		NEEDED_CXXFLAGS += -march=$(MARCH)
+	endif
+	ifneq ($(MTUNE),)
+		NEEDED_CXXFLAGS += -mtune=$(MTUNE)
+	endif
+endif
+
+# Clang-specific optimizations
+ifeq ($(IS_CLANG),1)
+	# Enable vectorization optimizations (stable, widely compatible)
+	NEEDED_CXXFLAGS += -fvectorize -fslp-vectorize
+endif
+
 ifeq ($(USE_STATIC),yes)
 # NOTE: on glibc you will get this warning:
 #   Using 'getaddrinfo' in statically linked applications requires at runtime
 #   the shared libraries from the glibc version used for linking
-	LIBDIR := /usr/lib/$(SYS)
+
+	# Search for static libraries in common locations
+	# Try multiarch paths first, then fallback to /usr/lib
+	LIBDIR := $(shell for dir in /usr/lib/$(SYS) /usr/lib /usr/local/lib; do \
+		if [ -f $$dir/libboost_program_options.a ]; then \
+			echo $$dir; \
+			break; \
+		fi; \
+	done)
+
+	ifeq ($(LIBDIR),)
+		$(error Unable to find static libraries. Install boost, openssl, zlib development packages)
+	endif
+
 	LDLIBS += $(LIBDIR)/libboost_program_options.a
 	LDLIBS += $(LIBDIR)/libssl.a
 	LDLIBS += $(LIBDIR)/libcrypto.a
