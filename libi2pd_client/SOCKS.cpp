@@ -33,13 +33,12 @@ namespace proxy
 	{
 		uint8_t size;
 		char value[max_socks_hostname_size];
-		void FromString (const std::string& str)
+		void SetString (std::string_view str)
 		{
 			size = str.length();
-			if (str.length() > max_socks_hostname_size) size = max_socks_hostname_size;
-			memcpy(value,str.c_str(),size);
+			if (size > max_socks_hostname_size) size = max_socks_hostname_size;
+			memcpy(value,str.data(),size);
 		}
-		std::string ToString() { return std::string(value, size); }
 		std::string_view GetString () const { return std::string_view(value, size); }
 		void push_back (char c) { value[size++] = c; }
 	};
@@ -365,7 +364,7 @@ namespace proxy
 				else
 				{
 					auto s = i2p::client::context.GetAddressBook().ToAddress(GetOwner()->GetLocalDestination()->GetIdentHash());
-					address ad; ad.dns.FromString(s);
+					address ad; ad.dns.SetString(s);
 					// HACK only 16 bits passed in port as SOCKS5 doesn't allow for more
 					response = GenerateSOCKS5Response(SOCKS5_OK, ADDR_DNS, ad, m_stream ? m_stream->GetRecvStreamID() : 0);
 				}
@@ -638,25 +637,51 @@ namespace proxy
 		{
 			if (m_state == READY)
 			{
-				std::string resolved;
-				if (m_addrtype == ADDR_IPV4)
+				if (GetServer ()->HasResolvedAddresses ())
 				{
-					if ((m_address.ip & 0xFF000000) == 0xFF000000) // 255.x.x.x
-						resolved = GetServer ()->GetResolvedAddress (boost::asio::ip::address_v4(m_address.ip));
+					std::string_view resolved;
+					if (m_addrtype == ADDR_IPV4)
+					{
+						if ((m_address.ip & 0xFF000000) == 0xFF000000) // 255.x.x.x
+							resolved = GetServer ()->GetResolvedAddress (boost::asio::ip::address_v4(m_address.ip));
+					}
+					else if (m_addrtype == ADDR_DNS)
+					{
+						if (m_address.dns.GetString ().substr (0, 4) == "255.")
+							resolved = GetServer ()->GetResolvedAddress (boost::asio::ip::make_address (m_address.dns.GetString ()).to_v4());
+					}
+					if (!resolved.empty ())
+					{
+						if (m_addrtype == ADDR_DNS)
+							LogPrint(eLogInfo, "SOCKS: Replaced ", m_address.dns.GetString (), " to ", resolved);
+						else
+							LogPrint(eLogInfo, "SOCKS: Replaced to ", resolved);
+						m_address.dns.SetString (resolved);
+						m_addrtype = ADDR_DNS;
+					}
 				}
-				else if (m_addrtype == ADDR_DNS)
+				if (m_addrtype != ADDR_DNS)
 				{
-					if (m_address.dns.GetString ().substr (0, 4) == "255.")
-						resolved = GetServer ()->GetResolvedAddress (boost::asio::ip::make_address (m_address.dns.GetString ()).to_v4());
-				}
-				if (!resolved.empty ())
-				{
-					LogPrint(eLogInfo, "SOCKS: Replaced to ", resolved);
-					m_address.dns.FromString (resolved);
-					m_addrtype = ADDR_DNS;
+					LogPrint(eLogInfo, "SOCKS: Unexpected address type ", (int)m_addrtype);
+					SocksRequestFailed(SOCKS5_ADDR_UNSUP);
+					return;
 				}
 
-				const std::string addr = m_address.dns.ToString();
+				std::string_view addr = m_address.dns.GetString();
+				if (m_cmd == CMD_RESOLVE)
+				{
+					// resolve to 255.x.x.x adddress
+					LogPrint(eLogInfo, "SOCKS: Resolve ", addr);
+					boost::asio::post (GetOwner ()->GetService (), [this, addr](void)
+						{
+							address ad;
+							ad.ip = GetServer ()->ResolveAddress (addr).to_uint();
+							boost::asio::async_write(*m_sock, GenerateSOCKS5Response(SOCKS5_OK, ADDR_IPV4, ad, m_port),
+								std::bind(&SOCKSHandler::SentSocksDone, shared_from_this(), std::placeholders::_1));
+						});
+					return;
+				}
+
 				LogPrint(eLogInfo, "SOCKS: Requested ", addr, ":" , m_port);
 				const size_t addrlen = addr.size();
 				// does it end with .i2p?
@@ -669,7 +694,7 @@ namespace proxy
 							//make an i2p session
 							GetOwner ()->UpdateLastActivityTime ();
 							GetOwner()->CreateStream ( std::bind (&SOCKSHandler::HandleStreamRequestComplete,
-								shared_from_this(), std::placeholders::_1), m_address.dns.ToString(), m_port);
+								shared_from_this(), std::placeholders::_1), addr, m_port);
 						break;
 						case CMD_UDP:
 							// create UDP client tunnel
@@ -681,17 +706,7 @@ namespace proxy
 								{
 									SocksRequestSuccess();
 								});
-							break;
-						case CMD_RESOLVE:
-							// resolve to 255.x.x.x adddress
-							boost::asio::post (GetOwner ()->GetService (), [this](void)
-								{
-									address ad;
-									ad.ip = GetServer ()->ResolveAddress (m_address.dns.ToString()).to_uint();
-									boost::asio::async_write(*m_sock, GenerateSOCKS5Response(SOCKS5_OK, ADDR_IPV4, ad, m_port),
-										std::bind(&SOCKSHandler::SentSocksDone, shared_from_this(), std::placeholders::_1));
-								});
-							break;
+						break;
 						default: ;
 					}
 				}
@@ -860,7 +875,7 @@ namespace proxy
 			switch (m_addrtype)
 			{
 				case ADDR_DNS:
-					i2p::transport::Socks5Handshake (*upstreamSock, std::make_pair(m_address.dns.ToString (), m_port), onHandshake);
+					i2p::transport::Socks5Handshake (*upstreamSock, std::make_pair(std::string (m_address.dns.GetString ()), m_port), onHandshake);
 				break;
 				case ADDR_IPV4:
 					i2p::transport::Socks5Handshake (*upstreamSock, boost::asio::ip::tcp::endpoint (
@@ -954,18 +969,18 @@ namespace proxy
 		m_UDPPorts.erase (port);
 	}
 
-	std::string SOCKSServer::GetResolvedAddress (const boost::asio::ip::address_v4& addr) const
+	std::string_view SOCKSServer::GetResolvedAddress (const boost::asio::ip::address_v4& addr) const
 	{
 		auto it = m_Resolved.find (addr);
 		if (it != m_Resolved.end ())
 			return it->second.first;
-		return "";
+		return std::string_view (); // empty string
 	}
 
-	const boost::asio::ip::address_v4& SOCKSServer::ResolveAddress (const std::string& resolved)
+	const boost::asio::ip::address_v4& SOCKSServer::ResolveAddress (std::string_view resolved)
 	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-		size_t h = std::hash<std::string>{}(resolved);
+		size_t h = std::hash<std::string_view>{}(resolved);
 		auto [it, inserted] = m_Resolved.emplace (0xFF000000 | (h & 0xFFFFFF), std::pair{ resolved, ts });
 		if (!inserted) it->second.second = ts;
 		return it->first;

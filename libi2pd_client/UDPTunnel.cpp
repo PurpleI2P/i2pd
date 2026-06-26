@@ -383,7 +383,7 @@ namespace client
 		return sessions;
 	}
 
-	I2PUDPClientTunnel::I2PUDPClientTunnel (const std::string & name, const std::string &remoteDest,
+	I2PUDPClientTunnel::I2PUDPClientTunnel (std::string_view name, std::string_view remoteDest,
 		const boost::asio::ip::udp::endpoint& localEndpoint,
 		std::shared_ptr<i2p::client::ClientDestination> localDestination,
 		uint16_t remotePort, bool gzip, i2p::datagram::DatagramVersion datagramVersion) :

@@ -13,6 +13,7 @@
 #include <set>
 #include <map>
 #include <string>
+#include <string_view>
 #include <boost/asio.hpp>
 #include <mutex>
 #include "I2PService.h"
@@ -33,8 +34,9 @@ namespace proxy
 			boost::asio::ip::udp::endpoint GetNextLocalUDPEndpoint ();
 			void ReleaseLocalUDPPort (uint16_t port);
 
-			std::string GetResolvedAddress (const boost::asio::ip::address_v4& addr) const;
-			const boost::asio::ip::address_v4& ResolveAddress (const std::string& resolved);
+			std::string_view GetResolvedAddress (const boost::asio::ip::address_v4& addr) const;
+			const boost::asio::ip::address_v4& ResolveAddress (std::string_view resolved);
+			bool HasResolvedAddresses () const { return !m_Resolved.empty (); }
 
 		protected:
 
