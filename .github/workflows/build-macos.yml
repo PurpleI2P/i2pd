@@ -1,27 +1,32 @@
+---
 name: Build on OSX
 
-on:
+"on":
   push:
     branches:
-    - '*'
+      - '*'
     paths:
-    - .github/workflows/build-macos.yml
-    - daemon/**
-    - i18n/**
-    - libi2pd/**
-    - libi2pd_client/**
-    - Makefile
-    - Makefile.homebrew
+      - .github/workflows/build-macos.yml
+      - build/CMakeLists.txt
+      - build/cmake_modules/**
+      - daemon/**
+      - i18n/**
+      - libi2pd/**
+      - libi2pd_client/**
+      - Makefile
+      - Makefile.homebrew
     tags:
-    - '*'
+      - '*'
   pull_request:
     branches:
-    - '*'
+      - '*'
 
 jobs:
-  build:
+  build-homebrew:
     name: Build on ${{ matrix.target-name }}
     runs-on: ${{ matrix.target }}
+    permissions:
+      contents: read
 
     strategy:
       fail-fast: true
@@ -33,21 +38,79 @@ jobs:
             target-name: Intel x86_64
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
 
-    - name: Install required formulae
-      run: |
-        find /usr/local/bin -lname '*/Library/Frameworks/Python.framework/*' -delete
-        brew update
-        brew install boost miniupnpc openssl@3.5
+      - name: Install required formulae
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: |
+          find /usr/local/bin -lname '*/Library/Frameworks/Python.framework/*' \
+            -delete
+          for formula in boost miniupnpc openssl@3.5; do
+            if ! brew list --versions "${formula}" >/dev/null; then
+              brew install "${formula}"
+            fi
+          done
 
-    - name: List installed formulae
-      run: brew list
+      - name: List installed formulae
+        run: brew list
 
-    - name: Build application
-      run: make HOMEBREW=1 USE_UPNP=yes USE_STATIC=yes PREFIX=$GITHUB_WORKSPACE/output -j3
+      - name: Build application
+        run: |
+          make HOMEBREW=1 USE_UPNP=yes USE_STATIC=yes \
+            PREFIX="$GITHUB_WORKSPACE/output" -j3
 
-    - name: Print binary linking
-      run: otool -L i2pd
-    
+      - name: Print binary linking
+        run: otool -L i2pd
+
+  build-system-libressl:
+    name: Build with system LibreSSL on ${{ matrix.target-name }}
+    runs-on: ${{ matrix.target }}
+    permissions:
+      contents: read
+
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - target: macos-15
+            target-name: ARM64
+          - target: macos-15-intel
+            target-name: Intel x86_64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+
+      - name: Install non-OpenSSL formulae
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: |
+          find /usr/local/bin -lname '*/Library/Frameworks/Python.framework/*' \
+            -delete
+          for formula in boost miniupnpc cmake; do
+            if ! brew list --versions "${formula}" >/dev/null; then
+              brew install "${formula}"
+            fi
+          done
+
+      - name: Verify system LibreSSL
+        run: /usr/bin/openssl version
+
+      - name: Build with system LibreSSL
+        run: |
+          SDKROOT="$(xcrun --sdk macosx --show-sdk-path)"
+          cmake -Wno-dev -Wno-deprecated \
+            -S build -B build/macos-system-libressl \
+            -DWITH_UPNP=ON \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DOPENSSL_ROOT_DIR="${SDKROOT}/usr"
+          cmake --build build/macos-system-libressl -j3
+
+      - name: Print binary linking
+        run: otool -L build/macos-system-libressl/i2pd
