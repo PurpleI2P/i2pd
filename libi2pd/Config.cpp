@@ -271,14 +271,15 @@ namespace config {
 				"https://reseed.onion.im/,"
 				"https://i2pseed.creativecowpat.net:8443/,"
 				"https://reseed.i2pgit.org/,"
-				"https://coconut.incognet.io/,"
+				"https://coconut.incognet.io/," // expired cert
 				"https://reseed-pl.i2pd.xyz/,"
 				"https://www2.mk16.de/,"
 			    "https://i2p.novg.net/,"
             	"https://reseed.stormycloud.org/,"
             	"https://reseed.sahil.world/,"
             	"https://i2p.diyarciftci.xyz/,"
-            	"https://bybyh.de/"
+            	"https://bybyh.de/,"
+            	"https://spiral.likogan.dev/"
 			),                                                            "Reseed URLs, separated by comma")
 			("reseed.yggurls", value<std::string>()->default_value(
 				"http://[324:71e:281a:9ed3::ace]:7070/,"
