@@ -1,0 +1,70 @@
+---
+name: Build on OpenBSD (LibreSSL)
+
+"on":
+  workflow_dispatch:
+  push:
+    branches:
+      - '*'
+    paths:
+      - .github/workflows/build-openbsd-libressl.yml
+      - build/CMakeLists.txt
+      - build/cmake_modules/**
+      - daemon/**
+      - i18n/**
+      - libi2pd/**
+      - libi2pd_client/**
+      - Makefile
+      - Makefile.bsd
+    tags:
+      - '*'
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  build:
+    name: with UPnP (${{ matrix.arch }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, aarch64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+
+      - name: Test in OpenBSD
+        id: test
+        uses: vmactions/openbsd-vm@fcf799d7ce9c305ad89eabef1fb2fa5c1c42d0ee
+        with:
+          arch: ${{ matrix.arch }}
+          usesh: true
+          copyback: true
+          sync: rsync
+          mem: 4096
+          cpu: 2
+          prepare: |
+            pkg_add -u
+            pkg_add cmake gmake boost miniupnpc check
+            pkg_info cmake gmake boost miniupnpc check
+          run: |
+            set -eux
+            uname -a
+            clang++ --version
+            openssl version
+            cmake -S build -B build/openbsd-ci \
+              -DWITH_UPNP=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
+            cmake --build build/openbsd-ci -j2
+            ctest --test-dir build/openbsd-ci --output-on-failure -j2
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: i2pd-openbsd-${{ matrix.arch }}
+          path: build/openbsd-ci/i2pd
