@@ -1,67 +1,110 @@
+---
 name: Build on Ubuntu
 
-on:
+"on":
   push:
     branches:
-    - '*'
+      - '*'
     paths:
-    - .github/workflows/build.yml
-    - build/CMakeLists.txt
-    - build/cmake_modules/**
-    - daemon/**
-    - i18n/**
-    - libi2pd/**
-    - libi2pd_client/**
-    - Makefile
-    - Makefile.linux
+      - .github/workflows/build.yml
+      - build/CMakeLists.txt
+      - build/cmake_modules/**
+      - daemon/**
+      - i18n/**
+      - libi2pd/**
+      - libi2pd_client/**
+      - Makefile
+      - Makefile.linux
     tags:
-    - '*'
+      - '*'
   pull_request:
     branches:
-    - '*'
+      - '*'
 
 jobs:
   build-make:
     name: Make with USE_UPNP=${{ matrix.with_upnp }}
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
     strategy:
       fail-fast: true
       matrix:
         with_upnp: ['yes', 'no']
-
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
-    - name: install packages
-      run: |
-        sudo apt-get update
-        sudo apt-get install build-essential libboost-all-dev libminiupnpc-dev libssl-dev zlib1g-dev
-
-    - name: build application
-      run: make USE_UPNP=${{ matrix.with_upnp }} -j3
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+      - name: Install packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential libboost-all-dev libminiupnpc-dev libssl-dev \
+            zlib1g-dev
+      - name: Build application
+        run: make USE_UPNP=${{ matrix.with_upnp }} -j3
 
   build-cmake:
     name: CMake with -DWITH_UPNP=${{ matrix.with_upnp }}
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
     strategy:
       fail-fast: true
       matrix:
         with_upnp: ['ON', 'OFF']
-
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+      - name: Install packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake libboost-all-dev libminiupnpc-dev libssl-dev \
+            zlib1g-dev
+      - name: Build application
+        run: |
+          cd build
+          cmake -DWITH_GIT_VERSION=ON -DWITH_UPNP=${{ matrix.with_upnp }} .
+          make -j3
 
-    - name: install packages
-      run: |
-        sudo apt-get update
-        sudo apt-get install build-essential cmake libboost-all-dev libminiupnpc-dev libssl-dev zlib1g-dev
-
-    - name: build application
-      run: |
-        cd build
-        cmake -DWITH_GIT_VERSION=ON -DWITH_UPNP=${{ matrix.with_upnp }} .
-        make -j3
+  build-cmake-homebrew-libressl:
+    name: CMake with Homebrew LibreSSL
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@2ebcf16054461267868620b1414507f3ccc765c1  # yamllint disable-line rule:line-length
+      - name: Install packages
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake libboost-all-dev libminiupnpc-dev zlib1g-dev
+          brew install libressl
+      - name: Build with Homebrew LibreSSL
+        run: |
+          LIBRESSL_PREFIX="$(brew --prefix libressl)"
+          cmake -S build -B build/libressl-linux \
+            -DWITH_GIT_VERSION=ON \
+            -DWITH_UPNP=ON \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DOPENSSL_ROOT_DIR="${LIBRESSL_PREFIX}" \
+            -DOPENSSL_INCLUDE_DIR="${LIBRESSL_PREFIX}/include" \
+            -DOPENSSL_SSL_LIBRARY="${LIBRESSL_PREFIX}/lib/libssl.so" \
+            -DOPENSSL_CRYPTO_LIBRARY="${LIBRESSL_PREFIX}/lib/libcrypto.so"
+          cmake --build build/libressl-linux -j3
+      - name: Smoke test
+        run: |
+          LIBRESSL_PREFIX="$(brew --prefix libressl)"
+          LD_LIBRARY_PATH="${LIBRESSL_PREFIX}/lib:${LD_LIBRARY_PATH}" \
+            ./build/libressl-linux/i2pd --version
