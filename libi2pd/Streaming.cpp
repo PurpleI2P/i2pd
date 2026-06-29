@@ -696,7 +696,6 @@ namespace stream
 		bool acknowledged = false;
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		uint32_t ackThrough = packet->GetAckThrough ();
-		m_NACKedPackets.clear ();
 		if (ackThrough > m_SequenceNumber)
 		{
 			LogPrint (eLogError, "Streaming: Unexpected ackThrough=", ackThrough, " > seqn=", m_SequenceNumber);
@@ -708,6 +707,7 @@ namespace stream
 		m_IsNAcked = false;
 		m_IsResendNeeded = false;
 		int nackCount = packet->GetNACKCount ();
+		std::list<Packet *> newNACKedPackets;
 		for (auto it = m_SentPackets.begin (); it != m_SentPackets.end ();)
 		{
 			auto seqn = (*it)->GetSeqn ();
@@ -719,7 +719,7 @@ namespace stream
 					for (int i = 0; i < nackCount; i++)
 						if (seqn == packet->GetNACK (i))
 						{
-							m_NACKedPackets.insert (*it);
+							newNACKedPackets.push_back (*it);
 							m_IsNAcked = true;
 							nacked = true;
 							break;
@@ -753,6 +753,8 @@ namespace stream
 			else
 				break;
 		}
+		m_NACKedPackets.swap (newNACKedPackets);
+
 		if (m_LastACKRecieveTime)
 		{
 			uint64_t interval = ts - m_LastACKRecieveTime;
