@@ -412,11 +412,8 @@ namespace crypto
 		BN_CTX_free (ctx);
 		uint8_t hash[32];
 		SHA256 (m + 33, 222, hash);
-		if (memcmp (m + 1, hash, 32))
-		{
-			LogPrint (eLogError, "ElGamal decrypt hash doesn't match");
+		if (memcmp (m + 1, hash, 32)) // hash doesn't match, decryption failed
 			return false;
-		}
 		memcpy (data, m + 33, 222);
 		return true;
 	}
