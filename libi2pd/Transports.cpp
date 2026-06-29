@@ -212,7 +212,7 @@ namespace transport
 		m_Thread = new std::thread (std::bind (&Transports::Run, this));
 		std::string ntcp2proxy; i2p::config::GetOption("ntcp2.proxy", ntcp2proxy);
         int ntcp2version = 2, ssu2version = 2;
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
         i2p::config::GetOption("ntcp2.version", ntcp2version);
         i2p::config::GetOption("ssu2.version", ssu2version);
 #endif
@@ -725,7 +725,7 @@ namespace transport
 			if (ssu2 && (compatibleTransports & (i2p::data::RouterInfo::eSSU2V4 | i2p::data::RouterInfo::eSSU2V6)))
 			{
 				bool isSSU2PQ = false;
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 				if (m_SSU2Server && m_SSU2Server->GetVersion () > 2)
 				{
 					isSSU2PQ = true;
@@ -1623,7 +1623,7 @@ namespace transport
 				if (!ntcp2proxy.empty ()) published = false;
 			}
 			int ntcp2version = 2;
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 			i2p::config::GetOption("ntcp2.version", ntcp2version);
 #endif
 			if (published)
@@ -1655,7 +1655,7 @@ namespace transport
 		if (ssu2)
 		{
 			int ssu2version = 2;
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 			i2p::config::GetOption("ssu2.version", ssu2version);
 #endif
 			uint16_t ssu2port; i2p::config::GetOption("ssu2.port", ssu2port);

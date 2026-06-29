@@ -790,7 +790,7 @@ namespace i2p
 		if (ntcp2)
 		{
             int ntcp2version = 2;
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
             i2p::config::GetOption("ntcp2.version", ntcp2version);
 #endif
 			PublishNTCP2Address (port, false, v4, v6, false, ntcp2version);
@@ -837,7 +837,7 @@ namespace i2p
 				uint16_t ntcp2Port; i2p::config::GetOption ("ntcp2.port", ntcp2Port);
 				if (!ntcp2Port) ntcp2Port = port;
                 int ntcp2version = 2;
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
                 i2p::config::GetOption("ntcp2.version", ntcp2version);
 #endif
 				PublishNTCP2Address (ntcp2Port, true, v4, v6, false, ntcp2version);

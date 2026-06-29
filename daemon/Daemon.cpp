@@ -9,6 +9,10 @@
 #include <thread>
 #include <memory>
 #include <regex>
+#include <array>
+#include <utility>
+#include <fstream>
+#include <sstream>
 
 #ifdef __OpenBSD__
 #	include<unistd.h>
@@ -38,6 +42,12 @@
 #include "UPnP.h"
 #include "Timestamp.h"
 #include "I18N.h"
+
+#ifdef __OpenBSD__
+#include <unistd.h>
+#include <errno.h>
+#include <cstring>
+#endif
 
 namespace i2p
 {
@@ -106,84 +116,6 @@ namespace util
 
 		i2p::config::ParseConfig(config);
 		i2p::config::Finalize();
-
-#ifdef __OpenBSD__
-		auto init_pledge = []() {
-			std::string pledge_file; i2p::config::GetOption("openbsd.pledge_file", pledge_file);
-			if (pledge_file == "")
-			{
-				LogPrint(eLogDebug, "Use default pledge values");
-				// TODO: remove that not need
-				pledge("stdio rpath wpath cpath inet dns unix recvfd sendfd proc error mcast chown flock",nullptr);
-			} else {
-				std::ifstream f(pledge_file);
-				if(!f) {
-					std::cerr << "Can't open pledge file " << pledge_file<<std::endl;
-					exit(1);
-				}
-				std::string line;
-				std::vector<std::string> rules;
-				while(std::getline(f, line)){
-					rules.push_back(line);
-				}
-				if(f.bad()) {
-					std::cerr << "IO error with pledge file" << std::endl;
-				}
-				std::ostringstream out;
-				for(auto r : rules)
-					out << r << " ";
-				pledge(out.str().c_str(), nullptr);
-			}		
-
-
-		};
-		auto init_unevil = []() {
-			unveil("/usr/lib", "r");
-			unveil("/usr/local/lib", "r"); 
-			unveil("/usr/libexec/ld.so", "r"); 
-			unveil("/dev/urandom", "r");
-			unveil("/tmp", "rw");
-			unveil("/etc/i2pd", "r"); // ваще не нужно вроде на весь прям каталог
-			
-			#define UNVEIL_DIR(dir) unveil(dir.c_str(), "rwc")
-			
-			std::string unevil_file; i2p::config::GetOption("openbsd.unevil_file",unevil_file);
-			UNVEIL_DIR(unevil_file);
-			std::string tunnelsdir, certsdir, logfile, datadir, reseed_file, openbsd_pledge_file;
-			i2p::config::GetOption("tunnelsdir", tunnelsdir);
-			UNVEIL_DIR(tunnelsdir);
-			i2p::config::GetOption("certsdir", certsdir);
-			UNVEIL_DIR(certsdir);
-			i2p::config::GetOption("datadir", datadir);
-			UNVEIL_DIR(datadir);
-			i2p::config::GetOption("reseed.file", reseed_file);
-			unveil(reseed_file.c_str(), "r");
-			i2p::config::GetOption("openbsd.pledge_file", openbsd_pledge_file);
-			unveil(openbsd_pledge_file.c_str(), "r");
-			std::string tunconf ;i2p::config::GetOption("tunconf", tunconf); unveil(tunconf.c_str(), "r");
-			std::string conf ;i2p::config::GetOption("tunconf", conf); unveil(conf.c_str(), "r");
-			std::string pidfile ;i2p::config::GetOption("pidfile", pidfile); unveil(pidfile.c_str(), "rwc");
-			i2p::config::GetOption("logfile", logfile); unveil(logfile.c_str(), "rwc");
-			if(unevil_file != "")
-			{
-				std::ifstream f(unevil_file);
-				if (!f) {
-					std::cerr << "Can't open unevil file" << std::endl;
-					exit(1);
-				}
-				std::string line;
-				while(std::getline(f, line)){
-						UNVEIL_DIR(line);
-				}
-			}
-			#undef UNVEIL_DIR
-			unveil(NULL, NULL); 
-		};
-		bool openbsd_unevil_enabled; i2p::config::GetOption("openbsd.unevil_enabled", openbsd_unevil_enabled);
-		bool openbsd_pledge_enabled; i2p::config::GetOption("openbsd.pledge_enabled", openbsd_pledge_enabled);
-		if(openbsd_unevil_enabled) init_unevil();
-		if(openbsd_pledge_enabled) init_pledge();
-#endif
 
 		i2p::config::GetOption("daemon", isDaemon);
 
@@ -394,6 +326,98 @@ namespace util
 
 		std::string httpLang; i2p::config::GetOption("http.lang", httpLang);
 		i2p::i18n::SetLanguage(httpLang);
+
+#ifdef __OpenBSD__
+		auto unveilPath = [] (const std::string& path, const char * mask)
+		{
+			if (!path.empty ())
+			{
+				if (unveil (path.c_str (), mask) == -1)
+					LogPrint (eLogError, "Daemon: unveil failed for ", path, ": ", std::strerror (errno));
+			}
+		};
+
+		std::string tunconf; i2p::config::GetOption ("tunconf", tunconf);
+		if (tunconf.empty ()) tunconf = i2p::fs::DataDirPath ("tunnels.conf");
+		std::string tunnelsdir; i2p::config::GetOption ("tunnelsdir", tunnelsdir);
+		if (tunnelsdir.empty ()) tunnelsdir = i2p::fs::DataDirPath ("tunnels.d");
+		std::string pidfile; i2p::config::GetOption ("pidfile", pidfile);
+		if (pidfile.empty ()) pidfile = i2p::fs::DataDirPath ("i2pd.pid");
+		std::string reseedFile; i2p::config::GetOption ("reseed.file", reseedFile);
+		std::string reseedZipFile; i2p::config::GetOption ("reseed.zipfile", reseedZipFile);
+		std::string openbsdUnveilFile, openbsdUnevilFile, openbsdPledgeFile;
+		bool openbsdUnveilEnabled = true, openbsdPledgeEnabled = true;
+		i2p::config::GetOption ("openbsd.unveil_file", openbsdUnveilFile);
+		i2p::config::GetOption ("openbsd.unevil_file", openbsdUnevilFile); // backward-compatible typo
+		i2p::config::GetOption ("openbsd.unveil_enabled", openbsdUnveilEnabled);
+		i2p::config::GetOption ("openbsd.unevil_enabled", openbsdUnveilEnabled); // backward-compatible typo
+		i2p::config::GetOption ("openbsd.pledge_file", openbsdPledgeFile);
+		i2p::config::GetOption ("openbsd.pledge_enabled", openbsdPledgeEnabled);
+		if (openbsdUnveilFile.empty ()) openbsdUnveilFile = openbsdUnevilFile;
+
+		// local reseed file only; URLs are network inputs and don't need unveil
+		if (reseedFile.rfind ("https://", 0) == 0) reseedFile.clear ();
+
+		// limit filesystem access to runtime paths determined from effective config/defaults
+		const std::array<std::pair<std::string, const char *>, 9> unveilRules =
+		{{
+			{config, "r"},
+			{datadir, "rwc"},
+			{certsdir, "r"},
+			{tunconf, "r"},
+			{tunnelsdir, "r"},
+			{pidfile, "rwc"},
+			{logfile, "rwc"},
+			{reseedFile, "r"},
+			{reseedZipFile, "r"}
+		}};
+		if (openbsdUnveilEnabled)
+		{
+			for (const auto& rule: unveilRules)
+				unveilPath (rule.first, rule.second);
+			if (!openbsdUnveilFile.empty ())
+			{
+				std::ifstream extraRules (openbsdUnveilFile);
+				if (!extraRules)
+					LogPrint (eLogError, "Daemon: can't open OpenBSD unveil file ", openbsdUnveilFile);
+				else
+				{
+					std::string line;
+					while (std::getline (extraRules, line))
+						unveilPath (line, "rwc");
+				}
+			}
+
+			if (unveil (nullptr, nullptr) == -1)
+			{
+				LogPrint (eLogError, "Daemon: unveil lock failed: ", std::strerror (errno));
+				return false;
+			}
+		}
+		std::string pledgePromises = "stdio inet dns flock rpath wpath cpath";
+		if (openbsdPledgeEnabled && !openbsdPledgeFile.empty ())
+		{
+			std::ifstream promisesFile (openbsdPledgeFile);
+			if (!promisesFile)
+				LogPrint (eLogError, "Daemon: can't open OpenBSD pledge file ", openbsdPledgeFile);
+			else
+			{
+				std::ostringstream out;
+				std::string line;
+				while (std::getline (promisesFile, line))
+				{
+					if (!line.empty ()) out << line << ' ';
+				}
+				auto customPromises = out.str ();
+				if (!customPromises.empty ()) pledgePromises = customPromises;
+			}
+		}
+		if (openbsdPledgeEnabled && pledge (pledgePromises.c_str (), nullptr) == -1)
+		{
+			LogPrint (eLogError, "Daemon: pledge failed: ", std::strerror (errno));
+			return false;
+		}
+#endif
 
 		return true;
 	}

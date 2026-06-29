@@ -13,6 +13,9 @@
 #include <stdlib.h>
 #include <vector>
 #include <chrono>
+#include <algorithm>
+#include <sstream>
+#include <iomanip>
 #include "Log.h"
 #include "I2PEndian.h"
 #include "Crypto.h"
@@ -33,6 +36,23 @@ namespace i2p
 {
 namespace transport
 {
+	namespace
+	{
+		std::string HexSnippet (const uint8_t * data, size_t len, size_t maxLen = 24)
+		{
+			std::ostringstream s;
+			s << std::hex << std::setfill ('0');
+			auto n = std::min (len, maxLen);
+			for (size_t i = 0; i < n; i++)
+			{
+				if (i) s << ' ';
+				s << std::setw (2) << (int)data[i];
+			}
+			if (len > n) s << " ...";
+			return s.str ();
+		}
+	}
+
 	NTCP2Establisher::NTCP2Establisher ():
 		m_SessionConfirmedBuffer (nullptr), m_BufferLen (0), m_IsLongPadding (false)
 	{
@@ -46,11 +66,15 @@ namespace transport
 
 	void NTCP2Establisher::SetVersion (int version)
 	{
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
         switch (version)
         {
             case 3:
+#if defined(LIBRESSL_VERSION_NUMBER)
+                 m_CryptoType = i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD; // ML-KEM-512 is not available on LibreSSL
+#else
                  m_CryptoType = i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD;
+#endif
             break;
             case 4:
                  m_CryptoType = i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM768_X25519_AEAD;
@@ -69,7 +93,7 @@ namespace transport
 
 	bool NTCP2Establisher::KeyDerivationFunction1 (const uint8_t * pub, i2p::crypto::X25519Keys& priv, const uint8_t * rs, const uint8_t * epub)
 	{
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
         if (m_CryptoType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
             i2p::crypto::InitNoiseXKState (*this, rs);
         else
@@ -146,19 +170,29 @@ namespace transport
 	bool NTCP2Establisher::CreateSessionRequestMessage (std::mt19937& rng)
 	{
 		size_t offset  = 0;
+		size_t pqKeyLen = 0;
 		// encrypt X
 		i2p::crypto::CBCEncryption encryption;
 		encryption.SetKey (m_RemoteIdentHash);
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
         if (m_CryptoType > i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
         {
-            uint8_t pub[32];
-            memcpy (pub, GetPub (), 32);
-            pub[31] |= 0x80; // set highest bit
-            encryption.Encrypt (pub, 32, m_IV, m_Buffer); // X
-            //  ML-KEM encap_key
             m_PQKeys = i2p::crypto::CreateMLKEMKeys (m_CryptoType);
-            m_PQKeys->GenerateKeys ();
+            if (m_PQKeys)
+            {
+                m_PQKeys->GenerateKeys ();
+                uint8_t pub[32];
+                memcpy (pub, GetPub (), 32);
+                pub[31] |= 0x80; // set highest bit
+                encryption.Encrypt (pub, 32, m_IV, m_Buffer); // X
+            }
+            else
+            {
+                LogPrint (eLogWarning, "NTCP2: ML-KEM type ", (int)m_CryptoType, " is not available, fallback to X25519");
+                m_CryptoType = i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD;
+                m_IsLongPadding = false;
+                encryption.Encrypt (GetPub (), 32, m_IV, m_Buffer); // X
+            }
         }
         else
             encryption.Encrypt (GetPub (), 32, m_IV, m_Buffer); // X
@@ -172,13 +206,14 @@ namespace transport
 		size_t maxPaddingLength = m_IsLongPadding ? NTCP2_SESSION_HANDSHAKE_LONG_MAX_SIZE : NTCP2_SESSION_HANDSHAKE_MAX_SIZE;
 		maxPaddingLength -= 64;
 		size_t maxMsgSize = m_MaxMsgSize;
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
         if (m_PQKeys)
         {
             // ML-KEM frame
             auto keyLen = i2p::crypto::GetMLKEMPublicKeyLen (m_CryptoType);
-			std::vector<uint8_t> encapsKey(keyLen);
-			m_PQKeys->GetPublicKey (encapsKey.data ());
+            pqKeyLen = keyLen;
+            std::vector<uint8_t> encapsKey(keyLen);
+            m_PQKeys->GetPublicKey (encapsKey.data ());
 			// encrypt encapsKey
 			if (!Encrypt (encapsKey.data (), m_Buffer + offset, keyLen))
 			{
@@ -225,6 +260,9 @@ namespace transport
             MixHash (m_Buffer + offset, paddingLength);
 		}
 		m_BufferLen = offset + paddingLength;
+		LogPrint (eLogDebug, "NTCP2: SessionRequest built crypto=", (int)m_CryptoType,
+			" pq=", m_PQKeys ? 1 : 0, " pqKeyLen=", pqKeyLen, " totalLen=", m_BufferLen,
+			" head=", HexSnippet (m_Buffer, m_BufferLen));
 		// create m3p2 payload (RouterInfo block) for SessionConfirmed
 		m_SessionConfirmedBuffer = new uint8_t[m3p2Len + 48]; // m3p1 is 48 bytes
 		uint8_t * m3p2 = m_SessionConfirmedBuffer + 48;
@@ -249,7 +287,7 @@ namespace transport
 		size_t maxPaddingLength = m_IsLongPadding ? NTCP2_SESSION_HANDSHAKE_LONG_MAX_SIZE : NTCP2_SESSION_HANDSHAKE_MAX_SIZE;
 		maxPaddingLength -= 64;
 		size_t maxMsgSize = m_MaxMsgSize;
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
         if (m_PQKeys)
         {
             size_t cipherTextLen = i2p::crypto::GetMLKEMCipherTextLen (m_CryptoType);
@@ -339,7 +377,7 @@ namespace transport
             memcpy (m_IV, m_Buffer + 16, 16); // save last block as IV for SessionCreated
             if (x[31] & 0x80)
             {
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
                 if (m_CryptoType > i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
                 {
                     pq = true;
@@ -362,7 +400,7 @@ namespace transport
             }
 		}
 		offset += 32;
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
         if (pq) return true; // we need to read extra ML-KEM block first
         if (m_CryptoType > i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
         {
@@ -373,6 +411,11 @@ namespace transport
                 MixHash (m_Buffer + offset, keyLen + 16);
                 offset += keyLen + 16;
                 m_PQKeys = i2p::crypto::CreateMLKEMKeys (m_CryptoType);
+                if (!m_PQKeys)
+                {
+                    LogPrint (eLogWarning, "NTCP2: ML-KEM type ", (int)m_CryptoType, " is not available");
+                    return false;
+                }
                 m_PQKeys->SetPublicKey (encapsKey.data ());
             }
         }
@@ -422,6 +465,9 @@ namespace transport
 			LogPrint (eLogWarning, "NTCP2: SessionRequest AEAD verification failed ");
 			return false;
 		}
+		LogPrint (eLogDebug, "NTCP2: SessionRequest parsed crypto=", (int)m_CryptoType,
+			" pq=", pq ? 1 : 0, " padLen=", paddingLen, " m3p2Len=", m3p2Len, " totalLen=", m_BufferLen,
+			" head=", HexSnippet (m_Buffer, m_BufferLen));
 		return true;
 	}
 
@@ -439,7 +485,7 @@ namespace transport
 			LogPrint (eLogWarning, "NTCP2: SessionCreated KDF failed");
 			return false;
 		}
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
         if (m_CryptoType > i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD && m_PQKeys)
 		{
 			// decrypt kem_ciphertext  frame
@@ -541,9 +587,11 @@ namespace transport
 				memcpy (m_Establisher->m_RemoteStaticKey, addr->s, 32);
 				memcpy (m_Establisher->m_IV, addr->i, 16);
 				m_RemoteEndpoint = boost::asio::ip::tcp::endpoint (addr->host, addr->port);
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
                 if (m_Server.GetVersion () > 2) // we support post quantum in config
                     m_Establisher->SetVersion (addr->v);
+				LogPrint (eLogDebug, "NTCP2: PQ selection server=", m_Server.GetVersion (),
+					" remote=", (int)addr->v, " crypto=", (int)m_Establisher->m_CryptoType);
 #endif
 				if (addr->v > 2 && in_RemoteRouter->GetVersion () >= MAKE_VERSION_NUMBER(0, 9, 69)) // 0.9.69
 					m_Establisher->m_IsLongPadding = true;
@@ -697,7 +745,7 @@ namespace transport
 		{
 			// we receive first 64 bytes (32 Y, and 32 ChaCha/Poly frame) first and ML-KEM frame if post quantum
 			size_t len = 64;
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 			if (m_Establisher->m_CryptoType > i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
                 len += i2p::crypto::GetMLKEMCipherTextLen (m_Establisher->m_CryptoType) + 16;
 #endif
@@ -737,7 +785,7 @@ namespace transport
 				SendSessionCreated ();
 				boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
 			}
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 			else if (pq)
 			{
                 auto keyLen = i2p::crypto::GetMLKEMPublicKeyLen (m_Establisher->m_CryptoType);
@@ -784,7 +832,7 @@ namespace transport
 		}
 	}
 
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
     void NTCP2Session::HandleSessionRequestMLKEMReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
     {
         if (ecode)
@@ -843,7 +891,7 @@ namespace transport
 		{
 			if (paddingLen > 0)
 			{
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 				if (paddingLen <= m_Establisher->m_MaxMsgSize - 80)
 #else
 				if (paddingLen <= m_Establisher->m_MaxMsgSize - 64)
@@ -1150,6 +1198,7 @@ namespace transport
 	{
 		if (m_Establisher->m_CryptoType > i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD && !(m_Server.GetRng ()() & 0x03))
 			m_Establisher->SetVersion (2); // switch to non-PQ  with a probability of one in four
+		LogPrint (eLogDebug, "NTCP2: Login crypto type ", (int)m_Establisher->m_CryptoType);
 		m_Establisher->CreateEphemeralKey ();
 		boost::asio::post (m_Server.GetEstablisherService (),
 		    [s = shared_from_this ()] ()
@@ -2284,7 +2333,7 @@ namespace transport
 
 	void NTCP2Server::SetVersion (int version)
 	{
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
         m_Version = version;
 #endif
 	}

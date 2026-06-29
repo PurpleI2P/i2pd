@@ -15,11 +15,13 @@
 #include <tuple>
 #include "Crypto.h"
 #include "Identity.h"
-#ifdef LIBRESSL_VERSION_NUMBER
-#	include <openssl/mlkem.h>
-#endif
 
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
+
+#if defined(LIBRESSL_VERSION_NUMBER)
+typedef struct MLKEM_private_key_st MLKEM_private_key;
+typedef struct MLKEM_public_key_st MLKEM_public_key;
+#endif
 
 namespace i2p
 {
@@ -38,26 +40,54 @@ namespace crypto
 	constexpr size_t MLKEM768_CIPHER_TEXT_LENGTH = 1088;
 	constexpr size_t MLKEM1024_KEY_LENGTH = 1568;
 	constexpr size_t MLKEM1024_CIPHER_TEXT_LENGTH = 1568;
+	constexpr size_t MLKEM_SHARED_SECRET_LENGTH = 32;
 
+#if defined(LIBRESSL_VERSION_NUMBER)
 	constexpr std::array MLKEMS =
 	{
 		std::make_tuple ("ML-KEM-512", MLKEM512_KEY_LENGTH, MLKEM512_CIPHER_TEXT_LENGTH),
 		std::make_tuple ("ML-KEM-768", MLKEM768_KEY_LENGTH, MLKEM768_CIPHER_TEXT_LENGTH),
 		std::make_tuple ("ML-KEM-1024", MLKEM1024_KEY_LENGTH, MLKEM1024_CIPHER_TEXT_LENGTH)
 	};
+#else
+	constexpr std::array MLKEMS =
+	{
+		std::make_tuple ("ML-KEM-512", MLKEM512_KEY_LENGTH, MLKEM512_CIPHER_TEXT_LENGTH),
+		std::make_tuple ("ML-KEM-768", MLKEM768_KEY_LENGTH, MLKEM768_CIPHER_TEXT_LENGTH),
+		std::make_tuple ("ML-KEM-1024", MLKEM1024_KEY_LENGTH, MLKEM1024_CIPHER_TEXT_LENGTH)
+	};
+#endif
+
+	constexpr int GetMLKEMIndex (i2p::data::CryptoKeyType type)
+	{
+#if defined(LIBRESSL_VERSION_NUMBER)
+		switch (type)
+		{
+			case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM768_X25519_AEAD: return 1;
+			case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM1024_X25519_AEAD: return 2;
+			default: return -1;
+		}
+#else
+		switch (type)
+		{
+			case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD: return 0;
+			case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM768_X25519_AEAD: return 1;
+			case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM1024_X25519_AEAD: return 2;
+			default: return -1;
+		}
+#endif
+	}
 
 	constexpr size_t GetMLKEMPublicKeyLen (i2p::data::CryptoKeyType type)
 	{
-		if (type <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ||
-		    type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD > (int)MLKEMS.size ()) return 0;
-		return std::get<1>(MLKEMS[type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD - 1]);
+		auto ind = GetMLKEMIndex (type);
+		return ind >= 0 ? std::get<1>(MLKEMS[ind]) : 0;
 	}
 
 	constexpr size_t GetMLKEMCipherTextLen (i2p::data::CryptoKeyType type)
 	{
-		if (type <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ||
-		    type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD > (int)MLKEMS.size ()) return 0;
-		return std::get<2>(MLKEMS[type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD - 1]);
+		auto ind = GetMLKEMIndex (type);
+		return ind >= 0 ? std::get<2>(MLKEMS[ind]) : 0;
 	}
 
 	class MLKEMKeys
@@ -75,21 +105,19 @@ namespace crypto
 			void Encaps (uint8_t * ciphertext, uint8_t * shared);
 			void Decaps (const uint8_t * ciphertext, uint8_t * shared);
 
-
-		private:
-
-			void FreeKeys();
-
 		private:
 
 			const std::string m_Name;
+#if defined(LIBRESSL_VERSION_NUMBER)
+			const int m_Rank;
+#endif
 			const size_t m_KeyLen, m_CTLen;
-#ifndef LIBRESSL_VERSION_NUMBER
-			EVP_PKEY * m_Pkey;
+			std::array<uint8_t, MLKEM1024_KEY_LENGTH> m_PublicKeyEncoded;
+#if defined(LIBRESSL_VERSION_NUMBER)
+			MLKEM_private_key * m_PrivateKey;
+			MLKEM_public_key * m_PublicKey;
 #else
-			MLKEM_private_key * m_Pkey;
-			uint8_t m_CachedPub[MLKEM768_KEY_LENGTH];
-			bool m_IsPubCached = false;
+			EVP_PKEY * m_Pkey;
 #endif
 	};
 

@@ -432,7 +432,7 @@ namespace data
 				auto keyLen = verifier->GetPublicKeyLen ();
 				if (keyLen <= 128)
 					verifier->SetPublicKey (m_StandardIdentity.signingKey + 128 - keyLen);
-#if OPENSSL_PQ
+#if OPENSSL_MLDSA
 				else if (keyLen > 384)
 				{
 					// for post-quantum

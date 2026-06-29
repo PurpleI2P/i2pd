@@ -1013,7 +1013,7 @@ namespace client
 					try
 					{
 						i2p::data::CryptoKeyType cryptoType = std::stoi(it1);
-#if !OPENSSL_PQ
+#if !OPENSSL_MLKEM
 						if (cryptoType <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) // skip PQ keys if not supported
 #endif
 						{
@@ -1034,11 +1034,11 @@ namespace client
 		if (encryptionKeyTypes.empty ())
 		{
 			encryptionKeyTypes.insert ( { GetIdentity ()->GetCryptoKeyType (),
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 				i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM768_X25519_AEAD,
 #endif
 				i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD });
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 			m_PreferredCryptoType = i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM768_X25519_AEAD;
 #else
 			m_PreferredCryptoType = i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD;

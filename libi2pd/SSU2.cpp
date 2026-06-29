@@ -1563,7 +1563,7 @@ namespace transport
 
 	void SSU2Server::SetVersion (int version)
 	{
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
         m_Version = version;
 #endif
 	}

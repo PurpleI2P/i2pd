@@ -263,7 +263,7 @@ namespace transport
 		SetState (eSSU2SessionStateHolePunch);
 		SetRemoteEndpoint (remoteEndpoint);
 		SetAddress (addr);
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 		if (server.GetVersion () > 2) // we support post quantum in config
 			SetVersion (addr->v);
 #endif

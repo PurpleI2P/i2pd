@@ -289,7 +289,7 @@ namespace transport
 			m_SentHandshakePacket.reset (nullptr);
 			m_SessionConfirmedFragment.reset (nullptr);
 			m_PathChallenge.reset (nullptr);
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 			m_PQKeys.reset (nullptr);
 #endif
 			if (!m_IntermediateQueue.empty ())
@@ -332,7 +332,7 @@ namespace transport
 		m_NoiseState.reset (nullptr);
 		m_SessionConfirmedFragment.reset (nullptr);
 		m_SentHandshakePacket.reset (nullptr);
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 		m_PQKeys.reset (nullptr);
 #endif
 		m_ConnectTimer.cancel ();
@@ -712,9 +712,11 @@ namespace transport
 	bool SSU2Session::SendSessionRequest (uint64_t token)
 	{
 		// we are Alice
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 		if (m_Server.GetVersion () > 2) // we support post quantum in config
 			SetVersion (m_Address->v);
+		LogPrint (eLogDebug, "SSU2: PQ selection server=", m_Server.GetVersion (),
+			" remote=", (int)m_Address->v, " effective=", (int)m_Version);
 #endif
 		m_EphemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
 		m_SentHandshakePacket.reset (new HandshakePacket);
@@ -736,14 +738,22 @@ namespace transport
 		memcpy (headerX + 16, m_EphemeralKeys->GetPublicKey (), 32); // X
 		// payload
 		size_t payloadSize = 0, offset = 0;
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 		if (m_Version > 2)
 		{
 			i2p::data::CryptoKeyType cryptoType = (i2p::data::CryptoKeyType)(m_Version + 2);
 			m_PQKeys = i2p::crypto::CreateMLKEMKeys (cryptoType);
-            m_PQKeys->GenerateKeys ();
-            offset = m_PQKeys->GetKeyLen () + 16;
-			payloadSize += offset;
+			if (m_PQKeys)
+			{
+				m_PQKeys->GenerateKeys ();
+				offset = m_PQKeys->GetKeyLen () + 16;
+				payloadSize += offset;
+			}
+			else
+			{
+				LogPrint (eLogWarning, "SSU2: ML-KEM type ", (int)cryptoType, " is not available, fallback to version 2");
+				m_Version = 2;
+			}
 		}
 #endif
 		payload[payloadSize] = eSSU2BlkDateTime;
@@ -770,7 +780,7 @@ namespace transport
 		}
 		// create and init noise state
 		if (!m_NoiseState) m_NoiseState.reset (new i2p::crypto::NoiseSymmetricState);
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 		if (m_Version > 2)
 		{
 			InitNoiseXKStateMLKEM1 (*m_NoiseState, (i2p::data::CryptoKeyType)(m_Version + 2), m_Address->s);
@@ -786,7 +796,7 @@ namespace transport
 		m_EphemeralKeys->Agree (m_Address->s, sharedSecret);
 		m_NoiseState->MixKey (sharedSecret);
 		// encrypt
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 		if (m_PQKeys)
 		{
 			size_t keyLen = m_PQKeys->GetKeyLen ();
@@ -835,7 +845,7 @@ namespace transport
 			LogPrint (eLogWarning, "SSU2: SessionRequest message too short ", len);
 			return false;
 		}
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 		if (header.h.flags[0] >= 2 && header.h.flags[0] <= 4) // ver
 		{
 			if (m_Server.GetVersion () > 2)
@@ -882,7 +892,7 @@ namespace transport
 		}
 		// create and init noise state
 		if (!m_NoiseState) m_NoiseState.reset (new i2p::crypto::NoiseSymmetricState);
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 		if (m_Version > 2)
 		{
 			InitNoiseXKStateMLKEM1 (*m_NoiseState, (i2p::data::CryptoKeyType)(m_Version + 2), i2p::context.GetSSU2StaticPublicKey ());
@@ -899,7 +909,7 @@ namespace transport
 		m_NoiseState->MixKey (sharedSecret);
 		// decrypt
 		size_t offset = 64;
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
         if (m_Version > 2)
         {
 			auto cryptoType = (i2p::data::CryptoKeyType)(m_Version + 2);
@@ -913,6 +923,11 @@ namespace transport
 			m_NoiseState->MixHash (buf + offset, keyLen + 16);
 			offset += keyLen + 16;
 			m_PQKeys = i2p::crypto::CreateMLKEMKeys (cryptoType);
+			if (!m_PQKeys)
+			{
+				LogPrint (eLogWarning, "SSU2: ML-KEM type ", (int)cryptoType, " is not available");
+				return false;
+			}
 			m_PQKeys->SetPublicKey (encapsKey.data ());
         }
 #endif
@@ -975,7 +990,7 @@ namespace transport
 		// payload
 		size_t maxPayloadSize = m_MaxPayloadSize - 48;
 		size_t payloadSize = 0, offset = 0;
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
         if (m_Version > 2 && m_PQKeys)
         {
             size_t cipherTextLen = m_PQKeys->GetCTLen ();
@@ -1072,7 +1087,7 @@ namespace transport
 		m_EphemeralKeys->Agree (headerX + 16, sharedSecret);
 		m_NoiseState->MixKey (sharedSecret);
 		size_t offset = 64;
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 		if (m_Version > 2 && m_PQKeys)
 		{
 			i2p::data::CryptoKeyType cryptoType = (i2p::data::CryptoKeyType)(m_Version + 2);
@@ -1454,7 +1469,7 @@ namespace transport
 	void SSU2Session::SendTokenRequest ()
 	{
 		// we are Alice
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 		if (m_Server.GetVersion () > 2) // we support post quantum in config
 			SetVersion (m_Address->v);
 #endif
@@ -1503,7 +1518,7 @@ namespace transport
 			LogPrint (eLogWarning, "SSU2: Incorrect TokenRequest len ", len);
 			return false;
 		}
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 		if (header.h.flags[0] >= 2 && header.h.flags[0] <= 4) // ver
 		{
 			if (m_Server.GetVersion () > 2)
@@ -1625,7 +1640,7 @@ namespace transport
 		}
 
 		if (!m_NoiseState) m_NoiseState.reset (new i2p::crypto::NoiseSymmetricState);
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 		if (m_Version > 2)
 			InitNoiseXKStateMLKEM1 (*m_NoiseState, (i2p::data::CryptoKeyType)(m_Version + 2), m_Address->s);
 		else
@@ -3458,7 +3473,11 @@ namespace transport
 		switch (version)
 		{
 			case 3:
+#if defined(LIBRESSL_VERSION_NUMBER)
+				m_Version = 2; // ML-KEM-512 is not available on LibreSSL
+#else
 				m_Version = 3;
+#endif
 			break;
 			case 4:
 				m_Version = (m_MaxPayloadSize >= SSU2_MLKEM768_MIN_PAYLOAD_SIZE) ? 4: 2;

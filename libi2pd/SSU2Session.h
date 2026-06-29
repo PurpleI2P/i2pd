@@ -376,7 +376,7 @@ namespace transport
 			std::unique_ptr<i2p::crypto::NoiseSymmetricState> m_NoiseState;
 			std::unique_ptr<HandshakePacket> m_SessionConfirmedFragment; // for Bob if applicable or second fragment for Alice
 			std::unique_ptr<HandshakePacket> m_SentHandshakePacket; // SessionRequest, SessionCreated or SessionConfirmed
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 			std::unique_ptr<i2p::crypto::MLKEMKeys> m_PQKeys;
 #endif
 			std::shared_ptr<const i2p::data::RouterInfo::Address> m_Address;

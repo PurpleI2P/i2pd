@@ -265,7 +265,7 @@ namespace garlic
 	void ECIESX25519AEADRatchetSession::CleanupReceiveNSRKeys ()
 	{
 		m_EphemeralKeys = nullptr;
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 		m_PQKeys = nullptr;
 #endif
 	}
@@ -286,7 +286,7 @@ namespace garlic
 		uint8_t sharedSecret[32];
 		bool decrypted = false;
 		auto cryptoType = GetOwner ()->GetRatchetsHighestCryptoType ();
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 		if (cryptoType > i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) // we support post quantum
 		{
 			i2p::crypto::InitNoiseIKStateMLKEM (GetNoiseState (), cryptoType, GetOwner ()->GetEncryptionPublicKey (cryptoType)); // bpk
@@ -564,7 +564,7 @@ namespace garlic
 		offset += 32;
 
 		// KDF1
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 		if (m_RemoteStaticKeyType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
 		{
 			i2p::crypto::InitNoiseIKStateMLKEM (GetNoiseState (), m_RemoteStaticKeyType, m_RemoteStaticKey); // bpk
@@ -582,7 +582,7 @@ namespace garlic
 			return false;
 		}
 		MixKey (sharedSecret);
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 		if (m_RemoteStaticKeyType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
 		{
 			auto keyLen = i2p::crypto::GetMLKEMPublicKeyLen (m_RemoteStaticKeyType);
@@ -671,7 +671,7 @@ namespace garlic
 			return false;
 		}
 		MixKey (sharedSecret);
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 		if (m_PQKeys)
 		{
 			m_NSRCK = std::make_unique<std::array<uint8_t, 64> >();
@@ -742,7 +742,7 @@ namespace garlic
 		MixHash (m_EphemeralKeys->GetPublicKey (), 32); // h = SHA256(h || bepk)
 		m_N = 0;
 		size_t offset = 40;
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 		if (m_PQKeys)
 		{
 			if (m_NSRCK)
@@ -809,7 +809,7 @@ namespace garlic
 			return false;
 		}
 		MixKey (sharedSecret);
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 		if (m_RemoteStaticKeyType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
 		{
 			// decrypt kem_ciphertext section
@@ -976,7 +976,7 @@ namespace garlic
 				m_State = eSessionStateEstablished;
 				m_NSRSendTagset = nullptr;
 				m_EphemeralKeys = nullptr;
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 				m_PQKeys = nullptr;
 				m_NSRCK = nullptr;
 #endif
@@ -1059,7 +1059,7 @@ namespace garlic
 
 	std::shared_ptr<I2NPMessage> ECIESX25519AEADRatchetSession::WrapPayload (const uint8_t * payload, size_t len)
 	{
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 		auto m = NewI2NPMessage (len + (m_State == eSessionStateEstablished ? 28 :
 			i2p::crypto::GetMLKEMPublicKeyLen (m_RemoteStaticKeyType) + 116));
 #else
@@ -1079,7 +1079,7 @@ namespace garlic
 				if (!NewOutgoingSessionMessage (payload, len, buf, m->maxLen))
 					return nullptr;
 				len += 96;
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 				if (m_RemoteStaticKeyType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
 					len += i2p::crypto::GetMLKEMPublicKeyLen (m_RemoteStaticKeyType) + 16;
 #endif
@@ -1088,7 +1088,7 @@ namespace garlic
 				if (!NewSessionReplyMessage (payload, len, buf, m->maxLen))
 					return nullptr;
 				len += 72;
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 				if (m_RemoteStaticKeyType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
 					len += i2p::crypto::GetMLKEMCipherTextLen (m_RemoteStaticKeyType) + 16;
 #endif
@@ -1097,7 +1097,7 @@ namespace garlic
 				if (!NextNewSessionReplyMessage (payload, len, buf, m->maxLen))
 					return nullptr;
 				len += 72;
-#if OPENSSL_PQ
+#if OPENSSL_MLKEM
 				if (m_RemoteStaticKeyType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
 					len += i2p::crypto::GetMLKEMCipherTextLen (m_RemoteStaticKeyType) + 16;
 #endif
