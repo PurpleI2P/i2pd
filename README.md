@@ -97,6 +97,12 @@ New languages can be requested on project's [discussion page](https://crowdin.co
 
 Current status: [![Crowdin](https://badges.crowdin.net/i2pd/localized.svg)](https://crowdin.com/project/i2pd)
 
+No LLM/AI policy 
+----------------
+
+No LLM/AI generated code for pull requests
+No LLM/AI generated texts for issues
+
 Donations
 ---------
 
