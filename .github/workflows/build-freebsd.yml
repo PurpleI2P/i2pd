@@ -1,50 +1,63 @@
+---
 name: Build on FreeBSD
 
-on:
+"on":
   push:
     branches:
-    - '*'
+      - '*'
     paths:
-    - .github/workflows/build-freebsd.yml
-    - build/CMakeLists.txt
-    - build/cmake_modules/**
-    - daemon/**
-    - i18n/**
-    - libi2pd/**
-    - libi2pd_client/**
-    - Makefile
-    - Makefile.bsd
+      - .github/workflows/build-freebsd.yml
+      - build/CMakeLists.txt
+      - build/cmake_modules/**
+      - daemon/**
+      - i18n/**
+      - libi2pd/**
+      - libi2pd_client/**
+      - Makefile
+      - Makefile.bsd
     tags:
-    - '*'
+      - '*'
   pull_request:
     branches:
-    - '*'
+      - '*'
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: with UPnP
+    name: with UPnP (${{ matrix.arch }})
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, aarch64]
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
 
-    - name: Test in FreeBSD
-      id: test
-      uses: vmactions/freebsd-vm@v1
-      with:
-        usesh: true
-        mem: 2048
-        sync: rsync
-        copyback: true
-        prepare: pkg install -y devel/cmake devel/gmake devel/boost-libs security/openssl net/miniupnpc
-        run: |
-          cd build
-          cmake -DWITH_UPNP=ON -DCMAKE_BUILD_TYPE=Release .
-          gmake -j2
+      - name: Test in FreeBSD
+        id: test
+        uses: vmactions/freebsd-vm@a6de9343ef5747433d9c25784c90e84998b9d69a
+        with:
+          release: "15.0"
+          arch: ${{ matrix.arch }}
+          usesh: true
+          mem: 2048
+          sync: rsync
+          copyback: true
+          prepare: |
+            pkg install -y devel/cmake devel/gmake devel/boost-libs \
+              security/openssl net/miniupnpc
+          run: |
+            cd build
+            cmake -DWITH_UPNP=ON -DCMAKE_BUILD_TYPE=Release .
+            gmake -j2
 
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: i2pd-freebsd
-        path: build/i2pd
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: i2pd-freebsd-${{ matrix.arch }}
+          path: build/i2pd
