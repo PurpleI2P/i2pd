@@ -100,8 +100,8 @@ Current status: [![Crowdin](https://badges.crowdin.net/i2pd/localized.svg)](http
 No LLM/AI policy 
 ----------------
 
-No LLM/AI generated code for pull requests
-No LLM/AI generated texts for issues
+No LLM/AI generated code for pull requests  
+No LLM/AI generated texts for issues  
 
 Donations
 ---------
