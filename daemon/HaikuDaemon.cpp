@@ -12,14 +12,14 @@
 #include <string>
 #include <MenuItem.h>
 #include <MenuBar.h>
-#include <StringView.h>
+#include <TextView.h>
 #include <Font.h>
 #include <MessageRunner.h>
-#include<StringItem.h>
-#include<ListView.h>
-#include<TabView.h>
-#include<ScrollView.h>
-#include<Button.h>
+#include <StringItem.h>
+#include <ListView.h>
+#include <TabView.h>
+#include <ScrollView.h>
+#include <Button.h>
 #include <Window.h>
 #include <Application.h>
 #include <Alert.h>
@@ -66,7 +66,7 @@ class MainWindow: public BWindow
 	private:
 		BMessenger m_Messenger;
 		BTabView * m_tab_view;
-		BStringView * m_MainView;
+		BTextView * m_MainView;
 		std::unique_ptr<BMessageRunner> m_MainViewUpdateTimer, m_GracefulShutdownTimer;	
 		bool m_IsGracefulShutdownComplete = false;
 		bool m_IsDrawTunnel = false;
@@ -121,17 +121,21 @@ MainWindow::MainWindow ():
 	auto bview = new BView(tabRect, "main_tab", B_FOLLOW_ALL, B_WILL_DRAW);
 	bview->SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
 
-	m_MainView = new BStringView(BRect(10, 10, tabRect.right - 10, tabRect.bottom - 20),"info_view", "Starting...", B_FOLLOW_ALL);
+	BRect viewRect(10, 10, tabRect.right - 10, tabRect.bottom - 20);
+	m_MainView = new BTextView(viewRect,"info_view", viewRect, B_FOLLOW_ALL);
+	m_MainView->MakeEditable (false);
+	m_MainView->MakeSelectable (true);
+	BFont font = *be_plain_font;
+	font.SetSize (12);
+	rgb_color color;
+	color.set_to (0xD4, 0x3B, 0x69);
+	m_MainView->SetFontAndColor (&font, B_FONT_ALL, &color);
+	m_MainView->SetText ("Starting...");
 	bview->AddChild(m_MainView);
 
 	m_tab_view->AddTab(bview);
 	m_tab_view->TabAt(m_counter_streams)->SetLabel("Info");
-
-	m_MainView->SetViewColor (255, 255, 255);
-	m_MainView->SetHighColor (0xD4, 0x3B, 0x69);
-	BFont font = *be_plain_font;
-	font.SetSize (12);
-	m_MainView->SetFont (&font);	
+		
 	m_MainViewUpdateTimer = std::make_unique<BMessageRunner>(m_Messenger, 
 		BMessage (C_MAIN_VIEW_UPDATE), MAIN_VIEW_UPDATE_INTERVAL);
 }
@@ -191,9 +195,12 @@ void MainWindow :: DrawTunnel(std::stringstream & s)
 			auto bview = new BView(tabRect, streamDestShort.c_str(), B_FOLLOW_ALL, B_WILL_DRAW);
 			bview->SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
 
-			auto tunnel_view = new BStringView(BRect(0, 0, tabRect.right - 100, tabRect.bottom - 100),"tunnel_view", "tunnel_view...", B_FOLLOW_ALL);
-
+			BRect viewRect(0, 0, tabRect.right - 100, tabRect.bottom - 100);
+			auto tunnel_view = new BTextView(viewRect,"tunnel_view", viewRect, B_FOLLOW_ALL);
+			tunnel_view->MakeEditable (false);
+			tunnel_view->MakeSelectable (true);
 			tunnel_view->SetText (s1.str ().c_str ());
+			
 			BRect btnRect{10,10,90,35};//10+32,10+12);
 			auto msg = new BMessage(M_CLOSETUNNEL);
 			msg->AddUInt32("tunnel_val", stream->GetRecvStreamID());
