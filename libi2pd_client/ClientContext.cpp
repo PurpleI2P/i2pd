@@ -19,6 +19,7 @@
 #include "HTTPProxy.h"
 #include "SOCKS.h"
 #include "I2PDNSResolver.h"
+#include "TransparentProxy.h"
 #include "MatchedDestination.h"
 
 namespace i2p
@@ -59,6 +60,9 @@ namespace client
 
 		// I2P DNS resolver (.i2p -> virtual IP automap)
 		ReadDNSResolver ();
+
+		// Transparent proxy (TPROXY/REDIRECT -> I2P stream)
+		ReadTransProxy ();
 
 		// I2P tunnels
 		ReadTunnels ();
@@ -155,6 +159,12 @@ namespace client
 			LogPrint(eLogInfo, "Clients: Stopping I2P DNS resolver");
 			m_DNSResolver->Stop ();
 			m_DNSResolver.reset ();
+		}
+		if (m_TransProxy)
+		{
+			LogPrint(eLogInfo, "Clients: Stopping Transparent Proxy");
+			m_TransProxy->Stop ();
+			m_TransProxy.reset ();
 		}
 		m_AddressMapper.reset ();
 
@@ -262,8 +272,14 @@ namespace client
 			m_DNSResolver->Stop ();
 			m_DNSResolver.reset ();
 		}
+		if (m_TransProxy)
+		{
+			m_TransProxy->Stop ();
+			m_TransProxy.reset ();
+		}
 		m_AddressMapper.reset ();
 		ReadDNSResolver ();
+		ReadTransProxy ();
 
 		// handle tunnels
 		// reset isUpdated for each tunnel
@@ -1156,6 +1172,60 @@ namespace client
 			LogPrint (eLogCritical, "Clients: Exception in DNS resolver: ", e.what ());
 			ThrowFatal ("Unable to start DNS resolver at ", addr, ":", port, ": ", e.what ());
 			m_DNSResolver.reset ();
+		}
+	}
+
+	void ClientContext::ReadTransProxy ()
+	{
+		bool enabled; i2p::config::GetOption ("transproxy.enabled", enabled);
+		if (!enabled) return;
+		auto mapper = GetOrCreateAddressMapper ();
+		if (!mapper)
+		{
+			LogPrint (eLogError, "Clients: Transparent proxy disabled: no valid transproxy.virtualnet");
+			return;
+		}
+		std::string typeStr; i2p::config::GetOption ("transproxy.type", typeStr);
+		TransProxyType type = (typeStr == "redirect") ? TransProxyType::redirect : TransProxyType::tproxy;
+		std::string addr; i2p::config::GetOption ("transproxy.address", addr);
+		uint16_t port; i2p::config::GetOption ("transproxy.port", port);
+		std::string keys; i2p::config::GetOption ("transproxy.keys", keys);
+		i2p::data::SigningKeyType sigType; i2p::config::GetOption ("transproxy.signaturetype", sigType);
+		if (sigType > i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519) sigType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519;
+		LogPrint (eLogInfo, "Clients: Starting Transparent Proxy at ", addr, ":", port, " (", typeStr, ")");
+		std::shared_ptr<ClientDestination> localDestination;
+		if (keys == "shareddest")
+			localDestination = m_SharedLocalDestination;
+		else if (keys.length () > 0)
+		{
+			i2p::data::PrivateKeys k;
+			if (LoadPrivateKeys (k, keys, sigType))
+			{
+				i2p::util::Mapping params;
+				ReadI2CPOptionsFromConfig ("transproxy.", params);
+				params.Insert (I2CP_PARAM_OUTBOUND_NICKNAME, "TransProxy");
+				localDestination = CreateNewLocalDestination (k, false, &params);
+			}
+			else
+				LogPrint (eLogCritical, "Clients: Failed to load Transparent Proxy key");
+		}
+		try
+		{
+			m_TransProxy = std::make_shared<TransparentProxyServer> ("TransProxy", addr, port, type, mapper, localDestination);
+			uint64_t closeIdleTime; i2p::config::GetOption ("transproxy.i2cp.closeIdleTime", closeIdleTime);
+			if (closeIdleTime)
+			{
+				m_TransProxy->SetCloseIdleTime (closeIdleTime);
+				bool newDestOnResume; i2p::config::GetOption ("transproxy.i2cp.newDestOnResume", newDestOnResume);
+				m_TransProxy->SetNewDestOnResume (newDestOnResume);
+			}
+			m_TransProxy->Start ();
+		}
+		catch (std::exception& e)
+		{
+			LogPrint (eLogCritical, "Clients: Exception in Transparent Proxy: ", e.what ());
+			ThrowFatal ("Unable to start Transparent Proxy at ", addr, ":", port, ": ", e.what ());
+			m_TransProxy.reset ();
 		}
 	}
 

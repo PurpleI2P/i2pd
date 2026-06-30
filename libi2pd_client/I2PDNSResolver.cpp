@@ -47,7 +47,6 @@ namespace client
 		void PutU32 (std::vector<uint8_t>& v, uint32_t x) { uint32_t b = htobe32 (x); v.insert (v.end (), (uint8_t*)&b, (uint8_t*)&b + 4); }
 
 		uint16_t GetU16 (const uint8_t* p) { return be16toh (*(const uint16_t*)p); }
-		uint32_t GetU32 (const uint8_t* p) { return be32toh (*(const uint32_t*)p); }
 
 		// Decode a DNS name beginning at `offset`, following compression pointers.
 		// On success returns the offset just past the name in the original stream
@@ -352,7 +351,6 @@ namespace client
 
 		bool qr = reqFlags & 0x8000;
 		uint8_t opcode = (reqFlags >> 11) & 0x0F;
-		bool rd = reqFlags & 0x0100;
 
 		// Drop responses and anything that isn't a standard query with a question.
 		if (qr) return {};

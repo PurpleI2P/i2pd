@@ -30,6 +30,7 @@ namespace i2p
 namespace client
 {
 	class I2PDNSResolver;
+	class TransparentProxyServer;
 
 	const char I2P_TUNNELS_SECTION_TYPE[] = "type";
 	const char I2P_TUNNELS_SECTION_TYPE_CLIENT[] = "client";
@@ -123,6 +124,7 @@ namespace client
 			void ReadHttpProxy ();
 			void ReadSocksProxy ();
 			void ReadDNSResolver ();
+			void ReadTransProxy ();
 			// Lazily create the shared virtual-IP automap table (AddressMapper) bound
 			// to transproxy.virtualnet, validating the range. Returned by both the
 			// DNS resolver and the transparent proxy so resolve-then-connect shares
@@ -156,6 +158,7 @@ namespace client
 
 			I2PService * m_HttpProxy, * m_SocksProxy;
 			std::shared_ptr<I2PDNSResolver> m_DNSResolver;
+			std::shared_ptr<TransparentProxyServer> m_TransProxy;
 			std::shared_ptr<AddressMapper> m_AddressMapper; // shared by DNS resolver + transparent proxy
 			std::map<boost::asio::ip::tcp::endpoint, std::shared_ptr<I2PService> > m_ClientTunnels; // local endpoint -> tunnel
 			std::map<std::pair<i2p::data::IdentHash, int>, std::shared_ptr<I2PServerTunnel> > m_ServerTunnels; // <destination,port> -> tunnel
@@ -184,6 +187,7 @@ namespace client
 			const I2PService * GetHttpProxy () const { return m_HttpProxy; }
 			const I2PService * GetSocksProxy () const { return m_SocksProxy; }
 			const I2PDNSResolver * GetDNSResolver () const { return m_DNSResolver.get (); }
+			const TransparentProxyServer * GetTransProxy () const { return m_TransProxy.get (); }
 	};
 
 	extern ClientContext context;

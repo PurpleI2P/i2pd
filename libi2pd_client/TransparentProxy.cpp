@@ -16,11 +16,12 @@
 #if defined(__linux__)
 #	include <netinet/in.h>
 #	include <sys/socket.h>
+#	include <linux/netfilter_ipv4.h> /* defines SO_ORIGINAL_DST */
 #	ifndef IP_TRANSPARENT
 #		define IP_TRANSPARENT 19
 #	endif
-#	ifdef SO_ORIGINAL_DST
-#		include <linux/netfilter_ipv4.h>
+#	ifndef SO_ORIGINAL_DST
+#		define SO_ORIGINAL_DST 80
 #	endif
 #endif
 

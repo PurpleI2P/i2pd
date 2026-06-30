@@ -10,3 +10,7 @@
 /test-aeadchacha20poly1305
 /test-blinding
 /test-elligator
+/test-eddsa
+/test-aes
+/test-address-mapper
+/test-dns-resolver
