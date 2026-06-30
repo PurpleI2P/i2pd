@@ -121,7 +121,7 @@ MainWindow::MainWindow ():
 	auto bview = new BView(tabRect, "main_tab", B_FOLLOW_ALL, B_WILL_DRAW);
 	bview->SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
 
-	m_MainView = new BStringView(BRect(10, 10, tabRect.right - 10, tabRect.bottom - 10),"info_view", "Starting...", B_FOLLOW_ALL);
+	m_MainView = new BStringView(BRect(10, 10, tabRect.right - 10, tabRect.bottom - 20),"info_view", "Starting...", B_FOLLOW_ALL);
 	bview->AddChild(m_MainView);
 
 	m_tab_view->AddTab(bview);
@@ -160,8 +160,7 @@ void MainWindow :: DrawTunnel(std::stringstream & s)
 {
        
 	s << "\n";
-	s << "I2P Address: " << i2p::client::context.GetAddressBook().ToAddress(m_IdentHash) << ".b32.i2p\r\n";
-
+	s << "I2P Address: " << i2p::client::context.GetAddressBook().ToAddress(m_IdentHash) << "\n";
 	auto dest = i2p::client::context.FindLocalDestination (m_IdentHash);
 	while(m_tab_view->CountTabs() > 1)
 	{
@@ -175,6 +174,11 @@ void MainWindow :: DrawTunnel(std::stringstream & s)
 	}
 	else
 	{
+		if (dest->IsEncryptedLeaseSet ())
+		{
+			i2p::data::BlindedPublicKey blinded (dest->GetIdentity (), dest->IsPerClientAuth ());
+			s << "B33 address: " << blinded.ToB33 () << ".b32.i2p\n";
+		}	
 		s << "Streams: \n";
 		for (auto stream : dest->GetAllStreams())
 		{
