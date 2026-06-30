@@ -184,6 +184,47 @@ namespace config {
 			("socksproxy.i2cp.newDestOnResume", value<bool>()->default_value(false), "SOCKS Proxy generate a new local destination when resuming from idle. false by default")
 		;
 
+		options_description transproxy("Transparent proxy (TPROXY/REDIRECT) options");
+		transproxy.add_options()
+			("transproxy.enabled", value<bool>()->default_value(false),                 "Enable or disable the transparent proxy (TPROXY/REDIRECT) listener")
+			("transproxy.type", value<std::string>()->default_value("tproxy"),          "Transparent proxy mode: tproxy (IP_TRANSPARENT, gateway-capable) or redirect (NAT REDIRECT, localhost only)")
+			("transproxy.address", value<std::string>()->default_value("127.0.0.1"),   "Transparent proxy listen address (set to a LAN IP to act as a gateway)")
+			("transproxy.port", value<uint16_t>()->default_value(7654),                "Transparent proxy listen port")
+			("transproxy.virtualnet", value<std::string>()->default_value("10.192.0.0/10"), "Routable CIDR network virtual .i2p IPs are mapped into (shared with the DNS resolver). Must be routable and disjoint from real networks")
+			("transproxy.keys", value<std::string>()->default_value("transient-proxy"), "File to persist transparent proxy keys. Transient by default")
+			("transproxy.signaturetype", value<i2p::data::SigningKeyType>()->
+				default_value(i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519),       "Signature type for new keys. 7 (EdDSA) by default")
+			("transproxy.inbound.length", value<std::string>()->default_value("3"),    "Transparent proxy inbound tunnel length")
+			("transproxy.outbound.length", value<std::string>()->default_value("3"),   "Transparent proxy outbound tunnel length")
+			("transproxy.inbound.quantity", value<std::string>()->default_value("5"),  "Transparent proxy inbound tunnels quantity")
+			("transproxy.outbound.quantity", value<std::string>()->default_value("5"), "Transparent proxy outbound tunnels quantity")
+			("transproxy.inbound.lengthVariance", value<std::string>()->default_value("0"),  "Transparent proxy inbound tunnels length variance")
+			("transproxy.outbound.lengthVariance", value<std::string>()->default_value("0"), "Transparent proxy outbound tunnels length variance")
+			("transproxy.latency.min", value<std::string>()->default_value("0"),       "Transparent proxy min latency for tunnels")
+			("transproxy.latency.max", value<std::string>()->default_value("0"),       "Transparent proxy max latency for tunnels")
+			("transproxy.i2cp.leaseSetType", value<std::string>()->default_value("3"), "Local destination's LeaseSet type")
+#if OPENSSL_PQ
+			("transproxy.i2cp.leaseSetEncType", value<std::string>()->default_value("6,4,0"), "Local destination's LeaseSet encryption type")
+#else
+			("transproxy.i2cp.leaseSetEncType", value<std::string>()->default_value("4,0"), "Local destination's LeaseSet encryption type")
+#endif
+			("transproxy.i2cp.leaseSetPrivKey", value<std::string>()->default_value(""), "LeaseSet private key")
+			("transproxy.i2p.streaming.maxOutboundSpeed", value<std::string>()->default_value("1730000000"), "Max outbound speed of transparent proxy stream in bytes/sec")
+			("transproxy.i2p.streaming.maxInboundSpeed", value<std::string>()->default_value("1730000000"), "Max inbound speed of transparent proxy stream in bytes/sec")
+			("transproxy.i2p.streaming.profile", value<std::string>()->default_value("1"), "Transparent proxy bandwidth usage profile. 1 - bulk(high), 2- interactive(low)")
+			("transproxy.i2p.streaming.maxWindowSize", value<std::string>()->default_value("512"), "Transparent proxy stream max window size. 512 by default")
+			("transproxy.i2cp.closeIdleTime", value<uint64_t>()->default_value(0), "Transparent proxy idle timeout in milliseconds after which destination stops building tunnels. Disabled by default(0)")
+			("transproxy.i2cp.newDestOnResume", value<bool>()->default_value(false), "Transparent proxy generate a new local destination when resuming from idle. false by default")
+		;
+
+		options_description dnsresolver("I2P DNS resolver options");
+		dnsresolver.add_options()
+			("dnsresolver.enabled", value<bool>()->default_value(false),                "Enable or disable the .i2p DNS resolver")
+			("dnsresolver.address", value<std::string>()->default_value("127.0.0.1"), "DNS resolver listen address (set to a LAN IP to act as a gateway)")
+			("dnsresolver.port", value<uint16_t>()->default_value(5353),               "DNS resolver listen port")
+			("dnsresolver.tcp", value<bool>()->default_value(false),                   "Also serve DNS over TCP (in addition to UDP)")
+		;
+
 		options_description shareddest("Shared local destination options");
 		shareddest.add_options()
 			("shareddest.inbound.length", value<std::string>()->default_value("3"),    "Shared local destination inbound tunnel length")
@@ -408,6 +449,8 @@ namespace config {
 			.add(httpserver)
 			.add(httpproxy)
 			.add(socksproxy)
+			.add(transproxy)
+			.add(dnsresolver)
 			.add(shareddest)
 			.add(sam)
 			.add(bob)
