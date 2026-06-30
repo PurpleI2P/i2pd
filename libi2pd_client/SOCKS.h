@@ -11,12 +11,12 @@
 
 #include <memory>
 #include <set>
-#include <map>
 #include <string>
 #include <string_view>
 #include <boost/asio.hpp>
 #include <mutex>
 #include "I2PService.h"
+#include "AddressMapper.h"
 
 namespace i2p
 {
@@ -34,9 +34,11 @@ namespace proxy
 			boost::asio::ip::udp::endpoint GetNextLocalUDPEndpoint ();
 			void ReleaseLocalUDPPort (uint16_t port);
 
-			std::string_view GetResolvedAddress (const boost::asio::ip::address_v4& addr) const;
-			const boost::asio::ip::address_v4& ResolveAddress (std::string_view resolved);
-			bool HasResolvedAddresses () const { return !m_Resolved.empty (); }
+			std::string GetResolvedAddress (const boost::asio::ip::address_v4& addr) const;
+			boost::asio::ip::address_v4 ResolveAddress (std::string_view resolved);
+			bool HasResolvedAddresses () const { return m_AddressMapper && !m_AddressMapper->IsEmpty (); }
+
+			std::shared_ptr<i2p::client::AddressMapper> GetAddressMapper () const { return m_AddressMapper; }
 
 		protected:
 
@@ -51,7 +53,10 @@ namespace proxy
 			uint16_t m_UpstreamProxyPort;
 			bool m_UseUpstreamProxy;
 			std::set<uint16_t> m_UDPPorts;
-			std::map<boost::asio::ip::address_v4, std::pair<std::string, uint64_t> > m_Resolved; // for torsocks, addr4->(i2p address, resolve time in milliseconds)
+			// Automap table for the torsocks path. Bound to the unroutable
+			// 255.0.0.0/8 range; the virtual IP is rewritten locally and never
+			// put on the wire, so the reserved range is fine here.
+			std::shared_ptr<i2p::client::AddressMapper> m_AddressMapper;
 	};
 
 	typedef SOCKSServer SOCKSProxy;

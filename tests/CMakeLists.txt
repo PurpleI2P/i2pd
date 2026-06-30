@@ -13,6 +13,7 @@ set(TEST_PATH ${CMAKE_CURRENT_BINARY_DIR})
 
 include_directories(
   ../libi2pd
+  ../libi2pd_client
   ${Boost_INCLUDE_DIRS}
   ${OPENSSL_INCLUDE_DIR}
 )
@@ -69,6 +70,10 @@ set(test-aes_SRCS
   test-aes.cpp
 )
 
+set(test-address-mapper_SRCS
+  test-address-mapper.cpp
+)
+
 add_executable(test-http-merge_chunked ${test-http-merge_chunked_SRCS})
 add_executable(test-http-req ${test-http-req_SRCS})
 add_executable(test-http-res ${test-http-res_SRCS})
@@ -82,6 +87,7 @@ add_executable(test-blinding ${test-blinding_SRCS})
 add_executable(test-elligator ${test-elligator_SRCS})
 add_executable(test-eddsa ${test-eddsa_SRCS})
 add_executable(test-aes ${test-aes_SRCS})
+add_executable(test-address-mapper ${test-address-mapper_SRCS})
 
 set(LIBS
   libi2pd
@@ -107,6 +113,7 @@ target_link_libraries(test-blinding ${LIBS})
 target_link_libraries(test-elligator ${LIBS})
 target_link_libraries(test-eddsa ${LIBS})
 target_link_libraries(test-aes ${LIBS})
+target_link_libraries(test-address-mapper ${LIBS} libi2pdclient)
 
 add_test(test-http-merge_chunked ${TEST_PATH}/test-http-merge_chunked)
 add_test(test-http-req ${TEST_PATH}/test-http-req)
@@ -121,3 +128,4 @@ add_test(test-blinding ${TEST_PATH}/test-blinding)
 add_test(test-elligator ${TEST_PATH}/test-elligator)
 add_test(test-eddsa ${TEST_PATH}/test-eddsa)
 add_test(test-aes ${TEST_PATH}/test-aes)
+add_test(test-address-mapper ${TEST_PATH}/test-address-mapper)

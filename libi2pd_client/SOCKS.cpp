@@ -639,7 +639,7 @@ namespace proxy
 			{
 				if (GetServer ()->HasResolvedAddresses ())
 				{
-					std::string_view resolved;
+					std::string resolved;
 					if (m_addrtype == ADDR_IPV4)
 					{
 						if ((m_address.ip & 0xFF000000) == 0xFF000000) // 255.x.x.x
@@ -932,6 +932,9 @@ namespace proxy
 		std::shared_ptr<i2p::client::ClientDestination> localDestination) :
 			TCPIPAcceptor (address, port, localDestination ? localDestination : i2p::client::context.GetSharedLocalDestination ()), m_Name (name)
 	{
+		// Legacy torsocks automap: 255.0.0.0/8 is unroutable but safe here
+		// because the virtual IP is rewritten locally and never put on the wire.
+		m_AddressMapper = std::make_shared<i2p::client::AddressMapper> ("255.0.0.0/8");
 		m_UseUpstreamProxy = false;
 		if (outAddress.length() > 0 && outEnable)
 			SetUpstreamProxy(outAddress, outPort);
@@ -969,21 +972,14 @@ namespace proxy
 		m_UDPPorts.erase (port);
 	}
 
-	std::string_view SOCKSServer::GetResolvedAddress (const boost::asio::ip::address_v4& addr) const
+	std::string SOCKSServer::GetResolvedAddress (const boost::asio::ip::address_v4& addr) const
 	{
-		auto it = m_Resolved.find (addr);
-		if (it != m_Resolved.end ())
-			return it->second.first;
-		return std::string_view (); // empty string
+		return m_AddressMapper ? m_AddressMapper->GetName (addr) : std::string ();
 	}
 
-	const boost::asio::ip::address_v4& SOCKSServer::ResolveAddress (std::string_view resolved)
+	boost::asio::ip::address_v4 SOCKSServer::ResolveAddress (std::string_view resolved)
 	{
-		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-		size_t h = std::hash<std::string_view>{}(resolved);
-		auto [it, inserted] = m_Resolved.emplace (0xFF000000 | (h & 0xFFFFFF), std::pair{ resolved, ts });
-		if (!inserted) it->second.second = ts;
-		return it->first;
+		return m_AddressMapper->Resolve (resolved);
 	}
 }
 }
