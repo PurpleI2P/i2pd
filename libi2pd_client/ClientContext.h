@@ -22,12 +22,15 @@
 #include "BOB.h"
 #include "I2CP.h"
 #include "AddressBook.h"
+#include "AddressMapper.h"
 #include "I18N_langs.h"
 
 namespace i2p
 {
 namespace client
 {
+	class I2PDNSResolver;
+
 	const char I2P_TUNNELS_SECTION_TYPE[] = "type";
 	const char I2P_TUNNELS_SECTION_TYPE_CLIENT[] = "client";
 	const char I2P_TUNNELS_SECTION_TYPE_SERVER[] = "server";
@@ -119,6 +122,12 @@ namespace client
 			void ReadTunnels (const std::string& tunConf, int& numClientTunnels, int& numServerTunnels);
 			void ReadHttpProxy ();
 			void ReadSocksProxy ();
+			void ReadDNSResolver ();
+			// Lazily create the shared virtual-IP automap table (AddressMapper) bound
+			// to transproxy.virtualnet, validating the range. Returned by both the
+			// DNS resolver and the transparent proxy so resolve-then-connect shares
+			// one table. Empty on validation failure.
+			std::shared_ptr<AddressMapper> GetOrCreateAddressMapper ();
 			template<typename Section, typename Type>
 			std::string GetI2CPOption (const Section& section, const std::string& name, const Type& value) const;
 			template<typename Section>
@@ -146,6 +155,8 @@ namespace client
 			AddressBook m_AddressBook;
 
 			I2PService * m_HttpProxy, * m_SocksProxy;
+			std::shared_ptr<I2PDNSResolver> m_DNSResolver;
+			std::shared_ptr<AddressMapper> m_AddressMapper; // shared by DNS resolver + transparent proxy
 			std::map<boost::asio::ip::tcp::endpoint, std::shared_ptr<I2PService> > m_ClientTunnels; // local endpoint -> tunnel
 			std::map<std::pair<i2p::data::IdentHash, int>, std::shared_ptr<I2PServerTunnel> > m_ServerTunnels; // <destination,port> -> tunnel
 
@@ -172,6 +183,7 @@ namespace client
 			const decltype(m_ServerForwards)& GetServerForwards () const { return m_ServerForwards; }
 			const I2PService * GetHttpProxy () const { return m_HttpProxy; }
 			const I2PService * GetSocksProxy () const { return m_SocksProxy; }
+			const I2PDNSResolver * GetDNSResolver () const { return m_DNSResolver.get (); }
 	};
 
 	extern ClientContext context;

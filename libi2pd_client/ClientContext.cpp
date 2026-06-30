@@ -18,6 +18,7 @@
 #include "ClientContext.h"
 #include "HTTPProxy.h"
 #include "SOCKS.h"
+#include "I2PDNSResolver.h"
 #include "MatchedDestination.h"
 
 namespace i2p
@@ -55,6 +56,9 @@ namespace client
 
 		// SOCKS proxy
 		ReadSocksProxy ();
+
+		// I2P DNS resolver (.i2p -> virtual IP automap)
+		ReadDNSResolver ();
 
 		// I2P tunnels
 		ReadTunnels ();
@@ -145,6 +149,14 @@ namespace client
 			delete m_SocksProxy;
 			m_SocksProxy = nullptr;
 		}
+
+		if (m_DNSResolver)
+		{
+			LogPrint(eLogInfo, "Clients: Stopping I2P DNS resolver");
+			m_DNSResolver->Stop ();
+			m_DNSResolver.reset ();
+		}
+		m_AddressMapper.reset ();
 
 		for (auto& it: m_ClientTunnels)
 		{
@@ -242,6 +254,16 @@ namespace client
 			m_SocksProxy = nullptr;
 		}
 		ReadSocksProxy ();
+
+		// recreate I2P DNS resolver (and the shared virtual-IP table, in case
+		// transproxy.virtualnet changed)
+		if (m_DNSResolver)
+		{
+			m_DNSResolver->Stop ();
+			m_DNSResolver.reset ();
+		}
+		m_AddressMapper.reset ();
+		ReadDNSResolver ();
 
 		// handle tunnels
 		// reset isUpdated for each tunnel
@@ -1058,6 +1080,82 @@ namespace client
 				LogPrint(eLogCritical, "Clients: Exception in SOCKS Proxy: ", e.what());
 				ThrowFatal ("Unable to start SOCKS Proxy at ", socksProxyAddr, ":", socksProxyPort, ": ", e.what ());
 			}
+		}
+	}
+
+	std::shared_ptr<AddressMapper> ClientContext::GetOrCreateAddressMapper ()
+	{
+		if (m_AddressMapper) return m_AddressMapper;
+		std::string vnet; i2p::config::GetOption ("transproxy.virtualnet", vnet);
+		boost::asio::ip::address_v4 base; int prefix;
+		if (!AddressMapper::ParseCIDR (vnet, base, prefix))
+		{
+			LogPrint (eLogError, "Clients: Invalid transproxy.virtualnet '", vnet, "'");
+			return nullptr;
+		}
+		uint32_t mask = prefix == 0 ? 0 : (0xFFFFFFFFu << (32 - prefix));
+		uint32_t net = base.to_uint () & mask;
+		uint8_t first = (uint8_t)(net >> 24);
+		// Reject unroutable/reserved ranges (the SOCKS 255.0.0.0/8 torsocks range,
+		// multicast, loopback, this-network, link-local). Private/CGNAT ranges
+		// (10/8, 172.16/12, 192.168/16, 100.64/10) are allowed and routable.
+		bool reserved = (first == 0) || (first == 127) || (first >= 224) ||
+			(net >= 0xA9FE0000u && net <= 0xA9FEFFFFu); // 169.254.0.0/16
+		if (reserved)
+		{
+			LogPrint (eLogError, "Clients: transproxy.virtualnet '", vnet, "' is a reserved/unroutable range; refusing");
+			return nullptr;
+		}
+		// Warn if a configured listener sits inside the virtual range.
+		auto inRange = [&net, &mask](const std::string& s) -> bool {
+			try {
+				auto a = boost::asio::ip::make_address (s);
+				return a.is_v4 () && ((a.to_v4 ().to_uint () & mask) == net);
+			} catch (...) { return false; }
+		};
+		std::string tpAddr; i2p::config::GetOption ("transproxy.address", tpAddr);
+		std::string dnsAddr; i2p::config::GetOption ("dnsresolver.address", dnsAddr);
+		if (inRange (tpAddr))
+			LogPrint (eLogWarning, "Clients: transproxy.address ", tpAddr, " is inside transproxy.virtualnet ", vnet);
+		if (inRange (dnsAddr))
+			LogPrint (eLogWarning, "Clients: dnsresolver.address ", dnsAddr, " is inside transproxy.virtualnet ", vnet);
+		try
+		{
+			m_AddressMapper = std::make_shared<AddressMapper> (base, prefix);
+			LogPrint (eLogInfo, "Clients: virtual .i2p network set to ", vnet);
+		}
+		catch (const std::runtime_error& e)
+		{
+			LogPrint (eLogError, "Clients: ", e.what ());
+			return nullptr;
+		}
+		return m_AddressMapper;
+	}
+
+	void ClientContext::ReadDNSResolver ()
+	{
+		bool enabled; i2p::config::GetOption ("dnsresolver.enabled", enabled);
+		if (!enabled) return;
+		auto mapper = GetOrCreateAddressMapper ();
+		if (!mapper)
+		{
+			LogPrint (eLogError, "Clients: DNS resolver disabled: no valid transproxy.virtualnet");
+			return;
+		}
+		std::string addr; i2p::config::GetOption ("dnsresolver.address", addr);
+		uint16_t port; i2p::config::GetOption ("dnsresolver.port", port);
+		bool tcp; i2p::config::GetOption ("dnsresolver.tcp", tcp);
+		LogPrint (eLogInfo, "Clients: Starting I2P DNS resolver at ", addr, ":", port, tcp ? " (UDP+TCP)" : " (UDP)");
+		try
+		{
+			m_DNSResolver = std::make_shared<I2PDNSResolver> (addr, port, tcp, mapper, m_SharedLocalDestination);
+			m_DNSResolver->Start ();
+		}
+		catch (std::exception& e)
+		{
+			LogPrint (eLogCritical, "Clients: Exception in DNS resolver: ", e.what ());
+			ThrowFatal ("Unable to start DNS resolver at ", addr, ":", port, ": ", e.what ());
+			m_DNSResolver.reset ();
 		}
 	}
 
