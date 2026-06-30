@@ -64,6 +64,9 @@ namespace client
 		// Transparent proxy (TPROXY/REDIRECT -> I2P stream)
 		ReadTransProxy ();
 
+		// periodic cleanup of the shared virtual-IP automap table
+		StartAddressMapperCleanup ();
+
 		// I2P tunnels
 		ReadTunnels ();
 
@@ -166,6 +169,7 @@ namespace client
 			m_TransProxy->Stop ();
 			m_TransProxy.reset ();
 		}
+		StopAddressMapperCleanup ();
 		m_AddressMapper.reset ();
 
 		for (auto& it: m_ClientTunnels)
@@ -277,9 +281,11 @@ namespace client
 			m_TransProxy->Stop ();
 			m_TransProxy.reset ();
 		}
+		StopAddressMapperCleanup ();
 		m_AddressMapper.reset ();
 		ReadDNSResolver ();
 		ReadTransProxy ();
+		StartAddressMapperCleanup ();
 
 		// handle tunnels
 		// reset isUpdated for each tunnel
@@ -1236,6 +1242,44 @@ namespace client
 			// schedule cleanup in 17 seconds
 			m_CleanupUDPTimer->expires_after (std::chrono::seconds (17));
 			m_CleanupUDPTimer->async_wait(std::bind(&ClientContext::CleanupUDP, this, std::placeholders::_1));
+		}
+	}
+
+	// Evict stale virtual-IP automap entries so the (large but finite) virtual
+	// range is reclaimed for names that are no longer in use.
+	static const int ADDRESS_MAPPER_CLEANUP_INTERVAL = 300;      // seconds
+	static const uint64_t ADDRESS_MAPPER_ENTRY_TTL = 30*60*1000; // milliseconds (30 min)
+
+	void ClientContext::StartAddressMapperCleanup ()
+	{
+		if (!m_AddressMapper) return;
+		if (!m_AddressMapperCleanupTimer)
+			m_AddressMapperCleanupTimer.reset (new boost::asio::steady_timer (m_SharedLocalDestination->GetService ()));
+		ScheduleAddressMapperCleanup ();
+	}
+
+	void ClientContext::StopAddressMapperCleanup ()
+	{
+		if (m_AddressMapperCleanupTimer)
+		{
+			m_AddressMapperCleanupTimer->cancel ();
+			m_AddressMapperCleanupTimer.reset ();
+		}
+	}
+
+	void ClientContext::ScheduleAddressMapperCleanup ()
+	{
+		if (!m_AddressMapperCleanupTimer || !m_AddressMapper) return;
+		m_AddressMapperCleanupTimer->expires_after (std::chrono::seconds (ADDRESS_MAPPER_CLEANUP_INTERVAL));
+		m_AddressMapperCleanupTimer->async_wait (std::bind (&ClientContext::CleanupAddressMapper, this, std::placeholders::_1));
+	}
+
+	void ClientContext::CleanupAddressMapper (const boost::system::error_code & ecode)
+	{
+		if (!ecode && m_AddressMapper)
+		{
+			m_AddressMapper->Cleanup (ADDRESS_MAPPER_ENTRY_TTL);
+			ScheduleAddressMapperCleanup ();
 		}
 	}
 

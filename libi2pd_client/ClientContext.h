@@ -142,6 +142,10 @@ namespace client
 
 			void CleanupUDP(const boost::system::error_code & ecode);
 			void ScheduleCleanupUDP();
+			void StartAddressMapperCleanup ();
+			void StopAddressMapperCleanup ();
+			void ScheduleAddressMapperCleanup ();
+			void CleanupAddressMapper (const boost::system::error_code & ecode);
 
 			void VisitTunnels (bool clean);
 
@@ -172,6 +176,7 @@ namespace client
 			I2CPServer * m_I2CPServer;
 
 			std::unique_ptr<boost::asio::steady_timer> m_CleanupUDPTimer;
+			std::unique_ptr<boost::asio::steady_timer> m_AddressMapperCleanupTimer;
 
 			// i18n
 			std::shared_ptr<const i2p::i18n::Locale> m_Language;
