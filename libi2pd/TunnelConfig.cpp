@@ -86,8 +86,6 @@ namespace tunnel
 		uint8_t sharedSecret[32];
 		ephemeralKeys->Agree (ident->GetEncryptionPublicKey (), sharedSecret); // x25519(sesk, hepk)
 		MixKey (sharedSecret);
-		uint8_t nonce[12];
-		memset (nonce, 0, 12);
 		if (!Encrypt (plainText, encrypted, SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE))
 		{
 			LogPrint (eLogWarning, "Tunnel: Plaintext AEAD encryption failed");
