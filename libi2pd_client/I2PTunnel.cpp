@@ -72,7 +72,7 @@ namespace client
 					len = m_Socket->available (ec);
 					if (!ec && len > 0)
 					{
-						if (len > I2P_TUNNEL_CONNECTION_BUFFER_SIZE) len = I2P_TUNNEL_CONNECTION_BUFFER_SIZE;
+						if (len > i2p::stream::STREAMING_MTU_RATCHETS/2) len = i2p::stream::STREAMING_MTU_RATCHETS/2;
 						len = boost::asio::read (*m_Socket, boost::asio::buffer (m_Buffer, len), boost::asio::transfer_all (), ec);
 						if (ec) len = 0;
 					}
