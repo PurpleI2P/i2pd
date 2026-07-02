@@ -285,7 +285,7 @@ namespace stream
 			std::shared_ptr<i2p::tunnel::OutboundTunnel> m_CurrentOutboundTunnel;
 			std::queue<Packet *> m_ReceiveQueue;
 			std::set<Packet *, PacketCmp> m_SavedPackets;
-			std::set<Packet *, PacketCmp> m_SentPackets;
+			std::list<Packet *> m_SentPackets;
 			std::list<Packet *> m_NACKedPackets;
 			boost::asio::steady_timer m_ReceiveTimer, m_SendTimer, m_ResendTimer, m_AckSendTimer;
 			size_t m_NumSentBytes, m_NumReceivedBytes;

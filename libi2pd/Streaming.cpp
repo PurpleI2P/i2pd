@@ -727,7 +727,7 @@ namespace stream
 					if (nacked)
 					{
 						LogPrint (eLogDebug, "Streaming: Packet ", seqn, " NACK");
-						++it;
+						it++;
 						continue;
 					}
 				}
@@ -743,7 +743,7 @@ namespace stream
 				else if (!sentPacket->resent && seqn > m_TunnelsChangeSequenceNumber && rtt >= 0)
 					rttSample = std::min (rttSample, (int)rtt);
 				LogPrint (eLogDebug, "Streaming: Packet ", seqn, " acknowledged rtt=", rtt, " sentTime=", sentPacket->sendTime);
-				m_SentPackets.erase (it++);
+				it = m_SentPackets.erase (it);
 				m_LocalDestination.DeletePacket (sentPacket);
 				acknowledged = true;
 				ackPacketsCounter++;
@@ -1120,7 +1120,7 @@ namespace stream
 			for (auto& it: packets)
 			{
 				it->sendTime = ts;
-				m_SentPackets.emplace (it);
+				m_SentPackets.emplace_back (it);
 			}
 			SendPackets (packets);
 			m_LastSendTime = ts;
@@ -1453,7 +1453,7 @@ namespace stream
 			if (!packet->sendTime) packet->sendTime = i2p::util::GetMillisecondsSinceEpoch ();
 			SendPackets ({ packet });
 			bool isEmpty = m_SentPackets.empty ();
-			m_SentPackets.emplace (packet);
+			m_SentPackets.emplace_back (packet);
 			if (isEmpty)
 				ScheduleResend ();
 			return true;
