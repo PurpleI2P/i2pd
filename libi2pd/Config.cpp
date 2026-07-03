@@ -349,7 +349,11 @@ namespace config {
 			("ssu2.proxy", value<std::string>()->default_value(""),       "Socks5 proxy URL for SSU2 transport")
 			("ssu2.firewalled4", value<bool>()->default_value(false),     "Set ipv4 network status to Firewalled even if OK (default: disabled)")
 			("ssu2.firewalled6", value<bool>()->default_value(false),     "Set ipv6 network status to Firewalled even if OK (default: disabled)")
+#if OPENSSL_PQ
+			("ssu2.version", value<int>()->default_value(4),              "Protocol version. 2 - standard, 3,4 - post quantum (default: 4)")
+#else
 			("ssu2.version", value<int>()->default_value(2),              "Protocol version. 2 - standard, 3,4 - post quantum (default: 2)")
+#endif
 		;
 
 		options_description nettime("Time sync options");
