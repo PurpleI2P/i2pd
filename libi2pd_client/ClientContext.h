@@ -145,7 +145,7 @@ namespace client
 
 			AddressBook m_AddressBook;
 
-			I2PService * m_HttpProxy, * m_SocksProxy;
+			std::shared_ptr<I2PService> m_HttpProxy, m_SocksProxy;
 			std::map<boost::asio::ip::tcp::endpoint, std::shared_ptr<I2PService> > m_ClientTunnels; // local endpoint -> tunnel
 			std::map<std::pair<i2p::data::IdentHash, int>, std::shared_ptr<I2PServerTunnel> > m_ServerTunnels; // <destination,port> -> tunnel
 
@@ -170,8 +170,8 @@ namespace client
 			const decltype(m_ServerTunnels)& GetServerTunnels () const { return m_ServerTunnels; };
 			const decltype(m_ClientForwards)& GetClientForwards () const { return m_ClientForwards; }
 			const decltype(m_ServerForwards)& GetServerForwards () const { return m_ServerForwards; }
-			const I2PService * GetHttpProxy () const { return m_HttpProxy; }
-			const I2PService * GetSocksProxy () const { return m_SocksProxy; }
+			std::shared_ptr<const I2PService> GetHttpProxy () const { return m_HttpProxy; }
+			std::shared_ptr<const I2PService> GetSocksProxy () const { return m_SocksProxy; }
 	};
 
 	extern ClientContext context;

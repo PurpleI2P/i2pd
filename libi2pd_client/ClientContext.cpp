@@ -27,15 +27,12 @@ namespace client
 	ClientContext context;
 
 	ClientContext::ClientContext (): m_SharedLocalDestination (nullptr),
-		m_HttpProxy (nullptr), m_SocksProxy (nullptr), m_SamBridge (nullptr),
-		m_BOBCommandChannel (nullptr), m_I2CPServer (nullptr)
+		m_SamBridge (nullptr), m_BOBCommandChannel (nullptr), m_I2CPServer (nullptr)
 	{
 	}
 
 	ClientContext::~ClientContext ()
 	{
-		delete m_HttpProxy;
-		delete m_SocksProxy;
 		delete m_SamBridge;
 		delete m_BOBCommandChannel;
 		delete m_I2CPServer;
@@ -134,7 +131,6 @@ namespace client
 		{
 			LogPrint(eLogInfo, "Clients: Stopping HTTP Proxy");
 			m_HttpProxy->Stop();
-			delete m_HttpProxy;
 			m_HttpProxy = nullptr;
 		}
 
@@ -142,7 +138,6 @@ namespace client
 		{
 			LogPrint(eLogInfo, "Clients: Stopping SOCKS Proxy");
 			m_SocksProxy->Stop();
-			delete m_SocksProxy;
 			m_SocksProxy = nullptr;
 		}
 
@@ -229,7 +224,6 @@ namespace client
 		if (m_HttpProxy)
 		{
 			m_HttpProxy->Stop ();
-			delete m_HttpProxy;
 			m_HttpProxy = nullptr;
 		}
 		ReadHttpProxy ();
@@ -238,7 +232,6 @@ namespace client
 		if (m_SocksProxy)
 		{
 			m_SocksProxy->Stop ();
-			delete m_SocksProxy;
 			m_SocksProxy = nullptr;
 		}
 		ReadSocksProxy ();
@@ -987,7 +980,7 @@ namespace client
 			}
 			try
 			{
-				m_HttpProxy = new i2p::proxy::HTTPProxy("HTTP Proxy", httpProxyAddr, httpProxyPort,
+				m_HttpProxy = std::make_shared<i2p::proxy::HTTPProxy>("HTTP Proxy", httpProxyAddr, httpProxyPort,
 					httpOutProxyURL, httpAddresshelper, httpSendUserAgent, localDestination);
 				uint64_t closeIdleTime; i2p::config::GetOption("httpproxy.i2cp.closeIdleTime", closeIdleTime);
 				if (closeIdleTime)
@@ -1042,7 +1035,7 @@ namespace client
 			}
 			try
 			{
-				m_SocksProxy = new i2p::proxy::SOCKSProxy("SOCKS", socksProxyAddr, socksProxyPort,
+				m_SocksProxy = std::make_shared<i2p::proxy::SOCKSProxy>("SOCKS", socksProxyAddr, socksProxyPort,
 					socksOutProxy, socksOutProxyAddr, socksOutProxyPort, localDestination);
 				uint64_t closeIdleTime; i2p::config::GetOption("socksproxy.i2cp.closeIdleTime", closeIdleTime);
 				if (closeIdleTime)
