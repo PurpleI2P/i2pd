@@ -685,7 +685,7 @@ namespace stream
 			else
 				payloadLen = 0;
 			p.len = payloadLen + 22;
-			SendPackets (std::vector<Packet *> { &p });
+			SendPackets ({ &p });
 			LogPrint (eLogDebug, "Streaming: Pong of ", p.len, " bytes sent");
 		}
 		m_LocalDestination.DeletePacket (packet);
@@ -993,7 +993,7 @@ namespace stream
 				numMsgs = numPacketsToSend;
 		}
 		bool isNoAck = m_LastReceivedSequenceNumber < 0; // first packet
-		std::vector<Packet *> packets;
+		std::list<Packet *> packets;
 		while ((m_Status == eStreamStatusNew) || (IsEstablished () && !m_SendBuffer.IsEmpty () && numMsgs > 0))
 		{
 			Packet * p = m_LocalDestination.NewPacket ();
@@ -1102,7 +1102,8 @@ namespace stream
 				size += m_SendBuffer.Get(packet + size, m_MTU); // payload
 			}
 			p->len = size;
-			packets.push_back (p);
+			p->sendTime = ts;
+			packets.emplace_back (p);
 			numMsgs--;
 		}
 		if (m_SendBuffer.GetSize() == 0) m_IsBufferEmpty = true;
@@ -1115,16 +1116,11 @@ namespace stream
 				m_IsAckSendScheduled = false;
 				m_AckSendTimer.cancel ();
 			}
-			bool isEmpty = m_SentPackets.empty ();
-//			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-			for (auto& it: packets)
-			{
-				it->sendTime = ts;
-				m_SentPackets.emplace_back (it);
-			}
 			SendPackets (packets);
 			m_LastSendTime = ts;
 			m_IsSendTime = false;
+			bool isEmpty = m_SentPackets.empty ();
+			m_SentPackets.splice (m_SentPackets.end (), packets);
 			if (m_RoutingSession)
 			{
 				int numSentPackets = m_RoutingSession->NumSentPackets ();
@@ -1462,7 +1458,7 @@ namespace stream
 			return false;
 	}
 
-	void Stream::SendPackets (const std::vector<Packet *>& packets)
+	void Stream::SendPackets (const std::list<Packet *>& packets)
 	{
 		if (!m_RemoteLeaseSet)
 		{
@@ -1749,7 +1745,7 @@ namespace stream
 
 		// collect packets to resend
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-		std::vector<Packet *> packets;
+		std::list<Packet *> packets;
 		if (m_IsNAcked && !m_IsClientChoked && !m_IsClientChoked2)
 		{
 			for (auto it : m_NACKedPackets)
@@ -1761,7 +1757,7 @@ namespace stream
 					else
 						it->resent = false;
 					it->sendTime = ts;
-					packets.push_back (it);
+					packets.emplace_back (it);
 					if ((int)packets.size () >= m_NumPacketsToSend) break;
 				}
 			}
@@ -1777,7 +1773,7 @@ namespace stream
 					else
 						it->resent = false;
 					it->sendTime = ts;
-					packets.push_back (it);
+					packets.emplace_back (it);
 					if (m_IsClientChoked2 && it->GetSeqn () == m_DropWindowDelaySequenceNumber)
 						m_IsClientChoked2 = false;
 					if ((int)packets.size () >= m_NumPacketsToSend) break;

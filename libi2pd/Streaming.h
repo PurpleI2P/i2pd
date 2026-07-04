@@ -234,7 +234,7 @@ namespace stream
 			void SendQuickAck ();
 			void SendClose ();
 			bool SendPacket (Packet * packet);
-			void SendPackets (const std::vector<Packet *>& packets);
+			void SendPackets (const std::list<Packet *>& packets);
 			void SendUpdatedLeaseSet ();
 
 			void SavePacket (Packet * packet);
