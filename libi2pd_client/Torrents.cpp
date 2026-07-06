@@ -9,7 +9,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <charconv>
+#include <fstream>
 #include <openssl/evp.h>
+#include "Log.h"
+#include "FS.h"
+#include "ClientContext.h"
 #include "Torrents.h"
 
 namespace i2p
@@ -58,9 +62,34 @@ namespace torrents
 	Torrent::Torrent (std::string_view buf):
 		m_Length (0), m_PieceLength (0)
 	{
-		auto info = buf.find ("4:info");
-		if (info != std::string_view::npos)
-			ParseInfo (buf.substr (info + 6));
+		// parse top level dictionary
+		if (buf[0] != 'd') return;
+		buf = buf.substr (1);
+		while (!buf.empty () && buf[0] != 'e')
+		{
+			auto [key, offset] = ExtractByteString (buf);
+			if (!offset) break;
+			buf = buf.substr (offset);
+			if (key == "announce")
+			{
+				auto [announce, l] = ExtractByteString (buf);
+				if (!l) break;
+				m_Announce = announce;
+				buf = buf.substr (l);
+			}
+			else if (key == "info")
+			{
+				size_t l = ParseInfo (buf);
+				if (!l) break;
+				buf = buf.substr (l);
+			}
+			else
+			{
+				size_t l = Skip (buf);
+				if (!l) break;
+				buf = buf.substr (l);
+			}
+		}
 	}
 
 	std::pair<std::string_view, size_t> Torrent::ExtractByteString (std::string_view buf) const
@@ -201,6 +230,70 @@ namespace torrents
 				return ExtractByteString (buf).second;
 		}
 		return ret;
+	}
+
+	Peer::Peer (i2p::client::I2PService * owner, std::string_view address):
+		i2p::client::I2PServiceHandler (owner),
+		m_Address (i2p::client::context.GetAddressBook().GetAddress (address))
+	{
+	}
+
+	TorrentsTunnel::TorrentsTunnel (std::shared_ptr<i2p::client::ClientDestination> localDestination, std::string_view torrentsDir):
+		i2p::client::I2PService (localDestination), m_TorrentsDir (torrentsDir),
+		m_PeerID ("-I2PD-")
+	{
+		if (localDestination)
+			m_PeerID += localDestination->GetIdentHash ().ToBase32 ();
+		m_PeerID.resize (20, '0');
+	}
+
+	void TorrentsTunnel::Start ()
+	{
+		i2p::client::I2PService::Start ();
+		if (!m_TorrentsDir.empty() && i2p::fs::Exists (m_TorrentsDir))
+		{
+			std::vector<std::string> files;
+			if (i2p::fs::ReadDir (m_TorrentsDir, files))
+			{
+				for (auto& it: files)
+				{
+#if __cplusplus >= 202002L // C++20
+					if (!it.ends_with (".torrent")) continue;
+#else
+					if (it.size () < 8 || it.substr(it.size() - 8) != ".torrent") continue; // skip files which not ends with ".torrent"
+#endif
+					ReadTorrentFile (it);
+				}
+			}
+		}
+	}
+
+	void TorrentsTunnel::Stop ()
+	{
+		m_Torrents.clear ();
+		i2p::client::I2PService::Stop ();
+	}
+
+	void TorrentsTunnel::ReadTorrentFile (const std::string& path)
+	{
+		std::ifstream s(path, std::ifstream::binary);
+		if (s.is_open ())
+		{
+			s.seekg (0,std::ios::end);
+			size_t len = s.tellg ();
+			if (len > 0)
+			{
+				s.seekg(0, std::ios::beg);
+				char * buf = new char[len];
+				s.read(buf, len);
+				m_Torrents.emplace_back (std::make_shared<Torrent>(std::string_view{buf, len}));
+				delete[] buf;
+			}
+			else
+				LogPrint (eLogError, "Torrents: Empty file ", path);
+		}
+		else
+			LogPrint (eLogError, "Torrents: Can't open file ", path);
 	}
 }
 }

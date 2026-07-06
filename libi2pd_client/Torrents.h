@@ -12,9 +12,13 @@
 #include <inttypes.h>
 #include <openssl/bn.h>
 #include <openssl/sha.h>
+#include <memory>
 #include <vector>
+#include <list>
 #include <string>
 #include <string_view>
+#include "I2PService.h"
+#include "AddressBook.h"
 
 namespace i2p
 {
@@ -56,9 +60,41 @@ namespace torrents
 
 		private:
 
-			std::string m_Name;
+			std::string m_Name, m_Announce;
 			size_t m_Length, m_PieceLength;
 			std::vector<Piece> m_Pieces;
+	};
+
+	class Peer: public i2p::client::I2PServiceHandler
+	{
+		public:
+
+			Peer (i2p::client::I2PService * owner, std::string_view address);
+
+		private:
+
+			std::shared_ptr<const i2p::client::Address> m_Address;
+	};
+
+	class TorrentsTunnel: public i2p::client::I2PService
+	{
+		public:
+
+			TorrentsTunnel (std::shared_ptr<i2p::client::ClientDestination> localDestination, std::string_view torrentsDir);
+
+			void Start () override;
+			void Stop () override;
+
+			const char* GetName() const override { return "Torrents"; }
+
+		private:
+
+			void ReadTorrentFile (const std::string& path);
+
+		private:
+
+			std::string m_TorrentsDir, m_PeerID; // 20 characters
+			std::list<std::shared_ptr<Torrent> > m_Torrents;
 	};
 }
 }
