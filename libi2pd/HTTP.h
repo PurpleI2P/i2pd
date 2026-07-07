@@ -68,7 +68,7 @@ namespace http
 		 * @brief Serialize URL structure to url
 		 * @note Returns relative url if schema if empty, absolute url otherwise
 		 */
-		std::string to_string ();
+		std::string to_string () const;
 
 		/**
 		 * @brief return true if the host is inside i2p
@@ -107,8 +107,8 @@ namespace http
 		int parse(std::string_view buf);
 
 		/** @brief Serialize HTTP request to string */
-		std::string to_string();
-		void write(std::ostream & o);
+		std::string to_string() const;
+		void write(std::ostream & o) const;
 
 		void AddHeader (const std::string& name, const std::string& value);
 		void UpdateHeader (const std::string& name, const std::string& value);
@@ -150,8 +150,6 @@ namespace http
 		 *   this header will be added, based on body's length
 		 */
 		std::string to_string();
-
-		void write(std::ostream & o);
 
 		/** @brief Checks that response declared as chunked data */
 		bool is_chunked() const ;

@@ -230,7 +230,8 @@ namespace http
 		return true;
 	}
 
-	std::string URL::to_string() {
+	std::string URL::to_string() const
+	{
 		std::string out = "";
 		if (schema != "") {
 			out = schema + "://";
@@ -349,7 +350,7 @@ namespace http
 		return eoh + HTTP_EOH.length();
 	}
 
-	void HTTPReq::write(std::ostream & o)
+	void HTTPReq::write(std::ostream & o) const
 	{
 		o << method << " " << uri << " " << version << CRLF;
 		for (auto & h : headers)
@@ -357,7 +358,7 @@ namespace http
 		o << CRLF;
 	}
 
-	std::string HTTPReq::to_string()
+	std::string HTTPReq::to_string() const
 	{
 		std::stringstream ss;
 		write(ss);
