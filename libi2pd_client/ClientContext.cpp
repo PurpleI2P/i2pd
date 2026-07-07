@@ -680,6 +680,13 @@ namespace client
 						auto clientTunnel = std::make_shared<I2PUDPClientTunnel> (name, dest, end,
 							localDestination, destinationPort, gzip, (i2p::datagram::DatagramVersion)datagramVersion);
 
+						uint32_t keepAlive = section.second.get<uint32_t>(I2P_CLIENT_TUNNEL_KEEP_ALIVE_INTERVAL, 0);
+						if (keepAlive)
+						{
+							clientTunnel->SetKeepAliveInterval (keepAlive);
+							LogPrint(eLogInfo, "Clients: UDP Client tunnel keep alive interval set to ", keepAlive);
+						}
+
 						auto ins = m_ClientForwards.insert (std::make_pair (end, clientTunnel));
 						if (ins.second)
 						{

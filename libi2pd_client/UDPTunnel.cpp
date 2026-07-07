@@ -424,10 +424,15 @@ namespace client
 		if (m_ResolveThread == nullptr)
 			m_ResolveThread = new std::thread (std::bind (&I2PUDPClientTunnel::TryResolving, this));
 		RecvFromLocal ();
+
+		if (m_KeepAliveInterval)
+			ScheduleKeepAliveTimer ();
 	}
 
 	void I2PUDPClientTunnel::Stop ()
 	{
+		if (m_KeepAliveTimer) m_KeepAliveTimer->cancel ();
+
 		auto dgram = m_LocalDest->GetDatagramDestination ();
 		if (dgram)
 		{
@@ -669,6 +674,33 @@ namespace client
 		}
 		else
 			LogPrint (eLogWarning, "UDP Client: Not tracking udp session using port ", (int) toPort);
+	}
+
+	void I2PUDPClientTunnel::SetKeepAliveInterval (uint32_t keepAliveInterval)
+	{
+		m_KeepAliveInterval = keepAliveInterval;
+		if (m_KeepAliveInterval)
+			m_KeepAliveTimer.reset (new boost::asio::steady_timer (m_LocalDest->GetService ()));
+	}
+
+	void I2PUDPClientTunnel::ScheduleKeepAliveTimer ()
+	{
+		if (m_KeepAliveTimer)
+		{
+			m_KeepAliveTimer->expires_after (std::chrono::seconds (m_KeepAliveInterval));
+			m_KeepAliveTimer->async_wait (std::bind (&I2PUDPClientTunnel::HandleKeepAliveTimer,
+				this, std::placeholders::_1));
+		}
+	}
+
+	void I2PUDPClientTunnel::HandleKeepAliveTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			if (i2p::util::GetMillisecondsSinceEpoch () > m_LastRepliableDatagramTime + m_KeepAliveInterval*1000)
+				HandleRecvFromLocal (boost::system::error_code(), 0); // send empty packet like it was received from local
+			ScheduleKeepAliveTimer ();
+		}
 	}
 }
 }

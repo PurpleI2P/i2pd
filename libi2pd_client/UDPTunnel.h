@@ -183,6 +183,7 @@ namespace client
 			const boost::asio::ip::udp::endpoint& GetLocalEndpoint () const { return m_LocalEndpoint; };
 
 			void ExpireStale (const uint64_t delta=I2P_UDP_SESSION_TIMEOUT);
+			void SetKeepAliveInterval (uint32_t keepAliveInterval);
 
 		private:
 
@@ -193,6 +194,9 @@ namespace client
 				const uint8_t * buf, size_t len, const i2p::util::Mapping * options);
 			void HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			void TryResolving ();
+
+			void ScheduleKeepAliveTimer ();
+			void HandleKeepAliveTimer (const boost::system::error_code& ecode);
 
 		private:
 
@@ -211,6 +215,8 @@ namespace client
 			bool m_Gzip;
 			i2p::datagram::DatagramVersion m_DatagramVersion;
 			std::shared_ptr<UDPConvo> m_LastSession;
+			uint32_t m_KeepAliveInterval;
+			std::unique_ptr<boost::asio::steady_timer> m_KeepAliveTimer;
 
 		public:
 
