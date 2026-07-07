@@ -319,7 +319,7 @@ namespace torrents
 #if __cplusplus >= 202002L // C++20
 		if (!reqURL.host.ends_with (".i2p"))
 #else
-		if (reqURL.host.find(".i2p") == name.npos)
+		if (reqURL.host.find(".i2p") == reqURL.host.npos)
 #endif
 		{
 			LogPrint (eLogWarning, "Torrents: Non-I2P address ", reqURL.host, " for torrent ", torrent->GetName ());
