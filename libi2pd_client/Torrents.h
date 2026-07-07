@@ -14,9 +14,12 @@
 #include <openssl/sha.h>
 #include <memory>
 #include <vector>
+#include <array>
 #include <list>
 #include <string>
 #include <string_view>
+#include "Streaming.h"
+#include "HTTP.h"
 #include "I2PService.h"
 #include "AddressBook.h"
 
@@ -25,6 +28,8 @@ namespace i2p
 namespace torrents
 {
 	constexpr size_t REQUEST_BLOCK_SIZE = 16384;
+	constexpr int TRACKER_RESPONSE_TIMEOUT = 8; // in seconds
+	constexpr size_t TRACKER_RESPONSE_BUFFER_SIZE = 65535;
 
 	class Piece final
 	{
@@ -49,6 +54,8 @@ namespace torrents
 		public:
 
 			Torrent (std::string_view buf);
+			i2p::http::HTTPReq GetTrackerRequest () const;
+			const std::string& GetName () const { return m_Name; }
 
 		private:
 
@@ -60,7 +67,7 @@ namespace torrents
 
 		private:
 
-			std::string m_Name, m_Announce;
+			std::string m_Name, m_Announce, m_InfoHash; // 40 hex chars
 			size_t m_Length, m_PieceLength;
 			std::vector<Piece> m_Pieces;
 	};
@@ -78,6 +85,8 @@ namespace torrents
 
 	class TorrentsTunnel: public i2p::client::I2PService
 	{
+		using TrackerResponseBuffer = std::array<uint8_t, TRACKER_RESPONSE_BUFFER_SIZE>;
+
 		public:
 
 			TorrentsTunnel (std::shared_ptr<i2p::client::ClientDestination> localDestination, std::string_view torrentsDir);
@@ -90,6 +99,9 @@ namespace torrents
 		private:
 
 			void ReadTorrentFile (const std::string& path);
+			void RequestTracker (std::shared_ptr<const Torrent> torrent);
+			void ReceiveFromTracker (std::shared_ptr<i2p::stream::Stream> stream, std::shared_ptr<TrackerResponseBuffer> buf, size_t offset);
+			void HandleTrackerResponse (std::shared_ptr<TrackerResponseBuffer> buf, size_t len);
 
 		private:
 

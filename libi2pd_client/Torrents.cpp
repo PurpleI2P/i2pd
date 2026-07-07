@@ -10,7 +10,6 @@
 #include <stdlib.h>
 #include <charconv>
 #include <fstream>
-#include <openssl/evp.h>
 #include "Log.h"
 #include "FS.h"
 #include "ClientContext.h"
@@ -43,14 +42,9 @@ namespace torrents
 	bool Piece::VerifyHash () const
 	{
 		if (!m_Data) return false;
-		EVP_MD_CTX * mdctx =  EVP_MD_CTX_new ();
-		EVP_DigestInit_ex (mdctx, EVP_sha1 (), nullptr);
-		EVP_DigestUpdate (mdctx, m_Data, m_Size);
 		uint8_t digest[SHA_DIGEST_LENGTH];
-		unsigned int l = SHA_DIGEST_LENGTH;
-		EVP_DigestFinal_ex (mdctx, digest, &l);
-		EVP_MD_CTX_free (mdctx);
-		return l == SHA_DIGEST_LENGTH && !memcmp (m_Hash, digest, SHA_DIGEST_LENGTH);
+		SHA1 (m_Data, m_Size, digest);
+		return !memcmp (m_Hash, digest, SHA_DIGEST_LENGTH);
 	}
 
 	bool Piece::IsAvailable (int block) const
@@ -81,6 +75,18 @@ namespace torrents
 			{
 				size_t l = ParseInfo (buf);
 				if (!l) break;
+				// calculate info hash
+				uint8_t digest[SHA_DIGEST_LENGTH];
+				SHA1 ((const uint8_t *)buf.data (), l, digest);
+				// convert info hash to hex chars
+				BIGNUM * bn = BN_bin2bn (digest, SHA_DIGEST_LENGTH, nullptr);
+				char * str = BN_bn2hex (bn);
+				if (str)
+				{
+					m_InfoHash = str;
+					OPENSSL_free (str);
+				}
+				BN_free (bn);
 				buf = buf.substr (l);
 			}
 			else
@@ -232,6 +238,14 @@ namespace torrents
 		return ret;
 	}
 
+	i2p::http::HTTPReq Torrent::GetTrackerRequest () const
+	{
+		i2p::http::HTTPReq req;
+		req.parse (m_Announce);
+		req.AddHeader ("info_hash", m_InfoHash);
+		return req;
+	}
+
 	Peer::Peer (i2p::client::I2PService * owner, std::string_view address):
 		i2p::client::I2PServiceHandler (owner),
 		m_Address (i2p::client::context.GetAddressBook().GetAddress (address))
@@ -294,6 +308,85 @@ namespace torrents
 		}
 		else
 			LogPrint (eLogError, "Torrents: Can't open file ", path);
+	}
+
+	void TorrentsTunnel::RequestTracker (std::shared_ptr<const Torrent> torrent)
+	{
+		if (!torrent) return;
+		i2p::http::HTTPReq req = torrent->GetTrackerRequest ();
+		i2p::http::URL reqURL;
+		reqURL.parse (req.uri);
+#if __cplusplus >= 202002L // C++20
+		if (!reqURL.host.ends_with (".i2p"))
+#else
+		if (reqURL.host.find(".i2p") == name.npos)
+#endif
+		{
+			LogPrint (eLogWarning, "Torrents: Non-I2P address ", reqURL.host, " for torrent ", torrent->GetName ());
+			return;
+		}
+		req.AddHeader ("peer_id", m_PeerID);
+		req.AddHeader ("ip", GetLocalDestination ()->GetIdentHash ().ToBase32 () + ".b32.i2p");
+		req.AddHeader ("port", std::to_string (6881));
+		req.AddHeader ("uploaded", "0"); // TODO
+		req.AddHeader ("downloaded", "0"); // TODO
+		req.AddHeader ("left", "1"); // TODO
+		req.AddHeader ("compact", "1"); // TODO
+		req.AddHeader ("numwant", "0"); // TODO
+		CreateStream ([req, this](std::shared_ptr<i2p::stream::Stream> stream)
+			{
+				if (stream)
+				{
+					auto reqStr = req.to_string ();
+					stream->Send ((const uint8_t *)reqStr.data (), reqStr.length ());
+					ReceiveFromTracker (stream, std::make_shared<TrackerResponseBuffer>(), 0);
+				}
+			}, reqURL.host, reqURL.port);
+	}
+
+	void TorrentsTunnel::ReceiveFromTracker (std::shared_ptr<i2p::stream::Stream> stream,
+		std::shared_ptr<TrackerResponseBuffer> buf, size_t offset)
+	{
+		if (!stream || !buf) return;
+		if (stream->GetStatus () == i2p::stream::eStreamStatusNew ||
+			stream->GetStatus () == i2p::stream::eStreamStatusOpen) // regular
+		{
+			stream->AsyncReceive (boost::asio::buffer (buf->data() + offset, TRACKER_RESPONSE_BUFFER_SIZE - offset),
+				[this, stream, buf, offset](const boost::system::error_code& ecode, size_t bytes_transferred)
+				{
+					if (ecode)
+					{
+						if (ecode != boost::asio::error::operation_aborted && bytes_transferred > 0)
+							HandleTrackerResponse (buf, offset + bytes_transferred);
+						stream->Close ();
+					}
+					else
+					{
+						size_t offset1 = offset + bytes_transferred;
+						if (stream->IsOpen () && offset1 < TRACKER_RESPONSE_BUFFER_SIZE)
+							ReceiveFromTracker (stream, buf, offset1);
+						else
+							HandleTrackerResponse (buf, offset1);
+					}
+				}, TRACKER_RESPONSE_TIMEOUT);
+		}
+		else // closed by peer
+		{
+			// get remaining data
+			auto len = stream->ReadSome (buf->data() + offset, TRACKER_RESPONSE_BUFFER_SIZE - offset);
+			if (len > 0) // still some data
+			{
+				offset += len;
+				HandleTrackerResponse (buf, offset);
+			}
+			else // no more data
+				stream->Close ();
+		}
+	}
+
+	void TorrentsTunnel::HandleTrackerResponse (std::shared_ptr<TrackerResponseBuffer> buf, size_t len)
+	{
+		// TODO
 	}
 }
 }
