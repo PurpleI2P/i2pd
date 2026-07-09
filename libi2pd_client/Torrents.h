@@ -55,6 +55,8 @@ namespace torrents
 
 			Torrent (std::string_view buf);
 			i2p::http::HTTPReq GetTrackerRequest () const;
+			void ParseTrackerResponse (std::string_view buf);
+
 			const std::string& GetName () const { return m_Name; }
 
 		private:
@@ -63,24 +65,28 @@ namespace torrents
 			std::pair<int64_t, size_t> ExtractInteger (std::string_view buf) const;
 			size_t ParsePieces (std::string_view buf);
 			size_t ParseInfo (std::string_view buf);
+			size_t ParsePeers (std::string_view buf);
+			size_t ParsePeer (std::string_view buf);
 			size_t Skip (std::string_view buf);
 
 		private:
 
 			std::string m_Name, m_Announce, m_InfoHash; // 40 hex chars
 			size_t m_Length, m_PieceLength;
+			int m_Interval;
 			std::vector<Piece> m_Pieces;
+			std::list<std::pair<std::string, std::shared_ptr<const i2p::client::Address> > > m_Peers;
 	};
 
-	class Peer: public i2p::client::I2PServiceHandler
+	class PeerConnection: public i2p::client::I2PServiceHandler
 	{
 		public:
 
-			Peer (i2p::client::I2PService * owner, std::string_view address);
+			PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream);
 
 		private:
 
-			std::shared_ptr<const i2p::client::Address> m_Address;
+			std::shared_ptr<i2p::stream::Stream> m_Stream;
 	};
 
 	class TorrentsTunnel: public i2p::client::I2PService
@@ -99,9 +105,11 @@ namespace torrents
 		private:
 
 			void ReadTorrentFile (const std::string& path);
-			void RequestTracker (std::shared_ptr<const Torrent> torrent);
-			void ReceiveFromTracker (std::shared_ptr<i2p::stream::Stream> stream, std::shared_ptr<TrackerResponseBuffer> buf, size_t offset);
-			void HandleTrackerResponse (std::shared_ptr<TrackerResponseBuffer> buf, size_t len);
+			void RequestTracker (std::shared_ptr<Torrent> torrent);
+			void ReceiveFromTracker (std::shared_ptr<i2p::stream::Stream> stream,
+				std::shared_ptr<Torrent> torrent, std::shared_ptr<TrackerResponseBuffer> buf, size_t offset);
+			void HandleTrackerResponse (std::shared_ptr<Torrent> torrent,
+				std::shared_ptr<TrackerResponseBuffer> buf, size_t len);
 
 		private:
 
