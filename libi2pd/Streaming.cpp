@@ -1045,10 +1045,14 @@ namespace stream
 					m_MTU = (m_RoutingSession && m_RoutingSession->IsRatchets ()) ? STREAMING_MTU_RATCHETS : STREAMING_MTU;
 				}
 				uint16_t flags = PACKET_FLAG_SYNCHRONIZE | PACKET_FLAG_FROM_INCLUDED | PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED;
-				if (!m_DontSign) flags |= PACKET_FLAG_SIGNATURE_INCLUDED;
 				if (isNoAck) flags |= PACKET_FLAG_NO_ACK;
-				bool isOfflineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().IsOfflineSignature ();
-				if (isOfflineSignature) flags |= PACKET_FLAG_OFFLINE_SIGNATURE;
+				bool isOfflineSignature = false;
+				if (!m_DontSign)
+				{
+					flags |= PACKET_FLAG_SIGNATURE_INCLUDED;
+					isOfflineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().IsOfflineSignature ();
+					if (isOfflineSignature) flags |= PACKET_FLAG_OFFLINE_SIGNATURE;
+				}
 				htobe16buf (packet + size, flags);
 				size += 2; // flags
 				size_t identityLen = m_LocalDestination.GetOwner ()->GetIdentity ()->GetFullLen ();
@@ -1380,10 +1384,14 @@ namespace stream
 		size++; // NACK count
 		packet[size] = 0;
 		size++; // resend delay
+		bool isOfflineSignature = false;
 		uint16_t flags = PACKET_FLAG_CLOSE;
-		if (!m_DontSign) flags |= PACKET_FLAG_SIGNATURE_INCLUDED;
-		bool isOfflineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().IsOfflineSignature ();
-		if (isOfflineSignature) flags |= PACKET_FLAG_OFFLINE_SIGNATURE;
+		if (!m_DontSign)
+		{
+			flags |= PACKET_FLAG_SIGNATURE_INCLUDED;
+			isOfflineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().IsOfflineSignature ();
+			if (isOfflineSignature) flags |= PACKET_FLAG_OFFLINE_SIGNATURE;
+		}
 		htobe16buf (packet + size, flags);
 		size += 2; // flags
 		if (m_DontSign)
@@ -1393,6 +1401,8 @@ namespace stream
 		}
 		else
 		{
+			uint8_t * optionsSize = packet + size; // set options size later
+			size += 2; // options size
 			if (isOfflineSignature)
 			{
 				const auto& offlineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().GetOfflineSignature ();
@@ -1400,11 +1410,10 @@ namespace stream
 				size += offlineSignature.size (); // offline signature
 			}
 			size_t signatureLen = m_LocalDestination.GetOwner ()->GetPrivateKeys ().GetSignatureLen ();
-			htobe16buf (packet + size, signatureLen); // signature only
-			size += 2; // options size
-			uint8_t * signature = packet + size;
-			memset (packet + size, 0, signatureLen);
+			uint8_t * signature = packet + size; // set it later
+			memset (signature, 0, signatureLen); // zeroes for now
 			size += signatureLen; // signature
+			htobe16buf (optionsSize, packet + size - 2 - optionsSize); // actual options size
 			m_LocalDestination.GetOwner ()->Sign (packet, size, signature);
 		}
 
