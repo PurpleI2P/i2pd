@@ -1390,7 +1390,7 @@ namespace stream
 		{
 			flags |= PACKET_FLAG_SIGNATURE_INCLUDED;
 			isOfflineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().IsOfflineSignature ();
-			if (isOfflineSignature) flags |= PACKET_FLAG_OFFLINE_SIGNATURE;
+			if (isOfflineSignature) flags |= PACKET_FLAG_OFFLINE_SIGNATURE | PACKET_FLAG_FROM_INCLUDED;
 		}
 		htobe16buf (packet + size, flags);
 		size += 2; // flags
@@ -1405,6 +1405,10 @@ namespace stream
 			size += 2; // options size
 			if (isOfflineSignature)
 			{
+				// we must include FROM  if offline signature for compatibility with Java-I2P
+				size_t identityLen = m_LocalDestination.GetOwner ()->GetIdentity ()->GetFullLen ();
+				m_LocalDestination.GetOwner ()->GetIdentity ()->ToBuffer (packet + size, identityLen);
+				size += identityLen; // from
 				const auto& offlineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().GetOfflineSignature ();
 				memcpy (packet + size, offlineSignature.data (), offlineSignature.size ());
 				size += offlineSignature.size (); // offline signature
