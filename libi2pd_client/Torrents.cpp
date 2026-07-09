@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <charconv>
 #include <fstream>
+#include <functional>
 #include "Log.h"
 #include "FS.h"
 #include "ClientContext.h"
@@ -19,6 +20,109 @@ namespace i2p
 {
 namespace torrents
 {
+
+// BEncoded
+	static std::pair<std::string_view, size_t> ExtractByteString (std::string_view buf)
+	{
+		auto pos = buf.find (':');
+		if (pos != std::string_view::npos)
+		{
+			size_t len = 0;
+			auto res = std::from_chars(buf.data(), buf.data() + pos, len);
+			if (res.ec == std::errc())
+			{
+				size_t totalLength = len + pos + 1;
+				if (totalLength <= buf.length ())
+					return { buf.substr (pos + 1, len), totalLength };
+			}
+		}
+		return { std::string_view{}, 0 };
+	}
+
+	static std::pair<int64_t, size_t> ExtractInteger (std::string_view buf)
+	{
+		if (buf[0] == 'i')
+		{
+			auto pos = buf.find ('e');
+			if (pos != std::string_view::npos)
+			{
+				int64_t value = 0;
+				auto res = std::from_chars(buf.data() + 1, buf.data() + pos, value);
+				if (res.ec == std::errc())
+					return  { value, pos + 1 };
+			}
+		}
+		return { 0, 0 };
+	}
+
+	static size_t ParseBEncoded (std::string_view buf); // recursive
+	static size_t ParseDictionary (std::string_view buf, std::function<size_t (std::string_view key, std::string_view buf)> handler = nullptr)
+	{
+		if (buf[0] != 'd') return 0;
+		buf = buf.substr (1);
+		size_t len = 1;
+		while (!buf.empty () && buf[0] != 'e')
+		{
+			auto [key, offset] = ExtractByteString (buf);
+			if (!offset) break;
+			len += offset;
+			buf = buf.substr (offset);
+			offset = 0;
+			if (handler)
+				offset = handler (key, buf);
+			if (!offset)
+				offset = ParseBEncoded (buf);
+			if (!offset) break;
+			len += offset;
+			buf = buf.substr (offset);
+		}
+		if (buf[0] == 'e') len++;
+		return len;
+	}
+
+	static size_t ParseList (std::string_view buf, std::function<size_t (std::string_view buf)> handler = nullptr)
+	{
+		if (buf[0] != 'l') return 0 ;
+		buf = buf.substr (1);
+		size_t len = 1;
+		while (!buf.empty () && buf[0] != 'e')
+		{
+			size_t l = 0;
+			if (handler)
+				l = handler (buf);
+			if (!l)
+				l = ParseBEncoded (buf);
+			if (!l) break;
+			len += l;
+			buf = buf.substr (l);
+		}
+		if (buf[0] == 'e') len++;
+		return len;
+	}
+
+	static size_t ParseBEncoded (std::string_view buf)
+	{
+		if (buf.empty ()) return 0;
+		size_t ret = 0;
+		switch (buf[0])
+		{
+			case 'i': // interger
+				return ExtractInteger (buf).second;
+			break;
+			case 'l': // list
+				return ParseList (buf);
+			break;
+			case 'd': // dictionary
+				return ParseDictionary (buf);
+			break;
+			default: // byte string
+				return ExtractByteString (buf).second;
+		}
+		return ret;
+	}
+
+//------------------------------------
+
 	Piece::Piece (size_t size, const uint8_t * hash):
 		m_Size (size), m_Data (nullptr)
 	{
@@ -56,80 +160,20 @@ namespace torrents
 	Torrent::Torrent (std::string_view buf):
 		m_Length (0), m_PieceLength (0), m_Interval (0)
 	{
-		// parse top level dictionary
-		if (buf[0] != 'd') return;
-		buf = buf.substr (1);
-		while (!buf.empty () && buf[0] != 'e')
-		{
-			auto [key, offset] = ExtractByteString (buf);
-			if (!offset) break;
-			buf = buf.substr (offset);
-			if (key == "announce")
+		ParseDictionary (buf, [this](std::string_view key, std::string_view buf)->size_t
 			{
-				auto [announce, l] = ExtractByteString (buf);
-				if (!l) break;
-				m_Announce = announce;
-				buf = buf.substr (l);
-			}
-			else if (key == "info")
-			{
-				size_t l = ParseInfo (buf);
-				if (!l) break;
-				// calculate info hash
-				uint8_t digest[SHA_DIGEST_LENGTH];
-				SHA1 ((const uint8_t *)buf.data (), l, digest);
-				// convert info hash to hex chars
-				BIGNUM * bn = BN_bin2bn (digest, SHA_DIGEST_LENGTH, nullptr);
-				char * str = BN_bn2hex (bn);
-				if (str)
+				if (key == "announce")
 				{
-					m_InfoHash = str;
-					OPENSSL_free (str);
+					auto [announce, l] = ExtractByteString (buf);
+					if (l) m_Announce = announce;
+					return l;
 				}
-				BN_free (bn);
-				buf = buf.substr (l);
-			}
-			else
-			{
-				size_t l = Skip (buf);
-				if (!l) break;
-				buf = buf.substr (l);
-			}
-		}
+				else if (key == "info")
+					return ParseInfo (buf);
+				return 0;
+			});
 	}
 
-	std::pair<std::string_view, size_t> Torrent::ExtractByteString (std::string_view buf) const
-	{
-		auto pos = buf.find (':');
-		if (pos != std::string_view::npos)
-		{
-			size_t len = 0;
-			auto res = std::from_chars(buf.data(), buf.data() + pos, len);
-			if (res.ec == std::errc())
-			{
-				size_t totalLength = len + pos + 1;
-				if (totalLength <= buf.length ())
-					return { buf.substr (pos + 1, len), totalLength };
-			}
-		}
-		return { std::string_view{}, 0 };
-	}
-
-	std::pair<int64_t, size_t> Torrent::ExtractInteger (std::string_view buf) const
-	{
-		if (buf[0] == 'i')
-		{
-			auto pos = buf.find ('e');
-			if (pos != std::string_view::npos)
-			{
-				int64_t value = 0;
-				auto res = std::from_chars(buf.data() + 1, buf.data() + pos, value);
-				if (res.ec == std::errc())
-					return  { value, pos + 1 };
-			}
-		}
-		return { 0, 0 };
-	}
 
 	size_t Torrent::ParsePieces (std::string_view buf)
 	{
@@ -144,99 +188,48 @@ namespace torrents
 
 	size_t Torrent::ParseInfo (std::string_view buf)
 	{
-		if (buf[0] != 'd') return 0;
-		buf = buf.substr (1);
-		size_t len = 1;
-		while (!buf.empty () && buf[0] != 'e')
+		size_t len = ParseDictionary (buf, [this](std::string_view key, std::string_view buf)->size_t
+			{
+				if (key == "length")
+				{
+					auto [value, l] = ExtractInteger (buf);
+					if (l) m_Length = value;
+					return l;
+				}
+				else if (key == "name")
+				{
+					auto [name, l] = ExtractByteString (buf);
+					if (l) m_Name = name;
+					return l;
+				}
+				else if (key == "piece length")
+				{
+					auto [value, l] = ExtractInteger (buf);
+					if (l)  m_PieceLength = value;
+					return l;
+				}
+				else if (key == "pieces")
+				{
+					if (m_PieceLength > 0 && m_Length > 0)
+						m_Pieces.reserve (m_Length/m_PieceLength + 1);
+					return ParsePieces (buf);
+				}
+				return 0;
+			});
+		if (!len) return 0;
+		// calculate info hash
+		uint8_t digest[SHA_DIGEST_LENGTH];
+		SHA1 ((const uint8_t *)buf.data (), len, digest);
+		// convert info hash to hex chars
+		BIGNUM * bn = BN_bin2bn (digest, SHA_DIGEST_LENGTH, nullptr);
+		char * str = BN_bn2hex (bn);
+		if (str)
 		{
-			auto [key, offset] = ExtractByteString (buf);
-			if (!offset) break;
-			len += offset;
-			buf = buf.substr (offset);
-			if (key == "length")
-			{
-				auto [value, l] = ExtractInteger (buf);
-				if (!l) break;
-				len += l;
-				m_Length = value;
-				buf = buf.substr (l);
-			}
-			else if (key == "name")
-			{
-				auto [name, l] = ExtractByteString (buf);
-				if (!l) break;
-				len += l;
-				m_Name = name;
-				buf = buf.substr (l);
-			}
-			else if (key == "piece length")
-			{
-				auto [value, l] = ExtractInteger (buf);
-				if (!l) break;
-				len += l;
-				m_PieceLength = value;
-				buf = buf.substr (l);
-			}
-			else if (key == "pieces")
-			{
-				if (m_PieceLength > 0 && m_Length > 0)
-					m_Pieces.reserve (m_Length/m_PieceLength + 1);
-				size_t l = ParsePieces (buf);
-				if (!l) break;
-				len += l;
-				buf = buf.substr (l);
-			}
-			else
-			{
-				size_t l = Skip (buf);
-				if (!l) break;
-				len += l;
-				buf = buf.substr (l);
-			}
+			m_InfoHash = str;
+			OPENSSL_free (str);
 		}
-		if (buf[0] == 'e') len++;
+		BN_free (bn);
 		return len;
-	}
-
-	size_t Torrent::Skip (std::string_view buf)
-	{
-		if (buf.empty ()) return 0;
-		size_t ret = 0;
-		switch (buf[0])
-		{
-			case 'i': // interger
-				return ExtractInteger (buf).second;
-			break;
-			case 'l': // list
-				buf = buf.substr (1); ret++;
-				while (buf[0] != 'e')
-				{
-					auto l = Skip (buf);
-					if (!l) break;
-					ret += l;
-					buf = buf.substr (l);
-				}
-				ret++;
-			break;
-			case 'd': // dictionary
-				buf = buf.substr (1); ret++;
-				while (buf[0] != 'e')
-				{
-					auto l = ExtractByteString (buf).second; //key
-					if (!l) break;
-					ret += l;
-					buf = buf.substr (l);
-					l = Skip (buf);
-					if (!l) break;
-					ret += l;
-					buf = buf.substr (l);
-				}
-				ret++;
-			break;
-			default: // byte string
-				return ExtractByteString (buf).second;
-		}
-		return ret;
 	}
 
 	i2p::http::HTTPReq Torrent::GetTrackerRequest () const
@@ -249,91 +242,49 @@ namespace torrents
 
 	void Torrent::ParseTrackerResponse (std::string_view buf)
 	{
-		// reponse is dictionary
-		if (buf[0] != 'd') return;
-		buf = buf.substr (1);
-		while (!buf.empty () && buf[0] != 'e')
-		{
-			auto [key, offset] = ExtractByteString (buf);
-			if (!offset) break;
-			buf = buf.substr (offset);
-			if (key == "interval")
+		ParseDictionary (buf, [this](std::string_view key, std::string_view buf)->size_t
 			{
-				auto [value, l] = ExtractInteger (buf);
-				if (!l) break;
-				m_Interval = value;
-				buf = buf.substr (l);
-			}
-			else if (key == "peers")
-			{
-				size_t l = ParsePeers (buf);
-				if (!l) break;
-				buf = buf.substr (l);
-			}
-			else
-			{
-				size_t l = Skip (buf);
-				if (!l) break;
-				buf = buf.substr (l);
-			}
-		}
+				if (key == "interval")
+				{
+					auto [value, l] = ExtractInteger (buf);
+					if (l) m_Interval = value;
+					return l;
+				}
+				else if (key == "peers")
+					return ParsePeers (buf);
+				return 0;
+			});
 	}
 
 	size_t Torrent::ParsePeers (std::string_view buf)
 	{
 		m_Peers.clear ();
-		//  peers is list of dictionaries
-		if (buf[0] != 'l') return 0 ;
-		buf = buf.substr (1);
-		size_t len = 1;
-		while (!buf.empty () && buf[0] != 'e')
-		{
-			size_t l = ParsePeer (buf);
-			if (!l) break;
-			len += l; buf = buf.substr (l);
-		}
-		if (buf[0] == 'e') len++;
-		return len;
+		return ParseList (buf, std::bind (&Torrent::ParsePeer, this, std::placeholders::_1));
 	}
 
 	size_t Torrent::ParsePeer (std::string_view buf)
 	{
-		if (buf[0] != 'd') return 0;
 		std::string peerID;
 		std::shared_ptr<const i2p::client::Address> addr;
-		buf = buf.substr (1);
-		size_t len = 1;
-		while (!buf.empty () && buf[0] != 'e')
-		{
-			auto [key, offset] = ExtractByteString (buf);
-			if (!offset) break;
-			len += offset;
-			buf = buf.substr (offset);
-			if (key == "id") // peer_id
+		size_t ret = ParseDictionary (buf, [&peerID, &addr](std::string_view key, std::string_view buf)->size_t
 			{
-				auto [id, l] = ExtractByteString (buf);
-				if (!l) break;
-				peerID = id;
-				len += l; buf = buf.substr (l);
-			}
-			else if (key == "ip") // address
-			{
-				auto [address, l] = ExtractByteString (buf);
-				if (!l) break;
-				addr = i2p::client::context.GetAddressBook ().GetAddress (address);
-				len += l; buf = buf.substr (l);
-			}
-			else
-			{
-				size_t l = Skip (buf);
-				if (!l) break;
-				len += l; buf = buf.substr (l);
-			}
-		}
-		if (buf[0] == 'e') len++;
-		if (addr)
+				if (key == "id") // peer_id
+				{
+					auto [id, l] = ExtractByteString (buf);
+					if (l) peerID = id;
+					return l;
+				}
+				else if (key == "ip") // address
+				{
+					auto [address, l] = ExtractByteString (buf);
+					if (l) addr = i2p::client::context.GetAddressBook ().GetAddress (address);
+					return l;
+				}
+				return 0;
+			});
+		if (ret	&& addr)
 			m_Peers.emplace_back (std::pair{ peerID, addr });
-		return len;
+		return ret;
 	}
 
 	PeerConnection::PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream):

@@ -61,13 +61,10 @@ namespace torrents
 
 		private:
 
-			std::pair<std::string_view, size_t> ExtractByteString (std::string_view buf) const;
-			std::pair<int64_t, size_t> ExtractInteger (std::string_view buf) const;
 			size_t ParsePieces (std::string_view buf);
 			size_t ParseInfo (std::string_view buf);
 			size_t ParsePeers (std::string_view buf);
 			size_t ParsePeer (std::string_view buf);
-			size_t Skip (std::string_view buf);
 
 		private:
 
