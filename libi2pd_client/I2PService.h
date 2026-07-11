@@ -127,11 +127,11 @@ namespace client
 			// Call when done to clean up (make sure Kill is called first)
 			inline void Done (std::shared_ptr<I2PServiceHandler> me) { if(m_Service) m_Service->RemoveHandler(me); }
 			// Call to talk with the owner
-			inline I2PService * GetOwner() { return m_Service; }
+			inline I2PService * GetOwner() const { return m_Service; }
 
 		private:
 
-			I2PService *m_Service;
+			I2PService * m_Service;
 			std::atomic_flag m_Dead; //To avoid cleaning up multiple times
 	};
 
