@@ -288,8 +288,116 @@ namespace torrents
 	}
 
 	PeerConnection::PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream):
-		i2p::client::I2PServiceHandler (owner), m_Stream (stream)
+		i2p::client::I2PServiceHandler (owner), m_Stream (stream), m_ReceiveBufferOffset (0)
 	{
+	}
+
+	void PeerConnection::Terminate ()
+	{
+		if (Kill()) return;
+		if (m_Stream)
+		{
+			m_Stream->Close ();
+			m_Stream = nullptr;
+		}
+		Done(shared_from_this ());
+	}
+
+	void PeerConnection::ReceiveHandshake ()
+	{
+		StreamReceive ();
+	}
+
+	void PeerConnection::StreamReceive ()
+	{
+		if (m_Stream && m_ReceiveBufferOffset < PEER_CONNECTION_RECEIVE_BUFFER_SIZE)
+		{
+			if (m_Stream->GetStatus () == i2p::stream::eStreamStatusNew ||
+				m_Stream->GetStatus () == i2p::stream::eStreamStatusOpen) // regular
+			{
+				m_Stream->AsyncReceive (boost::asio::buffer (m_ReceiveBuffer + m_ReceiveBufferOffset,
+					PEER_CONNECTION_RECEIVE_BUFFER_SIZE - m_ReceiveBufferOffset),
+					std::bind (&PeerConnection::HandleStreamReceive, shared_from_this (),
+					std::placeholders::_1, std::placeholders::_2),
+					PEER_CONNECTION_MAX_IDLE);
+			}
+			else // closed by peer
+			{
+				// get remaining data
+				auto len = m_Stream->ReadSome (m_ReceiveBuffer + m_ReceiveBufferOffset,
+					PEER_CONNECTION_RECEIVE_BUFFER_SIZE - m_ReceiveBufferOffset);
+				if (len > 0) // still some data
+				{
+					m_ReceiveBufferOffset += len;
+					HandleReceived ();
+				}
+				else // no more data*/
+					Terminate ();
+			}
+		}
+	}
+
+	void PeerConnection::HandleStreamReceive (const boost::system::error_code& ecode, size_t bytes_transferred)
+	{
+		if (ecode)
+		{
+			if (ecode != boost::asio::error::operation_aborted)
+			{
+				LogPrint (eLogError, "Torrents: Stream read error: ", ecode.message ());
+				if (bytes_transferred > 0)
+				{
+					m_ReceiveBufferOffset += bytes_transferred;
+					HandleReceived ();
+				}
+				else if (ecode == boost::asio::error::timed_out && m_Stream && m_Stream->IsOpen ())
+					StreamReceive ();
+				else
+					Terminate ();
+			}
+			else
+				Terminate ();
+		}
+		else
+		{
+			m_ReceiveBufferOffset += bytes_transferred;
+			HandleReceived ();
+			StreamReceive ();
+		}
+	}
+
+	void PeerConnection::HandleReceived ()
+	{
+		size_t offset = 0;
+		while (size_t len = HandleNextMsg (offset) > 0)
+			offset += len;
+		if (offset && offset < m_ReceiveBufferOffset)
+		{
+			// move reamining data
+			m_ReceiveBufferOffset -= offset;
+			memmove (m_ReceiveBuffer, m_ReceiveBuffer + offset, m_ReceiveBufferOffset);
+		}
+		else
+			m_ReceiveBufferOffset = 0;
+	}
+
+	size_t PeerConnection::HandleNextMsg (size_t offset)
+	{
+		if (offset >= m_ReceiveBufferOffset) return 0;
+		return HandleHandshakeMsg ();
+	}
+
+	size_t PeerConnection::HandleHandshakeMsg ()
+	{
+		if (m_ReceiveBufferOffset < HANDSHAKE_MSG_LENGTH) return 0;
+		if (m_ReceiveBuffer[0] != 19 || std::string_view ((const char *)(m_ReceiveBuffer + 1), 19) != "BitTorrent protocol")
+		{
+			LogPrint (eLogError, "Torrents: Unexpected handshake protocol string");
+			Terminate ();
+			return 0;
+		}
+		m_RemotePeerID = std::string_view ((const char *)(m_ReceiveBuffer + 48), 20);
+		// TODO:: send reply
+		return HANDSHAKE_MSG_LENGTH;
 	}
 
 	TorrentsTunnel::TorrentsTunnel (std::shared_ptr<i2p::client::ClientDestination> localDestination, std::string_view torrentsDir):
@@ -304,6 +412,8 @@ namespace torrents
 	void TorrentsTunnel::Start ()
 	{
 		i2p::client::I2PService::Start ();
+		Accept ();
+
 		if (!m_TorrentsDir.empty() && i2p::fs::Exists (m_TorrentsDir))
 		{
 			std::vector<std::string> files;
@@ -348,6 +458,26 @@ namespace torrents
 		}
 		else
 			LogPrint (eLogError, "Torrents: Can't open file ", path);
+	}
+
+	void TorrentsTunnel::Accept ()
+	{
+		auto localDestination = GetLocalDestination ();
+		if (localDestination)
+		{
+			if (!localDestination->IsAcceptingStreams ()) // set it as default if not set yet
+				localDestination->AcceptStreams ([this](std::shared_ptr<i2p::stream::Stream> stream)
+					{
+						if (stream)
+						{
+							auto conn = std::make_shared<PeerConnection> (this, stream);
+							AddHandler (conn);
+							conn->ReceiveHandshake ();
+						}
+					});
+		}
+		else
+			LogPrint (eLogError, "Torrents: Local destination not set");
 	}
 
 	void TorrentsTunnel::RequestTracker (std::shared_ptr<Torrent> torrent)

@@ -30,6 +30,10 @@ namespace torrents
 	constexpr size_t REQUEST_BLOCK_SIZE = 16384;
 	constexpr int TRACKER_RESPONSE_TIMEOUT = 8; // in seconds
 	constexpr size_t TRACKER_RESPONSE_BUFFER_SIZE = 65535;
+	constexpr size_t PEER_CONNECTION_RECEIVE_BUFFER_SIZE = 16384;
+	constexpr int PEER_CONNECTION_MAX_IDLE = 3600; // in seconds
+
+	constexpr size_t HANDSHAKE_MSG_LENGTH = 68;
 
 	class Piece final
 	{
@@ -75,15 +79,30 @@ namespace torrents
 			std::list<std::pair<std::string, std::shared_ptr<const i2p::client::Address> > > m_Peers;
 	};
 
-	class PeerConnection: public i2p::client::I2PServiceHandler
+	class PeerConnection: public i2p::client::I2PServiceHandler, public std::enable_shared_from_this<PeerConnection>
 	{
 		public:
 
 			PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream);
 
+			void ReceiveHandshake ();
+
+		private:
+
+			void Terminate ();
+			void StreamReceive ();
+			void HandleStreamReceive (const boost::system::error_code& ecode, size_t bytes_transferred);
+			void HandleReceived ();
+			size_t HandleNextMsg (size_t offset);
+
+			size_t HandleHandshakeMsg ();
+
 		private:
 
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
+			uint8_t m_ReceiveBuffer[PEER_CONNECTION_RECEIVE_BUFFER_SIZE];
+			size_t m_ReceiveBufferOffset;
+			std::string m_RemotePeerID;
 	};
 
 	class TorrentsTunnel: public i2p::client::I2PService
@@ -100,6 +119,8 @@ namespace torrents
 			const char* GetName() const override { return "Torrents"; }
 
 		private:
+
+			void Accept ();
 
 			void ReadTorrentFile (const std::string& path);
 			void RequestTracker (std::shared_ptr<Torrent> torrent);
