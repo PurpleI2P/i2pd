@@ -13,6 +13,7 @@
 #include <functional>
 #include "Log.h"
 #include "FS.h"
+#include "I2PEndian.h"
 #include "ClientContext.h"
 #include "Torrents.h"
 
@@ -133,7 +134,7 @@ namespace torrents
 		int numBlocks =  d.quot;
 		if (d.rem > 0) d.quot++;
 		// set all missing bits
-		for (int i = 0; i > numBlocks; i++)
+		for (int i = 0; i < numBlocks; i++)
 			BN_set_bit (m_Missing, i);
 	}
 
@@ -293,7 +294,7 @@ namespace torrents
 
 	PeerConnection::PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream):
 		i2p::client::I2PServiceHandler (owner), m_Stream (stream), m_ReceiveBufferOffset (0),
-		m_IsHandshakeSent (false)
+		m_RemoteBitfield (nullptr), m_IsHandshakeSent (false), m_IsEstablished (false)
 	{
 	}
 
@@ -302,6 +303,11 @@ namespace torrents
 		PeerConnection (owner, stream)
 	{
 		m_Torrent = torrent;
+	}
+
+	PeerConnection::~PeerConnection ()
+	{
+		if (m_RemoteBitfield) BN_free (m_RemoteBitfield);
 	}
 
 	void PeerConnection::Terminate ()
@@ -405,7 +411,28 @@ namespace torrents
 	size_t PeerConnection::HandleNextMsg (size_t offset)
 	{
 		if (offset >= m_ReceiveBufferOffset) return 0;
-		return HandleHandshakeMsg ();
+		if (!m_IsEstablished)
+			return HandleHandshakeMsg ();
+		// regular messages
+		size_t len = m_ReceiveBufferOffset - offset;
+		if (len < 4) return 0;
+		uint32_t msgLen = bufbe32toh (m_ReceiveBuffer + offset);
+		if (len < msgLen + 4) return 0;
+		offset += 4;
+		if (msgLen >= 1)
+		{
+			switch (m_ReceiveBuffer[offset])
+			{
+				case eMessageTypeBitfield:
+					HandleBitfieldMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
+				break;
+				default:
+					LogPrint (eLogWarning, "Torrents: Unexpected message type ", (int)m_ReceiveBuffer[offset], ". Ignored");
+			};
+		}
+		else
+			LogPrint (eLogError, "Torrents: Message length is zero");
+		return msgLen + 4;
 	}
 
 	size_t PeerConnection::HandleHandshakeMsg ()
@@ -430,13 +457,15 @@ namespace torrents
 			return 0;
 		}
 		m_RemotePeerID = std::string_view ((const char *)(m_ReceiveBuffer + 48), 20);
-		SendHandshakeMsg ();
+		if (!m_IsHandshakeSent)
+			SendHandshakeMsg ();
+		m_IsEstablished = true;
 		return HANDSHAKE_MSG_LENGTH;
 	}
 
 	void PeerConnection::SendHandshakeMsg ()
 	{
-		if (m_IsHandshakeSent || !m_Torrent || !m_Stream || !m_Stream->IsOpen ()) return;
+		if (!m_Torrent || !m_Stream || !m_Stream->IsOpen ()) return;
 		uint8_t buf[HANDSHAKE_MSG_LENGTH];
 		buf[0] = 19; memcpy (buf + 1, "BitTorrent protocol", 19);
 		memset (buf + 20, 0, 8);
@@ -456,12 +485,26 @@ namespace torrents
 		m_IsHandshakeSent = true;
 	}
 
+	void PeerConnection::HandleBitfieldMsg (const uint8_t * buf, size_t len)
+	{
+		if (m_RemoteBitfield) BN_free (m_RemoteBitfield);
+		m_RemoteBitfield = BN_bin2bn (buf, len, nullptr);
+		auto rem = m_Torrent->GetNumPieces () % 8;
+		if (rem > 0)
+		{
+			BIGNUM * newBitfield = BN_new ();
+			BN_rshift (newBitfield, m_RemoteBitfield, 8 - rem);
+			BN_free (m_RemoteBitfield);
+			m_RemoteBitfield = newBitfield;
+		}
+	}
+
 	TorrentsTunnel::TorrentsTunnel (std::shared_ptr<i2p::client::ClientDestination> localDestination, std::string_view torrentsDir):
 		i2p::client::I2PService (localDestination), m_TorrentsDir (torrentsDir),
 		m_PeerID ("-I2PD-")
 	{
 		if (localDestination)
-			m_PeerID += localDestination->GetIdentHash ().ToBase32 ();
+			m_PeerID += localDestination->GetIdentHash ().ToBase64 ();
 		m_PeerID.resize (20, '0');
 	}
 

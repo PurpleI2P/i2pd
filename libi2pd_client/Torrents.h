@@ -36,6 +36,11 @@ namespace torrents
 
 	constexpr size_t HANDSHAKE_MSG_LENGTH = 68;
 
+	enum MessageType
+	{
+		eMessageTypeBitfield = 5
+	};
+
 	class Piece final
 	{
 		public:
@@ -66,6 +71,7 @@ namespace torrents
 
 			const std::string& GetName () const { return m_Name; }
 			const InfoHash& GetInfoHash () const { return m_InfoHash; }
+			size_t GetNumPieces () const { return m_Pieces.size (); };
 
 		private:
 
@@ -94,6 +100,7 @@ namespace torrents
 			PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream); // incoming
 			PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream,
 				std::shared_ptr<Torrent> torrent); // outgoing
+			~PeerConnection ();
 
 			void Connect ();
 			void ReceiveHandshake ();
@@ -111,6 +118,8 @@ namespace torrents
 			size_t HandleHandshakeMsg ();
 			void SendHandshakeMsg ();
 
+			void HandleBitfieldMsg (const uint8_t * buf, size_t len);
+
 		private:
 
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
@@ -118,7 +127,8 @@ namespace torrents
 			size_t m_ReceiveBufferOffset;
 			std::shared_ptr<Torrent> m_Torrent;
 			std::string m_RemotePeerID;
-			bool m_IsHandshakeSent;
+			BIGNUM * m_RemoteBitfield;
+			bool m_IsHandshakeSent, m_IsEstablished;
 	};
 
 	class TorrentsTunnel: public i2p::client::I2PService
