@@ -7,6 +7,7 @@
 */
 
 #include <algorithm>
+#include <fstream>
 
 #if defined(MAC_OSX)
 #if !STD_FILESYSTEM
@@ -273,10 +274,32 @@ namespace fs {
 #endif
 	}
 
-	bool Remove(const std::string & path) {
+	bool Remove(const std::string & path)
+	{
 		if (!fs_lib::exists(path))
 			return false;
 		return fs_lib::remove(path);
+	}
+
+	bool CreateAndReserveFile (const std::string& path, size_t reserve)
+	{
+		if (fs_lib::exists(path)) return false;
+		std::ofstream f(path, std::ios::binary);
+		if (!f) return false;
+		f.close();
+		if (reserve > 0)
+		{
+			try
+			{
+				fs_lib::resize_file(path, reserve);
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint (eLogError, "FS: Can't resize file ", path, " to ", reserve, " : ", ex.what());
+				return false;
+			}
+		}
+		return true;
 	}
 
 	bool CreateDirectory (const std::string& path)

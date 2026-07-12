@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2026, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -145,6 +145,8 @@ namespace fs {
 	 * @return true if file exists, false otherwise
 	 */
 	bool Exists(const std::string & path);
+
+	bool CreateAndReserveFile (const std::string& path, size_t reserve = 0);
 
 	uint32_t GetLastUpdateTime (const std::string & path); // seconds since epoch
 
