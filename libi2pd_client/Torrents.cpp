@@ -218,25 +218,29 @@ namespace torrents
 			});
 		if (!len) return 0;
 		// calculate info hash
-		uint8_t digest[SHA_DIGEST_LENGTH];
-		SHA1 ((const uint8_t *)buf.data (), len, digest);
-		// convert info hash to hex chars
-		BIGNUM * bn = BN_bin2bn (digest, SHA_DIGEST_LENGTH, nullptr);
+		SHA1 ((const uint8_t *)buf.data (), len, m_InfoHash.data ());
+		return len;
+	}
+
+	std::string Torrent::GetHexStraingInfoHash () const
+	{
+		std::string infoHash;
+		BIGNUM * bn = BN_bin2bn (m_InfoHash.data (), SHA_DIGEST_LENGTH, nullptr);
 		char * str = BN_bn2hex (bn);
 		if (str)
 		{
-			m_InfoHash = str;
+			infoHash = str;
 			OPENSSL_free (str);
 		}
 		BN_free (bn);
-		return len;
+		return infoHash;
 	}
 
 	i2p::http::HTTPReq Torrent::GetTrackerRequest () const
 	{
 		i2p::http::HTTPReq req;
 		req.parse (m_Announce);
-		req.AddHeader ("info_hash", m_InfoHash);
+		req.AddHeader ("info_hash", GetHexStraingInfoHash ());
 		return req;
 	}
 
@@ -288,8 +292,16 @@ namespace torrents
 	}
 
 	PeerConnection::PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream):
-		i2p::client::I2PServiceHandler (owner), m_Stream (stream), m_ReceiveBufferOffset (0)
+		i2p::client::I2PServiceHandler (owner), m_Stream (stream), m_ReceiveBufferOffset (0),
+		m_IsHandshakeSent (false)
 	{
+	}
+
+	PeerConnection::PeerConnection (i2p::client::I2PService * owner,
+		std::shared_ptr<i2p::stream::Stream> stream, std::shared_ptr<Torrent> torrent):
+		PeerConnection (owner, stream)
+	{
+		m_Torrent = torrent;
 	}
 
 	void PeerConnection::Terminate ()
@@ -301,6 +313,16 @@ namespace torrents
 			m_Stream = nullptr;
 		}
 		Done(shared_from_this ());
+	}
+
+	TorrentsTunnel * PeerConnection::GetTorrentsTunnel () const
+	{
+		return static_cast<TorrentsTunnel *>(GetOwner ());
+	}
+
+	void PeerConnection::Connect ()
+	{
+		SendHandshakeMsg ();
 	}
 
 	void PeerConnection::ReceiveHandshake ()
@@ -395,9 +417,43 @@ namespace torrents
 			Terminate ();
 			return 0;
 		}
+		if (GetTorrentsTunnel ())
+		{
+			Torrent::InfoHash infoHash;
+			memcpy (infoHash.data (), m_ReceiveBuffer + 28, 20);
+			m_Torrent = GetTorrentsTunnel ()->FindTorrent (infoHash);
+		}
+		if (!m_Torrent)
+		{
+			LogPrint (eLogError, "Torrents: Torrent with InfoHash not found");
+			Terminate ();
+			return 0;
+		}
 		m_RemotePeerID = std::string_view ((const char *)(m_ReceiveBuffer + 48), 20);
-		// TODO:: send reply
+		SendHandshakeMsg ();
 		return HANDSHAKE_MSG_LENGTH;
+	}
+
+	void PeerConnection::SendHandshakeMsg ()
+	{
+		if (m_IsHandshakeSent || !m_Torrent || !m_Stream || !m_Stream->IsOpen ()) return;
+		uint8_t buf[HANDSHAKE_MSG_LENGTH];
+		buf[0] = 19; memcpy (buf + 1, "BitTorrent protocol", 19);
+		memset (buf + 20, 0, 8);
+		memcpy (buf + 28, m_Torrent->GetInfoHash ().data (), 20);
+		memset (buf + 48, '0', 20);
+		if (GetTorrentsTunnel ())
+		{
+			const auto& peerID = GetTorrentsTunnel ()->GetPeerID ();
+			size_t len = peerID.length (); if (len > 20) len = 20;
+			memcpy (buf + 48, peerID.data (), len);
+		}
+		m_Stream->AsyncSend (buf, HANDSHAKE_MSG_LENGTH,
+			[s = shared_from_this ()](const boost::system::error_code& ecode)
+			{
+				if (ecode) s->Terminate ();
+			});
+		m_IsHandshakeSent = true;
 	}
 
 	TorrentsTunnel::TorrentsTunnel (std::shared_ptr<i2p::client::ClientDestination> localDestination, std::string_view torrentsDir):
@@ -450,14 +506,23 @@ namespace torrents
 				s.seekg(0, std::ios::beg);
 				char * buf = new char[len];
 				s.read(buf, len);
-				m_Torrents.emplace_back (std::make_shared<Torrent>(std::string_view{buf, len}));
+				auto torrent = std::make_shared<Torrent>(std::string_view{buf, len});
 				delete[] buf;
+				m_Torrents.emplace (torrent->GetInfoHash (), torrent);
 			}
 			else
 				LogPrint (eLogError, "Torrents: Empty file ", path);
 		}
 		else
 			LogPrint (eLogError, "Torrents: Can't open file ", path);
+	}
+
+	std::shared_ptr<Torrent> TorrentsTunnel::FindTorrent (const Torrent::InfoHash& infoHash) const
+	{
+		auto it = m_Torrents.find (infoHash);
+		if (it != m_Torrents.end ())
+			return it->second;
+		return nullptr;
 	}
 
 	void TorrentsTunnel::Accept ()
@@ -578,6 +643,23 @@ namespace torrents
 			return;
 		}
 		torrent->ParseTrackerResponse (response.substr (headersLen, contentLen));
+	}
+
+	void TorrentsTunnel::ConnectToPeer (std::shared_ptr<Torrent> torrent,
+		std::shared_ptr<const i2p::client::Address> peer)
+	{
+		if (!torrent && !peer) return;
+		CreateStream ([this, torrent](std::shared_ptr<i2p::stream::Stream> stream)
+			{
+				if (stream)
+				{
+					auto connection = std::make_shared<PeerConnection>(this, stream, torrent);
+					AddHandler (connection);
+					connection->Connect ();
+				}
+				else
+					LogPrint (eLogInfo, "Torrents: Can't connect to peer");
+			}, peer, 6881);
 	}
 }
 }

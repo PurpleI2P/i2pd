@@ -16,6 +16,7 @@
 #include <vector>
 #include <array>
 #include <list>
+#include <map>
 #include <string>
 #include <string_view>
 #include "Streaming.h"
@@ -57,13 +58,18 @@ namespace torrents
 	{
 		public:
 
+			using InfoHash = std::array<uint8_t, 20>;
+
 			Torrent (std::string_view buf);
 			i2p::http::HTTPReq GetTrackerRequest () const;
 			void ParseTrackerResponse (std::string_view buf);
 
 			const std::string& GetName () const { return m_Name; }
+			const InfoHash& GetInfoHash () const { return m_InfoHash; }
 
 		private:
+
+			std::string GetHexStraingInfoHash () const;
 
 			size_t ParsePieces (std::string_view buf);
 			size_t ParseInfo (std::string_view buf);
@@ -72,37 +78,47 @@ namespace torrents
 
 		private:
 
-			std::string m_Name, m_Announce, m_InfoHash; // 40 hex chars
+			std::string m_Name, m_Announce;
 			size_t m_Length, m_PieceLength;
 			int m_Interval;
+			InfoHash m_InfoHash; // SHA1
 			std::vector<Piece> m_Pieces;
 			std::list<std::pair<std::string, std::shared_ptr<const i2p::client::Address> > > m_Peers;
 	};
 
+	class TorrentsTunnel;
 	class PeerConnection: public i2p::client::I2PServiceHandler, public std::enable_shared_from_this<PeerConnection>
 	{
 		public:
 
-			PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream);
+			PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream); // incoming
+			PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream,
+				std::shared_ptr<Torrent> torrent); // outgoing
 
+			void Connect ();
 			void ReceiveHandshake ();
 
 		private:
 
 			void Terminate ();
+			TorrentsTunnel * GetTorrentsTunnel () const;
+
 			void StreamReceive ();
 			void HandleStreamReceive (const boost::system::error_code& ecode, size_t bytes_transferred);
 			void HandleReceived ();
 			size_t HandleNextMsg (size_t offset);
 
 			size_t HandleHandshakeMsg ();
+			void SendHandshakeMsg ();
 
 		private:
 
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
 			uint8_t m_ReceiveBuffer[PEER_CONNECTION_RECEIVE_BUFFER_SIZE];
 			size_t m_ReceiveBufferOffset;
+			std::shared_ptr<Torrent> m_Torrent;
 			std::string m_RemotePeerID;
+			bool m_IsHandshakeSent;
 	};
 
 	class TorrentsTunnel: public i2p::client::I2PService
@@ -115,6 +131,10 @@ namespace torrents
 
 			void Start () override;
 			void Stop () override;
+
+			const std::string& GetPeerID () const { return m_PeerID; }
+			std::shared_ptr<Torrent> FindTorrent (const Torrent::InfoHash& infoHash) const;
+			void ConnectToPeer (std::shared_ptr<Torrent> torrent, std::shared_ptr<const i2p::client::Address> peer);
 
 			const char* GetName() const override { return "Torrents"; }
 
@@ -132,7 +152,7 @@ namespace torrents
 		private:
 
 			std::string m_TorrentsDir, m_PeerID; // 20 characters
-			std::list<std::shared_ptr<Torrent> > m_Torrents;
+			std::map<Torrent::InfoHash, std::shared_ptr<Torrent> > m_Torrents;
 	};
 }
 }
