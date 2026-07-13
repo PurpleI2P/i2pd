@@ -155,8 +155,17 @@ namespace torrents
 
 	bool Piece::IsAvailable (int block) const
 	{
+		if (!m_Missing) return true;
 		if (block < 0 || block >= BN_num_bits (m_Missing)) return false;
 		return !BN_is_bit_set (m_Missing, block);
+	}
+
+	size_t Piece::GetNumBlocks (size_t len) const
+	{
+		auto d = lldiv (len, REQUEST_BLOCK_SIZE);
+		int numBlocks = d.quot;
+		if (d.rem > 0) numBlocks++;
+		return numBlocks;
 	}
 
 	void Piece::BlockReceived (const uint8_t * block, size_t len, size_t offset)
@@ -166,11 +175,9 @@ namespace torrents
 		memcpy (m_Data + offset, block, len);
 		if (m_Missing)
 		{
-			int block = offset/REQUEST_BLOCK_SIZE;
-			auto d = lldiv (len, REQUEST_BLOCK_SIZE);
-			int numBlocks = d.quot;
-			if (d.rem > 0) numBlocks++;
-			for (int i = 0; i < numBlocks; i++)
+			size_t block = offset/REQUEST_BLOCK_SIZE;
+			auto numBlocks = GetNumBlocks (len);
+			for (size_t i = 0; i < numBlocks; i++)
 				BN_clear_bit (m_Missing, block + i);
 		}
 
@@ -179,6 +186,7 @@ namespace torrents
 	void Piece::Dump (const std::string& fullPath, size_t offset)
 	{
 		if (!m_Data) return;
+		// TODO: file I/O must be in separate thread
 		std::ofstream f(fullPath, std::ifstream::binary);
 		if (f.is_open ())
 		{
@@ -187,6 +195,39 @@ namespace torrents
 			delete[] m_Data; m_Data = nullptr;
 			if (m_Missing) BN_free (m_Missing);
 		}
+	}
+
+	void Piece::Load (const std::string& fullPath, size_t offset)
+	{
+		if (m_Data) return;
+		// TODO: file I/O must be in separate thread
+		m_Data = new uint8_t[m_Size];
+		std::ifstream f(fullPath, std::ifstream::binary);
+		if (f.is_open ())
+		{
+			f.seekg (offset, std::ios::beg);
+			f.read ((char *)m_Data, m_Size);
+		}
+	}
+
+	std::pair<size_t, size_t> Piece::GetAvailableBuffer (size_t offset, size_t len) const
+	{
+		size_t block = offset/REQUEST_BLOCK_SIZE;
+		auto numBlocks = GetNumBlocks (len);
+		size_t ind = 0;
+		while (ind < numBlocks)
+		{
+			if (!IsAvailable (block + ind)) break;
+			ind++;
+		}
+		if (ind > 0)
+		{
+			if (offset + ind*REQUEST_BLOCK_SIZE > m_Size)
+				return { offset, m_Size - offset };
+			else
+				return { offset, ind*REQUEST_BLOCK_SIZE };
+		}
+		return { 0, 0 };
 	}
 
 	Torrent::Torrent (std::string_view buf):
@@ -357,6 +398,15 @@ namespace torrents
 		return static_cast<TorrentsTunnel *>(GetOwner ());
 	}
 
+	void PeerConnection::WriteToStream (const uint8_t * buf, size_t len)
+	{
+		m_Stream->AsyncSend (buf, len,
+			[s = shared_from_this ()](const boost::system::error_code& ecode)
+			{
+				if (ecode) s->Terminate ();
+			});
+	}
+
 	void PeerConnection::Connect ()
 	{
 		SendHandshakeMsg ();
@@ -457,6 +507,9 @@ namespace torrents
 				case eMessageTypeBitfield:
 					HandleBitfieldMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
 				break;
+				case eMessageTypeRequest:
+					HandleRequestMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
+				break;
 				case eMessageTypePiece:
 					HandlePieceMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
 				break;
@@ -511,11 +564,7 @@ namespace torrents
 			size_t len = peerID.length (); if (len > 20) len = 20;
 			memcpy (buf + 48, peerID.data (), len);
 		}
-		m_Stream->AsyncSend (buf, HANDSHAKE_MSG_LENGTH,
-			[s = shared_from_this ()](const boost::system::error_code& ecode)
-			{
-				if (ecode) s->Terminate ();
-			});
+		WriteToStream (buf, HANDSHAKE_MSG_LENGTH);
 		m_IsHandshakeSent = true;
 	}
 
@@ -546,6 +595,47 @@ namespace torrents
 			if (piece.IsComplete () && piece.VerifyHash ())
 				piece.Dump (GetTorrentsTunnel ()->GetTorrentFilePath (m_Torrent->GetName ()),
 					index*m_Torrent->GetPieceLength ());
+		}
+	}
+
+	void PeerConnection::SendPieceMsg (uint32_t index, uint32_t offset, const uint8_t * data, size_t len)
+	{
+		std::vector<uint8_t> sendBuffer(len + 8 + 5);
+		htobe32buf (sendBuffer.data (), len + 8); // length
+		sendBuffer[4] = eMessageTypePiece; // msg ID
+		htobe32buf (sendBuffer.data () + 5, index);
+		htobe32buf (sendBuffer.data () + 9, offset);
+		memcpy (sendBuffer.data () + 9, data, len);
+		WriteToStream (sendBuffer.data (), sendBuffer.size ());
+	}
+
+	void PeerConnection::HandleRequestMsg (const uint8_t * buf, size_t len)
+	{
+		if (len != REQUEST_MSG_PAYLOAD_LENGTH)
+		{
+			LogPrint (eLogWarning, "Torrents: Unexpected length of request message ", len);
+			return;
+		}
+		uint32_t index = bufbe32toh (buf);
+		uint32_t offset = bufbe32toh (buf + 4);
+		uint32_t length = bufbe32toh (buf + 8);
+		if (index < m_Torrent->GetNumPieces ())
+		{
+			Piece& piece = m_Torrent->GetPiece (index);
+			auto [availableOffset, availableLen] = piece.GetAvailableBuffer (offset, length);
+			if (availableLen)
+			{
+				auto data = piece.GetData ();
+				if (!data)
+				{
+					// try to load from file
+					piece.Load (GetTorrentsTunnel ()->GetTorrentFilePath (m_Torrent->GetName ()),
+						index*m_Torrent->GetPieceLength ());
+					data = piece.GetData ();
+				}
+				if (data)
+					SendPieceMsg (index, availableOffset, data + availableOffset, availableLen);
+			}
 		}
 	}
 

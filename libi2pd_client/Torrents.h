@@ -35,9 +35,11 @@ namespace torrents
 	constexpr int PEER_CONNECTION_MAX_IDLE = 3600; // in seconds
 
 	constexpr size_t HANDSHAKE_MSG_LENGTH = 68;
+	constexpr size_t REQUEST_MSG_PAYLOAD_LENGTH = 12;
 	enum MessageType
 	{
 		eMessageTypeBitfield = 5,
+		eMessageTypeRequest = 6,
 		eMessageTypePiece = 7
 	};
 
@@ -50,10 +52,18 @@ namespace torrents
 
 			bool IsComplete () const { return !m_Missing || BN_is_zero (m_Missing); }
 			bool VerifyHash () const;
-			bool IsAvailable (int block) const;
 
 			void BlockReceived (const uint8_t * block, size_t len, size_t offset);
 			void Dump (const std::string& fullPath, size_t offset);
+			void Load (const std::string& fullPath, size_t offset);
+			const uint8_t * GetData () const { return m_Data; }
+			size_t GetSize () const { return m_Size; }
+			std::pair<size_t, size_t> GetAvailableBuffer (size_t offset, size_t len) const; // return (offset, len) of available data
+
+		private:
+
+			bool IsAvailable (int block) const;
+			size_t GetNumBlocks (size_t len) const;
 
 		private:
 
@@ -116,6 +126,7 @@ namespace torrents
 			void Terminate ();
 			TorrentsTunnel * GetTorrentsTunnel () const;
 
+			void WriteToStream (const uint8_t * buf, size_t len);
 			void StreamReceive ();
 			void HandleStreamReceive (const boost::system::error_code& ecode, size_t bytes_transferred);
 			void HandleReceived ();
@@ -126,6 +137,8 @@ namespace torrents
 
 			void HandleBitfieldMsg (const uint8_t * buf, size_t len);
 			void HandlePieceMsg (const uint8_t * buf, size_t len);
+			void SendPieceMsg (uint32_t index, uint32_t offset, const uint8_t * data, size_t len);
+			void HandleRequestMsg (const uint8_t * buf, size_t len);
 
 		private:
 
