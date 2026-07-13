@@ -91,12 +91,11 @@ namespace torrents
 
 		private:
 
-			std::string GetHexStraingInfoHash () const;
+			std::string GetHexStringInfoHash () const;
 
 			size_t ParsePieces (std::string_view buf);
 			size_t ParseInfo (std::string_view buf);
 			size_t ParsePeers (std::string_view buf);
-			size_t ParsePeer (std::string_view buf);
 
 		private:
 
@@ -105,7 +104,7 @@ namespace torrents
 			int m_Interval;
 			InfoHash m_InfoHash; // SHA1
 			std::vector<Piece> m_Pieces;
-			std::list<std::pair<std::string, std::shared_ptr<const i2p::client::Address> > > m_Peers;
+			std::list<std::shared_ptr<const i2p::client::Address> > m_Peers;
 	};
 
 	class TorrentsTunnel;

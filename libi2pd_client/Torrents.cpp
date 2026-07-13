@@ -295,7 +295,7 @@ namespace torrents
 		return len;
 	}
 
-	std::string Torrent::GetHexStraingInfoHash () const
+	std::string Torrent::GetHexStringInfoHash () const
 	{
 		std::string infoHash;
 		BIGNUM * bn = BN_bin2bn (m_InfoHash.data (), SHA_DIGEST_LENGTH, nullptr);
@@ -313,7 +313,7 @@ namespace torrents
 	{
 		i2p::http::HTTPReq req;
 		req.parse (m_Announce);
-		req.AddHeader ("info_hash", GetHexStraingInfoHash ());
+		req.AddHeader ("info_hash", GetHexStringInfoHash ());
 		return req;
 	}
 
@@ -336,32 +336,14 @@ namespace torrents
 	size_t Torrent::ParsePeers (std::string_view buf)
 	{
 		m_Peers.clear ();
-		return ParseList (buf, std::bind (&Torrent::ParsePeer, this, std::placeholders::_1));
-	}
-
-	size_t Torrent::ParsePeer (std::string_view buf)
-	{
-		std::string peerID;
-		std::shared_ptr<const i2p::client::Address> addr;
-		size_t ret = ParseDictionary (buf, [&peerID, &addr](std::string_view key, std::string_view buf)->size_t
-			{
-				if (key == "id") // peer_id
-				{
-					auto [id, l] = ExtractByteString (buf);
-					if (l) peerID = id;
-					return l;
-				}
-				else if (key == "ip") // address
-				{
-					auto [address, l] = ExtractByteString (buf);
-					if (l) addr = i2p::client::context.GetAddressBook ().GetAddress (address);
-					return l;
-				}
-				return 0;
-			});
-		if (ret	&& addr)
-			m_Peers.emplace_back (std::pair{ peerID, addr });
-		return ret;
+		auto [hashes, len] = ExtractByteString (buf);
+		while (!hashes.empty ())
+		{
+			m_Peers.emplace_back (std::make_shared<const i2p::client::Address>(
+				i2p::data::IdentHash((const uint8_t *)hashes.substr (0, SHA256_DIGEST_LENGTH).data ())));
+			hashes = hashes.substr (SHA256_DIGEST_LENGTH);
+		}
+		return len;
 	}
 
 	PeerConnection::PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream):
@@ -745,12 +727,12 @@ namespace torrents
 			return;
 		}
 		req.AddHeader ("peer_id", m_PeerID);
-		req.AddHeader ("ip", GetLocalDestination ()->GetIdentHash ().ToBase32 () + ".b32.i2p");
+		req.AddHeader ("ip", GetLocalDestination ()->GetIdentity ()->ToBase64 ());
 		req.AddHeader ("port", std::to_string (6881));
+		req.AddHeader ("compact", "1");
 		req.AddHeader ("uploaded", "0"); // TODO
 		req.AddHeader ("downloaded", "0"); // TODO
 		req.AddHeader ("left", "1"); // TODO
-		req.AddHeader ("compact", "1"); // TODO
 		req.AddHeader ("numwant", "0"); // TODO
 		CreateStream ([this, req, torrent](std::shared_ptr<i2p::stream::Stream> stream)
 			{
