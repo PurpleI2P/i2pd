@@ -35,10 +35,10 @@ namespace torrents
 	constexpr int PEER_CONNECTION_MAX_IDLE = 3600; // in seconds
 
 	constexpr size_t HANDSHAKE_MSG_LENGTH = 68;
-
 	enum MessageType
 	{
-		eMessageTypeBitfield = 5
+		eMessageTypeBitfield = 5,
+		eMessageTypePiece = 7
 	};
 
 	class Piece final
@@ -48,9 +48,12 @@ namespace torrents
 			Piece (size_t size, const uint8_t * hash);
 			~Piece ();
 
-			bool IsComplete () const { return BN_is_zero (m_Missing); }
+			bool IsComplete () const { return !m_Missing || BN_is_zero (m_Missing); }
 			bool VerifyHash () const;
 			bool IsAvailable (int block) const;
+
+			void BlockReceived (const uint8_t * block, size_t len, size_t offset);
+			void Dump (const std::string& fullPath, size_t offset);
 
 		private:
 
@@ -70,8 +73,11 @@ namespace torrents
 			void ParseTrackerResponse (std::string_view buf);
 
 			const std::string& GetName () const { return m_Name; }
+			size_t GetLength () const { return m_Length; }
+			size_t GetPieceLength () const { return m_PieceLength; }
 			const InfoHash& GetInfoHash () const { return m_InfoHash; }
-			size_t GetNumPieces () const { return m_Pieces.size (); };
+			size_t GetNumPieces () const { return m_Pieces.size (); }
+			Piece& GetPiece (int index) { return m_Pieces[index]; }
 
 		private:
 
@@ -119,6 +125,7 @@ namespace torrents
 			void SendHandshakeMsg ();
 
 			void HandleBitfieldMsg (const uint8_t * buf, size_t len);
+			void HandlePieceMsg (const uint8_t * buf, size_t len);
 
 		private:
 
@@ -143,6 +150,7 @@ namespace torrents
 			void Stop () override;
 
 			const std::string& GetPeerID () const { return m_PeerID; }
+			std::string GetTorrentFilePath (const std::string& filename) const;
 			std::shared_ptr<Torrent> FindTorrent (const Torrent::InfoHash& infoHash) const;
 			void ConnectToPeer (std::shared_ptr<Torrent> torrent, std::shared_ptr<const i2p::client::Address> peer);
 

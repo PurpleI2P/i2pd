@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <charconv>
 #include <fstream>
+#include <sstream>
 #include <functional>
 #include "Log.h"
 #include "FS.h"
@@ -131,8 +132,8 @@ namespace torrents
 		memcpy (m_Hash, hash, SHA_DIGEST_LENGTH);
 		m_Missing = BN_new ();
 		auto d = lldiv (m_Size, REQUEST_BLOCK_SIZE);
-		int numBlocks =  d.quot;
-		if (d.rem > 0) d.quot++;
+		int numBlocks = d.quot;
+		if (d.rem > 0) numBlocks++;
 		// set all missing bits
 		for (int i = 0; i < numBlocks; i++)
 			BN_set_bit (m_Missing, i);
@@ -156,6 +157,36 @@ namespace torrents
 	{
 		if (block < 0 || block >= BN_num_bits (m_Missing)) return false;
 		return !BN_is_bit_set (m_Missing, block);
+	}
+
+	void Piece::BlockReceived (const uint8_t * block, size_t len, size_t offset)
+	{
+		if (offset + len >= m_Size) return;
+		if (!m_Data) m_Data = new uint8_t[m_Size];
+		memcpy (m_Data + offset, block, len);
+		if (m_Missing)
+		{
+			int block = offset/REQUEST_BLOCK_SIZE;
+			auto d = lldiv (len, REQUEST_BLOCK_SIZE);
+			int numBlocks = d.quot;
+			if (d.rem > 0) numBlocks++;
+			for (int i = 0; i < numBlocks; i++)
+				BN_clear_bit (m_Missing, block + i);
+		}
+
+	}
+
+	void Piece::Dump (const std::string& fullPath, size_t offset)
+	{
+		if (!m_Data) return;
+		std::ofstream f(fullPath, std::ifstream::binary);
+		if (f.is_open ())
+		{
+			f.seekp (offset, std::ios::beg);
+			f.write ((const char *)m_Data, m_Size);
+			delete[] m_Data; m_Data = nullptr;
+			if (m_Missing) BN_free (m_Missing);
+		}
 	}
 
 	Torrent::Torrent (std::string_view buf):
@@ -426,6 +457,9 @@ namespace torrents
 				case eMessageTypeBitfield:
 					HandleBitfieldMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
 				break;
+				case eMessageTypePiece:
+					HandlePieceMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
+				break;
 				default:
 					LogPrint (eLogWarning, "Torrents: Unexpected message type ", (int)m_ReceiveBuffer[offset], ". Ignored");
 			};
@@ -499,6 +533,22 @@ namespace torrents
 		}
 	}
 
+	void PeerConnection::HandlePieceMsg (const uint8_t * buf, size_t len)
+	{
+		if (len < 8) return;
+		uint32_t index = bufbe32toh (buf);
+		uint32_t offset = bufbe32toh (buf + 4);
+		len -= 8;
+		if (len && index < m_Torrent->GetNumPieces ())
+		{
+			Piece& piece = m_Torrent->GetPiece (index);
+			piece.BlockReceived (buf + 8, len, offset);
+			if (piece.IsComplete () && piece.VerifyHash ())
+				piece.Dump (GetTorrentsTunnel ()->GetTorrentFilePath (m_Torrent->GetName ()),
+					index*m_Torrent->GetPieceLength ());
+		}
+	}
+
 	TorrentsTunnel::TorrentsTunnel (std::shared_ptr<i2p::client::ClientDestination> localDestination, std::string_view torrentsDir):
 		i2p::client::I2PService (localDestination), m_TorrentsDir (torrentsDir),
 		m_PeerID ("-I2PD-")
@@ -540,7 +590,7 @@ namespace torrents
 	void TorrentsTunnel::ReadTorrentFile (const std::string& path)
 	{
 		std::ifstream s(path, std::ifstream::binary);
-		if (s.is_open ())
+		if (s)
 		{
 			s.seekg (0,std::ios::end);
 			size_t len = s.tellg ();
@@ -552,6 +602,7 @@ namespace torrents
 				auto torrent = std::make_shared<Torrent>(std::string_view{buf, len});
 				delete[] buf;
 				m_Torrents.emplace (torrent->GetInfoHash (), torrent);
+				i2p::fs::CreateAndReserveFile (GetTorrentFilePath (torrent->GetName ()), torrent->GetLength ());
 			}
 			else
 				LogPrint (eLogError, "Torrents: Empty file ", path);
@@ -703,6 +754,14 @@ namespace torrents
 				else
 					LogPrint (eLogInfo, "Torrents: Can't connect to peer");
 			}, peer, 6881);
+	}
+
+	std::string TorrentsTunnel::GetTorrentFilePath (const std::string& filename) const
+	{
+		std::stringstream s("");
+		s << m_TorrentsDir;
+		i2p::fs::_ExpandPath(s, filename);
+		return s.str ();
 	}
 }
 }
