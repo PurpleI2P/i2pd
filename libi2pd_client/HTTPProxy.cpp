@@ -506,14 +506,17 @@ namespace proxy
 			auto addr = i2p::client::context.GetAddressBook ().GetAddress (dest_host);
 			if (addr)
 			{
-				auto b32Host = addr->ToBase32 ();
-				if (!b32Host.empty ())
-					m_ClientRequest.UpdateHeader("Host", b32Host + ".b32.i2p"); // replace our name to .b32.i2p address
-				else
+				if (!str_rmatch(dest_host, ".b32.i2p"))
 				{
-					// invaild address
-					HostNotFound(dest_host);
-					return true;
+					auto b32Host = addr->ToBase32 ();
+					if (!b32Host.empty ())
+						m_ClientRequest.UpdateHeader("Host", b32Host + ".b32.i2p"); // replace our name to .b32.i2p address
+					else
+					{
+						// invaild address
+						HostNotFound(dest_host);
+						return true;
+					}
 				}
 			}
 			else
