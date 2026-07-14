@@ -187,7 +187,7 @@ namespace torrents
 	{
 		if (!m_Data) return;
 		// TODO: file I/O must be in separate thread
-		std::ofstream f(fullPath, std::ifstream::binary);
+		std::ofstream f(fullPath, std::ofstream::binary | std::ofstream::app);
 		if (f.is_open ())
 		{
 			f.seekp (offset, std::ios::beg);
@@ -344,6 +344,40 @@ namespace torrents
 			hashes = hashes.substr (SHA256_DIGEST_LENGTH);
 		}
 		return len;
+	}
+
+	std::vector<uint8_t> Torrent::CreateBitfield () const
+	{
+		BIGNUM * bitfield = BN_new ();
+		int numPieces = m_Pieces.size ();
+		for (int i = 0; i < numPieces; i++)
+		{
+			if (m_Pieces[i].IsComplete ())
+				BN_set_bit (bitfield, numPieces - i - 1);
+			else
+				BN_clear_bit (bitfield, numPieces - i - 1);
+		}
+
+		size_t bitfieldSize = 0;
+		if (!BN_is_zero (bitfield))
+		{
+			bitfieldSize = numPieces >> 3; // /8
+			uint8_t rem = numPieces & 0x07;
+			if (rem) bitfieldSize++;
+			if (rem > 0)
+			{
+				BIGNUM * newBitfield = BN_new ();
+				BN_lshift (newBitfield, bitfield, 8 - rem);
+				BN_free (bitfield);
+				bitfield = newBitfield;
+			}
+		}
+
+		std::vector<uint8_t> ret(bitfieldSize);
+		if (bitfieldSize > 0)
+			i2p::crypto::bn2buf (bitfield, ret.data (), ret.size ());
+		BN_free (bitfield);
+		return ret;
 	}
 
 	PeerConnection::PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream):
@@ -656,6 +690,8 @@ namespace torrents
 	void TorrentsTunnel::Stop ()
 	{
 		m_Torrents.clear ();
+		for (auto it: m_Torrents)
+			SaveTorrentResumeFile (it.second);
 		i2p::client::I2PService::Stop ();
 	}
 
@@ -681,6 +717,16 @@ namespace torrents
 		}
 		else
 			LogPrint (eLogError, "Torrents: Can't open file ", path);
+	}
+
+	void TorrentsTunnel::SaveTorrentResumeFile (std::shared_ptr<const Torrent> torrent)
+	{
+		if (!torrent) return;
+		auto bitfield = torrent->CreateBitfield ();
+		if (!bitfield.size ()) return;
+		std::ofstream f(GetTorrentFilePath (torrent->GetName ()) + ".resume", std::ofstream::binary);
+		if (f.is_open ())
+			f.write ((const char *)bitfield.data (), bitfield.size ());
 	}
 
 	std::shared_ptr<Torrent> TorrentsTunnel::FindTorrent (const Torrent::InfoHash& infoHash) const

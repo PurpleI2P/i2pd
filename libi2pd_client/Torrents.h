@@ -31,7 +31,7 @@ namespace torrents
 	constexpr size_t REQUEST_BLOCK_SIZE = 16384;
 	constexpr int TRACKER_RESPONSE_TIMEOUT = 8; // in seconds
 	constexpr size_t TRACKER_RESPONSE_BUFFER_SIZE = 65535;
-	constexpr size_t PEER_CONNECTION_RECEIVE_BUFFER_SIZE = 16384;
+	constexpr size_t PEER_CONNECTION_RECEIVE_BUFFER_SIZE = 65535;
 	constexpr int PEER_CONNECTION_MAX_IDLE = 3600; // in seconds
 
 	constexpr size_t HANDSHAKE_MSG_LENGTH = 68;
@@ -88,6 +88,7 @@ namespace torrents
 			const InfoHash& GetInfoHash () const { return m_InfoHash; }
 			size_t GetNumPieces () const { return m_Pieces.size (); }
 			Piece& GetPiece (int index) { return m_Pieces[index]; }
+			std::vector<uint8_t> CreateBitfield () const;
 
 		private:
 
@@ -173,6 +174,8 @@ namespace torrents
 			void Accept ();
 
 			void ReadTorrentFile (const std::string& path);
+			void SaveTorrentResumeFile (std::shared_ptr<const Torrent> torrent);
+
 			void RequestTracker (std::shared_ptr<Torrent> torrent);
 			void ReceiveFromTracker (std::shared_ptr<i2p::stream::Stream> stream,
 				std::shared_ptr<Torrent> torrent, std::shared_ptr<TrackerResponseBuffer> buf, size_t offset);
