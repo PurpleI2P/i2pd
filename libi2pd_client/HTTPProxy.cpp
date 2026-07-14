@@ -501,19 +501,39 @@ namespace proxy
 			}
 		}
 		/* check dest_host really exists and inside I2P network */
-		if (str_rmatch(dest_host, ".i2p")) {
-			if (!i2p::client::context.GetAddressBook ().GetAddress (dest_host)) {
+		if (str_rmatch(dest_host, ".i2p"))
+		{
+			auto addr = i2p::client::context.GetAddressBook ().GetAddress (dest_host);
+			if (addr)
+			{
+				auto b32Host = addr->ToBase32 ();
+				if (!b32Host.empty ())
+					m_ClientRequest.UpdateHeader("Host", b32Host + ".b32.i2p"); // replace our name to .b32.i2p address
+				else
+				{
+					// invaild address
+					HostNotFound(dest_host);
+					return true;
+				}
+			}
+			else
+			{
 				HostNotFound(dest_host);
 				return true; /* request processed */
 			}
-		} else {
-			if(m_OutproxyUrl.size()) {
+		}
+		else
+		{
+			if(m_OutproxyUrl.size())
+			{
 				LogPrint (eLogDebug, "HTTPProxy: Using outproxy ", m_OutproxyUrl);
 				if(m_ProxyURL.parse(m_OutproxyUrl))
 					ForwardToUpstreamProxy();
 				else
 					GenericProxyError(tr("Outproxy failure"), tr("Bad outproxy settings"));
-			} else {
+			}
+			else
+			{
 				LogPrint (eLogWarning, "HTTPProxy: Outproxy failure for ", dest_host, ": no outproxy enabled");
 				std::stringstream ss; ss << tr("Host %s is not inside I2P network, but outproxy is not enabled", dest_host.c_str ());
 				GenericProxyError(tr("Outproxy failure"), ss.str());

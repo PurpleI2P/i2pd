@@ -357,6 +357,22 @@ namespace client
 		identHash = hash;
 	}
 
+	std::string Address::ToBase32 () const
+	{
+		switch (addressType)
+		{
+			case eAddressIndentHash:
+				return identHash.ToBase32 ();
+			break;
+			case eAddressBlindedPublicKey:
+				if (blindedPublicKey)
+					return blindedPublicKey->ToB33 ();
+			break;
+			default: ;
+		}
+		return "";
+	}
+
 	AddressBook::AddressBook (): m_Storage(nullptr), m_IsLoaded (false),
 		m_NumRetries (0), m_DefaultSubscription (nullptr), m_SubscriptionsUpdateTimer (nullptr),
 		m_IsEnabled (true)
