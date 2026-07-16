@@ -12,6 +12,7 @@
 #include <fstream>
 #include <sstream>
 #include <functional>
+#include <openssl/bn.h>
 #include "Log.h"
 #include "FS.h"
 #include "I2PEndian.h"
@@ -223,6 +224,11 @@ namespace torrents
 		m_Connections.emplace_back (connection);
 	}
 
+	void Piece::RemoveConnection (std::shared_ptr<PeerConnection> connection)
+	{
+		m_Connections.remove_if ([connection](std::weak_ptr<PeerConnection> c) { return c.lock () == connection; });
+	}
+
 	Torrent::Torrent (std::string_view buf):
 		m_Length (0), m_PieceLength (0), m_Interval (0)
 	{
@@ -341,41 +347,29 @@ namespace torrents
 
 	std::vector<uint8_t> Torrent::CreateBitfield () const
 	{
-		BIGNUM * bitfield = BN_new ();
-		int numPieces = m_Pieces.size ();
-		for (int i = 0; i < numPieces; i++)
+		size_t numPieces = m_Pieces.size ();
+		size_t bitfieldSize = numPieces / 8;
+		if (numPieces % 8) bitfieldSize++;
+		std::vector<uint8_t> ret(bitfieldSize); // filled with 0
+		size_t idx = 0;
+		for (size_t i = 0; i < ret.size (); i++) // bytes
 		{
-			if (m_Pieces[i].IsComplete ())
-				BN_set_bit (bitfield, numPieces - i - 1);
-			else
-				BN_clear_bit (bitfield, numPieces - i - 1);
-		}
-
-		size_t bitfieldSize = 0;
-		if (!BN_is_zero (bitfield))
-		{
-			bitfieldSize = numPieces >> 3; // /8
-			uint8_t rem = numPieces & 0x07;
-			if (rem) bitfieldSize++;
-			if (rem > 0)
+			uint8_t bit = 0x80;
+			for (int j = 0; j < 8; j++)
 			{
-				BIGNUM * newBitfield = BN_new ();
-				BN_lshift (newBitfield, bitfield, 8 - rem);
-				BN_free (bitfield);
-				bitfield = newBitfield;
+				if (idx >= numPieces) break;
+				if (m_Pieces[idx].IsComplete ())
+					ret[i] |= bit;
+				bit >>= 1;
+				idx++;
 			}
 		}
-
-		std::vector<uint8_t> ret(bitfieldSize);
-		if (bitfieldSize > 0)
-			i2p::crypto::bn2buf (bitfield, ret.data (), ret.size ());
-		BN_free (bitfield);
 		return ret;
 	}
 
 	PeerConnection::PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream):
 		i2p::client::I2PServiceHandler (owner), m_Stream (stream), m_ReceiveBufferOffset (0),
-		m_RemoteBitfield (nullptr), m_IsHandshakeSent (false), m_IsEstablished (false)
+		m_IsHandshakeSent (false), m_IsEstablished (false)
 	{
 	}
 
@@ -388,7 +382,6 @@ namespace torrents
 
 	PeerConnection::~PeerConnection ()
 	{
-		if (m_RemoteBitfield) BN_free (m_RemoteBitfield);
 	}
 
 	void PeerConnection::Terminate ()
@@ -522,6 +515,12 @@ namespace torrents
 				case eMessageTypePiece:
 					HandlePieceMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
 				break;
+				case eMessageTypeHaveAll:
+					HandleHaveAllMsg ();
+				break;
+				case eMessageTypeHaveNone:
+					HandleHaveNoneMsg ();
+				break;
 				default:
 					LogPrint (eLogWarning, "Torrents: Unexpected message type ", (int)m_ReceiveBuffer[offset], ". Ignored");
 			};
@@ -584,22 +583,24 @@ namespace torrents
 
 	void PeerConnection::HandleBitfieldMsg (const uint8_t * buf, size_t len)
 	{
-		if (m_RemoteBitfield) BN_free (m_RemoteBitfield);
-		m_RemoteBitfield = BN_bin2bn (buf, len, nullptr);
-		auto rem = m_Torrent->GetNumPieces () % 8;
-		if (rem > 0)
+		if (!m_Torrent) return;
+		size_t numPieces = m_Torrent->GetNumPieces ();
+		m_RemoteBitfield.resize (numPieces);
+		size_t idx = 0;
+		for (size_t i = 0; i < len; i++) // bytes
 		{
-			BIGNUM * newBitfield = BN_new ();
-			BN_rshift (newBitfield, m_RemoteBitfield, 8 - rem);
-			BN_free (m_RemoteBitfield);
-			m_RemoteBitfield = newBitfield;
-		}
-		if (m_Torrent)
-		{
-			size_t numPieces = m_Torrent->GetNumPieces ();
-			for (size_t i = 0; i < numPieces; i++)
-				if (BN_is_bit_set (m_RemoteBitfield, numPieces - i - 1))
-					m_Torrent->GetPiece (i).AddConnection (shared_from_this ());
+			uint8_t bit = 0x80;
+			for (int j = 0; j < 8; j++)
+			{
+				if (idx >= numPieces) break;
+				if (buf[i] & bit)
+				{
+					m_RemoteBitfield.set (idx);
+					m_Torrent->GetPiece (idx).AddConnection (shared_from_this ());
+				}
+				bit >>= 1;
+				idx++;
+			}
 		}
 	}
 
@@ -610,6 +611,34 @@ namespace torrents
 		sendBuffer[4] = eMessageTypeBitfield; // msg ID
 		memcpy (sendBuffer.data () + 5, bitfield, bitfieldLen);
 		WriteToStream (sendBuffer.data (), sendBuffer.size ());
+	}
+
+	void PeerConnection::HandleHaveAllMsg ()
+	{
+		if (!m_Torrent) return;
+		size_t numPieces = m_Torrent->GetNumPieces ();
+		m_RemoteBitfield.resize (numPieces);
+		m_RemoteBitfield.set ();
+		for (size_t i = 0; i < numPieces; i++)
+		{
+			Piece& piece = m_Torrent->GetPiece (i);
+			if (!piece.IsComplete ())
+				piece.AddConnection (shared_from_this ());
+		}
+	}
+
+	void PeerConnection::HandleHaveNoneMsg ()
+	{
+		if (!m_Torrent) return;
+		size_t numPieces = m_Torrent->GetNumPieces ();
+		m_RemoteBitfield.resize (numPieces);
+		m_RemoteBitfield.reset ();
+		for (size_t i = 0; i < numPieces; i++)
+		{
+			Piece& piece = m_Torrent->GetPiece (i);
+			if (!piece.IsComplete ())
+				piece.RemoveConnection (shared_from_this ());
+		}
 	}
 
 	void PeerConnection::HandlePieceMsg (const uint8_t * buf, size_t len)

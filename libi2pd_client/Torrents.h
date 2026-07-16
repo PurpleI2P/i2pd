@@ -10,7 +10,6 @@
 #define TORRENTS_H__
 
 #include <inttypes.h>
-#include <openssl/bn.h>
 #include <openssl/sha.h>
 #include <boost/dynamic_bitset.hpp>
 #include <memory>
@@ -41,7 +40,9 @@ namespace torrents
 	{
 		eMessageTypeBitfield = 5,
 		eMessageTypeRequest = 6,
-		eMessageTypePiece = 7
+		eMessageTypePiece = 7,
+		eMessageTypeHaveAll = 14,
+		eMessageTypeHaveNone = 15
 	};
 
 	class PeerConnection;
@@ -63,6 +64,7 @@ namespace torrents
 			std::pair<size_t, size_t> GetAvailableBuffer (size_t offset, size_t len) const; // return (offset, len) of available data
 
 			void AddConnection (std::shared_ptr<PeerConnection> connection);
+			void RemoveConnection (std::shared_ptr<PeerConnection> connection);
 
 		private:
 
@@ -142,6 +144,8 @@ namespace torrents
 
 			void HandleBitfieldMsg (const uint8_t * buf, size_t len);
 			void SendBitfieldMsg (const uint8_t * bitfield, size_t bitfieldLen);
+			void HandleHaveAllMsg ();
+			void HandleHaveNoneMsg ();
 			void HandlePieceMsg (const uint8_t * buf, size_t len);
 			void SendPieceMsg (uint32_t index, uint32_t offset, const uint8_t * data, size_t len);
 			void HandleRequestMsg (const uint8_t * buf, size_t len);
@@ -153,7 +157,7 @@ namespace torrents
 			size_t m_ReceiveBufferOffset;
 			std::shared_ptr<Torrent> m_Torrent;
 			std::string m_RemotePeerID;
-			BIGNUM * m_RemoteBitfield;
+			boost::dynamic_bitset<> m_RemoteBitfield;
 			bool m_IsHandshakeSent, m_IsEstablished;
 	};
 
