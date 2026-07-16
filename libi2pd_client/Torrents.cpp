@@ -126,23 +126,14 @@ namespace torrents
 //------------------------------------
 
 	Piece::Piece (size_t size, const uint8_t * hash):
-		m_Size (size), m_Data (nullptr)
+		m_Size (size), m_Data (nullptr), m_Blocks (GetNumBlocks (size))
 	{
-		//m_Data = m_Size > 0 ? new uint8_t[m_Size] : nullptr;
 		memcpy (m_Hash, hash, SHA_DIGEST_LENGTH);
-		m_Missing = BN_new ();
-		auto d = lldiv (m_Size, REQUEST_BLOCK_SIZE);
-		int numBlocks = d.quot;
-		if (d.rem > 0) numBlocks++;
-		// set all missing bits
-		for (int i = 0; i < numBlocks; i++)
-			BN_set_bit (m_Missing, i);
 	}
 
 	Piece::~Piece ()
 	{
 		delete[] m_Data;
-		if (m_Missing) BN_free (m_Missing);
 	}
 
 	bool Piece::VerifyHash () const
@@ -155,9 +146,9 @@ namespace torrents
 
 	bool Piece::IsAvailable (int block) const
 	{
-		if (!m_Missing) return true;
-		if (block < 0 || block >= BN_num_bits (m_Missing)) return false;
-		return !BN_is_bit_set (m_Missing, block);
+		if (m_Blocks.empty ()) return true;
+		if (block < 0 || block >= (int)m_Blocks.size ()) return false;
+		return m_Blocks.test (block);
 	}
 
 	size_t Piece::GetNumBlocks (size_t len) const
@@ -173,14 +164,10 @@ namespace torrents
 		if (offset + len >= m_Size) return;
 		if (!m_Data) m_Data = new uint8_t[m_Size];
 		memcpy (m_Data + offset, block, len);
-		if (m_Missing)
-		{
-			size_t block = offset/REQUEST_BLOCK_SIZE;
-			auto numBlocks = GetNumBlocks (len);
-			for (size_t i = 0; i < numBlocks; i++)
-				BN_clear_bit (m_Missing, block + i);
-		}
-
+		size_t startBlock = offset/REQUEST_BLOCK_SIZE;
+		auto numBlocks = GetNumBlocks (len);
+		for (size_t i = 0; i < numBlocks; i++)
+			m_Blocks.set (startBlock + i);
 	}
 
 	void Piece::Dump (const std::string& fullPath, size_t offset)
@@ -193,7 +180,7 @@ namespace torrents
 			f.seekp (offset, std::ios::beg);
 			f.write ((const char *)m_Data, m_Size);
 			delete[] m_Data; m_Data = nullptr;
-			if (m_Missing) BN_free (m_Missing);
+			m_Blocks.resize (0);
 			m_Connections.clear ();
 		}
 	}

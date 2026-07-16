@@ -12,6 +12,7 @@
 #include <inttypes.h>
 #include <openssl/bn.h>
 #include <openssl/sha.h>
+#include <boost/dynamic_bitset.hpp>
 #include <memory>
 #include <vector>
 #include <array>
@@ -51,7 +52,7 @@ namespace torrents
 			Piece (size_t size, const uint8_t * hash);
 			~Piece ();
 
-			bool IsComplete () const { return !m_Missing || BN_is_zero (m_Missing); }
+			bool IsComplete () const { return m_Blocks.all (); }
 			bool VerifyHash () const;
 
 			void BlockReceived (const uint8_t * block, size_t len, size_t offset);
@@ -72,7 +73,7 @@ namespace torrents
 
 			size_t m_Size;
 			uint8_t * m_Data, m_Hash[SHA_DIGEST_LENGTH];
-			BIGNUM * m_Missing; // bit is set if block is missing
+			boost::dynamic_bitset<> m_Blocks;
 			std::list<std::weak_ptr<PeerConnection> > m_Connections; // for incomplete pieces only
 	};
 
