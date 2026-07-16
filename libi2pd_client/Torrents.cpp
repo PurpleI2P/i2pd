@@ -194,6 +194,7 @@ namespace torrents
 			f.write ((const char *)m_Data, m_Size);
 			delete[] m_Data; m_Data = nullptr;
 			if (m_Missing) BN_free (m_Missing);
+			m_Connections.clear ();
 		}
 	}
 
@@ -228,6 +229,11 @@ namespace torrents
 				return { offset, ind*REQUEST_BLOCK_SIZE };
 		}
 		return { 0, 0 };
+	}
+
+	void Piece::AddConnection (std::shared_ptr<PeerConnection> connection)
+	{
+		m_Connections.emplace_back (connection);
 	}
 
 	Torrent::Torrent (std::string_view buf):
@@ -560,8 +566,13 @@ namespace torrents
 			return 0;
 		}
 		m_RemotePeerID = std::string_view ((const char *)(m_ReceiveBuffer + 48), 20);
+		// respond wiith handshake if incoming
 		if (!m_IsHandshakeSent)
 			SendHandshakeMsg ();
+		// send bitfield if not empty
+		auto bitfield = m_Torrent->CreateBitfield ();
+		if (bitfield.size ())
+			SendBitfieldMsg (bitfield.data (), bitfield.size ());
 		m_IsEstablished = true;
 		return HANDSHAKE_MSG_LENGTH;
 	}
@@ -596,6 +607,22 @@ namespace torrents
 			BN_free (m_RemoteBitfield);
 			m_RemoteBitfield = newBitfield;
 		}
+		if (m_Torrent)
+		{
+			size_t numPieces = m_Torrent->GetNumPieces ();
+			for (size_t i = 0; i < numPieces; i++)
+				if (BN_is_bit_set (m_RemoteBitfield, numPieces - i - 1))
+					m_Torrent->GetPiece (i).AddConnection (shared_from_this ());
+		}
+	}
+
+	void PeerConnection::SendBitfieldMsg (const uint8_t * bitfield, size_t bitfieldLen)
+	{
+		std::vector<uint8_t> sendBuffer(bitfieldLen + 5);
+		htobe32buf (sendBuffer.data (), bitfieldLen + 1); // length
+		sendBuffer[4] = eMessageTypeBitfield; // msg ID
+		memcpy (sendBuffer.data () + 5, bitfield, bitfieldLen);
+		WriteToStream (sendBuffer.data (), sendBuffer.size ());
 	}
 
 	void PeerConnection::HandlePieceMsg (const uint8_t * buf, size_t len)
@@ -617,7 +644,7 @@ namespace torrents
 	void PeerConnection::SendPieceMsg (uint32_t index, uint32_t offset, const uint8_t * data, size_t len)
 	{
 		std::vector<uint8_t> sendBuffer(len + 8 + 5);
-		htobe32buf (sendBuffer.data (), len + 8); // length
+		htobe32buf (sendBuffer.data (), len + 8 + 1); // length
 		sendBuffer[4] = eMessageTypePiece; // msg ID
 		htobe32buf (sendBuffer.data () + 5, index);
 		htobe32buf (sendBuffer.data () + 9, offset);

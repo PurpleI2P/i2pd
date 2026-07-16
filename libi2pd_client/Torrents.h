@@ -43,6 +43,7 @@ namespace torrents
 		eMessageTypePiece = 7
 	};
 
+	class PeerConnection;
 	class Piece final
 	{
 		public:
@@ -60,6 +61,8 @@ namespace torrents
 			size_t GetSize () const { return m_Size; }
 			std::pair<size_t, size_t> GetAvailableBuffer (size_t offset, size_t len) const; // return (offset, len) of available data
 
+			void AddConnection (std::shared_ptr<PeerConnection> connection);
+
 		private:
 
 			bool IsAvailable (int block) const;
@@ -70,6 +73,7 @@ namespace torrents
 			size_t m_Size;
 			uint8_t * m_Data, m_Hash[SHA_DIGEST_LENGTH];
 			BIGNUM * m_Missing; // bit is set if block is missing
+			std::list<std::weak_ptr<PeerConnection> > m_Connections; // for incomplete pieces only
 	};
 
 	class Torrent final
@@ -136,6 +140,7 @@ namespace torrents
 			void SendHandshakeMsg ();
 
 			void HandleBitfieldMsg (const uint8_t * buf, size_t len);
+			void SendBitfieldMsg (const uint8_t * bitfield, size_t bitfieldLen);
 			void HandlePieceMsg (const uint8_t * buf, size_t len);
 			void SendPieceMsg (uint32_t index, uint32_t offset, const uint8_t * data, size_t len);
 			void HandleRequestMsg (const uint8_t * buf, size_t len);
