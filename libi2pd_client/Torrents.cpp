@@ -11,12 +11,14 @@
 #include <charconv>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 #include <functional>
 #include <openssl/bn.h>
 #include "Log.h"
 #include "FS.h"
 #include "I2PEndian.h"
 #include "ClientContext.h"
+#include "Timestamp.h"
 #include "Torrents.h"
 
 namespace i2p
@@ -230,7 +232,8 @@ namespace torrents
 	}
 
 	Torrent::Torrent (std::string_view buf):
-		m_Length (0), m_PieceLength (0), m_Interval (0)
+		m_Length (0), m_PieceLength (0), m_Interval (MIN_TRACKER_REQUESTS_INTERVAL),
+		m_NextTrackerRequestTime (0)
 	{
 		ParseDictionary (buf, [this](std::string_view key, std::string_view buf)->size_t
 			{
@@ -323,7 +326,7 @@ namespace torrents
 				if (key == "interval")
 				{
 					auto [value, l] = ExtractInteger (buf);
-					if (l) m_Interval = value;
+					if (l) m_Interval = std::min (MIN_TRACKER_REQUESTS_INTERVAL, (int)value*1000); // in milliseconds
 					return l;
 				}
 				else if (key == "peers")
@@ -700,7 +703,8 @@ namespace torrents
 
 	TorrentsTunnel::TorrentsTunnel (std::shared_ptr<i2p::client::ClientDestination> localDestination, std::string_view torrentsDir):
 		i2p::client::I2PService (localDestination), m_TorrentsDir (torrentsDir),
-		m_PeerID ("-I2PD-")
+		m_PeerID ("-I2PD-"), m_Rng(i2p::util::GetMonotonicMicroseconds ()%1000000LL),
+		m_TrackerRequestsCheckTimer (GetService ())
 	{
 		if (localDestination)
 			m_PeerID += localDestination->GetIdentHash ().ToBase64 ();
@@ -728,10 +732,12 @@ namespace torrents
 				}
 			}
 		}
+		ScheduleTrackerRequestsCheck ();
 	}
 
 	void TorrentsTunnel::Stop ()
 	{
+		m_TrackerRequestsCheckTimer.cancel ();
 		m_Torrents.clear ();
 		for (auto it: m_Torrents)
 			SaveTorrentResumeFile (it.second);
@@ -923,6 +929,28 @@ namespace torrents
 		s << m_TorrentsDir;
 		i2p::fs::_ExpandPath(s, filename);
 		return s.str ();
+	}
+
+	void TorrentsTunnel::ScheduleTrackerRequestsCheck ()
+	{
+		m_TrackerRequestsCheckTimer.expires_after (std::chrono::milliseconds(TRACKER_REQUESTS_CHECK_TIMEOUT));
+		m_TrackerRequestsCheckTimer.async_wait (std::bind (&TorrentsTunnel::HandleTrackerRequestsCheckTimer,
+			this, std::placeholders::_1));
+	}
+
+	void TorrentsTunnel::HandleTrackerRequestsCheckTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			auto ts = i2p::util::GetMonotonicMilliseconds ();
+			for (auto it: m_Torrents)
+				if (ts > it.second->GetNextTrackerRequestTime ())
+				{
+					it.second->SetNextTrackerRequestTime (ts + it.second->GetInterval () + m_Rng () % TRACKER_REQUESTS_INTERVAL_VARIANCE);
+					RequestTracker (it.second);
+				}
+			ScheduleTrackerRequestsCheck ();
+		}
 	}
 }
 }

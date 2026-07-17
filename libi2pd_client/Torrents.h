@@ -11,6 +11,7 @@
 
 #include <inttypes.h>
 #include <openssl/sha.h>
+#include <boost/asio.hpp>
 #include <boost/dynamic_bitset.hpp>
 #include <memory>
 #include <vector>
@@ -19,6 +20,7 @@
 #include <map>
 #include <string>
 #include <string_view>
+#include <random>
 #include "Streaming.h"
 #include "HTTP.h"
 #include "I2PService.h"
@@ -30,6 +32,9 @@ namespace torrents
 {
 	constexpr size_t REQUEST_BLOCK_SIZE = 16384;
 	constexpr int TRACKER_RESPONSE_TIMEOUT = 8; // in seconds
+	constexpr int TRACKER_REQUESTS_CHECK_TIMEOUT = 1900; // in milliseconds
+	constexpr int MIN_TRACKER_REQUESTS_INTERVAL = 15000; // in milliseconds
+	constexpr int TRACKER_REQUESTS_INTERVAL_VARIANCE = 3000; // in milliseconds
 	constexpr size_t TRACKER_RESPONSE_BUFFER_SIZE = 65535;
 	constexpr size_t PEER_CONNECTION_RECEIVE_BUFFER_SIZE = 65535;
 	constexpr int PEER_CONNECTION_MAX_IDLE = 3600; // in seconds
@@ -92,10 +97,14 @@ namespace torrents
 			const std::string& GetName () const { return m_Name; }
 			size_t GetLength () const { return m_Length; }
 			size_t GetPieceLength () const { return m_PieceLength; }
+			int GetInterval () const { return m_Interval; }
 			const InfoHash& GetInfoHash () const { return m_InfoHash; }
 			size_t GetNumPieces () const { return m_Pieces.size (); }
 			Piece& GetPiece (int index) { return m_Pieces[index]; }
 			std::vector<uint8_t> CreateBitfield () const;
+
+			uint64_t GetNextTrackerRequestTime () const { return m_NextTrackerRequestTime; }
+			void SetNextTrackerRequestTime (uint64_t ts) { m_NextTrackerRequestTime = ts; }
 
 		private:
 
@@ -109,7 +118,8 @@ namespace torrents
 
 			std::string m_Name, m_Announce;
 			size_t m_Length, m_PieceLength;
-			int m_Interval;
+			int m_Interval; // in miiliseconds
+			uint64_t m_NextTrackerRequestTime; // monotonic millicesonds
 			InfoHash m_InfoHash; // SHA1
 			std::vector<Piece> m_Pieces;
 			std::list<std::shared_ptr<const i2p::client::Address> > m_Peers;
@@ -192,10 +202,15 @@ namespace torrents
 			void HandleTrackerResponse (std::shared_ptr<Torrent> torrent,
 				std::shared_ptr<TrackerResponseBuffer> buf, size_t len);
 
+			void ScheduleTrackerRequestsCheck ();
+			void HandleTrackerRequestsCheckTimer (const boost::system::error_code& ecode);
+
 		private:
 
 			std::string m_TorrentsDir, m_PeerID; // 20 characters
 			std::map<Torrent::InfoHash, std::shared_ptr<Torrent> > m_Torrents;
+			std::mt19937 m_Rng;
+			boost::asio::steady_timer m_TrackerRequestsCheckTimer;
 	};
 }
 }
