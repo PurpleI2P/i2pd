@@ -1,6 +1,34 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.61.0] - 2026-07-20
+### Added
+- Torsocks support in SOCKS proxy
+- Post-quantum support with LibreSSL
+- Support OpenSSL 4
+- "keepaliveinterval" for UDP client tunnel
+- Peer ordering keys and groups
+- Limit "i2p.streaming.maxOutboundSpeed" per garlic session
+- Handle 'm' and 'r' tunnel build request options
+- Support ".b32.i2p" and B33 hosts in SAM datagram destinations
+- Option to disable unveil/pledge in OpenBSD
+### Changed
+- Always send ".b32.i2p" in "Host:" header from HTTP proxy
+- Set SSU2 default crypto type to ML-KEM-768 when applicable
+- Send data with SYN streaming packet if available
+- Always send short tunnel build message for tunnel build request
+- Try to reseed again after 30 second if failed
+- Faster collect and resend NACKed streaming  packets
+- Show router caps in main window for Windows and Haiku
+- Update destination's transient keys through SAM
+- Reseeds list
+### Fixed
+- "i2cp.closeIdleTime" and "i2cp.newDestOnResume" for default HTTP and SOCKS proxy
+- Incorrect offline signature in CLOSE streaming packet
+- Websocket connection get terminated immediatly through HTTP server tunnel
+- Locale in router profiles
+- Endless reseed loop if no reseeds speficied
+
 ## [2.60.0] - 2026-04-20
 ### Added
 - "i2cp.closeIdleTime" and "i2cp.newDestOnResume" client tunnel and proxy params
@@ -24,7 +52,7 @@
 - Limit streaming receive queue size
 - Recreate zero and one hop tunnels after being offline
 - Reseeds list
- ### Fixed
+### Fixed
 - Incorrect Poly1305 tag of chiper text block in next new session reply message for ML-KEM crypto type
 - Stuck UDP client tunnel after network glitch
 - Private signing key size for offline signatures
