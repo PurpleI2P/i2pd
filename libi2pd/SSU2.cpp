@@ -1145,7 +1145,7 @@ namespace transport
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			auto ts = i2p::util::GetSecondsSinceEpoch ();
-			for (auto it = m_Relays.begin (); it != m_Relays.begin ();)
+			for (auto it = m_Relays.begin (); it != m_Relays.end ();)
 			{
 				if (it->second.expired ())
 					it = m_Relays.erase (it);
@@ -1198,7 +1198,7 @@ namespace transport
 
 			{
 				std::lock_guard<std::mutex> l(m_SessionsByRouterHashMutex);
-				for (auto it = m_SessionsByRouterHash.begin (); it != m_SessionsByRouterHash.begin ();)
+				for (auto it = m_SessionsByRouterHash.begin (); it != m_SessionsByRouterHash.end ();)
 				{
 					if (it->second.expired ())
 						it = m_SessionsByRouterHash.erase (it);
