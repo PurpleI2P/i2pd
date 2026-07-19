@@ -27,7 +27,8 @@
 - Incorrect offline signature in CLOSE streaming packet
 - Websocket connection get terminated immediatly through HTTP server tunnel
 - Locale in router profiles
-- Endless reseed loop if no reseeds speficied
+- Endless reseed loop if no reseeds specified
+- Memory leak with relay requests
 
 ## [2.60.0] - 2026-04-20
 ### Added
