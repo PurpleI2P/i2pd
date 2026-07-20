@@ -934,11 +934,11 @@ namespace stream
 		return len;
 	}
 
-	void Stream::AsyncSend (const uint8_t * buf, size_t len, SendHandler handler)
+	void Stream::AsyncSend (const uint8_t * buf, size_t len, SendHandler&& handler)
 	{
 		std::shared_ptr<i2p::stream::SendBuffer> buffer;
 		if (len > 0 && buf)
-			buffer = std::make_shared<i2p::stream::SendBuffer>(buf, len, handler);
+			buffer = std::make_shared<i2p::stream::SendBuffer>(buf, len, std::move (handler));
 		else if (handler)
 			handler(boost::system::error_code ());
 		auto s = shared_from_this ();

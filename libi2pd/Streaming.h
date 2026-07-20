@@ -122,13 +122,14 @@ namespace stream
 	};
 
 	typedef std::function<void (const boost::system::error_code& ecode)> SendHandler;
+	// should be std::move_only_function for C++23 and above
 	struct SendBuffer
 	{
 		uint8_t * buf;
 		size_t len, offset;
 		SendHandler handler;
 
-		SendBuffer (const uint8_t * b, size_t l, SendHandler h):
+		SendBuffer (const uint8_t * b, size_t l, SendHandler&& h):
 			len(l), offset (0), handler(h)
 		{
 			buf = new uint8_t[len];
@@ -197,16 +198,17 @@ namespace stream
 			bool IsIncoming () const { return m_IsIncoming; };
 			StreamStatus GetStatus () const { return m_Status; };
 			StreamingDestination& GetLocalDestination () { return m_LocalDestination; };
+			boost::asio::io_context& GetService () { return m_Service; };
 			void ResetRoutingPath ();
 
 			void HandleNextPacket (Packet * packet);
 			void HandlePing (Packet * packet);
 			size_t Send (const uint8_t * buf, size_t len);
-			void AsyncSend (const uint8_t * buf, size_t len, SendHandler handler);
+			void AsyncSend (const uint8_t * buf, size_t len, SendHandler&& handler);
 			void SendPing ();
 
 			template<typename Buffer, typename ReceiveHandler>
-			void AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout = 0);
+			void AsyncReceive (const Buffer& buffer, ReceiveHandler&& handler, int timeout = 0);
 			size_t ReadSome (uint8_t * buf, size_t len) { return ConcatenatePackets (buf, len); };
 			size_t Receive (uint8_t * buf, size_t len, int timeout);
 
@@ -246,7 +248,7 @@ namespace stream
 			void UpdateCurrentRemoteLease (bool expired = false);
 
 			template<typename Buffer, typename ReceiveHandler>
-			void HandleReceiveTimer (const boost::system::error_code& ecode, Buffer& buffer, ReceiveHandler handler, int remainingTimeout);
+			void HandleReceiveTimer (const boost::system::error_code& ecode, Buffer& buffer, ReceiveHandler&& handler, int remainingTimeout);
 
 			void ScheduleSend ();
 			void HandleSendTimer (const boost::system::error_code& ecode);
@@ -384,10 +386,10 @@ namespace stream
 //-------------------------------------------------
 
 	template<typename Buffer, typename ReceiveHandler>
-	void Stream::AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout)
+	void Stream::AsyncReceive (const Buffer& buffer, ReceiveHandler&& handler, int timeout)
 	{
 		auto s = shared_from_this();
-		boost::asio::post (m_Service, [s, buffer, handler, timeout](void)
+		boost::asio::post (m_Service, [s, buffer, handler = std::move (handler), timeout](void) mutable
 		{
 			if (!s->m_ReceiveQueue.empty () || s->m_Status == eStreamStatusReset)
 				s->HandleReceiveTimer (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), buffer, handler, 0);
@@ -397,16 +399,16 @@ namespace stream
 				s->m_ReceiveTimer.expires_after (std::chrono::seconds(t));
 				int left = timeout - t;
 				s->m_ReceiveTimer.async_wait (
-					[s, buffer, handler, left](const boost::system::error_code & ec)
+					[s, buffer, handler = std::move (handler), left](const boost::system::error_code & ec) mutable
 					{
-						s->HandleReceiveTimer(ec, buffer, handler, left);
+						s->HandleReceiveTimer(ec, buffer, std::move (handler), left);
 					});
 			}
 		});
 	}
 
 	template<typename Buffer, typename ReceiveHandler>
-	void Stream::HandleReceiveTimer (const boost::system::error_code& ecode, Buffer& buffer, ReceiveHandler handler, int remainingTimeout)
+	void Stream::HandleReceiveTimer (const boost::system::error_code& ecode, Buffer& buffer, ReceiveHandler&& handler, int remainingTimeout)
 	{
 		size_t received = ConcatenatePackets ((uint8_t *)buffer.data (), buffer.size ());
 		if (received > 0)
@@ -432,6 +434,62 @@ namespace stream
 			}
 		}
 	}
+
+//-------------------------------------------------
+
+	class BoostAsyncStream // for boost::beast and boost::asio
+	{
+		public:
+
+			using executor_type = boost::asio::any_io_executor;
+
+			BoostAsyncStream (std::shared_ptr<Stream> stream): m_Stream (stream) {}
+
+			// AsyncStream
+			executor_type get_executor() noexcept { return m_Stream->GetService ().get_executor(); }
+
+			// AsyncReadStream
+			template<typename MutableBufferSequence, typename ReadHandler>
+			void async_read_some(const MutableBufferSequence& bufs, ReadHandler&& handler)
+			{
+				size_t received = 0;
+				for (auto it = boost::asio::buffer_sequence_begin (bufs); it != boost::asio::buffer_sequence_end (bufs); it++)
+				{
+					auto len = m_Stream->ReadSome ((uint8_t *)it->data (), it->size ());
+					received += len;
+					if (received < it->size ()) break;
+				}
+				if (received > 0) // we have some data
+					handler (boost::system::error_code (), received);
+				else if (bufs.size () > 0) // wait for incoming data
+					m_Stream->AsyncReceive (*boost::asio::buffer_sequence_begin (bufs),
+						[handler = std::move (handler)](const boost::system::error_code& ecode, size_t bytes_transferred) mutable
+						{
+							handler (boost::system::error_code (), bytes_transferred);
+						});
+				else
+					handler (boost::system::error_code (), 0);
+			}
+
+			// AsyncWriteStream
+			template<typename ConstBufferSequence, typename WriteHandler>
+			void async_write_some(const ConstBufferSequence& bufs, WriteHandler&& handler)
+			{
+				size_t sent = 0;
+				for (auto it = boost::asio::buffer_sequence_begin (bufs); it != boost::asio::buffer_sequence_end (bufs); it++)
+				{
+					const auto& buf = *it;
+					sent += buf.size ();
+					m_Stream->Send ((const uint8_t *)buf.data (), buf.size ());
+					// TODO: AsyncSend wiht callback for last buf, but not possible below C++23
+				}
+				handler (boost::system::error_code (), sent);
+			}
+
+		private:
+
+			std::shared_ptr<Stream> m_Stream;
+	};
 }
 }
 
