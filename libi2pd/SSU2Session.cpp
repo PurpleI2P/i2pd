@@ -1784,6 +1784,11 @@ namespace transport
 				{
 					LogPrint (eLogDebug, "SSU2: I2NP message");
 					auto nextMsg = (buf[offset] == eI2NPTunnelData) ? NewI2NPTunnelMessage (true) : NewI2NPShortMessage ();
+					if (nextMsg->offset + size + 7 > nextMsg->maxLen) // 7 more bytes for full I2NP header
+					{
+						LogPrint (eLogWarning, "SSU2: I2NP message block size ", size, " exceeds max message size ", nextMsg->maxLen);
+						break;
+					}
 					nextMsg->len = nextMsg->offset + size + 7; // 7 more bytes for full I2NP header
 					memcpy (nextMsg->GetNTCP2Header (), buf + offset, size);
 					nextMsg->FromNTCP2 (); // SSU2 has the same format as NTCP2
@@ -2119,6 +2124,11 @@ namespace transport
 	void SSU2Session::HandleFirstFragment (const uint8_t * buf, size_t len)
 	{
 		auto msg = (buf[0] == eI2NPTunnelData) ? NewI2NPTunnelMessage (true) : NewI2NPShortMessage ();
+		if (msg->offset + len + 7 > msg->maxLen)
+		{
+			LogPrint (eLogWarning, "SSU2: First fragment size ", len, " exceeds max message size ", msg->maxLen);
+			return;
+		}
 		uint32_t msgID; memcpy (&msgID, buf + 1, 4);
 		// same format as I2NP message block
 		msg->len = msg->offset + len + 7;
