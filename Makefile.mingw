@@ -7,13 +7,7 @@ CXXFLAGS := $(CXX_DEBUG) -fPIC -msse
 INCFLAGS := -I$(DAEMON_SRC_DIR) -IWin32
 LDFLAGS := ${LD_DEBUG} -static -fPIC -msse
 
-ifeq ($(DEBUG),yes)
-	NEEDED_CXXFLAGS += -std=c++20
-else
-# temporary fix for gcc 16
-	NEEDED_CXXFLAGS += -std=c++17
-	DEFINES += -DWINVER=0x0602 -D_WIN32_WINNT=0x0602
-endif
+NEEDED_CXXFLAGS += -std=c++23
 
 DEFINES += -DWIN32_LEAN_AND_MEAN
 
