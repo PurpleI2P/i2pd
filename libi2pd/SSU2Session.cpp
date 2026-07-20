@@ -86,7 +86,7 @@ namespace transport
 		m_Server (server), m_Address (addr), m_RemoteTransports (0), m_RemotePeerTestTransports (0),
 		m_RemoteVersion (0), m_DestConnID (0), m_SourceConnID (0), m_State (eSSU2SessionStateUnknown),
 		m_SendPacketNum (0), m_ReceivePacketNum (0), m_LastDatetimeSentPacketNum (0),
-		m_IsDataReceived (false), m_RTT (SSU2_UNKNOWN_RTT),
+		m_IsDataReceived (false), m_IsInvalidMessage (false), m_RTT (SSU2_UNKNOWN_RTT),
 		m_MsgLocalExpirationTimeout (I2NP_MESSAGE_LOCAL_EXPIRATION_TIMEOUT_MAX),
 		m_MsgLocalSemiExpirationTimeout (I2NP_MESSAGE_LOCAL_EXPIRATION_TIMEOUT_MAX / 2),
 		m_WindowSize (SSU2_MIN_WINDOW_SIZE),
@@ -1428,6 +1428,13 @@ namespace transport
 
 		// handle other blocks
 		HandlePayload (decryptedPayload.data () + riSize + 3, decryptedPayload.size () - riSize - 3);
+		if (m_IsInvalidMessage)
+		{
+			LogPrint (eLogError, "SSU2: Invalid block in SessionConfirmed from ",
+				i2p::data::GetIdentHashAbbreviation (ri->GetIdentHash ()), ". Banned");
+			i2p::transport::transports.AddBan (m_RemoteEndpoint.address ());
+			return false;
+		}
 
 		Established ();
 		if (ri->GetCongestion () == i2p::data::RouterInfo::eRejectAll)
@@ -1787,6 +1794,7 @@ namespace transport
 					if (nextMsg->offset + size + 7 > nextMsg->maxLen) // 7 more bytes for full I2NP header
 					{
 						LogPrint (eLogWarning, "SSU2: I2NP message block size ", size, " exceeds max message size ", nextMsg->maxLen);
+						m_IsInvalidMessage = true;
 						break;
 					}
 					nextMsg->len = nextMsg->offset + size + 7; // 7 more bytes for full I2NP header
@@ -2127,6 +2135,7 @@ namespace transport
 		if (msg->offset + len + 7 > msg->maxLen)
 		{
 			LogPrint (eLogWarning, "SSU2: First fragment size ", len, " exceeds max message size ", msg->maxLen);
+			m_IsInvalidMessage = true;
 			return;
 		}
 		uint32_t msgID; memcpy (&msgID, buf + 1, 4);
@@ -2161,6 +2170,12 @@ namespace transport
 	void SSU2Session::HandleFollowOnFragment (const uint8_t * buf, size_t len)
 	{
 		if (len < 5) return;
+		if (len - 5 > SSU2_MAX_PACKET_SIZE)
+		{
+			LogPrint (eLogWarning, "SSU2: Follow-on fragment size ", len, " exceeds max packet size");
+			m_IsInvalidMessage = true;
+			return;
+		}
 		uint8_t fragmentNum = buf[0] >> 1;
 		if (!fragmentNum || fragmentNum >= SSU2_MAX_NUM_FRAGMENTS)
 		{

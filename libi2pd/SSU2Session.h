@@ -402,7 +402,7 @@ namespace transport
 			i2p::I2NPMessagesHandler m_Handler;
 			std::list<std::shared_ptr<I2NPMessage> > m_IntermediateQueue; // from transports
 			mutable std::mutex m_IntermediateQueueMutex;
-			bool m_IsDataReceived;
+			bool m_IsDataReceived, m_IsInvalidMessage;
 			double m_RTT;
 			int m_MsgLocalExpirationTimeout;
 			int m_MsgLocalSemiExpirationTimeout;
