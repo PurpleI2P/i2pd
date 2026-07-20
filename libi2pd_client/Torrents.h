@@ -12,6 +12,7 @@
 #include <inttypes.h>
 #include <openssl/sha.h>
 #include <boost/asio.hpp>
+#include <boost/beast.hpp>
 #include <boost/dynamic_bitset.hpp>
 #include <memory>
 #include <vector>
@@ -35,7 +36,6 @@ namespace torrents
 	constexpr int TRACKER_REQUESTS_CHECK_TIMEOUT = 1900; // in milliseconds
 	constexpr int MIN_TRACKER_REQUESTS_INTERVAL = 15000; // in milliseconds
 	constexpr int TRACKER_REQUESTS_INTERVAL_VARIANCE = 3000; // in milliseconds
-	constexpr size_t TRACKER_RESPONSE_BUFFER_SIZE = 65535;
 	constexpr size_t PEER_CONNECTION_RECEIVE_BUFFER_SIZE = 65535;
 	constexpr int PEER_CONNECTION_MAX_IDLE = 3600; // in seconds
 
@@ -91,14 +91,15 @@ namespace torrents
 			using InfoHash = std::array<uint8_t, 20>;
 
 			Torrent (std::string_view buf);
-			i2p::http::HTTPReq GetTrackerRequest () const;
 			void ParseTrackerResponse (std::string_view buf);
 
+			const std::string& GetAnnounce () const { return m_Announce; }
 			const std::string& GetName () const { return m_Name; }
 			size_t GetLength () const { return m_Length; }
 			size_t GetPieceLength () const { return m_PieceLength; }
 			int GetInterval () const { return m_Interval; }
 			const InfoHash& GetInfoHash () const { return m_InfoHash; }
+			std::string GetHexStringInfoHash () const;
 			size_t GetNumPieces () const { return m_Pieces.size (); }
 			Piece& GetPiece (int index) { return m_Pieces[index]; }
 			std::vector<uint8_t> CreateBitfield () const;
@@ -107,8 +108,6 @@ namespace torrents
 			void SetNextTrackerRequestTime (uint64_t ts) { m_NextTrackerRequestTime = ts; }
 
 		private:
-
-			std::string GetHexStringInfoHash () const;
 
 			size_t ParsePieces (std::string_view buf);
 			size_t ParseInfo (std::string_view buf);
@@ -173,8 +172,6 @@ namespace torrents
 
 	class TorrentsTunnel: public i2p::client::I2PService
 	{
-		using TrackerResponseBuffer = std::array<uint8_t, TRACKER_RESPONSE_BUFFER_SIZE>;
-
 		public:
 
 			TorrentsTunnel (std::shared_ptr<i2p::client::ClientDestination> localDestination, std::string_view torrentsDir);
@@ -197,10 +194,8 @@ namespace torrents
 			void SaveTorrentResumeFile (std::shared_ptr<const Torrent> torrent);
 
 			void RequestTracker (std::shared_ptr<Torrent> torrent);
-			void ReceiveFromTracker (std::shared_ptr<i2p::stream::Stream> stream,
-				std::shared_ptr<Torrent> torrent, std::shared_ptr<TrackerResponseBuffer> buf, size_t offset);
-			void HandleTrackerResponse (std::shared_ptr<Torrent> torrent,
-				std::shared_ptr<TrackerResponseBuffer> buf, size_t len);
+			void TrackerRequestSent (const boost::beast::error_code& ecode, size_t bytes_transferred,
+				std::shared_ptr<i2p::stream::BoostAsyncStream> httpStream, std::shared_ptr<Torrent> torrent);
 
 			void ScheduleTrackerRequestsCheck ();
 			void HandleTrackerRequestsCheckTimer (const boost::system::error_code& ecode);

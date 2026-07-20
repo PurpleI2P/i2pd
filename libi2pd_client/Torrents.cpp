@@ -311,14 +311,6 @@ namespace torrents
 		return infoHash;
 	}
 
-	i2p::http::HTTPReq Torrent::GetTrackerRequest () const
-	{
-		i2p::http::HTTPReq req;
-		req.parse (m_Announce);
-		req.AddHeader ("info_hash", GetHexStringInfoHash ());
-		return req;
-	}
-
 	void Torrent::ParseTrackerResponse (std::string_view buf)
 	{
 		ParseDictionary (buf, [this](std::string_view key, std::string_view buf)->size_t
@@ -809,9 +801,8 @@ namespace torrents
 	void TorrentsTunnel::RequestTracker (std::shared_ptr<Torrent> torrent)
 	{
 		if (!torrent) return;
-		i2p::http::HTTPReq req = torrent->GetTrackerRequest ();
 		i2p::http::URL reqURL;
-		reqURL.parse (req.uri);
+		reqURL.parse (torrent->GetAnnounce ());
 #if __cplusplus >= 202002L // C++20
 		if (!reqURL.host.ends_with (".i2p"))
 #else
@@ -821,89 +812,51 @@ namespace torrents
 			LogPrint (eLogWarning, "Torrents: Non-I2P address ", reqURL.host, " for torrent ", torrent->GetName ());
 			return;
 		}
-		req.AddHeader ("peer_id", m_PeerID);
-		req.AddHeader ("ip", GetLocalDestination ()->GetIdentity ()->ToBase64 ());
-		req.AddHeader ("port", std::to_string (6881));
-		req.AddHeader ("compact", "1");
-		req.AddHeader ("uploaded", "0"); // TODO
-		req.AddHeader ("downloaded", "0"); // TODO
-		req.AddHeader ("left", "1"); // TODO
-		req.AddHeader ("numwant", "0"); // TODO
+
+		boost::beast::http::request<boost::beast::http::string_body> req(boost::beast::http::verb::get, reqURL.path, 11); // HTTP 1.1
+		req.set ("info_hash", torrent->GetHexStringInfoHash ());
+		req.set ("peer_id", m_PeerID);
+		req.set ("ip", GetLocalDestination ()->GetIdentity ()->ToBase64 ());
+		req.set ("port", std::to_string (6881));
+		req.set ("compact", "1");
+		req.set ("uploaded", "0"); // TODO
+		req.set ("downloaded", "0"); // TODO
+		req.set ("left", "1"); // TODO
+		req.set ("numwant", "0"); // TODO
 		CreateStream ([this, req, torrent](std::shared_ptr<i2p::stream::Stream> stream)
 			{
 				if (stream)
 				{
-					auto reqStr = req.to_string ();
+					auto httpStream = std::make_shared<i2p::stream::BoostAsyncStream>(stream);
+					boost::beast::http::async_write (*httpStream, req,
+						std::bind (&TorrentsTunnel::TrackerRequestSent, this, std::placeholders::_1, std::placeholders::_2, httpStream, torrent));
+					/*auto reqStr = req.to_string ();
 					stream->Send ((const uint8_t *)reqStr.data (), reqStr.length ());
-					ReceiveFromTracker (stream, torrent, std::make_shared<TrackerResponseBuffer>(), 0);
+					ReceiveFromTracker (stream, torrent, std::make_shared<TrackerResponseBuffer>(), 0);*/
 				}
 			}, reqURL.host, reqURL.port);
 	}
 
-	void TorrentsTunnel::ReceiveFromTracker (std::shared_ptr<i2p::stream::Stream> stream,
-		std::shared_ptr<Torrent> torrent, std::shared_ptr<TrackerResponseBuffer> buf, size_t offset)
+	void TorrentsTunnel::TrackerRequestSent (const boost::beast::error_code& ecode, size_t bytes_transferred,
+		std::shared_ptr<i2p::stream::BoostAsyncStream> httpStream, std::shared_ptr<Torrent> torrent)
 	{
-		if (!stream || !buf) return;
-		if (stream->GetStatus () == i2p::stream::eStreamStatusNew ||
-			stream->GetStatus () == i2p::stream::eStreamStatusOpen) // regular
+		if (!ecode)
 		{
-			stream->AsyncReceive (boost::asio::buffer (buf->data() + offset, TRACKER_RESPONSE_BUFFER_SIZE - offset),
-				[this, stream, torrent, buf, offset](const boost::system::error_code& ecode, size_t bytes_transferred)
+			// receive
+			auto buf = std::make_shared<boost::beast::flat_buffer> ();
+			auto res = std::make_shared<boost::beast::http::response<boost::beast::http::string_body> >();
+			boost::beast::http::async_read (*httpStream, *buf, *res,
+				[httpStream, torrent, buf, res](const boost::beast::error_code& ecode, size_t bytes_transferred)
 				{
-					if (ecode)
+					if (!ecode)
 					{
-						if (ecode != boost::asio::error::operation_aborted && bytes_transferred > 0)
-							HandleTrackerResponse (torrent, buf, offset + bytes_transferred);
-						stream->Close ();
-					}
-					else
-					{
-						size_t offset1 = offset + bytes_transferred;
-						if (stream->IsOpen () && offset1 < TRACKER_RESPONSE_BUFFER_SIZE)
-							ReceiveFromTracker (stream, torrent, buf, offset1);
+						if (res->result () == boost::beast::http::status::ok)
+							torrent->ParseTrackerResponse (boost::beast::buffers_to_string (buf->data ()));
 						else
-							HandleTrackerResponse (torrent, buf, offset1);
+							LogPrint (eLogWarning, "Torrents: Tracker response code ", res->result_int());
 					}
-				}, TRACKER_RESPONSE_TIMEOUT);
+				});
 		}
-		else // closed by peer
-		{
-			// get remaining data
-			auto len = stream->ReadSome (buf->data() + offset, TRACKER_RESPONSE_BUFFER_SIZE - offset);
-			if (len > 0) // still some data
-			{
-				offset += len;
-				HandleTrackerResponse (torrent, buf, offset);
-			}
-			else // no more data
-				stream->Close ();
-		}
-	}
-
-	void TorrentsTunnel::HandleTrackerResponse (std::shared_ptr<Torrent> torrent,
-		std::shared_ptr<TrackerResponseBuffer> buf, size_t len)
-	{
-		if (!len || !torrent) return;
-		std::string_view response ((const char *)buf->data (), len);
-		i2p::http::HTTPRes res;
-		int headersLen = res.parse (response);
-		if (headersLen <= 0)
-		{
-			LogPrint (eLogWarning, "Torrents: Can't parse tracker response");
-			return;
-		}
-		if (res.code != 200)
-		{
-			LogPrint (eLogWarning, "Torrents: Tracker response code ", res.code);
-			return;
-		}
-		int contentLen = res.content_length();
-		if (headersLen + contentLen > (int)len)
-		{
-			LogPrint (eLogWarning, "Torrents: Tracker response incomplete");
-			return;
-		}
-		torrent->ParseTrackerResponse (response.substr (headersLen, contentLen));
 	}
 
 	void TorrentsTunnel::ConnectToPeer (std::shared_ptr<Torrent> torrent,
