@@ -13,13 +13,16 @@ LDFLAGS ?= ${LD_DEBUG}
 CXXVER := $(shell $(CXX) -dumpversion)
 ifeq ($(shell expr match $(CXX) 'clang'),5)
 	NEEDED_CXXFLAGS += -std=c++20
+else ifeq ($(shell expr match ${CXXVER} "10"),2) # gcc 10
+# for Debian 11
+	NEEDED_CXXFLAGS += -std=c++17
 else ifeq ($(shell expr match ${CXXVER} "11"),2) # gcc 11
 	NEEDED_CXXFLAGS += -std=c++20
 else ifeq ($(shell expr match ${CXXVER} "12"),2) # gcc 12
 # for Debian 12 with boost 1.74
 	NEEDED_CXXFLAGS += -std=c++17 -Wno-bidi-chars
 else ifeq ($(shell expr match ${CXXVER} "13"),2) # gcc 13
-	NEEDED_CXXFLAGS += -std=c++20
+	NEEDED_CXXFLAGS += -std=c++20 -Wno-bidi-chars
 else ifeq ($(shell expr match ${CXXVER} "1[4-9]"),2) # gcc 14+
 	NEEDED_CXXFLAGS += -std=c++23 -Wno-bidi-chars
 else # not supported
