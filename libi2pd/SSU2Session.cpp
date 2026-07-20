@@ -1431,8 +1431,9 @@ namespace transport
 		if (m_IsInvalidMessage)
 		{
 			LogPrint (eLogError, "SSU2: Invalid block in SessionConfirmed from ",
-				i2p::data::GetIdentHashAbbreviation (ri->GetIdentHash ()), ". Banned");
-			i2p::transport::transports.AddBan (m_RemoteEndpoint.address ());
+				i2p::data::GetIdentHashAbbreviation (ri->GetIdentHash ()));
+			if (m_Address->published)
+				i2p::transport::transports.AddBan (m_RemoteEndpoint.address ());
 			return false;
 		}
 
