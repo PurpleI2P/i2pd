@@ -186,6 +186,13 @@ namespace transport
 			int fragmentNum;
 			bool isLast;
 			std::shared_ptr<Fragment> next;
+
+			Fragment (const uint8_t * b, size_t l, int fn, bool last):
+				len (l), fragmentNum (fn), isLast (last)
+			{
+				if (len > SSU2_MAX_PACKET_SIZE) len = SSU2_MAX_PACKET_SIZE;
+				memcpy (buf, b, len);
+			}
 		};
 
 		std::shared_ptr<I2NPMessage> msg;

@@ -2194,13 +2194,8 @@ namespace transport
 			msg->nextFragmentNum = 0;
 			it = m_IncompleteMessages.emplace (msgID, msg).first;
 		}
-		// insert out of sequence fragment
-		auto fragment = m_Server.GetFragmentsPool ().AcquireShared ();
-		memcpy (fragment->buf, buf + 5, len -5);
-		fragment->len = len - 5;
-		fragment->fragmentNum = fragmentNum;
-		fragment->isLast = isLast;
-		it->second->AddOutOfSequenceFragment (fragment);
+		// insert new out of sequence fragment
+		it->second->AddOutOfSequenceFragment(m_Server.GetFragmentsPool ().AcquireShared (buf + 5, len - 5, fragmentNum, isLast));
 	}
 
 	void SSU2Session::HandleRelayRequest (const uint8_t * buf, size_t len)
