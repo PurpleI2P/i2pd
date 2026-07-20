@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2023-2025, The PurpleI2P Project
+* Copyright (c) 2023-2026, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -48,7 +48,7 @@ namespace polish // language namespace
 		{"Main page", "Strona główna"},
 		{"Router commands", "Komendy routera"},
 		{"Local Destinations", "Lokalne miejsca docelowe"},
-		{"LeaseSets", "ZestawyNajmu"},
+		{"LeaseSets", "LeaseSety"},
 		{"Tunnels", "Tunele"},
 		{"Transit Tunnels", "Tunele Tranzytu"},
 		{"Transports", "Transportery"},
