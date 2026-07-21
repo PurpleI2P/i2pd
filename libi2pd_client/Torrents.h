@@ -38,6 +38,8 @@ namespace torrents
 	constexpr int TRACKER_REQUESTS_INTERVAL_VARIANCE = 3000; // in milliseconds
 	constexpr size_t PEER_CONNECTION_RECEIVE_BUFFER_SIZE = 65535;
 	constexpr int PEER_CONNECTION_MAX_IDLE = 3600; // in seconds
+	constexpr int PEER_KEEP_ALIVE_INTERVAL = 120; // in seconds
+	constexpr int PEER_KEEP_ALIVE_CHECK_TIMEOUT = 15; // in seconds
 
 	constexpr size_t HANDSHAKE_MSG_LENGTH = 68;
 	constexpr size_t REQUEST_MSG_PAYLOAD_LENGTH = 12;
@@ -136,6 +138,9 @@ namespace torrents
 
 			void Connect ();
 			void ReceiveHandshake ();
+			void CheckKeepAlive (uint64_t ts);
+
+			void RequestPiece (uint32_t index);
 
 		private:
 
@@ -168,6 +173,7 @@ namespace torrents
 			std::string m_RemotePeerID;
 			boost::dynamic_bitset<> m_RemoteBitfield;
 			bool m_IsHandshakeSent, m_IsEstablished;
+			uint64_t m_LastReceiveTime, m_LastSendTime; // monotonic seconds
 	};
 
 	class TorrentsTunnel: public i2p::client::I2PService
@@ -195,17 +201,21 @@ namespace torrents
 
 			void RequestTracker (std::shared_ptr<Torrent> torrent);
 			void TrackerRequestSent (const boost::beast::error_code& ecode, size_t bytes_transferred,
-				std::shared_ptr<i2p::stream::BoostAsyncStream> httpStream, std::shared_ptr<Torrent> torrent);
+				std::shared_ptr<i2p::stream::BoostAsyncStream> httpStream, std::shared_ptr<Torrent> torrent,
+				std::shared_ptr<boost::beast::http::request<boost::beast::http::string_body> > req);
 
 			void ScheduleTrackerRequestsCheck ();
 			void HandleTrackerRequestsCheckTimer (const boost::system::error_code& ecode);
+
+			void ScheduleKeepAliveCheck ();
+			void HandleKeepAliveCheckTimer (const boost::system::error_code& ecode);
 
 		private:
 
 			std::string m_TorrentsDir, m_PeerID; // 20 characters
 			std::map<Torrent::InfoHash, std::shared_ptr<Torrent> > m_Torrents;
 			std::mt19937 m_Rng;
-			boost::asio::steady_timer m_TrackerRequestsCheckTimer;
+			boost::asio::steady_timer m_TrackerRequestsCheckTimer, m_KeepAliveCheckTimer;
 	};
 }
 }

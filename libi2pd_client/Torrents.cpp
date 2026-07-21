@@ -364,7 +364,7 @@ namespace torrents
 
 	PeerConnection::PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream):
 		i2p::client::I2PServiceHandler (owner), m_Stream (stream), m_ReceiveBufferOffset (0),
-		m_IsHandshakeSent (false), m_IsEstablished (false)
+		m_IsHandshakeSent (false), m_IsEstablished (false), m_LastReceiveTime (0), m_LastSendTime (0)
 	{
 	}
 
@@ -402,6 +402,7 @@ namespace torrents
 			{
 				if (ecode) s->Terminate ();
 			});
+		m_LastSendTime = i2p::util::GetMonotonicSeconds ();
 	}
 
 	void PeerConnection::Connect ()
@@ -412,6 +413,17 @@ namespace torrents
 	void PeerConnection::ReceiveHandshake ()
 	{
 		StreamReceive ();
+	}
+
+	void PeerConnection::CheckKeepAlive (uint64_t ts)
+	{
+		if (ts > m_LastSendTime)
+		{
+			// send keep-alive
+			uint32_t len = 0;
+			WriteToStream ((const uint8_t *)&len, 4);
+			m_LastSendTime = ts;
+		}
 	}
 
 	void PeerConnection::StreamReceive ()
@@ -473,12 +485,13 @@ namespace torrents
 
 	void PeerConnection::HandleReceived ()
 	{
+		m_LastReceiveTime = i2p::util::GetMonotonicSeconds ();
 		size_t offset = 0;
 		while (size_t len = HandleNextMsg (offset) > 0)
 			offset += len;
 		if (offset && offset < m_ReceiveBufferOffset)
 		{
-			// move reamining data
+			// move remaining data
 			m_ReceiveBufferOffset -= offset;
 			memmove (m_ReceiveBuffer, m_ReceiveBuffer + offset, m_ReceiveBufferOffset);
 		}
@@ -521,7 +534,7 @@ namespace torrents
 			};
 		}
 		else
-			LogPrint (eLogError, "Torrents: Message length is zero");
+			LogPrint (eLogInfo, "Torrents: Keep-alieve received");
 		return msgLen + 4;
 	}
 
@@ -659,7 +672,7 @@ namespace torrents
 		sendBuffer[4] = eMessageTypePiece; // msg ID
 		htobe32buf (sendBuffer.data () + 5, index);
 		htobe32buf (sendBuffer.data () + 9, offset);
-		memcpy (sendBuffer.data () + 9, data, len);
+		memcpy (sendBuffer.data () + 13, data, len);
 		WriteToStream (sendBuffer.data (), sendBuffer.size ());
 	}
 
@@ -693,10 +706,22 @@ namespace torrents
 		}
 	}
 
+	void PeerConnection::RequestPiece (uint32_t index)
+	{
+		if (!m_Torrent) return;
+		std::vector<uint8_t> sendBuffer (REQUEST_MSG_PAYLOAD_LENGTH + 5);
+		htobe32buf (sendBuffer.data (), REQUEST_MSG_PAYLOAD_LENGTH + 1); // msg length
+		sendBuffer[4] = eMessageTypeRequest; // msg ID
+		htobe32buf (sendBuffer.data () + 5, index); // index
+		memset (sendBuffer.data () + 9, 0, 4); // offset
+		htobe32buf (sendBuffer.data () + 13, m_Torrent->GetPieceLength ()); // length
+		WriteToStream (sendBuffer.data (), sendBuffer.size ());
+	}
+
 	TorrentsTunnel::TorrentsTunnel (std::shared_ptr<i2p::client::ClientDestination> localDestination, std::string_view torrentsDir):
 		i2p::client::I2PService (localDestination), m_TorrentsDir (torrentsDir),
 		m_PeerID ("-I2PD-"), m_Rng(i2p::util::GetMonotonicMicroseconds ()%1000000LL),
-		m_TrackerRequestsCheckTimer (GetService ())
+		m_TrackerRequestsCheckTimer (GetService ()), m_KeepAliveCheckTimer (GetService ())
 	{
 		if (localDestination)
 			m_PeerID += localDestination->GetIdentHash ().ToBase64 ();
@@ -725,11 +750,13 @@ namespace torrents
 			}
 		}
 		ScheduleTrackerRequestsCheck ();
+		ScheduleKeepAliveCheck ();
 	}
 
 	void TorrentsTunnel::Stop ()
 	{
 		m_TrackerRequestsCheckTimer.cancel ();
+		m_KeepAliveCheckTimer.cancel ();
 		m_Torrents.clear ();
 		for (auto it: m_Torrents)
 			SaveTorrentResumeFile (it.second);
@@ -813,32 +840,30 @@ namespace torrents
 			return;
 		}
 
-		boost::beast::http::request<boost::beast::http::string_body> req(boost::beast::http::verb::get, reqURL.path, 11); // HTTP 1.1
-		req.set ("info_hash", torrent->GetHexStringInfoHash ());
-		req.set ("peer_id", m_PeerID);
-		req.set ("ip", GetLocalDestination ()->GetIdentity ()->ToBase64 ());
-		req.set ("port", std::to_string (6881));
-		req.set ("compact", "1");
-		req.set ("uploaded", "0"); // TODO
-		req.set ("downloaded", "0"); // TODO
-		req.set ("left", "1"); // TODO
-		req.set ("numwant", "0"); // TODO
+		auto req = std::make_shared<boost::beast::http::request<boost::beast::http::string_body> >(boost::beast::http::verb::get, reqURL.path, 11); // HTTP 1.1
+		req->set ("info_hash", torrent->GetHexStringInfoHash ());
+		req->set ("peer_id", m_PeerID);
+		req->set ("ip", GetLocalDestination ()->GetIdentity ()->ToBase64 ());
+		req->set ("port", std::to_string (6881));
+		req->set ("compact", "1");
+		req->set ("uploaded", "0"); // TODO
+		req->set ("downloaded", "0"); // TODO
+		req->set ("left", "1"); // TODO
+		req->set ("numwant", "0"); // TODO
 		CreateStream ([this, req, torrent](std::shared_ptr<i2p::stream::Stream> stream)
 			{
 				if (stream)
 				{
 					auto httpStream = std::make_shared<i2p::stream::BoostAsyncStream>(stream);
-					boost::beast::http::async_write (*httpStream, req,
-						std::bind (&TorrentsTunnel::TrackerRequestSent, this, std::placeholders::_1, std::placeholders::_2, httpStream, torrent));
-					/*auto reqStr = req.to_string ();
-					stream->Send ((const uint8_t *)reqStr.data (), reqStr.length ());
-					ReceiveFromTracker (stream, torrent, std::make_shared<TrackerResponseBuffer>(), 0);*/
+					boost::beast::http::async_write (*httpStream, *req,
+						std::bind (&TorrentsTunnel::TrackerRequestSent, this, std::placeholders::_1, std::placeholders::_2, httpStream, torrent, req));
 				}
 			}, reqURL.host, reqURL.port);
 	}
 
 	void TorrentsTunnel::TrackerRequestSent (const boost::beast::error_code& ecode, size_t bytes_transferred,
-		std::shared_ptr<i2p::stream::BoostAsyncStream> httpStream, std::shared_ptr<Torrent> torrent)
+		std::shared_ptr<i2p::stream::BoostAsyncStream> httpStream, std::shared_ptr<Torrent> torrent,
+		std::shared_ptr<boost::beast::http::request<boost::beast::http::string_body> > req)
 	{
 		if (!ecode)
 		{
@@ -903,6 +928,27 @@ namespace torrents
 					RequestTracker (it.second);
 				}
 			ScheduleTrackerRequestsCheck ();
+		}
+	}
+
+	void TorrentsTunnel::ScheduleKeepAliveCheck ()
+	{
+		m_KeepAliveCheckTimer.expires_after (std::chrono::seconds(PEER_KEEP_ALIVE_CHECK_TIMEOUT));
+		m_KeepAliveCheckTimer.async_wait (std::bind (&TorrentsTunnel::HandleKeepAliveCheckTimer,
+			this, std::placeholders::_1));
+	}
+
+	void TorrentsTunnel::HandleKeepAliveCheckTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			auto ts = i2p::util::GetMonotonicSeconds ();
+			IterateHandlers ([ts](std::shared_ptr<i2p::client::I2PServiceHandler> handler)
+				{
+					if (handler)
+						std::static_pointer_cast<PeerConnection>(handler)->CheckKeepAlive (ts);
+				});
+			ScheduleKeepAliveCheck ();
 		}
 	}
 }
