@@ -215,7 +215,8 @@ namespace client
 		{
 			if (ecode != boost::asio::error::operation_aborted)
 			{
-				LogPrint (eLogError, "I2PTunnel: Read error: ", ecode.message ());
+				if (ecode != boost::asio::error::bad_descriptor && ecode != boost::asio::error::eof)
+					LogPrint (eLogError, "I2PTunnel: Read error: ", ecode.message ());
 				Terminate ();
 			}
 		}
@@ -269,9 +270,12 @@ namespace client
 	{
 		if (ecode)
 		{
-			LogPrint (eLogError, "I2PTunnel: Write error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
+			{
+				if (ecode != boost::asio::error::bad_descriptor)
+					LogPrint (eLogError, "I2PTunnel: Write error: ", ecode.message ());
 				Terminate ();
+			}
 		}
 		else
 			StreamReceive ();
