@@ -121,7 +121,7 @@ namespace stream
 		};
 	};
 
-#if __cplusplus >= 202302L // C++23
+#ifdef __cpp_lib_move_only_function // with C++23
 	typedef std::move_only_function<void (const boost::system::error_code& ecode)> SendHandler;
 #else
 	typedef std::function<void (const boost::system::error_code& ecode)> SendHandler;
