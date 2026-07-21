@@ -281,7 +281,7 @@ namespace transport
 
 			// for HTTP only
 			const NTCP2Server * GetNTCP2Server () const { return m_NTCP2Server; };
-			const SSU2Server * GetSSU2Server () const { return m_SSU2Server; };
+			SSU2Server * GetSSU2Server () const { return m_SSU2Server; };
 			const decltype(m_Peers)& GetPeers () const { return m_Peers; };
 	};
 

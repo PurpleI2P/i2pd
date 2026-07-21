@@ -16,6 +16,7 @@
 #include <array>
 #include <mutex>
 #include <random>
+#include <future>
 #include "util.h"
 #include "SSU2Session.h"
 #include "SSU2OutOfSession.h"
@@ -96,6 +97,8 @@ namespace transport
 			bool IsMaxNumIntroducers (bool v4) const { return (v4 ? m_Introducers.size () : m_IntroducersV6.size ()) >= SSU2_MAX_NUM_INTRODUCERS; }
 			bool IsSyncClockFromPeers () const { return m_IsSyncClockFromPeers; };
 			void AdjustTimeOffset (int64_t offset, std::shared_ptr<const i2p::data::IdentityEx> from);
+
+			using SSU2Sessions = std::unordered_map<uint64_t, std::shared_ptr<SSU2Session> >;
 
 			bool AddSession (std::shared_ptr<SSU2Session> session);
 			void RemoveSession (uint64_t connID);
@@ -188,7 +191,7 @@ namespace transport
 			ReceiveService m_ReceiveService;
 			boost::asio::ip::udp::socket m_SocketV4, m_SocketV6;
 			boost::asio::ip::address m_AddressV4, m_AddressV6;
-			std::unordered_map<uint64_t, std::shared_ptr<SSU2Session> > m_Sessions;
+			SSU2Sessions m_Sessions;
 			std::unordered_map<i2p::data::IdentHash, std::weak_ptr<SSU2Session> > m_SessionsByRouterHash;
 			mutable std::mutex m_SessionsByRouterHashMutex;
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSU2Session> > m_PendingOutgoingSessions;
@@ -231,7 +234,11 @@ namespace transport
 		public:
 
 			// for HTTP/I2PControl
-			const decltype(m_Sessions)& GetSSU2Sessions () const { return m_Sessions; };
+			std::future<void> GetSSU2Sessions (SSU2Sessions& sessions)
+			{
+				return boost::asio::post (GetService (),
+					boost::asio::use_future ([this, &sessions]() { sessions = m_Sessions; }));
+			};
 	};
 }
 }

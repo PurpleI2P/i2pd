@@ -1016,7 +1016,8 @@ namespace http {
 		auto ssu2Server = i2p::transport::transports.GetSSU2Server ();
 		if (ssu2Server)
 		{
-			auto sessions = ssu2Server->GetSSU2Sessions ();
+			i2p::transport::SSU2Server::SSU2Sessions sessions;
+			ssu2Server->GetSSU2Sessions (sessions).get ();
 			if (!sessions.empty ())
 				ShowTransportSessions (s, sessions, "SSU2");
 		}
