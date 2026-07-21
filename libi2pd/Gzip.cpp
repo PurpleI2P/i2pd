@@ -140,22 +140,25 @@ namespace data
 		int err = 0;
 		for (const auto& it: bufs)
 		{
-			m_Deflator.next_in = const_cast<uint8_t *>(it.first);
-			m_Deflator.avail_in = it.second;
-			m_Deflator.next_out = out + offset;
-			m_Deflator.avail_out = outLen - offset;
-			auto flush = (it == bufs.back ()) ? Z_FINISH : Z_NO_FLUSH;
-			err = deflate (&m_Deflator, flush);
-			if (err)
+			if (it.second > 0)
 			{
-				if (flush && err == Z_STREAM_END)
+				m_Deflator.next_in = const_cast<uint8_t *>(it.first);
+				m_Deflator.avail_in = it.second;
+				m_Deflator.next_out = out + offset;
+				m_Deflator.avail_out = outLen - offset;
+				auto flush = (it == bufs.back ()) ? Z_FINISH : Z_NO_FLUSH;
+				err = deflate (&m_Deflator, flush);
+				if (err)
 				{
-					out[9] = 0xff; // OS is always unknown
-					return outLen - m_Deflator.avail_out;
+					if (flush && err == Z_STREAM_END)
+					{
+						out[9] = 0xff; // OS is always unknown
+						return outLen - m_Deflator.avail_out;
+					}
+					break;
 				}
-				break;
+				offset = outLen - m_Deflator.avail_out;
 			}
-			offset = outLen - m_Deflator.avail_out;
 		}
 		// else
 		if (err)
@@ -170,9 +173,14 @@ namespace data
 		memcpy (out, gzipHeader, 11);
 		htole16buf (out + 11, inLen);
 		htole16buf (out + 13, 0xffff - inLen);
-		memcpy (out + 15, in, inLen);
-		htole32buf (out + inLen + 15, crc32 (0, in, inLen));
-		htole32buf (out + inLen + 19, inLen);
+		if (inLen > 0)
+		{
+			memcpy (out + 15, in, inLen);
+			htole32buf (out + inLen + 15, crc32 (0, in, inLen));
+			htole32buf (out + inLen + 19, inLen);
+		}
+		else
+			memset (out + 15, 0, 8);
 		return inLen + 23;
 	}
 
@@ -181,14 +189,17 @@ namespace data
 		static const uint8_t gzipHeader[11] = { 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x01 };
 		memcpy (out, gzipHeader, 11);
 		uint32_t crc = 0;
-		size_t len = 0, len1;
+		size_t len = 0;
 		for (const auto& it: bufs)
 		{
-			len1 = len;
-			len += it.second;
-			if (outLen < len + 23) return 0;
-			memcpy (out + 15 + len1, it.first, it.second);
-			crc = crc32 (crc, it.first, it.second);
+			if (it.second > 0)
+			{
+				auto len1 = len;
+				len += it.second;
+				if (outLen < len + 23) return 0;
+				memcpy (out + 15 + len1, it.first, it.second);
+				crc = crc32 (crc, it.first, it.second);
+			}
 		}
 		if (len > 0xffff) return 0;
 		htole32buf (out + len + 15, crc);
