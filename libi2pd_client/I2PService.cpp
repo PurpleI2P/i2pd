@@ -67,9 +67,10 @@ namespace client
 	{
 		if(m_ConnectTimeout)
 			m_ReadyTimer.cancel();
-		std::unique_lock<std::mutex> l(m_HandlersMutex);
-		for (auto it: m_Handlers)
-			it->Terminate ();
+		IterateHandlers ([](std::shared_ptr<I2PServiceHandler> handler)
+			{
+				if (handler) handler->Terminate ();
+			});
 		m_Handlers.clear();
 	}
 

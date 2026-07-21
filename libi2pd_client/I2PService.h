@@ -74,6 +74,16 @@ namespace client
 
 			virtual const char* GetName() const { return "Generic I2P Service"; }
 
+		protected:
+
+			template<typename Callback>
+			void IterateHandlers (Callback&& callback)
+			{
+				std::unique_lock<std::mutex> l(m_HandlersMutex);
+				for (auto it: m_Handlers)
+					callback (it);
+			}
+
 		private:
 
 			void TriggerReadyCheckTimer();
