@@ -121,8 +121,12 @@ namespace stream
 		};
 	};
 
+#if __cplusplus >= 202302L // C++23
+	typedef std::move_only_function<void (const boost::system::error_code& ecode)> SendHandler;
+#else
 	typedef std::function<void (const boost::system::error_code& ecode)> SendHandler;
-	// should be std::move_only_function for C++23 and above
+#endif
+
 	struct SendBuffer
 	{
 		uint8_t * buf;
@@ -130,7 +134,7 @@ namespace stream
 		SendHandler handler;
 
 		SendBuffer (const uint8_t * b, size_t l, SendHandler&& h):
-			len(l), offset (0), handler(h)
+			len(l), offset (0), handler(std::move (h))
 		{
 			buf = new uint8_t[len];
 			memcpy (buf, b, len);
