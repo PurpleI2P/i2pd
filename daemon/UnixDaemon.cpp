@@ -210,6 +210,44 @@ namespace i2p
 				sigaction(SIGCONT, &sa, 0);
 			}
 
+#ifdef __OpenBSD__
+			std::string dataDir = i2p::fs::GetDataDir();
+			if (!dataDir.empty())
+				if (unveil(dataDir.c_str(), "rwc") == -1)
+					LogPrint(eLogError, "Daemon: Unveil failed for dataDir (", dataDir, "): ", std::strerror(errno));
+
+			auto unveilConfigOption = [](const std::string& key, const char* mask) {
+				std::string path;
+				if (i2p::config::GetOption(key, path) && !path.empty())
+					if (unveil(path.c_str(), mask) == -1)
+						LogPrint(eLogError, "Daemon: Unveil failed for ", key, " (", path, "): ", std::strerror(errno));
+			};
+
+			const std::vector<std::pair<std::string, const char*>> unveilRules = {
+				{"conf",           "r"},
+				{"certsdir",       "r"},
+				{"tunconf",        "r"},
+				{"tunnelsdir",     "r"},
+				{"pidfile",        "rwc"},
+				{"logfile",        "rwc"},
+				{"reseed.file",    "r"},
+				{"reseed.zipfile", "r"}
+			};
+
+			for (const auto& rule : unveilRules)
+				unveilConfigOption(rule.first, rule.second);
+
+			if (unveil(NULL, NULL) == -1) {
+				LogPrint(eLogError, "Daemon: unveil lock failed: ", std::strerror(errno));
+				exit(1);
+			}
+
+			if (pledge("stdio inet dns flock rpath wpath cpath proc", NULL) == -1) {
+				LogPrint(eLogError, "Daemon: pledge failed: ", std::strerror(errno));
+				exit(1);
+			}
+#endif
+
 			return Daemon_Singleton::start();
 		}
 
