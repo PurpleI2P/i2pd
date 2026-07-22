@@ -438,63 +438,6 @@ namespace stream
 			}
 		}
 	}
-
-//-------------------------------------------------
-
-	class BoostAsyncStream // for boost::beast and boost::asio
-	{
-		public:
-
-			using executor_type = boost::asio::any_io_executor;
-
-			BoostAsyncStream (std::shared_ptr<Stream> stream): m_Stream (stream) {}
-
-			// AsyncStream
-			executor_type get_executor() noexcept { return m_Stream->GetService ().get_executor(); }
-
-			// AsyncReadStream
-			template<typename MutableBufferSequence, typename ReadHandler>
-			void async_read_some(const MutableBufferSequence& bufs, ReadHandler&& handler)
-			{
-				size_t received = 0;
-				for (auto it = boost::asio::buffer_sequence_begin (bufs); it != boost::asio::buffer_sequence_end (bufs); it++)
-				{
-					auto len = m_Stream->ReadSome ((uint8_t *)it->data (), it->size ());
-					received += len;
-					if (received < it->size ()) break;
-				}
-				if (received > 0) // we have some data
-					handler (boost::system::error_code (), received);
-				else if (bufs.size () > 0) // wait for incoming data
-					m_Stream->AsyncReceive (*boost::asio::buffer_sequence_begin (bufs),
-						[handler = std::move (handler)](const boost::system::error_code& ecode, size_t bytes_transferred) mutable
-						{
-							handler (boost::system::error_code (), bytes_transferred);
-						});
-				else
-					handler (boost::system::error_code (), 0);
-			}
-
-			// AsyncWriteStream
-			template<typename ConstBufferSequence, typename WriteHandler>
-			void async_write_some(const ConstBufferSequence& bufs, WriteHandler&& handler)
-			{
-				size_t sent = 0;
-				for (auto it = boost::asio::buffer_sequence_begin (bufs); it != boost::asio::buffer_sequence_end (bufs); it++)
-				{
-					const auto& buf = *it;
-					sent += buf.size ();
-					m_Stream->Send ((const uint8_t *)buf.data (), buf.size ());
-					// TODO: AsyncSend wiht callback for last buf, but not possible below C++23
-				}
-				handler (boost::system::error_code (), sent);
-			}
-
-		private:
-
-			std::shared_ptr<Stream> m_Stream;
-	};
 }
 }
-
 #endif
