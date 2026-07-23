@@ -205,7 +205,7 @@ namespace client
 					if (ecode != boost::asio::error::operation_aborted)
 					{
 						LogPrint (eLogInfo, "UDP Connection: Packet ", m_AckTimerSeqn, " was not acked");
-						m_IsSendingAllowed = false; // stop sending datagrams
+						if (m_IsFirstPacket) m_IsSendingAllowed = false; // stop sending only if session is not established yet
 						m_AckTimerSeqn = 0;
 						m_RTT = 0;
 						if (!m_UnackedDatagrams.empty ()) ScheduleAckTimer (0); // try again if failed
