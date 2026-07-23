@@ -242,7 +242,7 @@ namespace i2p
 				exit(1);
 			}
 
-			if (pledge("stdio inet dns flock rpath wpath cpath proc", NULL) == -1) {
+			if (pledge("stdio inet route dns flock rpath wpath cpath proc", NULL) == -1) {
 				LogPrint(eLogError, "Daemon: pledge failed: ", std::strerror(errno));
 				exit(1);
 			}
