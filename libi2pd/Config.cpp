@@ -423,9 +423,6 @@ namespace config {
 #ifdef __linux__
 			.add(unix_specific)
 #endif
-#ifdef __OpenBSD__
-			.add(openbsd_specific)
-#endif
 		;
 	}
 
