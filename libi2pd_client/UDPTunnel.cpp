@@ -483,7 +483,8 @@ namespace client
 		}
 		if (!m_IsSendingAllowed)
 		{
-			if (!m_IsFirstPacket && i2p::util::GetMillisecondsSinceEpoch () >  m_LastRepliableDatagramTime + I2P_UDP_SESSION_TIMEOUT)
+			const auto ts1 = i2p::util::GetMillisecondsSinceEpoch ();
+			if (!m_IsFirstPacket && ts1 > m_LastRepliableDatagramTime + I2P_UDP_SESSION_TIMEOUT)
 			{
 				//  reset session
 				m_IsFirstPacket = true;
@@ -494,8 +495,12 @@ namespace client
 			}
 			if (!m_IsSendingAllowed)
 			{
-				RecvFromLocal ();
-				return;
+				if (!(m_IsFirstPacket && ts1 > m_LastRepliableDatagramTime + I2P_UDP_FIRST_PACKET_RESEND_INTERVAL))
+				{
+					RecvFromLocal ();
+					return;
+				}
+				// else fall through and send new first packet, previous one wasn't acked in time
 			}
 		}
 		if (!m_UnackedDatagrams.empty () && m_NextSendPacketNum > m_UnackedDatagrams.front ().first + I2P_UDP_MAX_NUM_UNACKED_DATAGRAMS)
