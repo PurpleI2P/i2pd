@@ -146,23 +146,29 @@ namespace data
 				m_Deflator.avail_in = it.second;
 				m_Deflator.next_out = out + offset;
 				m_Deflator.avail_out = outLen - offset;
-				auto flush = (it == bufs.back ()) ? Z_FINISH : Z_NO_FLUSH;
-				err = deflate (&m_Deflator, flush);
-				if (err)
-				{
-					if (flush && err == Z_STREAM_END)
-					{
-						out[9] = 0xff; // OS is always unknown
-						return outLen - m_Deflator.avail_out;
-					}
-					break;
-				}
+				err = deflate (&m_Deflator, Z_NO_FLUSH);
+				if (err) break;
 				offset = outLen - m_Deflator.avail_out;
 			}
 		}
-		// else
+		if (!err)
+		{
+			// finish the stream
+			m_Deflator.next_in = nullptr;
+			m_Deflator.avail_in = 0;
+			m_Deflator.next_out = out + offset;
+			m_Deflator.avail_out = outLen - offset;
+			err = deflate (&m_Deflator, Z_FINISH);
+			if (err == Z_STREAM_END)
+			{
+				out[9] = 0xff; // OS is always unknown
+				return outLen - m_Deflator.avail_out;
+			}
+		}
 		if (err)
 			LogPrint (eLogError, "Gzip: Deflate error ", err);
+		else
+			LogPrint (eLogError, "Gzip: Deflate error, output buffer is too small");
 		return 0;
 	}
 
