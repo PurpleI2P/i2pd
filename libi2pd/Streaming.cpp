@@ -962,7 +962,7 @@ namespace stream
 		else
 		{
 			if (handler)
-				handler(boost::system::error_code ());
+				handler(boost::system::error_code (), 0);
 			return;
 		}
 		Send (std::move (buffer));

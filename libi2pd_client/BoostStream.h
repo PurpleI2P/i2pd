@@ -44,7 +44,7 @@ namespace client
 				if (received > 0) // we have some data
 					handler (boost::system::error_code (), received);
 				else if (bufs.size () > 0) // wait for incoming data
-					m_Stream->AsyncReceive (*boost::asio::buffer_sequence_begin (bufs), handler);
+					m_Stream->AsyncReceive (*boost::asio::buffer_sequence_begin (bufs), std::move (handler));
 				else
 					handler (boost::system::error_code (), 0);
 			}
@@ -66,11 +66,7 @@ namespace client
 				{
 #ifdef __cpp_lib_move_only_function // with C++23
 					// we can save handler with SendBuffer
-					auto sendBuffer = std::make_shared<i2p::stream::SendBuffer>(bufsToSend, sent,
-						[handler = std::move (handler), sent](const boost::system::error_code& ecode) mutable
-						{
-							handler (ecode, sent);
-						});
+					auto sendBuffer = std::make_shared<i2p::stream::SendBuffer>(bufsToSend, sent, std::move (handler));
 #else
 					// we can't save handler with SendBuffer due to lack of std::move_only_function
 					auto sendBuffer = std::make_shared<i2p::stream::SendBuffer>(bufsToSend, sent, nullptr);

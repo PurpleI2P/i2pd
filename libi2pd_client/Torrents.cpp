@@ -398,7 +398,7 @@ namespace torrents
 	void PeerConnection::WriteToStream (const uint8_t * buf, size_t len)
 	{
 		m_Stream->AsyncSend (buf, len,
-			[s = shared_from_this ()](const boost::system::error_code& ecode)
+			[s = shared_from_this ()](const boost::system::error_code& ecode, size_t bytes_transferred)
 			{
 				if (ecode) s->Terminate ();
 			});

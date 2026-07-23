@@ -122,9 +122,9 @@ namespace stream
 	};
 
 #ifdef __cpp_lib_move_only_function // with C++23
-	typedef std::move_only_function<void (const boost::system::error_code& ecode)> SendHandler;
+	typedef std::move_only_function<void (const boost::system::error_code& ecode, size_t bytes_transferred)> SendHandler;
 #else
-	typedef std::function<void (const boost::system::error_code& ecode)> SendHandler;
+	typedef std::function<void (const boost::system::error_code& ecode, size_t bytes_transferred)> SendHandler;
 #endif
 
 	struct SendBuffer
@@ -148,11 +148,11 @@ namespace stream
 		~SendBuffer ()
 		{
 			delete[] buf;
-			if (handler) handler(boost::system::error_code ());
+			if (handler) handler(boost::system::error_code (), len);
 		}
 		size_t GetRemainingSize () const { return len - offset; };
 		const uint8_t * GetRemaningBuffer () const { return buf + offset; };
-		void Cancel () { if (handler) handler (boost::asio::error::make_error_code (boost::asio::error::operation_aborted)); handler = nullptr; };
+		void Cancel () { if (handler) handler (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), offset); handler = nullptr; };
 	};
 
 	class SendBufferQueue
