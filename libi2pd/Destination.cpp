@@ -685,7 +685,7 @@ namespace client
 				LogPrint (eLogInfo, "Destination: Can't publish LeasetSet because destination is not ready. Try publishing again after ", PUBLISH_CONFIRMATION_TIMEOUT, " milliseconds");
 				m_PublishConfirmationTimer.expires_after (std::chrono::milliseconds(PUBLISH_CONFIRMATION_TIMEOUT));
 				m_PublishConfirmationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishConfirmationTimer,
-					shared_from_this (), std::placeholders::_1));
+					shared_from_this (), std::placeholders::_1, PUBLISH_CONFIRMATION_TIMEOUT));
 				return;
 			}
 		}
@@ -699,23 +699,25 @@ namespace client
 				boost::asio::post (s->GetService (), [s]()
 					{
 						s->m_PublishConfirmationTimer.cancel ();
-						s->HandlePublishConfirmationTimer (boost::system::error_code());
+						s->HandlePublishConfirmationTimer (boost::system::error_code(), 0);
 					});
 			};
-		m_PublishConfirmationTimer.expires_after (std::chrono::milliseconds(PUBLISH_CONFIRMATION_TIMEOUT));
+		uint64_t publishConfirmationTimeout = PUBLISH_CONFIRMATION_TIMEOUT +
+			(inbound->GetNumHops () + outbound->GetNumHops ())*(uint64_t)i2p::tunnel::HIGH_LATENCY_PER_HOP/1000LL;
+		m_PublishConfirmationTimer.expires_after (std::chrono::milliseconds(publishConfirmationTimeout));
 		m_PublishConfirmationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishConfirmationTimer,
-			shared_from_this (), std::placeholders::_1));
+			shared_from_this (), std::placeholders::_1, publishConfirmationTimeout));
 		outbound->SendTunnelDataMsgTo (floodfill->GetIdentHash (), 0, msg);
 		m_LastSubmissionTime = ts;
 	}
 
-	void LeaseSetDestination::HandlePublishConfirmationTimer (const boost::system::error_code& ecode)
+	void LeaseSetDestination::HandlePublishConfirmationTimer (const boost::system::error_code& ecode, uint64_t publishConfirmationTimeout)
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			if (m_PublishReplyToken)
 			{
-				LogPrint (eLogWarning, "Destination: Publish confirmation was not received in ", PUBLISH_CONFIRMATION_TIMEOUT, " milliseconds or failed. will try again");
+				LogPrint (eLogWarning, "Destination: Publish confirmation was not received in ", publishConfirmationTimeout, " milliseconds or failed. will try again");
 				m_PublishReplyToken = 0;
 				Publish ();
 			}

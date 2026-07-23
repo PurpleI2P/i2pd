@@ -192,7 +192,7 @@ namespace client
 
 			std::shared_ptr<const i2p::data::LocalLeaseSet> GetLeaseSetMt ();
 			void Publish ();
-			void HandlePublishConfirmationTimer (const boost::system::error_code& ecode);
+			void HandlePublishConfirmationTimer (const boost::system::error_code& ecode, uint64_t publishConfirmationTimeout);
 			void HandlePublishVerificationTimer (const boost::system::error_code& ecode);
 			void HandlePublishDelayTimer (const boost::system::error_code& ecode);
 			void HandleDatabaseStoreMessage (const uint8_t * buf, size_t len, i2p::garlic::ECIESX25519AEADRatchetSession * from);
