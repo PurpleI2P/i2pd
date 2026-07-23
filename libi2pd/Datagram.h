@@ -85,6 +85,8 @@ namespace datagram
 			void SetVersion (DatagramVersion version) { m_Version = version; }
 
 			void DropSharedRoutingPath () { if (m_RoutingSession) m_RoutingSession->SetSharedRoutingPath (nullptr); }
+			// request LeaseSet update from floodfill in case our copy contains dead leases
+			void RequestUpdatedLeaseSet ();
 
 		struct Info
 		{

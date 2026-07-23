@@ -747,6 +747,15 @@ namespace datagram
 		if(ls && ls->GetExpirationTime() > oldExpire) m_RemoteLeaseSet = ls;
 	}
 
+	void DatagramSession::RequestUpdatedLeaseSet ()
+	{
+		if (!m_RequestingLS)
+		{
+			m_RequestingLS = true;
+			m_LocalDestination->RequestDestination(m_RemoteIdent, std::bind(&DatagramSession::HandleLeaseSetUpdated, this, std::placeholders::_1));
+		}
+	}
+
 	void DatagramSession::FlushSendQueue ()
 	{
 		if (m_SendQueue.empty ()) return;

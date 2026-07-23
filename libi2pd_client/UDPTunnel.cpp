@@ -216,6 +216,7 @@ namespace client
 						if (session)
 						{
 							session->DropSharedRoutingPath ();
+							session->RequestUpdatedLeaseSet (); // in case current leases are dead
 							m_Destination->SendDatagram (session, nullptr, 0, 0, 0, &options);
 						}
 					}
