@@ -216,7 +216,7 @@ namespace client
 			bool m_Gzip;
 			i2p::datagram::DatagramVersion m_DatagramVersion;
 			std::shared_ptr<UDPConvo> m_LastSession;
-			uint32_t m_KeepAliveInterval;
+			uint32_t m_KeepAliveInterval = 0;
 			std::unique_ptr<boost::asio::steady_timer> m_KeepAliveTimer;
 
 		public:
