@@ -205,7 +205,7 @@ namespace client
 					if (ecode != boost::asio::error::operation_aborted)
 					{
 						LogPrint (eLogInfo, "UDP Connection: Packet ", m_AckTimerSeqn, " was not acked");
-						m_IsSendingAllowed = false; // stop sending datagrams
+						if (m_IsFirstPacket) m_IsSendingAllowed = false; // stop sending only if session is not established yet
 						m_AckTimerSeqn = 0;
 						m_RTT = 0;
 						if (!m_UnackedDatagrams.empty ()) ScheduleAckTimer (0); // try again if failed
@@ -213,8 +213,12 @@ namespace client
 						i2p::util::Mapping options;
 						options.Put (UDP_SESSION_FLAGS, UDP_SESSION_FLAG_RESET_PATH | UDP_SESSION_FLAG_ACK_REQUESTED);
 						auto session = GetDatagramSession ();
-						session->DropSharedRoutingPath ();
-						m_Destination->SendDatagram (session, nullptr, 0, 0, 0, &options);
+						if (session)
+						{
+							session->DropSharedRoutingPath ();
+							session->RequestUpdatedLeaseSet (); // in case current leases are dead
+							m_Destination->SendDatagram (session, nullptr, 0, 0, 0, &options);
+						}
 					}
 				});
 		}
@@ -483,7 +487,8 @@ namespace client
 		}
 		if (!m_IsSendingAllowed)
 		{
-			if (!m_IsFirstPacket && i2p::util::GetMillisecondsSinceEpoch () >  m_LastRepliableDatagramTime + I2P_UDP_SESSION_TIMEOUT)
+			const auto ts1 = i2p::util::GetMillisecondsSinceEpoch ();
+			if (!m_IsFirstPacket && ts1 > m_LastRepliableDatagramTime + I2P_UDP_SESSION_TIMEOUT)
 			{
 				//  reset session
 				m_IsFirstPacket = true;
@@ -494,8 +499,12 @@ namespace client
 			}
 			if (!m_IsSendingAllowed)
 			{
-				RecvFromLocal ();
-				return;
+				if (!(m_IsFirstPacket && ts1 > m_LastRepliableDatagramTime + I2P_UDP_FIRST_PACKET_RESEND_INTERVAL))
+				{
+					RecvFromLocal ();
+					return;
+				}
+				// else fall through and send new first packet, previous one wasn't acked in time
 			}
 		}
 		if (!m_UnackedDatagrams.empty () && m_NextSendPacketNum > m_UnackedDatagrams.front ().first + I2P_UDP_MAX_NUM_UNACKED_DATAGRAMS)

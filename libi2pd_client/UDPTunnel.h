@@ -32,6 +32,7 @@ namespace client
 	const uint64_t I2P_UDP_SESSION_TIMEOUT = 1000 * 60 * 2;
 	const uint64_t I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL = 100; // in milliseconds
 	const uint64_t I2P_UDP_MAX_UNACKED_DATAGRAM_TIME = 8000; // in milliseconds
+	const uint64_t I2P_UDP_FIRST_PACKET_RESEND_INTERVAL = 1000; // in milliseconds
 	const size_t I2P_UDP_MAX_NUM_UNACKED_DATAGRAMS = 500;
 
 	/** max size for i2p udp */
@@ -215,7 +216,7 @@ namespace client
 			bool m_Gzip;
 			i2p::datagram::DatagramVersion m_DatagramVersion;
 			std::shared_ptr<UDPConvo> m_LastSession;
-			uint32_t m_KeepAliveInterval;
+			uint32_t m_KeepAliveInterval = 0;
 			std::unique_ptr<boost::asio::steady_timer> m_KeepAliveTimer;
 
 		public:
