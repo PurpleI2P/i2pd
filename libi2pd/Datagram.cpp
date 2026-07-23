@@ -617,7 +617,8 @@ namespace datagram
 			}
 		}
 
-		if (!m_RoutingSession || m_RoutingSession->IsTerminated () || !m_RoutingSession->IsReadyToSend ())
+		if (!m_RoutingSession || m_RoutingSession->IsTerminated () || !m_RoutingSession->IsReadyToSend () ||
+		    (m_RoutingSession->GetLastActivityTimestamp () && m_RoutingSession->IsInactive (i2p::util::GetSecondsSinceEpoch ()))) // request new garlic session if established session became inactive
 		{
 			bool found = false;
 			if (!m_PendingRoutingSessions.empty ())
@@ -657,7 +658,8 @@ namespace datagram
 		{
 			LogPrint (eLogDebug, "Datagram: path reset");
 			m_RoutingSession->SetSharedRoutingPath (nullptr);
-			path = nullptr;
+			m_RoutingSession = nullptr; // re-query garlic session, it gets restarted if inactive
+			return GetSharedRoutingPath ();
 		}
 
 		if (path)

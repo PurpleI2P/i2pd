@@ -185,7 +185,7 @@ namespace garlic
 			const i2p::data::IdentHash * GetDestinationPtr () const { return m_Destination ? m_Destination.get () : nullptr; }; // for pongs
 			bool CheckExpired (uint64_t ts); // true is expired
 			bool CanBeRestarted (uint64_t ts) const { return ts > m_SessionCreatedTimestamp + ECIESX25519_RESTART_TIMEOUT; }
-			bool IsInactive (uint64_t ts) const { return ts > m_LastActivityTimestamp + ECIESX25519_INACTIVITY_TIMEOUT && CanBeRestarted (ts); }
+			bool IsInactive (uint64_t ts) const override { return ts > m_LastActivityTimestamp + ECIESX25519_INACTIVITY_TIMEOUT && CanBeRestarted (ts); }
 			void CleanupReceiveNSRKeys (); // called from ReceiveRatchetTagSet at Alice's side
 			bool IsResponseRequired () const { return m_State == eSessionStateNewSessionReceived || m_SendReverseKey || !m_AckRequests.empty (); };
 
