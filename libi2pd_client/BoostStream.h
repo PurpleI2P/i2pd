@@ -57,15 +57,36 @@ namespace client
 			template<typename ConstBufferSequence, typename WriteHandler>
 			void async_write_some(const ConstBufferSequence& bufs, WriteHandler&& handler)
 			{
+				std::vector<std::pair<const uint8_t *, size_t> > bufsToSend;
 				size_t sent = 0;
 				for (auto it = boost::asio::buffer_sequence_begin (bufs); it != boost::asio::buffer_sequence_end (bufs); it++)
 				{
 					const auto& buf = *it;
 					sent += buf.size ();
-					m_Stream->Send ((const uint8_t *)buf.data (), buf.size ());
-					// TODO: AsyncSend wiht callback for last buf, but not possible below C++23
+					bufsToSend.push_back ({ (const uint8_t *)buf.data (), buf.size () });
+
 				}
-				handler (boost::system::error_code (), sent);
+				if (sent)
+				{
+#ifdef __cpp_lib_move_only_function // with C++23
+					// we can save handler with SendBuffer
+					auto sendBuffer = std::make_shared<i2p::stream::SendBuffer>(bufsToSend, sent,
+						[handler = std::move (handler), sent](const boost::system::error_code& ecode) mutable
+						{
+							handler (ecode, sent);
+						});
+#else
+					// we can't save handler with SendBuffer due to lack of std::move_only_function
+					auto sendBuffer = std::make_shared<i2p::stream::SendBuffer>(bufsToSend, sent, nullptr);
+#endif
+					m_Stream->Send (std::move (sendBuffer));
+#ifndef __cpp_lib_move_only_function // no std::move_only_function
+					// invoke handler right after send
+					handler (boost::system::error_code (), sent);
+#endif
+				}
+				else
+					handler (boost::system::error_code (), 0);
 			}
 
 		private:

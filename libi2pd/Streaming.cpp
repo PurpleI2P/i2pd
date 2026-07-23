@@ -19,6 +19,26 @@ namespace i2p
 {
 namespace stream
 {
+	SendBuffer::SendBuffer (const std::vector<std::pair<const uint8_t *, size_t> >& bufs, size_t totalLen, SendHandler&& h):
+		len(totalLen), offset (0), handler(std::move (h))
+	{
+		buf = new uint8_t[len];
+		size_t offset1 = 0;
+		for (const auto& [b, l]: bufs)
+		{
+			if (offset1 + l <= totalLen)
+			{
+				memcpy (buf + offset1, b, l);
+				offset1 += l;
+			}
+			else
+			{
+				memcpy (buf + offset1, b, totalLen - offset1);
+				break;
+			}
+		}
+	}
+
 	void SendBufferQueue::Add (std::shared_ptr<SendBuffer>&& buf)
 	{
 		if (buf)
@@ -939,13 +959,22 @@ namespace stream
 		std::shared_ptr<i2p::stream::SendBuffer> buffer;
 		if (len > 0 && buf)
 			buffer = std::make_shared<i2p::stream::SendBuffer>(buf, len, std::move (handler));
-		else if (handler)
-			handler(boost::system::error_code ());
-		auto s = shared_from_this ();
-		boost::asio::post (m_Service, [s, buffer = std::move(buffer)]() mutable
+		else
+		{
+			if (handler)
+				handler(boost::system::error_code ());
+			return;
+		}
+		Send (std::move (buffer));
+	}
+
+	void Stream::Send (std::shared_ptr<i2p::stream::SendBuffer>&& buf)
+	{
+		if (!buf) return;
+		boost::asio::post (m_Service, [s = shared_from_this (), buf = std::move(buf)]() mutable
 			{
-				if (buffer)
-					s->m_SendBuffer.Add (std::move(buffer));
+				if (buf)
+					s->m_SendBuffer.Add (std::move(buf));
 				s->SendBuffer ();
 			});
 	}

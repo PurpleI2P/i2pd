@@ -144,6 +144,7 @@ namespace stream
 		{
 			buf = new uint8_t[len];
 		}
+		SendBuffer (const std::vector<std::pair<const uint8_t *, size_t> >& bufs, size_t totalLen, SendHandler&& h);
 		~SendBuffer ()
 		{
 			delete[] buf;
@@ -209,6 +210,7 @@ namespace stream
 			void HandlePing (Packet * packet);
 			size_t Send (const uint8_t * buf, size_t len);
 			void AsyncSend (const uint8_t * buf, size_t len, SendHandler&& handler);
+			void Send (std::shared_ptr<i2p::stream::SendBuffer>&& buf);
 			void SendPing ();
 
 			template<typename Buffer, typename ReceiveHandler>
