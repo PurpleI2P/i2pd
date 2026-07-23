@@ -44,11 +44,7 @@ namespace client
 				if (received > 0) // we have some data
 					handler (boost::system::error_code (), received);
 				else if (bufs.size () > 0) // wait for incoming data
-					m_Stream->AsyncReceive (*boost::asio::buffer_sequence_begin (bufs),
-						[handler = std::move (handler)](const boost::system::error_code& ecode, size_t bytes_transferred) mutable
-						{
-							handler (boost::system::error_code (), bytes_transferred);
-						});
+					m_Stream->AsyncReceive (*boost::asio::buffer_sequence_begin (bufs), handler);
 				else
 					handler (boost::system::error_code (), 0);
 			}
