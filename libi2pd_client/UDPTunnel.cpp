@@ -213,8 +213,11 @@ namespace client
 						i2p::util::Mapping options;
 						options.Put (UDP_SESSION_FLAGS, UDP_SESSION_FLAG_RESET_PATH | UDP_SESSION_FLAG_ACK_REQUESTED);
 						auto session = GetDatagramSession ();
-						session->DropSharedRoutingPath ();
-						m_Destination->SendDatagram (session, nullptr, 0, 0, 0, &options);
+						if (session)
+						{
+							session->DropSharedRoutingPath ();
+							m_Destination->SendDatagram (session, nullptr, 0, 0, 0, &options);
+						}
 					}
 				});
 		}
