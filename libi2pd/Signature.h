@@ -286,7 +286,7 @@ namespace crypto
 			{
 				m_PrivateKey = EC_KEY_new_by_curve_name (curve);
 				BIGNUM * privKey = BN_bin2bn (signingPrivateKey, keyLen/2, nullptr);
-				if (priKey)
+				if (privKey)
 				{
 					EC_KEY_set_private_key (m_PrivateKey, privKey);
 					BN_free (privKey);
