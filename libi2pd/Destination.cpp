@@ -702,8 +702,11 @@ namespace client
 						s->HandlePublishConfirmationTimer (boost::system::error_code(), 0);
 					});
 			};
-		uint64_t publishConfirmationTimeout = PUBLISH_CONFIRMATION_TIMEOUT +
-			(inbound->GetNumHops () + outbound->GetNumHops ())*(uint64_t)i2p::tunnel::HIGH_LATENCY_PER_HOP/1000LL;
+		uint64_t publishConfirmationTimeout = PUBLISH_CONFIRMATION_TIMEOUT;
+		publishConfirmationTimeout += inbound->LatencyIsKnown() ? (uint64_t)(inbound->GetMeanLatency())/1000LL :
+			inbound->GetNumHops ()*(uint64_t)(i2p::tunnel::HIGH_LATENCY_PER_HOP)/1000LL;
+		publishConfirmationTimeout += outbound->LatencyIsKnown() ? (uint64_t)(outbound->GetMeanLatency())/1000LL :
+			outbound->GetNumHops ()*(uint64_t)(i2p::tunnel::HIGH_LATENCY_PER_HOP)/1000LL;
 		m_PublishConfirmationTimer.expires_after (std::chrono::milliseconds(publishConfirmationTimeout));
 		m_PublishConfirmationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishConfirmationTimer,
 			shared_from_this (), std::placeholders::_1, publishConfirmationTimeout));
@@ -907,16 +910,23 @@ namespace client
 						nextFloodfill->GetIdentHash (), 0, msg
 					}
 				});
-			request->requestTimeoutTimer.expires_after (std::chrono::milliseconds(LEASESET_REQUEST_TIMEOUT));
+
+			uint64_t requestLeaseSetTimeout = LEASESET_REQUEST_TIMEOUT;
+			requestLeaseSetTimeout += request->replyTunnel->LatencyIsKnown() ? (uint64_t)(request->replyTunnel->GetMeanLatency())/1000LL :
+				request->replyTunnel->GetNumHops ()*(uint64_t)(i2p::tunnel::HIGH_LATENCY_PER_HOP)/1000LL;
+			requestLeaseSetTimeout += request->outboundTunnel->LatencyIsKnown() ? (uint64_t)(request->outboundTunnel->GetMeanLatency())/1000LL :
+				request->outboundTunnel->GetNumHops ()*(uint64_t)(i2p::tunnel::HIGH_LATENCY_PER_HOP)/1000LL;
+			request->requestTimeoutTimer.expires_after (std::chrono::milliseconds(requestLeaseSetTimeout));
 			request->requestTimeoutTimer.async_wait (std::bind (&LeaseSetDestination::HandleRequestTimoutTimer,
-				shared_from_this (), std::placeholders::_1, dest));
+				shared_from_this (), std::placeholders::_1, dest, requestLeaseSetTimeout));
 		}
 		else
 			return false;
 		return true;
 	}
 
-	void LeaseSetDestination::HandleRequestTimoutTimer (const boost::system::error_code& ecode, const i2p::data::IdentHash& dest)
+	void LeaseSetDestination::HandleRequestTimoutTimer (const boost::system::error_code& ecode,
+		const i2p::data::IdentHash& dest, uint64_t requestLeaseSetTimeout)
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
@@ -940,7 +950,7 @@ namespace client
 				}
 				else
 				{
-					LogPrint (eLogWarning, "Destination: ", dest.ToBase64 (), " was not found within ", MAX_LEASESET_REQUEST_TIMEOUT, " seconds");
+					LogPrint (eLogWarning, "Destination: ", dest.ToBase64 (), " was not found within ", requestLeaseSetTimeout, " seconds");
 					done = true;
 				}
 
