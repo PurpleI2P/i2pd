@@ -237,15 +237,11 @@ namespace i2p
 			for (const auto& rule : unveilRules)
 				unveilConfigOption(rule.first, rule.second);
 
-			if (unveil(NULL, NULL) == -1) {
-				LogPrint(eLogError, "Daemon: unveil lock failed: ", std::strerror(errno));
-				exit(1);
-			}
+			if (unveil(NULL, NULL) == -1)
+				ThrowFatal("Daemon: unveil lock failed: ", std::strerror(errno));
 
-			if (pledge("stdio inet route dns flock rpath wpath cpath proc", NULL) == -1) {
-				LogPrint(eLogError, "Daemon: pledge failed: ", std::strerror(errno));
-				exit(1);
-			}
+			if (pledge("stdio inet route dns flock rpath wpath cpath proc", NULL) == -1)
+				ThrowFatal("Daemon: pledge failed: ", std::strerror(errno));
 #endif
 
 			return Daemon_Singleton::start();
