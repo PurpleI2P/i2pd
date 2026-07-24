@@ -959,18 +959,13 @@ namespace stream
 		std::shared_ptr<i2p::stream::SendBuffer> buffer;
 		if (len > 0 && buf)
 			buffer = std::make_shared<i2p::stream::SendBuffer>(buf, len, std::move (handler));
-		else
-		{
-			if (handler)
-				handler(boost::system::error_code (), 0);
-			return;
-		}
+		else if (handler)
+			handler(boost::system::error_code (), 0);
 		Send (std::move (buffer));
 	}
 
 	void Stream::Send (std::shared_ptr<i2p::stream::SendBuffer>&& buf)
 	{
-		if (!buf) return;
 		boost::asio::post (m_Service, [s = shared_from_this (), buf = std::move(buf)]() mutable
 			{
 				if (buf)
