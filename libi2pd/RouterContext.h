@@ -233,8 +233,8 @@ namespace garlic
 			void HandleInitialPublishTimer (const boost::system::error_code& ecode);
 			void SchedulePublish ();
 			void HandlePublishTimer (const boost::system::error_code& ecode);
-			void Publish ();
-			void SchedulePublishResend ();
+			uint64_t Publish (); // return actual publish confirmation timeout in milliseconds
+			void SchedulePublishResend (uint64_t publishConfirmationTimeout);
 			void HandlePublishResendTimer (const boost::system::error_code& ecode);
 			void ScheduleCongestionUpdate ();
 			void HandleCongestionUpdateTimer (const boost::system::error_code& ecode);
