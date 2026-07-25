@@ -166,6 +166,7 @@ namespace client
 		m_CleanupTimer.cancel ();
 		m_PublishConfirmationTimer.cancel ();
 		m_PublishVerificationTimer.cancel ();
+		m_PublishDelayTimer.cancel ();
 		if (m_Pool)
 		{
 			m_Pool->SetLocalDestination (nullptr);

@@ -170,6 +170,7 @@ namespace transport
 		header.h.flags[2] = 0; // flag
 		memcpy (h, header.buf, 16);
 		htobuf64 (h + 16, GetSourceConnID ()); // source id
+		memset (h + 24, 0, 8); // header token
 		// payload
 		payload[0] = eSSU2BlkDateTime;
 		htobe16buf (payload + 1, 4);
