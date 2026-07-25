@@ -836,18 +836,21 @@ namespace client
 
 	void I2CPSession::CreateLeaseSetMessageHandler (const uint8_t * buf, size_t len)
 	{
+		size_t offset = 2 + i2p::crypto::DSA_PRIVATE_KEY_LENGTH + 256;
+		if (len < offset)
+		{
+			LogPrint (eLogError, "I2CP: CreateLeaseSetMessage is too short ", len);
+			return;
+		}
 		uint16_t sessionID = bufbe16toh (buf);
 		if (sessionID == m_SessionID)
 		{
-			size_t offset = 2;
 			if (m_Destination)
 			{
-				offset += i2p::crypto::DSA_PRIVATE_KEY_LENGTH; // skip signing private key
 				// we always assume this field as 20 bytes (DSA) regardless actual size
 				// instead of
 				//offset += m_Destination->GetIdentity ()->GetSigningPrivateKeyLen ();
-				m_Destination->SetEncryptionPrivateKey (i2p::data::CRYPTO_KEY_TYPE_ELGAMAL, buf + offset);
-				offset += 256;
+				m_Destination->SetEncryptionPrivateKey (i2p::data::CRYPTO_KEY_TYPE_ELGAMAL, buf + 2 + i2p::crypto::DSA_PRIVATE_KEY_LENGTH);
 				m_Destination->LeaseSetCreated (buf + offset, len - offset);
 			}
 		}

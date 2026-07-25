@@ -92,7 +92,7 @@ namespace data
 		}
 
 		for (const std::string & file : files) {
-			if (file.compare(file.size() - 4, 4, ".crt") != 0) {
+			if (file.size () < 4 || file.compare(file.size() - 4, 4, ".crt") != 0) {
 				LogPrint(eLogWarning, "Family: ignoring file ", file);
 				continue;
 			}
