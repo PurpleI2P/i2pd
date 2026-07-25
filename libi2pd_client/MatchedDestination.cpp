@@ -20,6 +20,10 @@ namespace client
 		: RunnableClientDestination(keys, false, params),
 			m_RemoteName(remoteName) {}
 
+	MatchedTunnelDestination::~MatchedTunnelDestination()
+	{
+		if (m_ResolveTimer) m_ResolveTimer->cancel ();
+	}
 
 	void MatchedTunnelDestination::ResolveCurrentLeaseSet()
 	{

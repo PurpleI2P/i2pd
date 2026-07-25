@@ -83,7 +83,10 @@ namespace config {
 	bool GetOption(const char *name, T& value)
 	{
 		if (!m_Options.count(name))
+		{
+			value = T();
 			return false;
+		}
 		value = m_Options[name].as<T>();
 		return true;
 	}
