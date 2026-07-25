@@ -166,7 +166,7 @@ namespace util
 			unveil_path(tunnelsdir.c_str(), "r"); 
 
 			i2p::config::GetOption("certsdir", certsdir);
-			unveil_path(certsdir,"rwc"); // hm
+			unveil_path(certsdir,"r"); // orignal said that only for read.
 
 			i2p::config::GetOption("reseed.file", reseed_file);
 			unveil_path(reseed_file.c_str(), "r");
@@ -180,7 +180,15 @@ namespace util
 
 			std::string pidfile ;i2p::config::GetOption("pidfile", pidfile); unveil_path(pidfile.c_str(), "rwc");
 
-			i2p::config::GetOption("logfile", logfile); unveil(logfile.c_str(), "rw");
+			i2p::config::GetOption("logfile", logfile); unveil(logfile.c_str(), "rwc");
+
+			std::string i2pcontrol_cert, i2pcontrol_key;
+			i2p::config::GetOption("i2pcontrol.cert", i2pcontrol_cert);
+			unveil_path(i2pcontrol_cert.c_str(), "rwc");
+			i2p::config::GetOption("i2pcontrol.key", i2pcontrol_cert);
+			unveil_path(i2pcontrol_cert.c_str(), "rwc");
+
+
 			if(unveil_file != "")
 			{
 				std::ifstream f(unveil_file);
