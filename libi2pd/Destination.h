@@ -39,12 +39,12 @@ namespace client
 	const uint8_t PROTOCOL_TYPE_RAW = 18;
 	const uint8_t PROTOCOL_TYPE_DATAGRAM2 = 19;
 	const uint8_t PROTOCOL_TYPE_DATAGRAM3 = 20;
-	const int PUBLISH_CONFIRMATION_TIMEOUT = 1800; // in milliseconds
+	const int PUBLISH_CONFIRMATION_TIMEOUT = 1400; // in milliseconds
 	const int PUBLISH_VERIFICATION_TIMEOUT = 5; // in seconds after successful publish
 	const int PUBLISH_VERIFICATION_TIMEOUT_VARIANCE = 3; // in seconds
 	const int PUBLISH_MIN_INTERVAL = 20; // in seconds
 	const int PUBLISH_REGULAR_VERIFICATION_INTERNAL = 100; // in seconds periodically
-	const int LEASESET_REQUEST_TIMEOUT = 1600; // in milliseconds
+	const int LEASESET_REQUEST_TIMEOUT = 1200; // in milliseconds
 	const int MAX_LEASESET_REQUEST_TIMEOUT = 17000; // in milliseconds
 	const int DESTINATION_CLEANUP_TIMEOUT = 44; // in seconds
 	const int DESTINATION_CLEANUP_TIMEOUT_VARIANCE = 30; // in seconds
