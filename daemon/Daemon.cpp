@@ -138,36 +138,49 @@ namespace util
 
 
 		};
-		auto init_unveil = [](std::string datadir) {
+		auto unveil_path = [](std::string path, std::string rules = "r")
+		{
+			if(path=="")
+			{
+				LogPrint(eLogInfo, "empty path for unveil");
+				return;
+			}
+			if ( unveil(path.c_str(), rules.c_str()) == -1 )
+			{
+				LogPrint(eLogError, "Can't unveil " + path + " with rules " + rules);
+				throw std::runtime_error("can't unveil");
+			}
+			LogPrint(eLogInfo, "unveil " + path + " with rules " + rules);
+		};
+		auto init_unveil = [unveil_path](std::string datadir, std::string config) {
 			
-			#define UNVEIL_DIR(dir) unveil(dir.c_str(), "rwc")
-
-			std::cout << datadir << std::endl;
-			UNVEIL_DIR(datadir);
-
-			unveil("/tmp", "rwc");
+			unveil_path(datadir,"rwc");
+			unveil_path("/tmp", "rwc");
 
 			std::string unveil_file; i2p::config::GetOption("openbsd.unveil_file",unveil_file);
-			UNVEIL_DIR(unveil_file);
+			unveil_path(unveil_file,"r");
 
 
 			std::string tunnelsdir, certsdir, logfile,  reseed_file, openbsd_pledge_file;
 			
 			i2p::config::GetOption("tunnelsdir", tunnelsdir);
-			UNVEIL_DIR(tunnelsdir);
+			unveil_path(tunnelsdir.c_str(), "r"); 
+
 			i2p::config::GetOption("certsdir", certsdir);
-			UNVEIL_DIR(certsdir);
+			unveil_path(certsdir,"rwc"); // hm
 
 			i2p::config::GetOption("reseed.file", reseed_file);
-			unveil(reseed_file.c_str(), "r");
+			unveil_path(reseed_file.c_str(), "r");
+
 			i2p::config::GetOption("openbsd.pledge_file", openbsd_pledge_file);
-			unveil(openbsd_pledge_file.c_str(), "r");
+			unveil_path(openbsd_pledge_file.c_str(), "r");
 
-			std::string tunconf ;i2p::config::GetOption("tunconf", tunconf); unveil(tunconf.c_str(), "r");
-			std::string conf ;i2p::config::GetOption("conf", conf); unveil(conf.c_str(), "r");
-			std::string pidfile ;i2p::config::GetOption("pidfile", pidfile); unveil(pidfile.c_str(), "rw");
+			std::string tunconf ;i2p::config::GetOption("tunconf", tunconf); unveil_path(tunconf.c_str(), "r");
 
-			std::cout << pidfile << std::endl;
+			unveil_path(config.c_str(), "r");
+
+			std::string pidfile ;i2p::config::GetOption("pidfile", pidfile); unveil_path(pidfile.c_str(), "rw");
+
 			i2p::config::GetOption("logfile", logfile); unveil(logfile.c_str(), "rw");
 			if(unveil_file != "")
 			{
@@ -178,15 +191,18 @@ namespace util
 				}
 				std::string line;
 				while(std::getline(f, line)){
-						UNVEIL_DIR(line);
+					//UNVEIL_DIR(line);// maybe not need c
+					unveil_path(line.c_str(), "rwc");
 				}
 			}
-			#undef UNVEIL_DIR
-			unveil(NULL, NULL); 
+			if( unveil(NULL, NULL) == -1 )
+			{
+				throw std::runtime_error("Can't unveil something");
+			}
 		};
 		bool openbsd_unveil_enabled; i2p::config::GetOption("openbsd.unveil_enabled", openbsd_unveil_enabled);
 		bool openbsd_pledge_enabled; i2p::config::GetOption("openbsd.pledge_enabled", openbsd_pledge_enabled);
-		if(openbsd_unveil_enabled) init_unveil(datadir);
+		if(openbsd_unveil_enabled) init_unveil(datadir, config);
 		if(openbsd_pledge_enabled) init_pledge();
 #endif
 
