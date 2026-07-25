@@ -261,6 +261,7 @@ namespace util
 
 	std::string_view Mapping::ExtractString (const uint8_t * buf, size_t len)
 	{
+		if (!len) return { };
 		uint8_t l = buf[0];
 		if (l > len) l = len;
 		return { (const char *)(buf + 1), l };
@@ -282,6 +283,7 @@ namespace util
 
 	size_t Mapping::WriteString (std::string_view str, uint8_t * buf, size_t len)
 	{
+		if (!len) return 0;
 		auto l = str.length ();
 		if (l + 1 >= len) l = len - 1;
 		if (l > 255) l = 255; // 1 byte max

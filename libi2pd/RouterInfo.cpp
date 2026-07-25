@@ -93,7 +93,7 @@ namespace data
 		}
 		// verify signature since we have identity already
 		int l = len - m_RouterIdentity->GetSignatureLen ();
-		if (m_RouterIdentity->Verify (buf, l, buf + l))
+		if (l >= 0 && m_RouterIdentity->Verify (buf, l, buf + l))
 		{
 			// clean up
 			m_IsUpdated = true;

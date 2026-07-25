@@ -193,6 +193,7 @@ namespace data
 	size_t GzipNoCompression (const std::vector<std::pair<const uint8_t *, size_t> >& bufs, uint8_t * out, size_t outLen)
 	{
 		static const uint8_t gzipHeader[11] = { 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x01 };
+		if (outLen < 23) return 0;
 		memcpy (out, gzipHeader, 11);
 		uint32_t crc = 0;
 		size_t len = 0;
