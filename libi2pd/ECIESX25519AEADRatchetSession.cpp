@@ -401,7 +401,7 @@ namespace garlic
 			auto size = bufbe16toh (buf + offset);
 			offset += 2;
 			LogPrint (eLogDebug, "Garlic: Block type ", (int)blk, " of size ", size);
-			if (size > len)
+			if (offset + size > len)
 			{
 				LogPrint (eLogError, "Garlic: Unexpected block length ", size);
 				break;
