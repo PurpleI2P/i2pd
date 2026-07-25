@@ -153,43 +153,43 @@ namespace util
 			LogPrint(eLogInfo, "unveil " + path + " with rules " + rules);
 		};
 		auto init_unveil = [unveil_path](std::string datadir, std::string config) {
-			unveil_path(datadir,"rwc");
-			unveil_path("/tmp", "rwc");
 
-			std::string unveil_file; i2p::config::GetOption("openbsd.unveil_file",unveil_file);
-			unveil_path(unveil_file,"r");
+			std::string tunnelsdir, certsdir, logfile,  reseed_file, openbsd_pledge_file,
+				tunconf, pidfile, i2pcontrol_cert, i2pcontrol_key, unveil_file;
 
-
-			std::string tunnelsdir, certsdir, logfile,  reseed_file, openbsd_pledge_file;
-			
-			i2p::config::GetOption("tunnelsdir", tunnelsdir);
-			unveil_path(tunnelsdir.c_str(), "r"); 
-
+			i2p::config::GetOption("openbsd.unveil_file",unveil_file);
 			i2p::config::GetOption("certsdir", certsdir);
-			unveil_path(certsdir,"r"); // orignal said that only for read.
-
+			i2p::config::GetOption("tunnelsdir", tunnelsdir);
 			i2p::config::GetOption("reseed.file", reseed_file);
-			unveil_path(reseed_file.c_str(), "r");
-
 			i2p::config::GetOption("openbsd.pledge_file", openbsd_pledge_file);
-			unveil_path(openbsd_pledge_file.c_str(), "r");
-
-			std::string tunconf ;i2p::config::GetOption("tunconf", tunconf); unveil_path(tunconf.c_str(), "r");
-
-			unveil_path(config.c_str(), "r");
-
-			std::string pidfile ;i2p::config::GetOption("pidfile", pidfile); unveil_path(pidfile.c_str(), "rwc");
-
-			i2p::config::GetOption("logfile", logfile); unveil(logfile.c_str(), "rwc");
-
-			std::string i2pcontrol_cert, i2pcontrol_key;
+			i2p::config::GetOption("tunconf", tunconf); 
+			i2p::config::GetOption("pidfile", pidfile); 
+			i2p::config::GetOption("logfile", logfile);
 			i2p::config::GetOption("i2pcontrol.cert", i2pcontrol_cert);
-			unveil_path(i2pcontrol_cert.c_str(), "rwc");
-			i2p::config::GetOption("i2pcontrol.key", i2pcontrol_cert);
-			unveil_path(i2pcontrol_cert.c_str(), "rwc");
+			i2p::config::GetOption("i2pcontrol.key", i2pcontrol_key);
 
+			auto rules = std::map<std::string,std::string>{
+				{datadir,"rwc"},
+				{"/tmp","rwc"},
+				{unveil_file, "r"},
+				{tunnelsdir, "r"},
+				{certsdir, "r"},
+				{reseed_file, "r"},
+				{openbsd_pledge_file, "r"},
+				{tunconf, "r"},
+				{config, "r"},
+				{pidfile, "rwc"},
+				{logfile, "rwc"},
+				{i2pcontrol_cert, "rwc"},
+				{i2pcontrol_key, "rwc"}
+			};
 
-			if(unveil_file != "")
+			for (const auto& [path, privilegies] : rules)
+			{
+				unveil_path(path, privilegies);
+			}
+
+			if( unveil_file.length() )
 			{
 				std::ifstream f(unveil_file);
 				if (!f) {
@@ -202,6 +202,7 @@ namespace util
 					unveil_path(line.c_str(), "rwc");
 				}
 			}
+
 			if( unveil(NULL, NULL) == -1 )
 			{
 				throw std::runtime_error("Can't unveil something");
