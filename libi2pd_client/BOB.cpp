@@ -158,6 +158,8 @@ namespace client
 
 	void BOBI2POutboundTunnel::Stop ()
 	{
+		auto localDestination = GetLocalDestination ();
+		if (localDestination) localDestination->StopAcceptingStreams ();
 		ClearHandlers ();
 	}
 

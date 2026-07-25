@@ -1438,6 +1438,7 @@ namespace transport
 		{
 			std::lock_guard<std::mutex> l(m_FamilyMutex);
 			auto ri = i2p::data::netdb.FindRouter(ih);
+			if (!ri) return false;
 			for (const auto & fam : m_TrustedFamilies)
 				if(ri->IsFamily(fam)) return true;
 		}

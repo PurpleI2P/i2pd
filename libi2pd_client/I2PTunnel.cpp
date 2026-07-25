@@ -255,7 +255,7 @@ namespace client
 		if (m_Stream)
 		{
 			m_Stream->AsyncSend (buf, len,
-				[s = shared_from_this ()](const boost::system::error_code& ecode)
+				[s = shared_from_this ()](const boost::system::error_code& ecode, size_t bytes_transferred)
 				{
 					if (!ecode)
 						s->Receive ();

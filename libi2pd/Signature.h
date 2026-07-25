@@ -285,7 +285,12 @@ namespace crypto
 			ECDSASigner (const uint8_t * signingPrivateKey)
 			{
 				m_PrivateKey = EC_KEY_new_by_curve_name (curve);
-				EC_KEY_set_private_key (m_PrivateKey, BN_bin2bn (signingPrivateKey, keyLen/2, NULL));
+				BIGNUM * privKey = BN_bin2bn (signingPrivateKey, keyLen/2, nullptr);
+				if (privKey)
+				{
+					EC_KEY_set_private_key (m_PrivateKey, privKey);
+					BN_free (privKey);
+				}
 			}
 
 			~ECDSASigner ()

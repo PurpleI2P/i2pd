@@ -164,7 +164,7 @@ namespace data
 			else
 				curve = -1;
 #endif	
-			if (!curve || curve == NID_X9_62_prime256v1)
+			if ((!curve || curve == NID_X9_62_prime256v1) && family.length () + 32 <= 100)
 			{
 				uint8_t buf[100], sign[72], signature[64];
 				size_t len = family.length ();
@@ -187,6 +187,8 @@ namespace data
 				ECDSA_SIG_free(sig1);
 				sig = ByteStreamToBase64 (signature, 64);
 			}	
+			else if (family.length () + 32 > 100)
+				LogPrint (eLogError, "Family: ", family, " is too long");
 			else
 				LogPrint (eLogWarning, "Family: elliptic curve ", curve, " is not supported");
 

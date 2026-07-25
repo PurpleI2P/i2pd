@@ -29,7 +29,7 @@ namespace garlic
 {
 	const int ECIESX25519_RESTART_TIMEOUT = 120; // number of second since session creation we can restart session after
 	const int ECIESX25519_INACTIVITY_TIMEOUT = 90; // number of seconds we receive nothing and should restart if we can
-	const int ECIESX25519_SEND_INACTIVITY_TIMEOUT = 5000; // number of milliseconds we can send empty(pyaload only) packet after
+	const int ECIESX25519_SEND_INACTIVITY_TIMEOUT = 5000; // number of milliseconds we can send empty(payload only) packet after
 	const int ECIESX25519_SEND_EXPIRATION_TIMEOUT = 480; // in seconds
 	const int ECIESX25519_RECEIVE_EXPIRATION_TIMEOUT = 600; // in seconds
 	const int ECIESX25519_SESSION_CREATE_TIMEOUT = 3; // in seconds, NSR must be send after NS received
@@ -185,7 +185,7 @@ namespace garlic
 			const i2p::data::IdentHash * GetDestinationPtr () const { return m_Destination ? m_Destination.get () : nullptr; }; // for pongs
 			bool CheckExpired (uint64_t ts); // true is expired
 			bool CanBeRestarted (uint64_t ts) const { return ts > m_SessionCreatedTimestamp + ECIESX25519_RESTART_TIMEOUT; }
-			bool IsInactive (uint64_t ts) const { return ts > m_LastActivityTimestamp + ECIESX25519_INACTIVITY_TIMEOUT && CanBeRestarted (ts); }
+			bool IsInactive (uint64_t ts) const override { return ts > m_LastActivityTimestamp + ECIESX25519_INACTIVITY_TIMEOUT && CanBeRestarted (ts); }
 			void CleanupReceiveNSRKeys (); // called from ReceiveRatchetTagSet at Alice's side
 			bool IsResponseRequired () const { return m_State == eSessionStateNewSessionReceived || m_SendReverseKey || !m_AckRequests.empty (); };
 
@@ -194,7 +194,7 @@ namespace garlic
 			bool IsTerminated () const override { return m_IsTerminated; }
 			uint64_t GetLastActivityTimestamp () const override { return m_LastActivityTimestamp; };
 			void SetAckRequestInterval (int interval) override { m_AckRequestInterval = interval; };
-			bool CleanupUnconfirmedTags () override; // return true if unaswered Ack requests, called from I2CP
+			bool CleanupUnconfirmedTags () override; // return true if unanswered Ack requests, called from I2CP
 
 		protected:
 

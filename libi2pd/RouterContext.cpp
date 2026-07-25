@@ -1481,17 +1481,16 @@ namespace i2p
 					UpdateStats (); // for floodfill
 					m_PublishExcluded.insert (i2p::context.GetIdentHash ()); // don't publish to ourselves
 				}
-				Publish ();
-				SchedulePublishResend ();
+				SchedulePublishResend (Publish ());
 			}
 			else
 				SchedulePublish ();
 		}
 	}
 
-	void RouterContext::Publish ()
+	uint64_t RouterContext::Publish ()
 	{
-		if (!i2p::transport::transports.IsOnline ()) return;
+		if (!i2p::transport::transports.IsOnline ()) return ROUTER_INFO_INITIAL_PUBLISH_INTERVAL*1000LL;
 		if (m_PublishExcluded.size () > ROUTER_INFO_MAX_PUBLISH_EXCLUDED_FLOODFILLS)
 		{
 			LogPrint (eLogError, "Router: Couldn't publish our RouterInfo to ", ROUTER_INFO_MAX_PUBLISH_EXCLUDED_FLOODFILLS, " closest routers. Try again");
@@ -1499,6 +1498,7 @@ namespace i2p
 			UpdateTimestamp (i2p::util::GetSecondsSinceEpoch ());
 		}
 
+		uint64_t publishConfirmationTimeout = ROUTER_INFO_CONFIRMATION_TIMEOUT;
 		auto floodfill = i2p::data::netdb.GetClosestFloodfill (i2p::context.GetIdentHash (), m_PublishExcluded);
 		if (floodfill)
 		{
@@ -1533,23 +1533,34 @@ namespace i2p
 					msg->onDrop = onDrop;
 					outbound->SendTunnelDataMsgTo (floodfill->GetIdentHash (), 0,
 						i2p::garlic::WrapECIESX25519MessageForRouter (msg, floodfill->GetIdentity ()->GetEncryptionPublicKey ()));
+					publishConfirmationTimeout += inbound->LatencyIsKnown() ? (uint64_t)(inbound->GetMeanLatency())/1000LL :
+						inbound->GetNumHops ()*(uint64_t)(i2p::tunnel::HIGH_LATENCY_PER_HOP)/1000LL;
+					publishConfirmationTimeout += outbound->LatencyIsKnown() ? (uint64_t)(outbound->GetMeanLatency())/1000LL :
+						outbound->GetNumHops ()*(uint64_t)(i2p::tunnel::HIGH_LATENCY_PER_HOP)/1000LL;
 				}
 				else
-					LogPrint (eLogInfo, "Router: Can't publish our RouterInfo. No tunnels. Try again in ", ROUTER_INFO_CONFIRMATION_TIMEOUT, " milliseconds");
+				{
+					publishConfirmationTimeout = ROUTER_INFO_INITIAL_PUBLISH_INTERVAL*1000LL;
+					LogPrint (eLogWarning, "Router: Can't publish our RouterInfo. No tunnels. Try again in ", publishConfirmationTimeout, " milliseconds");
+				}
 			}
 			m_PublishExcluded.insert (floodfill->GetIdentHash ());
 			m_PublishReplyToken = replyToken;
 		}
 		else
-			LogPrint (eLogInfo, "Router: Can't find floodfill to publish our RouterInfo");
+		{
+			publishConfirmationTimeout = ROUTER_INFO_INITIAL_PUBLISH_INTERVAL*1000LL;
+			LogPrint (eLogWarning, "Router: Can't find floodfill to publish our RouterInfo");
+		}
+		return publishConfirmationTimeout;
 	}
 
-	void RouterContext::SchedulePublishResend ()
+	void RouterContext::SchedulePublishResend (uint64_t publishConfirmationTimeout)
 	{
 		if (m_PublishTimer)
 		{
 			m_PublishTimer->cancel ();
-			m_PublishTimer->expires_after (std::chrono::milliseconds(ROUTER_INFO_CONFIRMATION_TIMEOUT));
+			m_PublishTimer->expires_after (std::chrono::milliseconds(publishConfirmationTimeout));
 			m_PublishTimer->async_wait (std::bind (&RouterContext::HandlePublishResendTimer,
 				this, std::placeholders::_1));
 		}
@@ -1562,8 +1573,7 @@ namespace i2p
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			i2p::context.UpdateTimestamp (i2p::util::GetSecondsSinceEpoch ());
-			Publish ();
-			SchedulePublishResend ();
+			SchedulePublishResend (Publish ());
 		}
 	}
 

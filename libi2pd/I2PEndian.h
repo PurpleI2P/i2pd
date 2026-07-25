@@ -80,7 +80,7 @@ uint16_t be16toh(uint16_t big16);
 uint32_t be32toh(uint32_t big32);
 uint64_t be64toh(uint64_t big64);
 
-// assume LittleEndine
+// assume LittleEndian
 #define htole16
 #define htole32
 #define htole64

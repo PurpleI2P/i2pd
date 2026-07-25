@@ -398,7 +398,7 @@ namespace torrents
 	void PeerConnection::WriteToStream (const uint8_t * buf, size_t len)
 	{
 		m_Stream->AsyncSend (buf, len,
-			[s = shared_from_this ()](const boost::system::error_code& ecode)
+			[s = shared_from_this ()](const boost::system::error_code& ecode, size_t bytes_transferred)
 			{
 				if (ecode) s->Terminate ();
 			});
@@ -487,7 +487,7 @@ namespace torrents
 	{
 		m_LastReceiveTime = i2p::util::GetMonotonicSeconds ();
 		size_t offset = 0;
-		while (size_t len = HandleNextMsg (offset) > 0)
+		while (size_t len = HandleNextMsg (offset))
 			offset += len;
 		if (offset && offset < m_ReceiveBufferOffset)
 		{
@@ -854,7 +854,7 @@ namespace torrents
 			{
 				if (stream)
 				{
-					auto httpStream = std::make_shared<i2p::stream::BoostAsyncStream>(stream);
+					auto httpStream = std::make_shared<i2p::client::BoostAsyncStream>(stream);
 					boost::beast::http::async_write (*httpStream, *req,
 						std::bind (&TorrentsTunnel::TrackerRequestSent, this, std::placeholders::_1, std::placeholders::_2, httpStream, torrent, req));
 				}
@@ -862,7 +862,7 @@ namespace torrents
 	}
 
 	void TorrentsTunnel::TrackerRequestSent (const boost::beast::error_code& ecode, size_t bytes_transferred,
-		std::shared_ptr<i2p::stream::BoostAsyncStream> httpStream, std::shared_ptr<Torrent> torrent,
+		std::shared_ptr<i2p::client::BoostAsyncStream> httpStream, std::shared_ptr<Torrent> torrent,
 		std::shared_ptr<boost::beast::http::request<boost::beast::http::string_body> > req)
 	{
 		if (!ecode)

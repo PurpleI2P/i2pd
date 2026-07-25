@@ -1316,7 +1316,7 @@ namespace garlic
 	{
 		if (!ls || ls->GetStoreType () != i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2)
 		{
-			LogPrint (eLogError, "Garlic: Incorrect LeasetSet type to send");
+			LogPrint (eLogError, "Garlic: Incorrect LeaseSet type to send");
 			return 0;
 		}
 		uint16_t cloveSize = 1 + 9 + DATABASE_STORE_HEADER_SIZE + ls->GetBufferLen (); // to local

@@ -26,6 +26,7 @@
 #include "HTTP.h"
 #include "I2PService.h"
 #include "AddressBook.h"
+#include "BoostStream.h"
 
 namespace i2p
 {
@@ -201,7 +202,7 @@ namespace torrents
 
 			void RequestTracker (std::shared_ptr<Torrent> torrent);
 			void TrackerRequestSent (const boost::beast::error_code& ecode, size_t bytes_transferred,
-				std::shared_ptr<i2p::stream::BoostAsyncStream> httpStream, std::shared_ptr<Torrent> torrent,
+				std::shared_ptr<i2p::client::BoostAsyncStream> httpStream, std::shared_ptr<Torrent> torrent,
 				std::shared_ptr<boost::beast::http::request<boost::beast::http::string_body> > req);
 
 			void ScheduleTrackerRequestsCheck ();

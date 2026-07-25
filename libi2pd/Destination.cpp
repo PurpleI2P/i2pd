@@ -682,10 +682,10 @@ namespace client
 				m_ExcludedFloodfills.clear ();
 				m_PublishReplyToken = 1; // dummy non-zero value
 				// try again after a while
-				LogPrint (eLogInfo, "Destination: Can't publish LeasetSet because destination is not ready. Try publishing again after ", PUBLISH_CONFIRMATION_TIMEOUT, " milliseconds");
+				LogPrint (eLogInfo, "Destination: Can't publish LeaseSet because destination is not ready. Try publishing again after ", PUBLISH_CONFIRMATION_TIMEOUT, " milliseconds");
 				m_PublishConfirmationTimer.expires_after (std::chrono::milliseconds(PUBLISH_CONFIRMATION_TIMEOUT));
 				m_PublishConfirmationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishConfirmationTimer,
-					shared_from_this (), std::placeholders::_1));
+					shared_from_this (), std::placeholders::_1, PUBLISH_CONFIRMATION_TIMEOUT));
 				return;
 			}
 		}
@@ -699,23 +699,28 @@ namespace client
 				boost::asio::post (s->GetService (), [s]()
 					{
 						s->m_PublishConfirmationTimer.cancel ();
-						s->HandlePublishConfirmationTimer (boost::system::error_code());
+						s->HandlePublishConfirmationTimer (boost::system::error_code(), 0);
 					});
 			};
-		m_PublishConfirmationTimer.expires_after (std::chrono::milliseconds(PUBLISH_CONFIRMATION_TIMEOUT));
+		uint64_t publishConfirmationTimeout = PUBLISH_CONFIRMATION_TIMEOUT;
+		publishConfirmationTimeout += inbound->LatencyIsKnown() ? (uint64_t)(inbound->GetMeanLatency())/1000LL :
+			inbound->GetNumHops ()*(uint64_t)(i2p::tunnel::HIGH_LATENCY_PER_HOP)/1000LL;
+		publishConfirmationTimeout += outbound->LatencyIsKnown() ? (uint64_t)(outbound->GetMeanLatency())/1000LL :
+			outbound->GetNumHops ()*(uint64_t)(i2p::tunnel::HIGH_LATENCY_PER_HOP)/1000LL;
+		m_PublishConfirmationTimer.expires_after (std::chrono::milliseconds(publishConfirmationTimeout));
 		m_PublishConfirmationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishConfirmationTimer,
-			shared_from_this (), std::placeholders::_1));
+			shared_from_this (), std::placeholders::_1, publishConfirmationTimeout));
 		outbound->SendTunnelDataMsgTo (floodfill->GetIdentHash (), 0, msg);
 		m_LastSubmissionTime = ts;
 	}
 
-	void LeaseSetDestination::HandlePublishConfirmationTimer (const boost::system::error_code& ecode)
+	void LeaseSetDestination::HandlePublishConfirmationTimer (const boost::system::error_code& ecode, uint64_t publishConfirmationTimeout)
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			if (m_PublishReplyToken)
 			{
-				LogPrint (eLogWarning, "Destination: Publish confirmation was not received in ", PUBLISH_CONFIRMATION_TIMEOUT, " milliseconds or failed. will try again");
+				LogPrint (eLogWarning, "Destination: Publish confirmation was not received in ", publishConfirmationTimeout, " milliseconds or failed. will try again");
 				m_PublishReplyToken = 0;
 				Publish ();
 			}
@@ -740,7 +745,7 @@ namespace client
 					{
 						if (*ls == *leaseSet)
 						{
-							// we got latest LeasetSet
+							// we got latest LeaseSet
 							LogPrint (eLogDebug, "Destination: Published LeaseSet verified for ", s->GetIdentHash().ToBase32());
 							s->m_PublishVerificationTimer.expires_after (std::chrono::seconds(PUBLISH_REGULAR_VERIFICATION_INTERNAL));
 							s->m_PublishVerificationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishVerificationTimer, s, std::placeholders::_1));
@@ -905,16 +910,23 @@ namespace client
 						nextFloodfill->GetIdentHash (), 0, msg
 					}
 				});
-			request->requestTimeoutTimer.expires_after (std::chrono::milliseconds(LEASESET_REQUEST_TIMEOUT));
+
+			uint64_t requestLeaseSetTimeout = LEASESET_REQUEST_TIMEOUT;
+			requestLeaseSetTimeout += request->replyTunnel->LatencyIsKnown() ? (uint64_t)(request->replyTunnel->GetMeanLatency())/1000LL :
+				request->replyTunnel->GetNumHops ()*(uint64_t)(i2p::tunnel::HIGH_LATENCY_PER_HOP)/1000LL;
+			requestLeaseSetTimeout += request->outboundTunnel->LatencyIsKnown() ? (uint64_t)(request->outboundTunnel->GetMeanLatency())/1000LL :
+				request->outboundTunnel->GetNumHops ()*(uint64_t)(i2p::tunnel::HIGH_LATENCY_PER_HOP)/1000LL;
+			request->requestTimeoutTimer.expires_after (std::chrono::milliseconds(requestLeaseSetTimeout));
 			request->requestTimeoutTimer.async_wait (std::bind (&LeaseSetDestination::HandleRequestTimoutTimer,
-				shared_from_this (), std::placeholders::_1, dest));
+				shared_from_this (), std::placeholders::_1, dest, requestLeaseSetTimeout));
 		}
 		else
 			return false;
 		return true;
 	}
 
-	void LeaseSetDestination::HandleRequestTimoutTimer (const boost::system::error_code& ecode, const i2p::data::IdentHash& dest)
+	void LeaseSetDestination::HandleRequestTimoutTimer (const boost::system::error_code& ecode,
+		const i2p::data::IdentHash& dest, uint64_t requestLeaseSetTimeout)
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
@@ -938,7 +950,7 @@ namespace client
 				}
 				else
 				{
-					LogPrint (eLogWarning, "Destination: ", dest.ToBase64 (), " was not found within ", MAX_LEASESET_REQUEST_TIMEOUT, " seconds");
+					LogPrint (eLogWarning, "Destination: ", dest.ToBase64 (), " was not found within ", requestLeaseSetTimeout, " seconds");
 					done = true;
 				}
 

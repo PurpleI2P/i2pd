@@ -19,6 +19,26 @@ namespace i2p
 {
 namespace stream
 {
+	SendBuffer::SendBuffer (const std::vector<std::pair<const uint8_t *, size_t> >& bufs, size_t totalLen, SendHandler&& h):
+		len(totalLen), offset (0), handler(std::move (h))
+	{
+		buf = new uint8_t[len];
+		size_t offset1 = 0;
+		for (const auto& [b, l]: bufs)
+		{
+			if (offset1 + l <= totalLen)
+			{
+				memcpy (buf + offset1, b, l);
+				offset1 += l;
+			}
+			else
+			{
+				memcpy (buf + offset1, b, totalLen - offset1);
+				break;
+			}
+		}
+	}
+
 	void SendBufferQueue::Add (std::shared_ptr<SendBuffer>&& buf)
 	{
 		if (buf)
@@ -912,7 +932,7 @@ namespace stream
 		}
 		if (!done)
 		{
-			// make sure that AsycReceive complete
+			// make sure that AsyncReceive complete
 			auto s = shared_from_this();
 			boost::asio::post (m_Service, [s]()
 		    {
@@ -940,19 +960,23 @@ namespace stream
 		if (len > 0 && buf)
 			buffer = std::make_shared<i2p::stream::SendBuffer>(buf, len, std::move (handler));
 		else if (handler)
-			handler(boost::system::error_code ());
-		auto s = shared_from_this ();
-		boost::asio::post (m_Service, [s, buffer = std::move(buffer)]() mutable
+			handler(boost::system::error_code (), 0);
+		Send (std::move (buffer));
+	}
+
+	void Stream::Send (std::shared_ptr<i2p::stream::SendBuffer>&& buf)
+	{
+		boost::asio::post (m_Service, [s = shared_from_this (), buf = std::move(buf)]() mutable
 			{
-				if (buffer)
-					s->m_SendBuffer.Add (std::move(buffer));
+				if (buf)
+					s->m_SendBuffer.Add (std::move(buf));
 				s->SendBuffer ();
 			});
 	}
 
 	void Stream::SendBuffer ()
 	{
-		if (m_RemoteLeaseSet) // don't scheudle send for first SYN for incoming stream
+		if (m_RemoteLeaseSet) // don't schedule send for first SYN for incoming stream
 			ScheduleSend ();
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		int numMsgs = m_WindowSize - m_SentPackets.size ();
@@ -2460,7 +2484,7 @@ namespace stream
 		size_t size;
 		auto msg = (len <= STREAMING_MTU_RATCHETS) ? m_I2NPMsgsPool.AcquireShared () : NewI2NPMessage ();
 		uint8_t * buf = msg->GetPayload ();
-		buf += 4; // reserve for lengthlength
+		buf += 4; // reserve for length
 		msg->len += 4;
 
 		if (m_Gzip || gzip)

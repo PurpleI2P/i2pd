@@ -39,13 +39,13 @@ namespace client
 	const uint8_t PROTOCOL_TYPE_RAW = 18;
 	const uint8_t PROTOCOL_TYPE_DATAGRAM2 = 19;
 	const uint8_t PROTOCOL_TYPE_DATAGRAM3 = 20;
-	const int PUBLISH_CONFIRMATION_TIMEOUT = 1800; // in milliseconds
+	const int PUBLISH_CONFIRMATION_TIMEOUT = 1400; // in milliseconds
 	const int PUBLISH_VERIFICATION_TIMEOUT = 5; // in seconds after successful publish
 	const int PUBLISH_VERIFICATION_TIMEOUT_VARIANCE = 3; // in seconds
 	const int PUBLISH_MIN_INTERVAL = 20; // in seconds
 	const int PUBLISH_REGULAR_VERIFICATION_INTERNAL = 100; // in seconds periodically
-	const int LEASESET_REQUEST_TIMEOUT = 1600; // in milliseconds
-	const int MAX_LEASESET_REQUEST_TIMEOUT = 12000; // in milliseconds
+	const int LEASESET_REQUEST_TIMEOUT = 1200; // in milliseconds
+	const int MAX_LEASESET_REQUEST_TIMEOUT = 17000; // in milliseconds
 	const int DESTINATION_CLEANUP_TIMEOUT = 44; // in seconds
 	const int DESTINATION_CLEANUP_TIMEOUT_VARIANCE = 30; // in seconds
 	const unsigned int MAX_NUM_FLOODFILLS_PER_REQUEST = 7;
@@ -192,7 +192,7 @@ namespace client
 
 			std::shared_ptr<const i2p::data::LocalLeaseSet> GetLeaseSetMt ();
 			void Publish ();
-			void HandlePublishConfirmationTimer (const boost::system::error_code& ecode);
+			void HandlePublishConfirmationTimer (const boost::system::error_code& ecode, uint64_t publishConfirmationTimeout);
 			void HandlePublishVerificationTimer (const boost::system::error_code& ecode);
 			void HandlePublishDelayTimer (const boost::system::error_code& ecode);
 			void HandleDatabaseStoreMessage (const uint8_t * buf, size_t len, i2p::garlic::ECIESX25519AEADRatchetSession * from);
@@ -202,7 +202,7 @@ namespace client
 			void RequestLeaseSet (const i2p::data::IdentHash& dest, RequestComplete requestComplete, std::shared_ptr<const i2p::data::BlindedPublicKey> requestedBlindedKey = nullptr);
 			bool SendLeaseSetRequest (const i2p::data::IdentHash& dest, std::shared_ptr<const i2p::data::RouterInfo> nextFloodfill, std::shared_ptr<LeaseSetRequest> request);
 			void SendNextLeaseSetRequest (const i2p::data::IdentHash& key, std::shared_ptr<LeaseSetRequest> request);
-			void HandleRequestTimoutTimer (const boost::system::error_code& ecode, const i2p::data::IdentHash& dest);
+			void HandleRequestTimoutTimer (const boost::system::error_code& ecode, const i2p::data::IdentHash& dest, uint64_t requestLeaseSetTimeout);
 			void HandleCleanupTimer (const boost::system::error_code& ecode);
 			void CleanupRemoteLeaseSets ();
 

@@ -964,7 +964,7 @@ namespace data
 		{
 			// no tunnels or withdraw
 			SetExpirationTime (publishedTimestamp*1000LL);
-			memset (expiresBuf, 0, 2); // expires immeditely
+			memset (expiresBuf, 0, 2); // expires immediately
 		}
 		// sign
 		keys.Sign (m_Buffer, offset, m_Buffer + offset); // LS + leading store type

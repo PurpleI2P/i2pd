@@ -122,9 +122,9 @@ namespace stream
 	};
 
 #ifdef __cpp_lib_move_only_function // with C++23
-	typedef std::move_only_function<void (const boost::system::error_code& ecode)> SendHandler;
+	typedef std::move_only_function<void (const boost::system::error_code& ecode, size_t bytes_transferred)> SendHandler;
 #else
-	typedef std::function<void (const boost::system::error_code& ecode)> SendHandler;
+	typedef std::function<void (const boost::system::error_code& ecode, size_t bytes_transferred)> SendHandler;
 #endif
 
 	struct SendBuffer
@@ -144,14 +144,15 @@ namespace stream
 		{
 			buf = new uint8_t[len];
 		}
+		SendBuffer (const std::vector<std::pair<const uint8_t *, size_t> >& bufs, size_t totalLen, SendHandler&& h);
 		~SendBuffer ()
 		{
 			delete[] buf;
-			if (handler) handler(boost::system::error_code ());
+			if (handler) handler(boost::system::error_code (), len);
 		}
 		size_t GetRemainingSize () const { return len - offset; };
 		const uint8_t * GetRemaningBuffer () const { return buf + offset; };
-		void Cancel () { if (handler) handler (boost::asio::error::make_error_code (boost::asio::error::operation_aborted)); handler = nullptr; };
+		void Cancel () { if (handler) handler (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), offset); handler = nullptr; };
 	};
 
 	class SendBufferQueue
@@ -209,6 +210,7 @@ namespace stream
 			void HandlePing (Packet * packet);
 			size_t Send (const uint8_t * buf, size_t len);
 			void AsyncSend (const uint8_t * buf, size_t len, SendHandler&& handler);
+			void Send (std::shared_ptr<i2p::stream::SendBuffer>&& buf);
 			void SendPing ();
 
 			template<typename Buffer, typename ReceiveHandler>
@@ -432,69 +434,12 @@ namespace stream
 				handler (boost::asio::error::make_error_code (boost::asio::error::timed_out), received);
 			else
 			{
-				// itermediate interrupt
+				// intermediate interrupt
 				SendUpdatedLeaseSet (); // send our leaseset if applicable
 				AsyncReceive (buffer, handler, remainingTimeout);
 			}
 		}
 	}
-
-//-------------------------------------------------
-
-	class BoostAsyncStream // for boost::beast and boost::asio
-	{
-		public:
-
-			using executor_type = boost::asio::any_io_executor;
-
-			BoostAsyncStream (std::shared_ptr<Stream> stream): m_Stream (stream) {}
-
-			// AsyncStream
-			executor_type get_executor() noexcept { return m_Stream->GetService ().get_executor(); }
-
-			// AsyncReadStream
-			template<typename MutableBufferSequence, typename ReadHandler>
-			void async_read_some(const MutableBufferSequence& bufs, ReadHandler&& handler)
-			{
-				size_t received = 0;
-				for (auto it = boost::asio::buffer_sequence_begin (bufs); it != boost::asio::buffer_sequence_end (bufs); it++)
-				{
-					auto len = m_Stream->ReadSome ((uint8_t *)it->data (), it->size ());
-					received += len;
-					if (received < it->size ()) break;
-				}
-				if (received > 0) // we have some data
-					handler (boost::system::error_code (), received);
-				else if (bufs.size () > 0) // wait for incoming data
-					m_Stream->AsyncReceive (*boost::asio::buffer_sequence_begin (bufs),
-						[handler = std::move (handler)](const boost::system::error_code& ecode, size_t bytes_transferred) mutable
-						{
-							handler (boost::system::error_code (), bytes_transferred);
-						});
-				else
-					handler (boost::system::error_code (), 0);
-			}
-
-			// AsyncWriteStream
-			template<typename ConstBufferSequence, typename WriteHandler>
-			void async_write_some(const ConstBufferSequence& bufs, WriteHandler&& handler)
-			{
-				size_t sent = 0;
-				for (auto it = boost::asio::buffer_sequence_begin (bufs); it != boost::asio::buffer_sequence_end (bufs); it++)
-				{
-					const auto& buf = *it;
-					sent += buf.size ();
-					m_Stream->Send ((const uint8_t *)buf.data (), buf.size ());
-					// TODO: AsyncSend wiht callback for last buf, but not possible below C++23
-				}
-				handler (boost::system::error_code (), sent);
-			}
-
-		private:
-
-			std::shared_ptr<Stream> m_Stream;
-	};
 }
 }
-
 #endif
