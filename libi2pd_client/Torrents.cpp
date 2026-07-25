@@ -487,7 +487,7 @@ namespace torrents
 	{
 		m_LastReceiveTime = i2p::util::GetMonotonicSeconds ();
 		size_t offset = 0;
-		while (size_t len = HandleNextMsg (offset) > 0)
+		while (size_t len = HandleNextMsg (offset))
 			offset += len;
 		if (offset && offset < m_ReceiveBufferOffset)
 		{

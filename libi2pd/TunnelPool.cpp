@@ -43,6 +43,8 @@ namespace tunnel
 		m_IsActive (true), m_IsHighBandwidth (isHighBandwidth), m_CustomPeerSelector(nullptr),
 		m_Rng (i2p::util::GetMonotonicMicroseconds ()%1000000LL)
 	{
+		if (m_NumInboundHops > MAX_NUM_RECORDS) m_NumInboundHops = MAX_NUM_RECORDS;
+		if (m_NumOutboundHops > MAX_NUM_RECORDS) m_NumOutboundHops = MAX_NUM_RECORDS;
 		if (m_NumInboundTunnels > TUNNEL_POOL_MAX_INBOUND_TUNNELS_QUANTITY)
 			m_NumInboundTunnels = TUNNEL_POOL_MAX_INBOUND_TUNNELS_QUANTITY;
 		if (m_NumOutboundTunnels > TUNNEL_POOL_MAX_OUTBOUND_TUNNELS_QUANTITY)
@@ -123,8 +125,8 @@ namespace tunnel
 	{
 		if( inHops >= 0 && outHops >= 0 && inQuant > 0 && outQuant > 0)
 		{
-			m_NumInboundHops = inHops;
-			m_NumOutboundHops = outHops;
+			m_NumInboundHops = inHops > MAX_NUM_RECORDS ? MAX_NUM_RECORDS : inHops;
+			m_NumOutboundHops = outHops > MAX_NUM_RECORDS ? MAX_NUM_RECORDS : outHops;
 			m_NumInboundTunnels = inQuant;
 			m_NumOutboundTunnels = outQuant;
 			return true;
