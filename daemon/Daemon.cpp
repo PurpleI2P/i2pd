@@ -153,7 +153,6 @@ namespace util
 			LogPrint(eLogInfo, "unveil " + path + " with rules " + rules);
 		};
 		auto init_unveil = [unveil_path](std::string datadir, std::string config) {
-			
 			unveil_path(datadir,"rwc");
 			unveil_path("/tmp", "rwc");
 
@@ -179,7 +178,7 @@ namespace util
 
 			unveil_path(config.c_str(), "r");
 
-			std::string pidfile ;i2p::config::GetOption("pidfile", pidfile); unveil_path(pidfile.c_str(), "rw");
+			std::string pidfile ;i2p::config::GetOption("pidfile", pidfile); unveil_path(pidfile.c_str(), "rwc");
 
 			i2p::config::GetOption("logfile", logfile); unveil(logfile.c_str(), "rw");
 			if(unveil_file != "")
