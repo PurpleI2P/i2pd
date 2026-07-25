@@ -167,7 +167,8 @@ namespace util
 			i2p::config::GetOption("logfile", logfile);
 			i2p::config::GetOption("i2pcontrol.cert", i2pcontrol_cert);
 			i2p::config::GetOption("i2pcontrol.key", i2pcontrol_key);
-
+			//constexpr can't be here and it's eat a lot of memory...
+/*
 			auto rules = std::map<std::string,std::string>{
 				{datadir,"rwc"},
 				{"/tmp","rwc"},
@@ -188,6 +189,21 @@ namespace util
 			{
 				unveil_path(path, privilegies);
 			}
+*/
+			unveil_path(datadir, "rwc");
+			unveil_path("/tmp", "rwc");
+			unveil_path(unveil_file, "r");
+			unveil_path(tunnelsdir, "r");
+			unveil_path(certsdir, "r");
+			unveil_path(reseed_file, "r");
+			unveil_path(openbsd_pledge_file, "r");
+			unveil_path(tunconf, "r");
+			unveil_path(config, "r");
+			unveil_path(pidfile, "rwc");
+			unveil_path(logfile, "rwc");
+			unveil_path(i2pcontrol_cert, "rwc");
+			unveil_path(i2pcontrol_key, "rwc");
+
 
 			if( unveil_file.length() )
 			{
