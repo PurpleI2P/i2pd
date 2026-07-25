@@ -30,6 +30,8 @@ start_pre() {
     exit 1
   fi
 
+  checkpath -d -m 0755 -o i2pd:adm /var/log/i2pd
+  checkpath -d -m 0755 -o i2pd:adm /run/i2pd
   checkpath -f -o i2pd:adm $logfile
   checkpath -f -o i2pd:adm $pidfile
 
