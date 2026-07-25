@@ -744,7 +744,7 @@ namespace transport
 					m_LastSession->ProcessFirstIncomingMessage (connID, buf, len); // SessionRequest
 				break;
 				case eSSU2SessionStateClosing:
-					m_LastSession->ProcessData (buf, len, senderEndpoint); // we might receive termintaion block
+					m_LastSession->ProcessData (buf, len, senderEndpoint); // we might receive termination block
 					if (m_LastSession && m_LastSession->GetState () == eSSU2SessionStateClosing)
 						m_LastSession->RequestTermination (eSSU2TerminationReasonIdleTimeout); // send termination again
 				break;
@@ -996,7 +996,7 @@ namespace transport
 							break;
 						else
 						{
-							// address is invalid or not intrudcer, try another SSU2 address if exists
+							// address is invalid or not introducer, try another SSU2 address if exists
 							if (address->IsV4 ())
 							{
 								if (i2p::context.SupportsV6 ())

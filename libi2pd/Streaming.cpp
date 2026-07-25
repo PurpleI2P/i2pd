@@ -932,7 +932,7 @@ namespace stream
 		}
 		if (!done)
 		{
-			// make sure that AsycReceive complete
+			// make sure that AsyncReceive complete
 			auto s = shared_from_this();
 			boost::asio::post (m_Service, [s]()
 		    {
@@ -976,7 +976,7 @@ namespace stream
 
 	void Stream::SendBuffer ()
 	{
-		if (m_RemoteLeaseSet) // don't scheudle send for first SYN for incoming stream
+		if (m_RemoteLeaseSet) // don't schedule send for first SYN for incoming stream
 			ScheduleSend ();
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		int numMsgs = m_WindowSize - m_SentPackets.size ();
@@ -2484,7 +2484,7 @@ namespace stream
 		size_t size;
 		auto msg = (len <= STREAMING_MTU_RATCHETS) ? m_I2NPMsgsPool.AcquireShared () : NewI2NPMessage ();
 		uint8_t * buf = msg->GetPayload ();
-		buf += 4; // reserve for lengthlength
+		buf += 4; // reserve for length
 		msg->len += 4;
 
 		if (m_Gzip || gzip)

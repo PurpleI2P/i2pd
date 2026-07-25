@@ -292,7 +292,7 @@ namespace config {
 
 		options_description addressbook("AddressBook options");
 		addressbook.add_options()
-			("addressbook.enabled", value<bool>()->default_value(true), "Enable address book lookups and subscritions (default: enabled)")
+			("addressbook.enabled", value<bool>()->default_value(true), "Enable address book lookups and subscriptions (default: enabled)")
 			("addressbook.defaulturl", value<std::string>()->default_value(
 				"http://shx5vqsw7usdaunyzr2qmes2fq37oumybpudrd4jjj4e4vk4uusa.b32.i2p/hosts.txt"
 			),                                                                     "AddressBook subscription URL for initial setup")
@@ -399,7 +399,7 @@ namespace config {
 #ifdef __OpenBSD__
 		options_description openbsd_specific("OpenBSD specific options");
 		openbsd_specific.add_options()
-			("openbsd.pledge_file", value<std::string>()->default_value(""), "OpenbSD file with pledge rules")
+			("openbsd.pledge_file", value<std::string>()->default_value(""), "OpenBSD file with pledge rules")
 			("openbsd.unevil_file", value<std::string>()->default_value(""), "OpenBSD file with unevil rules")
 			("openbsd.unevil_enabled", value<bool>()->default_value(true),     "use unevil rues")
 			("openbsd.pledge_enabled", value<bool>()->default_value(true),     "use pledge rules")
