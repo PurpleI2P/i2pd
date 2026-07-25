@@ -142,7 +142,7 @@ namespace util
 		{
 			if(path=="")
 			{
-				LogPrint(eLogInfo, "empty path for unveil");
+				LogPrint(eLogDebug, "empty path for unveil");
 				return;
 			}
 			if ( unveil(path.c_str(), rules.c_str()) == -1 )
