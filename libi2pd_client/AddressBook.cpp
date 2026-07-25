@@ -1126,7 +1126,7 @@ namespace client
 		}
 		// read requested address
 		uint8_t l = buf[8];
-		char address[255];
+		char address[256];
 		memcpy (address, buf + 9, l);
 		address[l] = 0;
 		LogPrint (eLogDebug, "Addressbook: Address request ", address);

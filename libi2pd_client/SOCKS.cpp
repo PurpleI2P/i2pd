@@ -275,7 +275,7 @@ namespace proxy
 				break;
 			case ADDR_DNS:
 				std::string address(addr.dns.value, addr.dns.size);
-				if(address.substr(addr.dns.size - 4, 4) == ".i2p") // overwrite if requested address inside I2P
+				if(addr.dns.size >= 4 && address.substr(addr.dns.size - 4, 4) == ".i2p") // overwrite if requested address inside I2P
 				{
 					m_response[3] = ADDR_IPV4;
 					size += 4;
