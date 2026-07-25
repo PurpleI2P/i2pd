@@ -180,7 +180,7 @@ namespace tunnel
 
 		private:
 
-			TunnelHopConfig * m_FirstHop, * m_LastHop;
+			TunnelHopConfig * m_FirstHop = nullptr, * m_LastHop = nullptr;
 			i2p::data::RouterInfo::CompatibleTransports m_FarEndTransports;
 	};
 

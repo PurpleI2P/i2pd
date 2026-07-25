@@ -178,7 +178,10 @@ namespace tunnel
 	{
 		// inbound
 		CreatePeers (peers);
-		m_LastHop->SetNextIdent (i2p::context.GetIdentHash ());
+		if (m_LastHop)
+			m_LastHop->SetNextIdent (i2p::context.GetIdentHash ());
+		else
+			LogPrint (eLogError, "Tunnel: Can't create inbound tunnel config with no peers");
 	}
 
 	TunnelConfig::TunnelConfig (const std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers,
@@ -188,8 +191,13 @@ namespace tunnel
 	{
 		// outbound
 		CreatePeers (peers);
-		m_FirstHop->isGateway = false;
-		m_LastHop->SetReplyHop (replyTunnelID, replyIdent);
+		if (m_FirstHop && m_LastHop)
+		{
+			m_FirstHop->isGateway = false;
+			m_LastHop->SetReplyHop (replyTunnelID, replyIdent);
+		}
+		else
+			LogPrint (eLogError, "Tunnel: Can't create outbound tunnel config with no peers");
 	}
 
 	void TunnelConfig::CreatePeers (const std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers)

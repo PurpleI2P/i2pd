@@ -72,7 +72,7 @@ namespace client
 
 			i2p::fs::HashedStorage storage;
 			std::string etagsPath, indexPath, localPath;
-			bool m_IsPersist;
+			bool m_IsPersist = false;
 			std::string m_HostsFile; // file to dump hosts.txt, empty if not used
 			std::unordered_map<i2p::data::IdentHash, std::pair<std::vector<uint8_t>, uint64_t> > m_FullAddressCache; // ident hash -> (full ident buffer, last access timestamp)
 			std::mutex m_FullAddressCacheMutex;

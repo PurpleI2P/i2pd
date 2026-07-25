@@ -24,6 +24,7 @@ namespace client
 
 			MatchedTunnelDestination(const i2p::data::PrivateKeys& keys, const std::string & remoteName,
 				const i2p::util::Mapping * params = nullptr);
+			~MatchedTunnelDestination();
 			void Start();
 			void Stop();
 
