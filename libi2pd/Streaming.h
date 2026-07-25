@@ -434,7 +434,7 @@ namespace stream
 				handler (boost::asio::error::make_error_code (boost::asio::error::timed_out), received);
 			else
 			{
-				// itermediate interrupt
+				// intermediate interrupt
 				SendUpdatedLeaseSet (); // send our leaseset if applicable
 				AsyncReceive (buffer, handler, remainingTimeout);
 			}

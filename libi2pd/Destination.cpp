@@ -682,7 +682,7 @@ namespace client
 				m_ExcludedFloodfills.clear ();
 				m_PublishReplyToken = 1; // dummy non-zero value
 				// try again after a while
-				LogPrint (eLogInfo, "Destination: Can't publish LeasetSet because destination is not ready. Try publishing again after ", PUBLISH_CONFIRMATION_TIMEOUT, " milliseconds");
+				LogPrint (eLogInfo, "Destination: Can't publish LeaseSet because destination is not ready. Try publishing again after ", PUBLISH_CONFIRMATION_TIMEOUT, " milliseconds");
 				m_PublishConfirmationTimer.expires_after (std::chrono::milliseconds(PUBLISH_CONFIRMATION_TIMEOUT));
 				m_PublishConfirmationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishConfirmationTimer,
 					shared_from_this (), std::placeholders::_1, PUBLISH_CONFIRMATION_TIMEOUT));
@@ -745,7 +745,7 @@ namespace client
 					{
 						if (*ls == *leaseSet)
 						{
-							// we got latest LeasetSet
+							// we got latest LeaseSet
 							LogPrint (eLogDebug, "Destination: Published LeaseSet verified for ", s->GetIdentHash().ToBase32());
 							s->m_PublishVerificationTimer.expires_after (std::chrono::seconds(PUBLISH_REGULAR_VERIFICATION_INTERNAL));
 							s->m_PublishVerificationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishVerificationTimer, s, std::placeholders::_1));

@@ -32,7 +32,7 @@ namespace transport
 
 	constexpr size_t NTCP2_UNENCRYPTED_FRAME_MAX_SIZE = 65519;
 	constexpr size_t NTCP2_SEND_AFTER_FRAME_SIZE = 16386; // send frame when exceeds this size
-	constexpr size_t NTCP2_SESSION_HANDSHAKE_MAX_SIZE = 287; // SessionRequest/SesionCreated without ML-KEM frame
+	constexpr size_t NTCP2_SESSION_HANDSHAKE_MAX_SIZE = 287; // SessionRequest/SessionCreated without ML-KEM frame
 	constexpr size_t NTCP2_SESSION_HANDSHAKE_LONG_MAX_SIZE = 944; // for non-PQ
 	const int NTCP2_MAX_PADDING_RATIO = 6; // in %
 
@@ -43,8 +43,8 @@ namespace transport
 	const int NTCP2_TERMINATION_CHECK_TIMEOUT = 28; // 28 seconds
 	const int NTCP2_TERMINATION_CHECK_TIMEOUT_VARIANCE = 5; // 5 seconds
 	const int NTCP2_RECEIVE_BUFFER_DELETION_TIMEOUT = 3; // 3 seconds
-	const int NTCP2_ROUTERINFO_RESEND_INTERVAL = 25*60; // 25 minuntes in seconds
-	const int NTCP2_ROUTERINFO_RESEND_INTERVAL_VARIANCE = 25*60; // 25 minuntes
+	const int NTCP2_ROUTERINFO_RESEND_INTERVAL = 25*60; // 25 minutes in seconds
+	const int NTCP2_ROUTERINFO_RESEND_INTERVAL_VARIANCE = 25*60; // 25 minutes
 
 	const int NTCP2_CLOCK_SKEW = 60; // in seconds
 	const int NTCP2_MAX_OUTGOING_QUEUE_SIZE = 500; // how many messages we can queue up

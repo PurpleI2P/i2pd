@@ -42,7 +42,7 @@ namespace crypto
 		BIGNUM * x = BN_bin2bn (pub, 32, nullptr);
 		BIGNUM * y = BN_bin2bn (pub + 32, 32, nullptr);
 		if (!EC_POINT_set_affine_coordinates (m_Curve, m_PublicKey, x, y, nullptr))
-			LogPrint (eLogError, "ECICS P256 invalid public key");
+			LogPrint (eLogError, "ECIES P256 invalid public key");
 		BN_free (x); BN_free (y);
 	}
 
@@ -103,7 +103,7 @@ namespace crypto
 		BIGNUM * x = BN_bin2bn (pub, 32, nullptr);
 		BIGNUM * y = BN_bin2bn (pub + 32, 32, nullptr);
 		if (!EC_POINT_set_affine_coordinates (curve->GetGroup (), m_PublicKey, x, y, nullptr))
-			LogPrint (eLogError, "ECICS GOST R 34.10 invalid public key");
+			LogPrint (eLogError, "ECIES GOST R 34.10 invalid public key");
 		BN_free (x); BN_free (y);
 	}
 

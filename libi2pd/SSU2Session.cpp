@@ -2598,7 +2598,7 @@ namespace transport
 						else
 							code = eSSU2PeerTestCodeCharlieSignatureFailure;
 					}
-					else // maformed message
+					else // malformed message
 						code = eSSU2PeerTestCodeCharlieReasonUnspecified;
 				}
 				else
@@ -2683,7 +2683,7 @@ namespace transport
 										{
 											if (!session->IsConnectedRecently ())
 												SetRouterStatus (eRouterStatusOK);
-										 	// send msg 6 immeditely
+										 	// send msg 6 immediately
 											session->SendPeerTest (6, buf + offset, len - offset, addr);
 										}
 										else

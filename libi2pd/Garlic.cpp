@@ -241,7 +241,7 @@ namespace garlic
 				SetSharedRoutingPath (nullptr); // invalidate path since leaseset was not confirmed
 			}
 
-			// attach DeviveryStatus if necessary
+			// attach DeliveryStatus if necessary
 			if (newTags || GetLeaseSetUpdateStatus () == eLeaseSetUpdated) // new tags created or leaseset updated
 			{
 				// clove is DeliveryStatus

@@ -1210,7 +1210,7 @@ namespace data
 			{
 				auto addr1 = (*addresses1)[i], addr2 = (*addresses2)[i];
 				if (addr1 && addr2 && !addr1->host.is_unspecified () && !addr2->host.is_unspecified ())
-					return addr1->IsSameSubnet (*addr2); // first adddess with IPs
+					return addr1->IsSameSubnet (*addr2); // first address with IPs
 			}
 		return false;
 	}
