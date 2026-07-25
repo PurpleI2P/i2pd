@@ -13,6 +13,7 @@
 #include <sstream>
 #include <algorithm>
 #include <functional>
+#include <boost/algorithm/string.hpp>
 #include <openssl/bn.h>
 #include "Log.h"
 #include "FS.h"
@@ -718,7 +719,8 @@ namespace torrents
 		WriteToStream (sendBuffer.data (), sendBuffer.size ());
 	}
 
-	TorrentsTunnel::TorrentsTunnel (std::shared_ptr<i2p::client::ClientDestination> localDestination, std::string_view torrentsDir):
+	TorrentsTunnel::TorrentsTunnel (std::shared_ptr<i2p::client::ClientDestination> localDestination,
+		std::string_view torrentsDir, std::string_view trackers):
 		i2p::client::I2PService (localDestination), m_TorrentsDir (torrentsDir),
 		m_PeerID ("-I2PD-"), m_Rng(i2p::util::GetMonotonicMicroseconds ()%1000000LL),
 		m_TrackerRequestsCheckTimer (GetService ()), m_KeepAliveCheckTimer (GetService ())
@@ -726,6 +728,8 @@ namespace torrents
 		if (localDestination)
 			m_PeerID += localDestination->GetIdentHash ().ToBase64 ();
 		m_PeerID.resize (20, '0');
+		if (!trackers.empty ())
+			boost::split(m_Trackers, trackers, boost::is_any_of(","), boost::token_compress_on);
 	}
 
 	void TorrentsTunnel::Start ()
@@ -829,7 +833,10 @@ namespace torrents
 	{
 		if (!torrent) return;
 		i2p::http::URL reqURL;
-		reqURL.parse (torrent->GetAnnounce ());
+		if (!m_Trackers.empty())
+			reqURL.parse (m_Trackers.front ());
+		else
+			reqURL.parse (torrent->GetAnnounce ());
 #if __cplusplus >= 202002L // C++20
 		if (!reqURL.host.ends_with (".i2p"))
 #else

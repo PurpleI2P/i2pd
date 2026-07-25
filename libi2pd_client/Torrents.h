@@ -181,7 +181,8 @@ namespace torrents
 	{
 		public:
 
-			TorrentsTunnel (std::shared_ptr<i2p::client::ClientDestination> localDestination, std::string_view torrentsDir);
+			TorrentsTunnel (std::shared_ptr<i2p::client::ClientDestination> localDestination,
+				std::string_view torrentsDir, std::string_view trackers = "");
 
 			void Start () override;
 			void Stop () override;
@@ -214,6 +215,7 @@ namespace torrents
 		private:
 
 			std::string m_TorrentsDir, m_PeerID; // 20 characters
+			std::vector<std::string> m_Trackers;
 			std::map<Torrent::InfoHash, std::shared_ptr<Torrent> > m_Torrents;
 			std::mt19937 m_Rng;
 			boost::asio::steady_timer m_TrackerRequestsCheckTimer, m_KeepAliveCheckTimer;
