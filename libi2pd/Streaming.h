@@ -71,7 +71,7 @@ namespace stream
 	const int SYN_TIMEOUT = 200; // how long we wait for SYN after follow-on, in milliseconds
 	const size_t MAX_PENDING_INCOMING_BACKLOG = 1024;
 	const int PENDING_INCOMING_TIMEOUT = 10; // in seconds
-	const int MAX_RECEIVE_TIMEOUT = 20; // in seconds
+	const int MAX_RECEIVE_TIMEOUT = 90; // in seconds
 	const uint16_t DELAY_CHOKING = 60000; // in milliseconds
 	const uint16_t DELAY_CHOKING_JAVA = 61000; // in milliseconds
 	const uint16_t DELAY_CHOKING_2 = 65535; // in milliseconds

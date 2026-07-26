@@ -44,7 +44,7 @@ namespace client
 				if (received > 0) // we have some data
 					handler (boost::system::error_code (), received);
 				else if (bufs.size () > 0) // wait for incoming data
-					m_Stream->AsyncReceive (*boost::asio::buffer_sequence_begin (bufs), std::move (handler));
+					m_Stream->AsyncReceive (*boost::asio::buffer_sequence_begin (bufs), std::move (handler), i2p::stream::MAX_RECEIVE_TIMEOUT);
 				else
 					handler (boost::system::error_code (), 0);
 			}
@@ -60,7 +60,6 @@ namespace client
 					const auto& buf = *it;
 					sent += buf.size ();
 					bufsToSend.push_back ({ (const uint8_t *)buf.data (), buf.size () });
-
 				}
 				if (sent)
 				{
