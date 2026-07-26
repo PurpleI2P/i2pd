@@ -62,13 +62,15 @@ namespace http
 		 * @brief Parse query part of url to key/value map
 		 * @note Honestly, this should be implemented with std::multimap
 		 */
-		bool parse_query(std::map<std::string, std::string> & params);
+		bool parse_query(std::map<std::string, std::string> & params) const;
+
+		void create_query (const std::map<std::string, std::string>& params);
 
 		/**
 		 * @brief Serialize URL structure to url
 		 * @note Returns relative url if schema if empty, absolute url otherwise
 		 */
-		std::string to_string () const;
+		std::string to_string (bool requestTargetOnly = false) const;
 
 		/**
 		 * @brief return true if the host is inside i2p

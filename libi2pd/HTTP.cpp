@@ -209,7 +209,7 @@ namespace http
 		return true;
 	}
 
-	bool URL::parse_query(std::map<std::string, std::string> & params)
+	bool URL::parse_query(std::map<std::string, std::string> & params) const
 	{
 		std::vector<std::string_view> tokens;
 		strsplit(query, tokens, '&');
@@ -230,31 +230,53 @@ namespace http
 		return true;
 	}
 
-	std::string URL::to_string() const
+	void URL::create_query (const std::map<std::string, std::string>& params)
+	{
+		if (params.empty ()) return;
+		hasquery = true;
+		std::stringstream s;
+		bool isFirst = true;
+		for (const auto& [param, value]: params)
+		{
+			if (isFirst)
+				isFirst = false;
+			else
+				s << '&';
+			s << param << '=' << value;
+		}
+		query = s.str ();
+	}
+
+	std::string URL::to_string(bool requestTargetOnly) const
 	{
 		std::string out = "";
-		if (schema != "") {
-			out = schema + "://";
-			if (user != "" && pass != "") {
-				out += user + ":" + pass + "@";
-			} else if (user != "") {
-				out += user + "@";
-			}
-			if (ipv6) {
-				if (port) {
-					out += "[" + host + "]:" + std::to_string(port);
-				} else {
-					out += "[" + host + "]";
+		if (!requestTargetOnly)
+		{
+			if (schema != "")
+			{
+				out = schema + "://";
+				if (user != "" && pass != "") {
+					out += user + ":" + pass + "@";
+				} else if (user != "") {
+					out += user + "@";
 				}
-			} else {
-				if (port) {
-					out += host + ":" + std::to_string(port);
+				if (ipv6) {
+					if (port) {
+						out += "[" + host + "]:" + std::to_string(port);
+					} else {
+						out += "[" + host + "]";
+					}
 				} else {
-					out += host;
+					if (port) {
+						out += host + ":" + std::to_string(port);
+					} else {
+						out += host;
+					}
 				}
 			}
 		}
 		out += path;
+		if (out.empty ()) out = '/';
 		if (hasquery) // add query even if it was empty
 			out += "?";
 		if (query != "")
