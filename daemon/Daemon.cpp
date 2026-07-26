@@ -467,7 +467,7 @@ namespace util
 		std::string httpLang; i2p::config::GetOption("http.lang", httpLang);
 		i2p::i18n::SetLanguage(httpLang);
 #ifdef __OpenBSD__
-#warning Pledge is started after all routines initialization. If it's potential vuln - fix it
+//SIOCGIFMTU is not found, SOCK DGRAM not found
 		if(openbsd_pledge_enabled) init_pledge();
 #endif
 
