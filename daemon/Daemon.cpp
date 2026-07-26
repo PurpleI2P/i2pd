@@ -159,12 +159,32 @@ namespace util
 
 			i2p::config::GetOption("openbsd.unveil_file",unveil_file);
 			i2p::config::GetOption("certsdir", certsdir);
+			if(certsdir == "")
+			{
+				certsdir = datadir;
+			}
 			i2p::config::GetOption("tunnelsdir", tunnelsdir);
+			if(tunnelsdir == "")
+			{
+				tunnelsdir = "/etc/i2pd/tunnels.d";
+			}
 			i2p::config::GetOption("reseed.file", reseed_file);
 			i2p::config::GetOption("openbsd.pledge_file", openbsd_pledge_file);
 			i2p::config::GetOption("tunconf", tunconf); 
+			if(tunconf == "")
+			{
+				tunconf = "/etc/i2pd/i2pd.conf";
+			}
 			i2p::config::GetOption("pidfile", pidfile); 
+			if(pidfile == "")
+			{
+				pidfile = datadir+"/i2pd.pid";
+			}
 			i2p::config::GetOption("logfile", logfile);
+			if(logfile == "")
+			{
+				logfile = datadir+"/logfile";//for service
+			}
 			i2p::config::GetOption("i2pcontrol.cert", i2pcontrol_cert);
 			i2p::config::GetOption("i2pcontrol.key", i2pcontrol_key);
 			if(i2pcontrol_cert == "i2pcontrol.crt.pem")
