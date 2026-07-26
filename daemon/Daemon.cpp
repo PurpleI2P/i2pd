@@ -114,6 +114,7 @@ namespace util
 			{
 				LogPrint(eLogDebug, "Use default pledge values");
 				// TODO: remove that not need
+				// proc used in daemonunix, flock used in daemonunix, unix using
 				pledge("stdio rpath wpath cpath inet dns unix recvfd sendfd proc error mcast chown flock",nullptr);
 			} else {
 				std::ifstream f(pledge_file);
@@ -137,52 +138,122 @@ namespace util
 
 
 		};
-		auto init_unevil = []() {
-			unveil("/usr/lib", "r");
-			unveil("/usr/local/lib", "r"); 
-			unveil("/usr/libexec/ld.so", "r"); 
-			unveil("/dev/urandom", "r");
-			unveil("/tmp", "rw");
-			unveil("/etc/i2pd", "r"); // ваще не нужно вроде на весь прям каталог
-			
-			#define UNVEIL_DIR(dir) unveil(dir.c_str(), "rwc")
-			
-			std::string unevil_file; i2p::config::GetOption("openbsd.unevil_file",unevil_file);
-			UNVEIL_DIR(unevil_file);
-			std::string tunnelsdir, certsdir, logfile, datadir, reseed_file, openbsd_pledge_file;
-			i2p::config::GetOption("tunnelsdir", tunnelsdir);
-			UNVEIL_DIR(tunnelsdir);
-			i2p::config::GetOption("certsdir", certsdir);
-			UNVEIL_DIR(certsdir);
-			i2p::config::GetOption("datadir", datadir);
-			UNVEIL_DIR(datadir);
-			i2p::config::GetOption("reseed.file", reseed_file);
-			unveil(reseed_file.c_str(), "r");
-			i2p::config::GetOption("openbsd.pledge_file", openbsd_pledge_file);
-			unveil(openbsd_pledge_file.c_str(), "r");
-			std::string tunconf ;i2p::config::GetOption("tunconf", tunconf); unveil(tunconf.c_str(), "r");
-			std::string conf ;i2p::config::GetOption("tunconf", conf); unveil(conf.c_str(), "r");
-			std::string pidfile ;i2p::config::GetOption("pidfile", pidfile); unveil(pidfile.c_str(), "rwc");
-			i2p::config::GetOption("logfile", logfile); unveil(logfile.c_str(), "rwc");
-			if(unevil_file != "")
+		auto unveil_path = [](std::string path, std::string rules = "r")
+		{
+			if(path=="")
 			{
-				std::ifstream f(unevil_file);
+				LogPrint(eLogDebug, "empty path for unveil");
+				return;
+			}
+			if ( unveil(path.c_str(), rules.c_str()) == -1 )
+			{
+				LogPrint(eLogError, "Can't unveil " + path + " with rules " + rules);
+				throw std::runtime_error("can't unveil");
+			}
+			LogPrint(eLogInfo, "unveil " + path + " with rules " + rules);
+		};
+		auto init_unveil = [unveil_path](std::string datadir, std::string config) {
+
+			std::string tunnelsdir, certsdir, logfile,  reseed_file, openbsd_pledge_file,
+				tunconf, pidfile, i2pcontrol_cert, i2pcontrol_key, unveil_file;
+
+			i2p::config::GetOption("openbsd.unveil_file",unveil_file);
+			i2p::config::GetOption("certsdir", certsdir);
+			if(certsdir == "")
+			{
+				certsdir = datadir+"/certificates";
+			}
+			i2p::config::GetOption("tunnelsdir", tunnelsdir);
+			if(tunnelsdir == "")
+			{
+				tunnelsdir = "/etc/i2pd/tunnels.d";
+			}
+			i2p::config::GetOption("reseed.file", reseed_file);
+			i2p::config::GetOption("openbsd.pledge_file", openbsd_pledge_file);
+			i2p::config::GetOption("tunconf", tunconf); 
+			if(tunconf == "")
+			{
+				tunconf = "/etc/i2pd/i2pd.conf";
+			}
+			i2p::config::GetOption("pidfile", pidfile); 
+			if(pidfile == "")
+			{
+				pidfile = datadir+"/i2pd.pid";
+			}
+			i2p::config::GetOption("logfile", logfile);
+			if(logfile == "")
+			{
+				logfile = datadir+"/logfile";//for service
+			}
+			i2p::config::GetOption("i2pcontrol.cert", i2pcontrol_cert);
+			i2p::config::GetOption("i2pcontrol.key", i2pcontrol_key);
+			if(i2pcontrol_cert == "i2pcontrol.crt.pem")
+			{
+				i2pcontrol_cert=datadir+"/"+i2pcontrol_cert;
+			}
+			if(i2pcontrol_key == "i2pcontrol.key.pem")
+			{
+				i2pcontrol_key=datadir+"/"+i2pcontrol_key;
+			}
+			//constexpr can't be here and it's eat a lot of memory...
+/*
+			auto rules = std::map<std::string,std::string>{
+				{datadir,"rwc"},
+				{"/tmp","rwc"},
+				{unveil_file, "r"},
+				{tunnelsdir, "r"},
+				{certsdir, "r"},
+				{reseed_file, "r"},
+				{openbsd_pledge_file, "r"},
+				{tunconf, "r"},
+				{config, "r"},
+				{pidfile, "rwc"},
+				{logfile, "rwc"},
+				{i2pcontrol_cert, "rwc"},
+				{i2pcontrol_key, "rwc"}
+			};
+
+			for (const auto& [path, privilegies] : rules)
+			{
+				unveil_path(path, privilegies);
+			}
+*/
+			unveil_path(datadir, "rwc");
+			unveil_path(unveil_file, "r");
+			unveil_path(tunnelsdir, "r");
+			unveil_path(certsdir, "r");
+			unveil_path(reseed_file, "r");
+			unveil_path(openbsd_pledge_file, "r");
+			unveil_path(tunconf, "r");
+			unveil_path(config, "r");
+			unveil_path(pidfile, "rwc");
+			unveil_path(logfile, "rwc");
+			unveil_path(i2pcontrol_cert, "rwc");
+			unveil_path(i2pcontrol_key, "rwc");
+
+
+			if( unveil_file.length() )
+			{
+				std::ifstream f(unveil_file);
 				if (!f) {
-					std::cerr << "Can't open unevil file" << std::endl;
+					std::cerr << "Can't open unveil file" << std::endl;
 					exit(1);
 				}
 				std::string line;
 				while(std::getline(f, line)){
-						UNVEIL_DIR(line);
+					//UNVEIL_DIR(line);// maybe not need c
+					unveil_path(line.c_str(), "rwc");
 				}
 			}
-			#undef UNVEIL_DIR
-			unveil(NULL, NULL); 
+
+			if( unveil(NULL, NULL) == -1 )
+			{
+				throw std::runtime_error("Can't unveil something");
+			}
 		};
-		bool openbsd_unevil_enabled; i2p::config::GetOption("openbsd.unevil_enabled", openbsd_unevil_enabled);
+		bool openbsd_unveil_enabled; i2p::config::GetOption("openbsd.unveil_enabled", openbsd_unveil_enabled);
 		bool openbsd_pledge_enabled; i2p::config::GetOption("openbsd.pledge_enabled", openbsd_pledge_enabled);
-		if(openbsd_unevil_enabled) init_unevil();
-		if(openbsd_pledge_enabled) init_pledge();
+		if(openbsd_unveil_enabled) init_unveil(datadir, config);
 #endif
 
 		i2p::config::GetOption("daemon", isDaemon);
@@ -394,6 +465,10 @@ namespace util
 
 		std::string httpLang; i2p::config::GetOption("http.lang", httpLang);
 		i2p::i18n::SetLanguage(httpLang);
+#ifdef __OpenBSD__
+//SIOCGIFMTU is not found, SOCK DGRAM not found
+		if(openbsd_pledge_enabled) init_pledge();
+#endif
 
 		return true;
 	}
