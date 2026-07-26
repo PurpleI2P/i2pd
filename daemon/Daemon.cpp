@@ -10,10 +10,6 @@
 #include <memory>
 #include <regex>
 
-#ifdef __OpenBSD__
-#	include<unistd.h>
-#endif
-
 #include "Daemon.h"
 
 #include "Config.h"
@@ -106,84 +102,6 @@ namespace util
 
 		i2p::config::ParseConfig(config);
 		i2p::config::Finalize();
-
-#ifdef __OpenBSD__
-		auto init_pledge = []() {
-			std::string pledge_file; i2p::config::GetOption("openbsd.pledge_file", pledge_file);
-			if (pledge_file == "")
-			{
-				LogPrint(eLogDebug, "Use default pledge values");
-				// TODO: remove that not need
-				pledge("stdio rpath wpath cpath inet dns unix recvfd sendfd proc error mcast chown flock",nullptr);
-			} else {
-				std::ifstream f(pledge_file);
-				if(!f) {
-					std::cerr << "Can't open pledge file " << pledge_file<<std::endl;
-					exit(1);
-				}
-				std::string line;
-				std::vector<std::string> rules;
-				while(std::getline(f, line)){
-					rules.push_back(line);
-				}
-				if(f.bad()) {
-					std::cerr << "IO error with pledge file" << std::endl;
-				}
-				std::ostringstream out;
-				for(auto r : rules)
-					out << r << " ";
-				pledge(out.str().c_str(), nullptr);
-			}		
-
-
-		};
-		auto init_unevil = []() {
-			unveil("/usr/lib", "r");
-			unveil("/usr/local/lib", "r"); 
-			unveil("/usr/libexec/ld.so", "r"); 
-			unveil("/dev/urandom", "r");
-			unveil("/tmp", "rw");
-			unveil("/etc/i2pd", "r"); // ваще не нужно вроде на весь прям каталог
-			
-			#define UNVEIL_DIR(dir) unveil(dir.c_str(), "rwc")
-			
-			std::string unevil_file; i2p::config::GetOption("openbsd.unevil_file",unevil_file);
-			UNVEIL_DIR(unevil_file);
-			std::string tunnelsdir, certsdir, logfile, datadir, reseed_file, openbsd_pledge_file;
-			i2p::config::GetOption("tunnelsdir", tunnelsdir);
-			UNVEIL_DIR(tunnelsdir);
-			i2p::config::GetOption("certsdir", certsdir);
-			UNVEIL_DIR(certsdir);
-			i2p::config::GetOption("datadir", datadir);
-			UNVEIL_DIR(datadir);
-			i2p::config::GetOption("reseed.file", reseed_file);
-			unveil(reseed_file.c_str(), "r");
-			i2p::config::GetOption("openbsd.pledge_file", openbsd_pledge_file);
-			unveil(openbsd_pledge_file.c_str(), "r");
-			std::string tunconf ;i2p::config::GetOption("tunconf", tunconf); unveil(tunconf.c_str(), "r");
-			std::string conf ;i2p::config::GetOption("tunconf", conf); unveil(conf.c_str(), "r");
-			std::string pidfile ;i2p::config::GetOption("pidfile", pidfile); unveil(pidfile.c_str(), "rwc");
-			i2p::config::GetOption("logfile", logfile); unveil(logfile.c_str(), "rwc");
-			if(unevil_file != "")
-			{
-				std::ifstream f(unevil_file);
-				if (!f) {
-					std::cerr << "Can't open unevil file" << std::endl;
-					exit(1);
-				}
-				std::string line;
-				while(std::getline(f, line)){
-						UNVEIL_DIR(line);
-				}
-			}
-			#undef UNVEIL_DIR
-			unveil(NULL, NULL); 
-		};
-		bool openbsd_unevil_enabled; i2p::config::GetOption("openbsd.unevil_enabled", openbsd_unevil_enabled);
-		bool openbsd_pledge_enabled; i2p::config::GetOption("openbsd.pledge_enabled", openbsd_pledge_enabled);
-		if(openbsd_unevil_enabled) init_unevil();
-		if(openbsd_pledge_enabled) init_pledge();
-#endif
 
 		i2p::config::GetOption("daemon", isDaemon);
 
