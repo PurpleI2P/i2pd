@@ -219,7 +219,6 @@ namespace util
 			}
 */
 			unveil_path(datadir, "rwc");
-			unveil_path("/tmp", "rwc");
 			unveil_path(unveil_file, "r");
 			unveil_path(tunnelsdir, "r");
 			unveil_path(certsdir, "r");
