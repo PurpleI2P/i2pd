@@ -847,16 +847,19 @@ namespace torrents
 			return;
 		}
 
-		auto req = std::make_shared<boost::beast::http::request<boost::beast::http::string_body> >(boost::beast::http::verb::get, reqURL.path, 11); // HTTP 1.1
-		req->set ("info_hash", torrent->GetHexStringInfoHash ());
-		req->set ("peer_id", m_PeerID);
-		req->set ("ip", GetLocalDestination ()->GetIdentity ()->ToBase64 ());
-		req->set ("port", std::to_string (6881));
-		req->set ("compact", "1");
-		req->set ("uploaded", "0"); // TODO
-		req->set ("downloaded", "0"); // TODO
-		req->set ("left", "1"); // TODO
-		req->set ("numwant", "0"); // TODO
+		std::map<std::string, std::string> params;
+		params.emplace ("info_hash", torrent->GetHexStringInfoHash ());
+		params.emplace ("peer_id", m_PeerID);
+		params.emplace ("ip", GetLocalDestination ()->GetIdentity ()->ToBase64 ());
+		params.emplace ("port", std::to_string (6881));
+		params.emplace ("compact", "1");
+		params.emplace ("uploaded", "0"); // TODO
+		params.emplace ("downloaded", "0"); // TODO
+		params.emplace ("left", "1"); // TODO
+		params.emplace ("numwant", "0"); // TODO
+		reqURL.create_query (params);
+
+		auto req = std::make_shared<boost::beast::http::request<boost::beast::http::string_body> >(boost::beast::http::verb::get, reqURL.to_string (true), 11); // HTTP 1.1
 		CreateStream ([this, req, torrent](std::shared_ptr<i2p::stream::Stream> stream)
 			{
 				if (stream)
@@ -883,7 +886,7 @@ namespace torrents
 					if (!ecode)
 					{
 						if (res->result () == boost::beast::http::status::ok)
-							torrent->ParseTrackerResponse (boost::beast::buffers_to_string (buf->data ()));
+							torrent->ParseTrackerResponse (res->body ());
 						else
 							LogPrint (eLogWarning, "Torrents: Tracker response code ", res->result_int());
 					}
