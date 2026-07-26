@@ -161,7 +161,7 @@ namespace util
 			i2p::config::GetOption("certsdir", certsdir);
 			if(certsdir == "")
 			{
-				certsdir = datadir;
+				certsdir = datadir+"/certificates";
 			}
 			i2p::config::GetOption("tunnelsdir", tunnelsdir);
 			if(tunnelsdir == "")
