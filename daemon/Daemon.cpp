@@ -255,7 +255,6 @@ namespace util
 		bool openbsd_unveil_enabled; i2p::config::GetOption("openbsd.unveil_enabled", openbsd_unveil_enabled);
 		bool openbsd_pledge_enabled; i2p::config::GetOption("openbsd.pledge_enabled", openbsd_pledge_enabled);
 		if(openbsd_unveil_enabled) init_unveil(datadir, config);
-		if(openbsd_pledge_enabled) init_pledge();
 #endif
 
 		i2p::config::GetOption("daemon", isDaemon);
@@ -467,6 +466,10 @@ namespace util
 
 		std::string httpLang; i2p::config::GetOption("http.lang", httpLang);
 		i2p::i18n::SetLanguage(httpLang);
+#ifdef __OpenBSD__
+#warning Pledge is runs after all initialization of route. Is potential vuln todo: fix it
+		if(openbsd_pledge_enabled) init_pledge();
+#endif
 
 		return true;
 	}
