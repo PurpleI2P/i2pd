@@ -317,7 +317,7 @@ namespace torrents
 				if (key == "interval")
 				{
 					auto [value, l] = ExtractInteger (buf);
-					if (l) m_Interval = std::min (MIN_TRACKER_REQUESTS_INTERVAL, (int)value*1000); // in milliseconds
+					if (l) m_Interval = std::max (MIN_TRACKER_REQUESTS_INTERVAL, (int)value*1000); // in milliseconds
 					return l;
 				}
 				else if (key == "peers")
@@ -333,8 +333,8 @@ namespace torrents
 		while (!hashes.empty ())
 		{
 			m_Peers.emplace_back (std::make_shared<const i2p::client::Address>(
-				i2p::data::IdentHash((const uint8_t *)hashes.substr (0, SHA256_DIGEST_LENGTH).data ())));
-			hashes = hashes.substr (SHA256_DIGEST_LENGTH);
+				i2p::data::IdentHash((const uint8_t *)hashes.substr (0, i2p::data::IdentHash::len).data ())));
+			hashes = hashes.substr (i2p::data::IdentHash::len);
 		}
 		return len;
 	}
@@ -854,7 +854,7 @@ namespace torrents
 		params.emplace ("uploaded", "0"); // TODO
 		params.emplace ("downloaded", "0"); // TODO
 		params.emplace ("left", "1"); // TODO
-		params.emplace ("numwant", "0"); // TODO
+		params.emplace ("numwant", "25"); // max num of peers, 0 if seeding
 		reqURL.create_query (params);
 
 		auto req = std::make_shared<boost::beast::http::request<boost::beast::http::string_body> >(boost::beast::http::verb::get, reqURL.to_string (true), 11); // HTTP 1.1
