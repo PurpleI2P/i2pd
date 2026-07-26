@@ -167,6 +167,14 @@ namespace util
 			i2p::config::GetOption("logfile", logfile);
 			i2p::config::GetOption("i2pcontrol.cert", i2pcontrol_cert);
 			i2p::config::GetOption("i2pcontrol.key", i2pcontrol_key);
+			if(i2pcontrol_cert == "i2pcontrol.crt.pem")
+			{
+				i2pcontrol_cert=datadir+"/"+i2pcontrol_cert;
+			}
+			if(i2pcontrol_key == "i2pcontrol.key.pem")
+			{
+				i2pcontrol_key=datadir+"/"+i2pcontrol_key;
+			}
 			//constexpr can't be here and it's eat a lot of memory...
 /*
 			auto rules = std::map<std::string,std::string>{
