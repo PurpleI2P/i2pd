@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2025, The PurpleI2P Project
+* Copyright (c) 2013-2026, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -16,9 +16,9 @@
 #include <string_view>
 #include "Base.h"
 
-namespace i2p 
+namespace i2p
 {
-namespace data 
+namespace data
 {
 	template<size_t sz>
 	class Tag
@@ -26,6 +26,8 @@ namespace data
 		BOOST_STATIC_ASSERT_MSG(sz % 8 == 0, "Tag size must be multiple of 8 bytes");
 
 		public:
+
+			static constexpr size_t len = sz;
 
 			Tag () = default;
 			Tag (const uint8_t * buf) { memcpy (m_Buf, buf, sz); }
@@ -84,9 +86,9 @@ namespace data
 			{
 				int pos = i >> 3; // /8
 				if (pos >= (int)sz) return 0;
-				return m_Buf[pos] & (0x80 >> (i & 0x07)); 
-			}		
-		
+				return m_Buf[pos] & (0x80 >> (i & 0x07));
+			}
+
 		private:
 
 			union // 8 bytes aligned
