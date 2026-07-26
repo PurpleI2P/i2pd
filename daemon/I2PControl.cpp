@@ -54,17 +54,17 @@ namespace client
 		std::string i2pcp_crt; i2p::config::GetOption("i2pcontrol.cert", i2pcp_crt);
 		std::string i2pcp_key; i2p::config::GetOption("i2pcontrol.key",  i2pcp_key);
 
-		if (i2pcp_crt.at(0) != '/')
+		if (!i2pcp_crt.empty () && i2pcp_crt[0] != '/')
 			i2pcp_crt = i2p::fs::DataDirPath(i2pcp_crt);
-		if (i2pcp_key.at(0) != '/')
+		if (!i2pcp_key.empty () && i2pcp_key[0] != '/')
 			i2pcp_key = i2p::fs::DataDirPath(i2pcp_key);
 		if (!i2p::fs::Exists (i2pcp_crt) || !i2p::fs::Exists (i2pcp_key))
 		{
-			LogPrint (eLogInfo, "I2PControl: Creating new certificate for control connection");
+			LogPrint (eLogInfo, "I2PControl: Creating new certificate for control connection ", i2pcp_crt, " key ", i2pcp_key);
 			CreateCertificate (i2pcp_crt.c_str(), i2pcp_key.c_str());
 		}
 		else
-			LogPrint(eLogDebug, "I2PControl: Using cert from ", i2pcp_crt);
+			LogPrint(eLogDebug, "I2PControl: Using cert from ", i2pcp_crt, " key ", i2pcp_key);
 		m_SSLContext.set_options (boost::asio::ssl::context::default_workarounds | boost::asio::ssl::context::no_sslv2 | boost::asio::ssl::context::single_dh_use);
 		boost::system::error_code ec;
 		m_SSLContext.use_certificate_file (i2pcp_crt, boost::asio::ssl::context::pem, ec);
