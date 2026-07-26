@@ -8,13 +8,13 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <charconv>
 #include <fstream>
 #include <sstream>
 #include <algorithm>
 #include <functional>
 #include <boost/algorithm/string.hpp>
-#include <openssl/bn.h>
 #include "Log.h"
 #include "FS.h"
 #include "I2PEndian.h"
@@ -301,14 +301,12 @@ namespace torrents
 	std::string Torrent::GetHexStringInfoHash () const
 	{
 		std::string infoHash;
-		BIGNUM * bn = BN_bin2bn (m_InfoHash.data (), SHA_DIGEST_LENGTH, nullptr);
-		char * str = BN_bn2hex (bn);
-		if (str)
+		for (auto it: m_InfoHash)
 		{
-			infoHash = str;
-			OPENSSL_free (str);
+			char str[4];
+			snprintf (str, 4, "%%%02x", it);
+			infoHash.append (str);
 		}
-		BN_free (bn);
 		return infoHash;
 	}
 
@@ -860,6 +858,8 @@ namespace torrents
 		reqURL.create_query (params);
 
 		auto req = std::make_shared<boost::beast::http::request<boost::beast::http::string_body> >(boost::beast::http::verb::get, reqURL.to_string (true), 11); // HTTP 1.1
+		req->set (boost::beast::http::field::host, reqURL.host);
+		req->set (boost::beast::http::field::user_agent, "I2PSocketEepGet");
 		CreateStream ([this, req, torrent](std::shared_ptr<i2p::stream::Stream> stream)
 			{
 				if (stream)

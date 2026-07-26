@@ -102,7 +102,7 @@ namespace torrents
 			size_t GetPieceLength () const { return m_PieceLength; }
 			int GetInterval () const { return m_Interval; }
 			const InfoHash& GetInfoHash () const { return m_InfoHash; }
-			std::string GetHexStringInfoHash () const;
+			std::string GetHexStringInfoHash () const; // in url format
 			size_t GetNumPieces () const { return m_Pieces.size (); }
 			Piece& GetPiece (int index) { return m_Pieces[index]; }
 			std::vector<uint8_t> CreateBitfield () const;
