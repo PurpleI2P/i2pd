@@ -177,7 +177,6 @@ namespace torrents
 	void Piece::Dump (const std::string& fullPath, size_t offset)
 	{
 		if (!m_Data) return;
-		// TODO: file I/O must be in separate thread
 		std::ofstream f(fullPath, std::ofstream::binary | std::ofstream::app);
 		if (f.is_open ())
 		{
@@ -192,7 +191,6 @@ namespace torrents
 	void Piece::Load (const std::string& fullPath, size_t offset)
 	{
 		if (m_Data) return;
-		// TODO: file I/O must be in separate thread
 		m_Data = new uint8_t[m_Size];
 		std::ifstream f(fullPath, std::ifstream::binary);
 		if (f.is_open ())
@@ -670,8 +668,15 @@ namespace torrents
 			Piece& piece = m_Torrent->GetPiece (index);
 			piece.BlockReceived (buf + 8, len, offset);
 			if (piece.IsComplete () && piece.VerifyHash ())
-				piece.Dump (GetTorrentsTunnel ()->GetTorrentFilePath (m_Torrent->GetName ()),
-					index*m_Torrent->GetPieceLength ());
+			{
+				auto path = GetTorrentsTunnel ()->GetTorrentFilePath (m_Torrent->GetName ());
+				auto offset = index*m_Torrent->GetPieceLength ();
+				boost::asio::post (GetTorrentsTunnel ()->GetDiskIOService (),
+					[&piece, path, offset, torrent = m_Torrent]() // piece belongs to torrent
+					{
+						piece.Dump (path, offset);
+					});
+			}
 		}
 	}
 
@@ -703,15 +708,27 @@ namespace torrents
 			if (availableLen)
 			{
 				auto data = piece.GetData ();
-				if (!data)
-				{
-					// try to load from file
-					piece.Load (GetTorrentsTunnel ()->GetTorrentFilePath (m_Torrent->GetName ()),
-						index*m_Torrent->GetPieceLength ());
-					data = piece.GetData ();
-				}
 				if (data)
 					SendPieceMsg (index, availableOffset, data + availableOffset, availableLen);
+				else
+				{
+					// try to load from file
+					auto path = GetTorrentsTunnel ()->GetTorrentFilePath (m_Torrent->GetName ());
+					auto offset = index*m_Torrent->GetPieceLength ();
+					boost::asio::post (GetTorrentsTunnel ()->GetDiskIOService (),
+						[&piece, path, offset, availableOffset, availableLen, index, torrent = m_Torrent, this]() // piece belongs to torrent
+						{
+							piece.Load (path, offset);
+							// send after loading
+							boost::asio::post (GetTorrentsTunnel ()->GetService (),
+								[&piece, availableOffset, availableLen, index, torrent, this]()
+								{
+									auto data = piece.GetData ();
+									if (data)
+										SendPieceMsg (index, availableOffset, data + availableOffset, availableLen);
+								});
+						});
+				}
 			}
 		}
 	}
@@ -744,6 +761,7 @@ namespace torrents
 	void TorrentsTunnel::Start ()
 	{
 		i2p::client::I2PService::Start ();
+		m_DiskIOService.Start ();
 		Accept ();
 
 		if (!m_TorrentsDir.empty() && i2p::fs::Exists (m_TorrentsDir))
@@ -772,7 +790,8 @@ namespace torrents
 		m_KeepAliveCheckTimer.cancel ();
 		m_Torrents.clear ();
 		for (auto it: m_Torrents)
-			SaveTorrentResumeFile (it.second);
+			boost::asio::post (m_DiskIOService.GetService (), std::bind (&TorrentsTunnel::SaveTorrentResumeFile, this, it.second));
+		m_DiskIOService.Stop ();
 		i2p::client::I2PService::Stop ();
 	}
 

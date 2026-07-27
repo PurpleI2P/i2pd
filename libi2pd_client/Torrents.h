@@ -22,6 +22,7 @@
 #include <string>
 #include <string_view>
 #include <random>
+#include "util.h"
 #include "Streaming.h"
 #include "HTTP.h"
 #include "I2PService.h"
@@ -179,8 +180,20 @@ namespace torrents
 			uint64_t m_LastReceiveTime, m_LastSendTime; // monotonic seconds
 	};
 
-	class TorrentsTunnel: public i2p::client::I2PService
+	class TorrentsTunnel final: public i2p::client::I2PService
 	{
+		private:
+
+			class DiskIOService: public i2p::util::RunnableServiceWithWork
+			{
+				public:
+
+					DiskIOService (): RunnableServiceWithWork ("TDiskIO") {}
+					auto& GetService () { return GetIOService (); }
+					void Start () { StartIOService (); }
+					void Stop () { StopWorkAndFinishTasks (); }
+			};
+
 		public:
 
 			TorrentsTunnel (std::shared_ptr<i2p::client::ClientDestination> localDestination,
@@ -188,6 +201,7 @@ namespace torrents
 
 			void Start () override;
 			void Stop () override;
+			auto& GetDiskIOService () { return m_DiskIOService.GetService (); };
 
 			const std::string& GetPeerID () const { return m_PeerID; }
 			std::string GetTorrentFilePath (const std::string& filename) const;
@@ -221,6 +235,7 @@ namespace torrents
 			std::map<Torrent::InfoHash, std::shared_ptr<Torrent> > m_Torrents;
 			std::mt19937 m_Rng;
 			boost::asio::steady_timer m_TrackerRequestsCheckTimer, m_KeepAliveCheckTimer;
+			DiskIOService m_DiskIOService;
 	};
 }
 }
