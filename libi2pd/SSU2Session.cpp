@@ -550,12 +550,22 @@ namespace transport
 	bool SSU2Session::SendFragmentedMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		if (!msg) return false;
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		if (msg->GetNTCP2Length () + 3 <= m_MaxPayloadSize)
+		{
+			// non fragmented, send regular I2NP block
+			auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
+			packet->payloadSize = CreateI2NPBlock (packet->payload, m_MaxPayloadSize, std::move (msg));
+			uint32_t packetNum = SendData (packet->payload, packet->payloadSize);
+			packet->sendTime = ts;
+			m_SentPackets.emplace (packetNum, packet);
+			return true;
+		}
 		size_t lastFragmentSize = (msg->GetNTCP2Length () + 3 - m_MaxPayloadSize) % (m_MaxPayloadSize - 8);
 		size_t extraSize = m_MaxPayloadSize - lastFragmentSize;
 		bool ackBlockSent = false;
 		uint32_t msgID;
 		memcpy (&msgID, msg->GetHeader () + I2NP_HEADER_MSGID_OFFSET, 4);
-		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
 		if (extraSize >= 8)
 		{
