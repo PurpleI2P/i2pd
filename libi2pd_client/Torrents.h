@@ -46,6 +46,7 @@ namespace torrents
 	constexpr size_t REQUEST_MSG_PAYLOAD_LENGTH = 12;
 	enum MessageType
 	{
+		eMessageTypeHave = 4,
 		eMessageTypeBitfield = 5,
 		eMessageTypeRequest = 6,
 		eMessageTypePiece = 7,
@@ -157,6 +158,7 @@ namespace torrents
 			size_t HandleHandshakeMsg ();
 			void SendHandshakeMsg ();
 
+			void HandleHaveMsg (const uint8_t * buf, size_t len);
 			void HandleBitfieldMsg (const uint8_t * buf, size_t len);
 			void SendBitfieldMsg (const uint8_t * bitfield, size_t bitfieldLen);
 			void HandleHaveAllMsg ();

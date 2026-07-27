@@ -513,6 +513,9 @@ namespace torrents
 		{
 			switch (m_ReceiveBuffer[offset])
 			{
+				case eMessageTypeHave:
+					HandleHaveMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
+				break;
 				case eMessageTypeBitfield:
 					HandleBitfieldMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
 				break;
@@ -586,6 +589,14 @@ namespace torrents
 		}
 		WriteToStream (buf, HANDSHAKE_MSG_LENGTH);
 		m_IsHandshakeSent = true;
+	}
+
+	void PeerConnection::HandleHaveMsg (const uint8_t * buf, size_t len)
+	{
+		if (len < 4) return;
+		uint32_t index = bufbe32toh (buf);
+		if (index < m_RemoteBitfield.size ())
+			m_RemoteBitfield.set (index);
 	}
 
 	void PeerConnection::HandleBitfieldMsg (const uint8_t * buf, size_t len)
@@ -860,6 +871,7 @@ namespace torrents
 		auto req = std::make_shared<boost::beast::http::request<boost::beast::http::string_body> >(boost::beast::http::verb::get, reqURL.to_string (true), 11); // HTTP 1.1
 		req->set (boost::beast::http::field::host, reqURL.host);
 		req->set (boost::beast::http::field::user_agent, "I2PSocketEepGet");
+		req->keep_alive (false); // Connection: close
 		CreateStream ([this, req, torrent](std::shared_ptr<i2p::stream::Stream> stream)
 			{
 				if (stream)
