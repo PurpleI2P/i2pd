@@ -112,7 +112,7 @@ namespace util
 			std::string pledge_file; i2p::config::GetOption("openbsd.pledge_file", pledge_file);
 			if (pledge_file == "")
 			{
-				LogPrint(eLogDebug, "Use default pledge values");
+				LogPrint(eLogDebug, "Default pledge values are set");
 				// TODO: remove that not need
 				// proc used in daemonunix, flock used in daemonunix, unix using
 				pledge("stdio rpath wpath cpath inet dns unix recvfd sendfd proc error mcast chown flock",nullptr);
@@ -166,14 +166,18 @@ namespace util
 			i2p::config::GetOption("tunnelsdir", tunnelsdir);
 			if(tunnelsdir == "")
 			{
-				tunnelsdir = "/etc/i2pd/tunnels.d";
+				tunnelsdir = datadir+"/tunnels.d";
 			}
 			i2p::config::GetOption("reseed.file", reseed_file);
 			i2p::config::GetOption("openbsd.pledge_file", openbsd_pledge_file);
 			i2p::config::GetOption("tunconf", tunconf); 
 			if(tunconf == "")
 			{
-				tunconf = "/etc/i2pd/i2pd.conf";
+				tunconf = datadir+"/tunnels.conf";
+			}
+			if(config == "")
+			{
+				config = datadir+"/i2pd.conf";
 			}
 			i2p::config::GetOption("pidfile", pidfile); 
 			if(pidfile == "")
@@ -183,7 +187,7 @@ namespace util
 			i2p::config::GetOption("logfile", logfile);
 			if(logfile == "")
 			{
-				logfile = datadir+"/logfile";//for service
+				logfile = datadir+"/logfile"; //for --service
 			}
 			i2p::config::GetOption("i2pcontrol.cert", i2pcontrol_cert);
 			i2p::config::GetOption("i2pcontrol.key", i2pcontrol_key);
