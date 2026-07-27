@@ -148,7 +148,7 @@ namespace i2p
 
 			// Pidfile
 			// this code is c-styled and a bit ugly, but we need fd for locking pidfile
-			std::string pidfile; i2p::config::GetOption("pidfile", pidfile);
+			i2p::config::GetOption("pidfile", pidfile);
 			if (pidfile == "") {
 				pidfile = i2p::fs::DataDirPath("i2pd.pid");
 			}
