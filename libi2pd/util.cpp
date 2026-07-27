@@ -141,12 +141,13 @@ namespace util
 		}
 	}
 
-	void RunnableService::StopIOService ()
+	void RunnableService::StopIOService (bool stopService)
 	{
 		if (m_IsRunning)
 		{
 			m_IsRunning = false;
-			m_Service.stop ();
+			if (stopService)
+				m_Service.stop ();
 			if (m_Thread)
 			{
 				m_Thread->join ();
@@ -178,6 +179,12 @@ namespace util
 			m_Name = name;
 		else
 			m_Name = name.substr(0,15);
+	}
+
+	void RunnableServiceWithWork::StopWorkAndFinishTasks ()
+	{
+		m_Work.reset ();
+		StopIOService (false);
 	}
 
 	void SetThreadName (const char *name) {

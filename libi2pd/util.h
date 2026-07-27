@@ -214,10 +214,10 @@ namespace util
 			virtual ~RunnableService () {}
 
 			auto& GetIOService () { return m_Service; }
-			bool IsRunning () const { return m_IsRunning; };
+			bool IsRunning () const { return m_IsRunning; }
 
 			void StartIOService ();
-			void StopIOService ();
+			void StopIOService (bool stopService = true);
 
 			void SetName (std::string_view name);
 
@@ -238,7 +238,9 @@ namespace util
 		protected:
 
 			RunnableServiceWithWork (const std::string& name):
-				RunnableService (name), m_Work (GetIOService ().get_executor ()) {}
+				RunnableService (name), m_Work (boost::asio::make_work_guard (GetIOService ())) {}
+
+			void StopWorkAndFinishTasks ();	// let all outstanding tasks finish and terminate
 
 		private:
 
