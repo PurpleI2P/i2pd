@@ -716,16 +716,19 @@ namespace torrents
 					auto path = GetTorrentsTunnel ()->GetTorrentFilePath (m_Torrent->GetName ());
 					auto offset = index*m_Torrent->GetPieceLength ();
 					boost::asio::post (GetTorrentsTunnel ()->GetDiskIOService (),
-						[&piece, path, offset, availableOffset, availableLen, index, torrent = m_Torrent, this]() // piece belongs to torrent
+						[&piece, path, offset, length, index, torrent = m_Torrent, this]() // piece belongs to torrent
 						{
 							piece.Load (path, offset);
 							// send after loading
 							boost::asio::post (GetTorrentsTunnel ()->GetService (),
-								[&piece, availableOffset, availableLen, index, torrent, this]()
+								[&piece, offset, length, index, torrent, this]()
 								{
 									auto data = piece.GetData ();
 									if (data)
+									{
+										auto [availableOffset, availableLen] = piece.GetAvailableBuffer (offset, length);
 										SendPieceMsg (index, availableOffset, data + availableOffset, availableLen);
+									}
 								});
 						});
 				}
