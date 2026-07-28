@@ -980,6 +980,11 @@ namespace client
 			LogPrint (eLogError, "Addressbook: LeaseSet for address ", url.host, " not found");
 			return false;
 		}
+		i2p::util::Defer ([stream]()
+			{
+				// destroy stream in destination's thread on exit
+				boost::asio::post (i2p::client::context.GetSharedLocalDestination ()->GetService (), [s = std::move (stream)](){});
+			});
 		if (m_Etag.empty() && m_LastModified.empty())
 		{
 			m_Book.GetEtag (m_Ident, m_Etag, m_LastModified);
@@ -1030,8 +1035,6 @@ namespace client
 			LogPrint(eLogError, "Addressbook: Receive HTTP response exception: ", ex.what ());
 			return false;
 		}
-		// destroy stream in destination's thread
-		boost::asio::post (i2p::client::context.GetSharedLocalDestination ()->GetService (), [s = std::move (stream)](){});
 		// check result
 		if (res.result () != boost::beast::http::status::ok)
 		{
