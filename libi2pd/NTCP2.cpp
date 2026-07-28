@@ -406,7 +406,7 @@ namespace transport
 				uint32_t tsA = bufbe32toh (options + 8);
 				if (tsA < ts - NTCP2_CLOCK_SKEW || tsA > ts + NTCP2_CLOCK_SKEW)
 				{
-					LogPrint (eLogWarning, "NTCP2: SessionRequest time difference ", (int)(ts - tsA), " exceeds clock skew");
+					LogPrint (eLogWarning, "NTCP2: SessionRequest time difference ", (int)ts - (int)tsA, " exceeds clock skew");
 					clockSkew = true;
 					// we send SessionCreate to let Alice know our time and then close session
 				}
@@ -472,7 +472,7 @@ namespace transport
 			uint32_t tsB = bufbe32toh (options + 8);
 			if (tsB < ts - NTCP2_CLOCK_SKEW || tsB > ts + NTCP2_CLOCK_SKEW)
 			{
-				LogPrint (eLogWarning, "NTCP2: SessionCreated time difference ", (int)(ts - tsB), " exceeds clock skew");
+				LogPrint (eLogWarning, "NTCP2: SessionCreated time difference ", (int)ts - (int)tsB, " exceeds clock skew");
 				return false;
 			}
 			offset += 32;
@@ -1294,7 +1294,7 @@ namespace transport
 						uint64_t tsA = bufbe32toh (frame + offset);
 						if (tsA < ts - NTCP2_CLOCK_SKEW || tsA > ts + NTCP2_CLOCK_SKEW)
 						{
-							LogPrint (eLogWarning, "NTCP2: Established session time difference ", (int)(ts - tsA), " exceeds clock skew");
+							LogPrint (eLogWarning, "NTCP2: Established session time difference ", (int)ts - (int)tsA, " exceeds clock skew");
 							SendTerminationAndTerminate (eNTCP2ClockSkew);
 						}
 					}
