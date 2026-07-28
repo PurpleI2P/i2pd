@@ -12,20 +12,22 @@
 #include <unordered_map>
 #include <fstream>
 #include <chrono>
-#include <condition_variable>
+#include <future>
 #include <openssl/rand.h>
 #include <boost/algorithm/string.hpp>
+#include <boost/beast.hpp>
 #include "Base.h"
 #include "util.h"
 #include "Timestamp.h"
 #include "Identity.h"
 #include "FS.h"
 #include "Log.h"
+#include "Config.h"
+#include "BoostStream.h"
 #include "HTTP.h"
 #include "NetDb.hpp"
 #include "ClientContext.h"
 #include "AddressBook.h"
-#include "Config.h"
 
 #if STD_FILESYSTEM
 #include <filesystem>
@@ -558,7 +560,7 @@ namespace client
 		std::ifstream f (i2p::fs::DataDirPath("hosts.txt"), std::ifstream::in); // in text mode
 		if (f.is_open ())
 		{
-			LoadHostsFromStream (f, false);
+			LoadHostsFromStream (std::move (f), false);
 			m_IsLoaded = true;
 		}
 
@@ -566,7 +568,7 @@ namespace client
 		m_Storage->ResetEtags ();
 	}
 
-	bool AddressBook::LoadHostsFromStream (std::istream& f, bool is_update)
+	bool AddressBook::LoadHostsFromStream (std::istream&& f, bool is_update)
 	{
 		std::unique_lock<std::mutex> l(m_AddressBookMutex);
 		int numAddresses = 0;
@@ -984,112 +986,83 @@ namespace client
 			LogPrint (eLogDebug, "Addressbook: Loaded for ", url.host, ": ETag: ", m_Etag, ", Last-Modified: ", m_LastModified);
 		}
 		// create http request & send it
-		i2p::http::HTTPReq req;
-		req.AddHeader("Host", dest_host);
-		req.AddHeader("User-Agent", "Wget/1.11.4");
-		req.AddHeader("Accept-Encoding", "gzip");
-		req.AddHeader("X-Accept-Encoding", "x-i2p-gzip;q=1.0, identity;q=0.5, deflate;q=0, gzip;q=0, *;q=0");
-		req.AddHeader("Connection", "close");
+		boost::beast::http::request<boost::beast::http::string_body> req (boost::beast::http::verb::get, url.to_string (true), 11); // HTTP 1.1
+		req.set (boost::beast::http::field::host, dest_host);
+		req.set (boost::beast::http::field::user_agent, "Wget/1.11.4");
+		req.set (boost::beast::http::field::accept_encoding, "gzip");
+		req.set ("X-Accept-Encoding", "x-i2p-gzip;q=1.0, identity;q=0.5, deflate;q=0, gzip;q=0, *;q=0");
 		if (!m_Etag.empty())
-			req.AddHeader("If-None-Match", m_Etag);
+			req.set (boost::beast::http::field::if_none_match, m_Etag); // If-None-Match
 		if (!m_LastModified.empty())
-			req.AddHeader("If-Modified-Since", m_LastModified);
-		// convert url to relative
-		url.schema  = "";
-		url.host    = "";
-		req.uri     = url.to_string();
-		req.version = "HTTP/1.1";
-		std::string request = req.to_string();
-		stream->Send ((const uint8_t *) request.data(), request.length());
-		// read response
-		std::string response;
-		uint8_t recv_buf[4096];
-		bool end = false;
-		int numAttempts = 0;
-		while (!end)
+			req.set (boost::beast::http::field::if_modified_since, m_LastModified); // If-Modified-Since
+		req.keep_alive (false); // Connection: close
+
+		i2p::client::BoostAsyncStream httpStream (stream);
+		std::future<size_t> sending = boost::beast::http::async_write (httpStream, req, boost::asio::use_future);
+		try
 		{
-			size_t received = stream->Receive (recv_buf, 4096, SUBSCRIPTION_REQUEST_TIMEOUT);
-			if (received)
+			size_t bytes_transferred = sending.get();
+			if (!bytes_transferred)
 			{
-				response.append ((char *)recv_buf, received);
-				if (!stream->IsOpen ()) end = true;
-			}
-			else if (!stream->IsOpen ())
-				end = true;
-			else
-			{
-				LogPrint (eLogError, "Addressbook: Subscriptions request timeout expired");
-				numAttempts++;
-				if (numAttempts > 5) end = true;
+				LogPrint(eLogError, "Addressbook: HTTP request to ", dest_host, " was not sent");
+				return false;
 			}
 		}
-		// process remaining buffer
-		while (size_t len = stream->ReadSome (recv_buf, sizeof(recv_buf)))
-			response.append ((char *)recv_buf, len);
+		catch (std::exception& ex)
+		{
+			LogPrint(eLogError, "Addressbook: Send HTTP request exception: ", ex.what ());
+			return false;
+		}
+		boost::beast::flat_buffer receiveBuffer;
+		boost::beast::http::response<boost::beast::http::string_body> res;
+		std::future<size_t> receiving = boost::beast::http::async_read (httpStream, receiveBuffer, res, boost::asio::use_future);
+		try
+		{
+			size_t bytes_transferred = receiving.get();
+			if (!bytes_transferred)
+			{
+				LogPrint(eLogError, "Addressbook: HTTP response from ", dest_host, " was not received");
+				return false;
+			}
+		}
+		catch (std::exception& ex)
+		{
+			LogPrint(eLogError, "Addressbook: Receive HTTP response exception: ", ex.what ());
+			return false;
+		}
 		// destroy stream in destination's thread
 		boost::asio::post (i2p::client::context.GetSharedLocalDestination ()->GetService (), [s = std::move (stream)](){});
+		// check result
+		if (res.result () != boost::beast::http::status::ok)
+		{
+			if (res.result_int() == 304)
+				LogPrint (eLogInfo, "Addressbook: No updates from ", dest_host, ", code 304");
+			else
+				LogPrint (eLogWarning, "Addressbook: Response code ", res.result_int(), " from ", dest_host);
+			return false;
+		}
+		// update Etag and Last-Modified
+		auto eTag = res[boost::beast::http::field::etag];
+		if (!eTag.empty ()) m_Etag = std::string (eTag);
+		auto lastModified = res[boost::beast::http::field::last_modified];
+		if (!lastModified.empty ()) m_LastModified = std::string (lastModified);
 		// parse response
-		i2p::http::HTTPRes res;
-		int res_head_len = res.parse(response);
-		if (res_head_len < 0)
+		LogPrint (eLogInfo, "Addressbook: Got update from ", dest_host);
+		if (res[boost::beast::http::field::content_encoding] == "gzip" ||
+			res[boost::beast::http::field::content_encoding] =="x-i2p-gzip")
 		{
-			LogPrint(eLogError, "Addressbook: Can't parse http response from ", dest_host);
-			return false;
-		}
-		if (res_head_len == 0)
-		{
-			LogPrint(eLogError, "Addressbook: Incomplete http response from ", dest_host, ", interrupted by timeout");
-			return false;
-		}
-		// assert: res_head_len > 0
-		response.erase(0, res_head_len);
-		if (res.code == 304)
-		{
-			LogPrint (eLogInfo, "Addressbook: No updates from ", dest_host, ", code 304");
-			return false;
-		}
-		if (res.code != 200)
-		{
-			LogPrint (eLogWarning, "Adressbook: Can't get updates from ", dest_host, ", response code ", res.code);
-			return false;
-		}
-		int len = res.content_length();
-		if (response.empty())
-		{
-			LogPrint(eLogError, "Addressbook: Empty response from ", dest_host, ", expected ", len, " bytes");
-			return false;
-		}
-		if (!res.is_gzipped () && len > 0 && len != (int) response.length())
-		{
-			LogPrint(eLogError, "Addressbook: Response size mismatch, expected: ", len, ", got: ", response.length(), "bytes");
-			return false;
-		}
-		// assert: res.code == 200
-		auto it = res.headers.find("ETag");
-		if (it != res.headers.end()) m_Etag = it->second;
-		it = res.headers.find("Last-Modified");
-		if (it != res.headers.end()) m_LastModified = it->second;
-		if (res.is_chunked())
-		{
-			std::stringstream in(response), out;
-			i2p::http::MergeChunkedResponse (in, out);
-			response = out.str();
-		}
-		if (res.is_gzipped())
-		{
-			std::stringstream out;
+			std::stringstream unzipped;
 			i2p::data::GzipInflator inflator;
-			inflator.Inflate ((const uint8_t *) response.data(), response.length(), out);
-			if (out.fail())
+			inflator.Inflate ((const uint8_t *)res.body().data(), res.body().size(), unzipped);
+			if (unzipped.fail())
 			{
 				LogPrint(eLogError, "Addressbook: Can't gunzip http response");
 				return false;
 			}
-			response = out.str();
+			m_Book.LoadHostsFromStream (std::move (unzipped), true);
 		}
-		std::stringstream ss(response);
-		LogPrint (eLogInfo, "Addressbook: Got update from ", dest_host);
-		m_Book.LoadHostsFromStream (ss, true);
+		else
+			m_Book.LoadHostsFromStream (std::stringstream(res.body ()), true);
 		return true;
 	}
 

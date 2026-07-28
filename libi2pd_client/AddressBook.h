@@ -100,7 +100,7 @@ namespace client
 
 			bool RecordExists (const std::string& address, const std::string& jump);
 
-			bool LoadHostsFromStream (std::istream& f, bool is_update);
+			bool LoadHostsFromStream (std::istream&& f, bool is_update);
 			void DownloadComplete (bool success, const i2p::data::IdentHash& subscription, const std::string& etag, const std::string& lastModified);
 			//This method returns the ".b32.i2p" address
 			std::string ToAddress(const i2p::data::IdentHash& ident) { return GetB32Address(ident); }
