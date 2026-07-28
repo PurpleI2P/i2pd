@@ -263,6 +263,19 @@ namespace util
 			T m_Copy;
 	};
 
+	template<typename DeferFunction>
+	class Defer final
+	{
+		public:
+
+			Defer (DeferFunction&& deferFunction): m_DeferFunction (std::forward<DeferFunction>(deferFunction)) {}
+			~Defer() { m_DeferFunction (); }
+
+		private:
+
+			DeferFunction m_DeferFunction;
+	};
+
 	class Mapping
 	{
 		public:
