@@ -122,7 +122,7 @@ namespace transport
 		err = UPNP_GetValidIGD (m_Devlist, &m_upnpUrls, &m_upnpData, m_NetworkAddr, sizeof (m_NetworkAddr));
 #endif
 		m_upnpUrlsInitialized=err!=0;
-		if (err == UPNP_IGD_VALID_CONNECTED)
+		if (err == UPNP_IGD_VALID_CONNECTED || err == UPNP_IGD_VALID_NOT_CONNECTED)
 		{
 #if (MINIUPNPC_API_VERSION < 18)
 			err = UPNP_GetExternalIPAddress (m_upnpUrls.controlURL, m_upnpData.first.servicetype, m_externalIPAddress);
