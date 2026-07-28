@@ -980,7 +980,7 @@ namespace client
 			LogPrint (eLogError, "Addressbook: LeaseSet for address ", url.host, " not found");
 			return false;
 		}
-		i2p::util::Defer ([stream]()
+		i2p::util::Defer d ([stream]()
 			{
 				// destroy stream in destination's thread on exit
 				boost::asio::post (i2p::client::context.GetSharedLocalDestination ()->GetService (), [s = std::move (stream)](){});
