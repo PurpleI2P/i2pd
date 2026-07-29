@@ -34,13 +34,6 @@ namespace client
 			template<typename MutableBufferSequence, typename ReadHandler>
 			void async_read_some(const MutableBufferSequence& bufs, ReadHandler&& handler)
 			{
-				if (m_Stream->GetStatus () == i2p::stream::eStreamStatusClosed ||
-					m_Stream->GetStatus () == i2p::stream::eStreamStatusTerminated)
-				{
-					//  read stream after close, return eof
-					handler (boost::asio::error::make_error_code (boost::asio::error::eof), 0);
-					return;
-				}
 				size_t received = 0;
 				for (auto it = boost::asio::buffer_sequence_begin (bufs); it != boost::asio::buffer_sequence_end (bufs); it++)
 				{
@@ -48,7 +41,11 @@ namespace client
 					received += len;
 					if (received < it->size ()) break;
 				}
-				if (received > 0) // we have some data
+				if (m_Stream->GetStatus () == i2p::stream::eStreamStatusClosed ||
+					m_Stream->GetStatus () == i2p::stream::eStreamStatusTerminated)
+					//  read stream after close, return eof with outstanding data
+					handler (boost::asio::error::make_error_code (boost::asio::error::eof), received);
+				else if (received > 0) // we have some data
 					handler (boost::system::error_code (), received);
 				else if (bufs.size () > 0) // wait for incoming data
 					m_Stream->AsyncReceive (*boost::asio::buffer_sequence_begin (bufs), std::move (handler), i2p::stream::MAX_RECEIVE_TIMEOUT);
