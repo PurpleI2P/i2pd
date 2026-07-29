@@ -422,7 +422,7 @@ namespace stream
 		else if (ecode == boost::asio::error::operation_aborted)
 		{
 			// timeout not expired
-			if (m_Status == eStreamStatusClosed)
+			if (m_Status == eStreamStatusClosed || m_Status == eStreamStatusTerminated)
 				handler (boost::asio::error::make_error_code (boost::asio::error::eof), 0);
 			else if (m_Status == eStreamStatusReset)
 				handler (boost::asio::error::make_error_code (boost::asio::error::connection_reset), 0);
