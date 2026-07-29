@@ -177,11 +177,11 @@ namespace stream
 
 	void Stream::Terminate (bool deleteFromDestination) // should be called from StreamingDestination::Stop only
 	{
-		m_Status = eStreamStatusTerminated;
 		m_AckSendTimer.cancel ();
 		m_ReceiveTimer.cancel ();
 		m_ResendTimer.cancel ();
 		m_SendTimer.cancel ();
+		m_Status = eStreamStatusTerminated;
 		//CleanUp (); /* Need to recheck - broke working on windows */
 		if (deleteFromDestination)
 			m_LocalDestination.DeleteStream (shared_from_this ());
@@ -442,7 +442,7 @@ namespace stream
 			if (m_Status != eStreamStatusClosed)
 				SendClose ();
 			m_Status = eStreamStatusClosed;
-			Terminate ();
+			boost::asio::post (GetService (), std::bind (&Stream::Terminate, shared_from_this (), true));
 		}
 	}
 
