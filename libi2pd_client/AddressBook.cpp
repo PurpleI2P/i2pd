@@ -1002,7 +1002,7 @@ namespace client
 			req.set (boost::beast::http::field::if_modified_since, m_LastModified); // If-Modified-Since
 		req.keep_alive (false); // Connection: close
 
-		i2p::client::BoostAsyncStream httpStream (stream);
+		i2p::client::BoostAsyncStream httpStream (stream, SUBSCRIPTION_REQUEST_TIMEOUT);
 		std::future<size_t> sending = boost::beast::http::async_write (httpStream, req, boost::asio::use_future);
 		try
 		{

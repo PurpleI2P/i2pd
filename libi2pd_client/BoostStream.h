@@ -23,7 +23,8 @@ namespace client
 
 			using executor_type = boost::asio::any_io_executor;
 
-			BoostAsyncStream (std::shared_ptr<i2p::stream::Stream> stream): m_Stream (stream) {}
+			BoostAsyncStream (std::shared_ptr<i2p::stream::Stream> stream, int receiveTimeout = i2p::stream::MAX_RECEIVE_TIMEOUT):
+				m_Stream (stream), m_ReceiveTimeout (receiveTimeout) {}
 
 			std::shared_ptr<i2p::stream::Stream> GetStream () const { return m_Stream; }
 
@@ -48,7 +49,7 @@ namespace client
 					//  read stream after close, return eof with outstanding data
 					handler (boost::asio::error::make_error_code (boost::asio::error::eof), 0);
 				else if (bufs.size () > 0) // wait for incoming data
-					m_Stream->AsyncReceive (*boost::asio::buffer_sequence_begin (bufs), std::move (handler), i2p::stream::MAX_RECEIVE_TIMEOUT);
+					m_Stream->AsyncReceive (*boost::asio::buffer_sequence_begin (bufs), std::move (handler), m_ReceiveTimeout);
 				else
 					handler (boost::system::error_code (), 0);
 			}
@@ -87,6 +88,7 @@ namespace client
 		private:
 
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
+			int m_ReceiveTimeout;
 	};
 }
 }
