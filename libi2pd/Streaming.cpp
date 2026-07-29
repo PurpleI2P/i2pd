@@ -1173,7 +1173,7 @@ namespace stream
 		if (m_LastACKSendTime)
 			passedTime = (ts - m_LastACKSendTime)*1000; // in microseconds
 		numPackets = (passedTime + m_PacketACKIntervalRem) / m_PacketACKInterval;
-		int64_t delta = numPackets * m_PacketACKInterval - passedTime;
+		int64_t delta = numPackets * (int64_t)m_PacketACKInterval - passedTime;
 		if (delta < (int64_t)m_PacketACKIntervalRem)
 			m_PacketACKIntervalRem -= delta;
 		else
