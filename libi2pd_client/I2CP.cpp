@@ -684,6 +684,12 @@ namespace client
 			SendSessionStatusMessage (eI2CPSessionStatusInvalid); // invalid
 			return;
 		}
+		if (offset + 2 > len)
+		{
+			LogPrint (eLogError, "I2CP: Create session message is too short");
+			SendSessionStatusMessage (eI2CPSessionStatusInvalid); // invalid
+			return;
+		}
 		uint16_t optionsSize = bufbe16toh (buf + offset);
 		offset += 2;
 		if (optionsSize > len - offset)
@@ -697,6 +703,12 @@ namespace client
 		offset += optionsSize; // options
 		if (params[I2CP_PARAM_MESSAGE_RELIABILITY] == "none") m_IsSendAccepted = false;
 
+		if (offset + 8 + identity->GetSignatureLen () > len)
+		{
+			LogPrint (eLogError, "I2CP: Create session message is too short for date/signature");
+			SendSessionStatusMessage (eI2CPSessionStatusInvalid); // invalid
+			return;
+		}
 		offset += 8; // date
 		if (identity->Verify (buf, offset, buf + offset)) // signature
 		{
@@ -754,31 +766,36 @@ namespace client
 					{
 						size_t identsz = ident.GetFullLen();
 						buf += identsz;
-						uint16_t optssize = bufbe16toh(buf);
-						if (optssize <= len - sizeof(uint16_t) - sizeof(uint64_t) - identsz - ident.GetSignatureLen() - sizeof(uint16_t))
+						if (sizeof(uint16_t) + identsz + sizeof(uint16_t) <= len)
 						{
-							buf += sizeof(uint16_t);
-							i2p::util::Mapping opts;
-							opts.FromBuffer (optssize, buf, optssize);
-							buf += optssize;
-							//uint64_t date = bufbe64toh(buf);
-							buf += sizeof(uint64_t);
-							const uint8_t * sig = buf;
-							if(ident.Verify(body, len - sizeof(uint16_t) - ident.GetSignatureLen(), sig))
+							uint16_t optssize = bufbe16toh(buf);
+							if (sizeof(uint16_t) + identsz + sizeof(uint16_t) + (size_t)optssize + sizeof(uint64_t) + ident.GetSignatureLen() <= len)
 							{
-								if(m_Destination->Reconfigure(opts))
+								buf += sizeof(uint16_t);
+								i2p::util::Mapping opts;
+								opts.FromBuffer (optssize, buf, optssize);
+								buf += optssize;
+								//uint64_t date = bufbe64toh(buf);
+								buf += sizeof(uint64_t);
+								const uint8_t * sig = buf;
+								if(ident.Verify(body, len - sizeof(uint16_t) - ident.GetSignatureLen(), sig))
 								{
-									LogPrint(eLogInfo, "I2CP: Reconfigured destination");
-									status = eI2CPSessionStatusUpdated; // updated
+									if(m_Destination->Reconfigure(opts))
+									{
+										LogPrint(eLogInfo, "I2CP: Reconfigured destination");
+										status = eI2CPSessionStatusUpdated; // updated
+									}
+									else
+										LogPrint(eLogWarning, "I2CP: Failed to reconfigure destination");
 								}
 								else
-									LogPrint(eLogWarning, "I2CP: Failed to reconfigure destination");
+									LogPrint(eLogError, "I2CP: Invalid reconfigure message signature");
 							}
 							else
-								LogPrint(eLogError, "I2CP: Invalid reconfigure message signature");
+								LogPrint(eLogError, "I2CP: Mapping size mismatch");
 						}
 						else
-							LogPrint(eLogError, "I2CP: Mapping size mismatch");
+							LogPrint(eLogError, "I2CP: Reconfigure message is too short");
 					}
 					else
 						LogPrint(eLogError, "I2CP: Destination mismatch");
@@ -898,6 +915,11 @@ namespace client
 
 	void I2CPSession::SendMessageMessageHandler (const uint8_t * buf, size_t len)
 	{
+		if (len < 2)
+		{
+			LogPrint (eLogError, "I2CP: Send message is too short");
+			return;
+		}
 		uint16_t sessionID = bufbe16toh (buf);
 		if (sessionID == m_SessionID)
 		{
@@ -906,11 +928,11 @@ namespace client
 			{
 				const uint8_t * ident = buf + offset;
 				size_t identSize = i2p::data::GetIdentityBufferLen (ident, len - offset);
-				if (identSize)
+				if (identSize && offset + identSize + 4 <= len)
 				{
 					offset += identSize;
 					uint32_t payloadLen = bufbe32toh (buf + offset);
-					if (payloadLen + offset <= len)
+					if (offset + 4 + (size_t)payloadLen + 4 <= len)
 					{
 						offset += 4;
 						uint32_t nonce = bufbe32toh (buf + offset + payloadLen);
@@ -956,6 +978,11 @@ namespace client
 
 	void I2CPSession::SendMessageExpiresMessageHandler (const uint8_t * buf, size_t len)
 	{
+		if (len < 8)
+		{
+			LogPrint (eLogError, "I2CP: Send message expires is too short");
+			return;
+		}
 		SendMessageMessageHandler (buf, len - 8); // ignore flags(2) and expiration(6)
 	}
 

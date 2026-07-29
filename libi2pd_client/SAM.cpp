@@ -520,6 +520,7 @@ namespace client
 #else
 			size_t l2 = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_CREATE_REPLY_OK, priv.c_str ());
 #endif
+			if (l2 >= SAM_SOCKET_BUFFER_SIZE) l2 = SAM_SOCKET_BUFFER_SIZE - 1;
 			SendMessageReply ({m_Buffer, l2}, false);
 		}
 	}
@@ -992,6 +993,7 @@ namespace client
 #else
 		size_t l = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY, name.c_str (), base64.c_str ());
 #endif
+		if (l >= SAM_SOCKET_BUFFER_SIZE) l = SAM_SOCKET_BUFFER_SIZE - 1;
 		SendMessageReply ({m_Buffer, l}, false);
 	}
 
@@ -1298,7 +1300,9 @@ namespace client
 					(unsigned)toPort
 				);
 #endif
-				if (len < SAM_STREAM_BUFFER_SIZE - l)
+				if (l >= SAM_STREAM_BUFFER_SIZE)
+					LogPrint (eLogWarning, "SAM: Datagram header exceeds buffer, dropped");
+				else if (len < SAM_STREAM_BUFFER_SIZE - l)
 				{
 					memcpy (m_StreamBuffer + l, buf, len);
 					WriteI2PData(len + l);
