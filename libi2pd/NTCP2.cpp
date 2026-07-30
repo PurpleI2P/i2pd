@@ -985,7 +985,7 @@ namespace transport
 					return;
 				}
 				auto size = bufbe16toh (buf->data () + 1);
-				if (size + 3 > buf->size () || size > i2p::data::MAX_RI_BUFFER_SIZE + 1)
+				if (size + 3 > (int)buf->size () || size > i2p::data::MAX_RI_BUFFER_SIZE + 1)
 				{
 					LogPrint (eLogError, "NTCP2: Unexpected RouterInfo size ", size, " in SessionConfirmed");
 					boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
@@ -1784,10 +1784,6 @@ namespace transport
 					}
 					else if (address->IsV6() && (context.SupportsV6 () || context.SupportsMesh ()))
 					{
-#if defined(__HAIKU__)
-						LogPrint (eLogInfo, "NTCP2: Can't listen v6 TCP port ", address->port, ". IPV6_V6ONLY is not supported");
-						continue; // IPV6_V6ONLY is not supported. Don't listen ipv6
-#endif
 						m_NTCP2V6Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService ()));
 						try
 						{
