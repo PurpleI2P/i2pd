@@ -366,7 +366,7 @@ namespace proxy
 					auto s = i2p::client::context.GetAddressBook().ToAddress(GetOwner()->GetLocalDestination()->GetIdentHash());
 					address ad; ad.dns.SetString(s);
 					// HACK only 16 bits passed in port as SOCKS5 doesn't allow for more
-					response = GenerateSOCKS5Response(SOCKS5_OK, ADDR_DNS, ad, m_stream ? m_stream->GetRecvStreamID() : 0);
+					response = GenerateSOCKS5Response(SOCKS5_OK, ADDR_DNS, ad, m_stream ? (uint16_t)m_stream->GetRecvStreamID() : 0);
 				}
 			break;
 		}
