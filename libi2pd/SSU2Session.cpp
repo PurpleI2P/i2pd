@@ -1299,7 +1299,7 @@ namespace transport
 				len = m_SessionConfirmedFragment->payloadSize + 16;
 			}
 		}
-		if (len < 80)
+		if (len < 83) // 64 bytes header/part1 + 16 bytes MAC + at least 1 byte block type + 2 bytes block size
 		{
 			LogPrint (eLogWarning, "SSU2: SessionConfirmed message too short ", len);
 			if (m_SessionConfirmedFragment) m_SessionConfirmedFragment.reset (nullptr);

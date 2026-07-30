@@ -789,6 +789,11 @@ namespace garlic
 	{
 		// we are Alice
 		LogPrint (eLogDebug, "Garlic: Reply received");
+		if (len < 8)
+		{
+			LogPrint (eLogWarning, "Garlic: Reply message is too short ", len);
+			return false;
+		}
 		const uint8_t * tag = buf;
 		buf += 8; len -= 8; // tag
 		uint8_t bepk[32]; // Bob's ephemeral key
@@ -928,6 +933,11 @@ namespace garlic
 	bool ECIESX25519AEADRatchetSession::HandleExistingSessionMessage (uint8_t * buf, size_t len,
 		std::shared_ptr<ReceiveRatchetTagSet> receiveTagset, int index)
 	{
+		if (len < 8)
+		{
+			LogPrint (eLogWarning, "Garlic: Existing session message is too short ", len);
+			return false;
+		}
 		uint8_t nonce[12];
 		CreateNonce (index, nonce); // tag's index
 		len -= 8; // tag
@@ -1381,6 +1391,11 @@ namespace garlic
 	bool RouterIncomingRatchetSession::HandleNextMessage (const uint8_t * buf, size_t len)
 	{
 		if (!GetOwner ()) return false;
+		if (len < 32)
+		{
+			LogPrint (eLogWarning, "Garlic: Message for router is too short ", len);
+			return false;
+		}
 		m_CurrentNoiseState = GetNoiseState ();
 		// we are Bob
 		m_CurrentNoiseState.MixHash (buf, 32);
@@ -1392,6 +1407,11 @@ namespace garlic
 		}
 		m_CurrentNoiseState.MixKey (sharedSecret);
 		buf += 32; len -= 32;
+		if (len < 16)
+		{
+			LogPrint (eLogWarning, "Garlic: Payload for router is too short ", len);
+			return false;
+		}
 		uint8_t nonce[12];
 		CreateNonce (0, nonce);
 		std::vector<uint8_t> payload (len - 16);
