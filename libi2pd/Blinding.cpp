@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2025, The PurpleI2P Project
+* Copyright (c) 2013-2026, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -10,7 +10,6 @@
 #include <zlib.h> // for crc32
 #include <openssl/sha.h>
 #include <openssl/hmac.h>
-#include <openssl/ec.h>
 #include <openssl/evp.h>
 #include <openssl/bn.h>
 #include "Base.h"
@@ -26,116 +25,6 @@ namespace i2p
 {
 namespace data
 {
-	static EC_POINT * BlindPublicKeyECDSA (const EC_GROUP * group, const EC_POINT * pub, const uint8_t * seed)
-	{
-		BN_CTX * ctx = BN_CTX_new ();
-		BN_CTX_start (ctx);
-		BIGNUM * q = BN_CTX_get (ctx);
-		EC_GROUP_get_order (group, q, ctx);
-		// calculate alpha = seed mod q
-		BIGNUM * alpha = BN_CTX_get (ctx);
-		BN_bin2bn (seed, 64, alpha); // seed is in BigEndian
-		BN_mod (alpha, alpha, q, ctx); // % q
-		// A' = BLIND_PUBKEY(A, alpha) = A + DERIVE_PUBLIC(alpha)
-		auto p = EC_POINT_new (group);
-		EC_POINT_mul (group, p, alpha, nullptr, nullptr, ctx); // B*alpha
-		EC_POINT_add (group, p, pub, p, ctx); // pub + B*alpha
-		BN_CTX_end (ctx);
-		BN_CTX_free (ctx);
-		return p;
-	}
-
-	static void BlindPrivateKeyECDSA (const EC_GROUP * group, const BIGNUM * priv, const uint8_t * seed, BIGNUM * blindedPriv)
-	{
-		BN_CTX * ctx = BN_CTX_new ();
-		BN_CTX_start (ctx);
-		BIGNUM * q = BN_CTX_get (ctx);
-		EC_GROUP_get_order (group, q, ctx);
-		// calculate alpha = seed mod q
-		BIGNUM * alpha = BN_CTX_get (ctx);
-		BN_bin2bn (seed, 64, alpha); // seed is in BigEndian
-		BN_mod (alpha, alpha, q, ctx); // % q
-		BN_add (alpha, alpha, priv); // alpha = alpha + priv
-		// a' = BLIND_PRIVKEY(a, alpha) = (a + alpha) mod q
-		BN_mod (blindedPriv, alpha, q, ctx); // % q
-		BN_CTX_end (ctx);
-		BN_CTX_free (ctx);
-	}
-
-	static void BlindEncodedPublicKeyECDSA (size_t publicKeyLen, const EC_GROUP * group, const uint8_t * pub, const uint8_t * seed, uint8_t * blindedPub)
-	{
-		BIGNUM * x = BN_bin2bn (pub, publicKeyLen/2, NULL);
-		BIGNUM * y = BN_bin2bn (pub + publicKeyLen/2, publicKeyLen/2, NULL);
-		EC_POINT * p = EC_POINT_new (group);
-		EC_POINT_set_affine_coordinates (group, p, x, y, NULL);
-		EC_POINT * p1 = BlindPublicKeyECDSA (group, p, seed);
-		EC_POINT_free (p);
-		EC_POINT_get_affine_coordinates (group, p1, x, y, NULL);
-		EC_POINT_free (p1);
-		i2p::crypto::bn2buf (x, blindedPub, publicKeyLen/2);
-		i2p::crypto::bn2buf (y, blindedPub + publicKeyLen/2, publicKeyLen/2);
-		BN_free (x); BN_free (y);
-	}
-
-	static void BlindEncodedPrivateKeyECDSA (size_t publicKeyLen, const EC_GROUP * group, const uint8_t * priv, const uint8_t * seed, uint8_t * blindedPriv, uint8_t * blindedPub)
-	{
-		BIGNUM * a = BN_bin2bn (priv, publicKeyLen/2, NULL);
-		BIGNUM * a1 = BN_new ();
-		BlindPrivateKeyECDSA (group, a, seed, a1);
-		BN_free (a);
-		i2p::crypto::bn2buf (a1, blindedPriv, publicKeyLen/2);
-		auto p = EC_POINT_new (group);
-		BN_CTX * ctx = BN_CTX_new ();
-		EC_POINT_mul (group, p, a1, nullptr, nullptr, ctx); // B*a1
-		BN_CTX_free (ctx);
-		BN_free (a1);
-		BIGNUM * x = BN_new(), * y = BN_new();
-		EC_POINT_get_affine_coordinates (group, p, x, y, NULL);
-		EC_POINT_free (p);
-		i2p::crypto::bn2buf (x, blindedPub, publicKeyLen/2);
-		i2p::crypto::bn2buf (y, blindedPub + publicKeyLen/2, publicKeyLen/2);
-		BN_free (x); BN_free (y);
-	}
-
-	template<typename Fn, typename...Args>
-	static size_t BlindECDSA (i2p::data::SigningKeyType sigType, const uint8_t * key, const uint8_t * seed, Fn blind, Args&&...args)
-	// blind is BlindEncodedPublicKeyECDSA or BlindEncodedPrivateKeyECDSA
-	{
-		size_t publicKeyLength = 0;
-		EC_GROUP * group = nullptr;
-		switch (sigType)
-		{
-			case i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
-			{
-				publicKeyLength = i2p::crypto::ECDSAP256_KEY_LENGTH;
-				group = EC_GROUP_new_by_curve_name (NID_X9_62_prime256v1);
-				break;
-			}
-			case i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
-			{
-				publicKeyLength = i2p::crypto::ECDSAP384_KEY_LENGTH;
-				group = EC_GROUP_new_by_curve_name (NID_secp384r1);
-				break;
-			}
-			case i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
-			{
-				publicKeyLength = i2p::crypto::ECDSAP521_KEY_LENGTH;
-				group = EC_GROUP_new_by_curve_name (NID_secp521r1);
-				break;
-			}
-			default:
-				LogPrint (eLogError, "Blinding: Signature type ", (int)sigType, " is not ECDSA");
-		}
-		if (group)
-		{
-			blind (publicKeyLength, group, key, seed, std::forward<Args>(args)...);
-			EC_GROUP_free (group);
-		}
-		return publicKeyLength;
-	}
-
-//----------------------------------------------------------
-
 	const uint8_t B33_TWO_BYTES_SIGTYPE_FLAG = 0x01;
 	// const uint8_t B33_PER_SECRET_FLAG = 0x02; // not used for now
 	const uint8_t B33_PER_CLIENT_AUTH_FLAG = 0x04;
@@ -144,14 +33,13 @@ namespace data
 		m_IsClientAuth (clientAuth)
 	{
 		if (!identity) return;
-		auto len = identity->GetSigningPublicKeyLen ();
-		m_PublicKey.resize (len);
-		memcpy (m_PublicKey.data (), identity->GetSigningPublicKeyBuffer (), len);
 		m_SigType = identity->GetSigningKeyType ();
-		if (m_SigType == i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519)
-			m_BlindedSigType = i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519; // 7 -> 11
+		m_BlindedSigType = i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519; // always 11
+		if (m_SigType == i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519 ||
+			m_SigType == i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519)
+			memcpy (m_PublicKey.data (), identity->GetSigningPublicKeyBuffer (), m_PublicKey.size ());
 		else
-			m_BlindedSigType = m_SigType;
+			LogPrint (eLogError, "Blinding: Unsupported signature type ", (int)m_SigType);
 	}
 
 	BlindedPublicKey::BlindedPublicKey (std::string_view b33):
@@ -184,12 +72,8 @@ namespace data
 		std::unique_ptr<i2p::crypto::Verifier> blindedVerifier (i2p::data::IdentityEx::CreateVerifier (m_SigType));
 		if (blindedVerifier)
 		{
-			auto len = blindedVerifier->GetPublicKeyLen ();
-			if (offset + len <= l)
-			{
-				m_PublicKey.resize (len);
-				memcpy (m_PublicKey.data (), addr + offset, len);
-			}
+			if (offset + m_PublicKey.size () <= l)
+				memcpy (m_PublicKey.data (), addr + offset, m_PublicKey.size ());
 			else
 				LogPrint (eLogError, "Blinding: Public key in b33 address is too short for signature type ", (int)m_SigType);
 		}

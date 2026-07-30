@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2025, The PurpleI2P Project
+* Copyright (c) 2013-2026, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -12,7 +12,8 @@
 #include <inttypes.h>
 #include <string>
 #include <string_view>
-#include <vector>
+#include <array>
+#include "Crypto.h"
 #include "Identity.h"
 
 namespace i2p
@@ -46,7 +47,7 @@ namespace data
 
 		private:
 
-			std::vector<uint8_t> m_PublicKey;
+			std::array<uint8_t, i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH> m_PublicKey;
 			i2p::data::SigningKeyType m_SigType, m_BlindedSigType;
 			bool m_IsClientAuth = false;
 	};
