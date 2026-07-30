@@ -396,7 +396,7 @@ namespace transport
 				// actual padding is not known yet, apply MixHash later
 				if (m_BufferLen > NTCP2_SESSION_HANDSHAKE_MAX_SIZE) m_IsLongPadding = true;
 				m3p2Len = bufbe16toh (options + 4);
-				if (m3p2Len < 16)
+				if (m3p2Len < 19) // 16 bytes MAC + at least 1 byte block type + 2 bytes block size
 				{
 					LogPrint (eLogWarning, "NTCP2: SessionRequest m3p2len=", m3p2Len, " is too short");
 					return false;
@@ -843,11 +843,7 @@ namespace transport
 		{
 			if (paddingLen > 0)
 			{
-#if OPENSSL_PQ
-				if (paddingLen <= m_Establisher->m_MaxMsgSize - 80)
-#else
-				if (paddingLen <= m_Establisher->m_MaxMsgSize - 64)
-#endif
+				if (m_Establisher->m_BufferLen + paddingLen <= m_Establisher->m_MaxMsgSize)
 				{
 					boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_Buffer + m_Establisher->m_BufferLen, paddingLen), boost::asio::transfer_all (),
 						std::bind(&NTCP2Session::HandleSessionCreatedPaddingReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
@@ -989,7 +985,7 @@ namespace transport
 					return;
 				}
 				auto size = bufbe16toh (buf->data () + 1);
-				if (size > buf->size () - 3 || size > i2p::data::MAX_RI_BUFFER_SIZE + 1)
+				if (size + 3 > buf->size () || size > i2p::data::MAX_RI_BUFFER_SIZE + 1)
 				{
 					LogPrint (eLogError, "NTCP2: Unexpected RouterInfo size ", size, " in SessionConfirmed");
 					boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
@@ -1305,6 +1301,11 @@ namespace transport
 				break;
 				case eNTCP2BlkRouterInfo:
 				{
+					if (size < 1)
+					{
+						LogPrint (eLogWarning, "NTCP2: RouterInfo block is too short");
+						break;
+					}
 					LogPrint (eLogDebug, "NTCP2: RouterInfo flag=", (int)frame[offset]);
 					if (size <= i2p::data::MAX_RI_BUFFER_SIZE + 1)
 					{
