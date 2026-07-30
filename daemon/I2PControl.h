@@ -58,7 +58,7 @@ namespace client
 				std::shared_ptr<ssl_socket> socket, std::shared_ptr<I2PControlBuffer> buf);
 			template<typename ssl_socket>
 			void SendResponse (std::shared_ptr<ssl_socket> socket,
-				std::shared_ptr<I2PControlBuffer> buf, std::ostringstream& response, bool isHtml);
+				std::ostringstream& response, bool isHtml);
 
 			void CreateCertificate (const char *crt_path, const char *key_path);
 
