@@ -510,7 +510,11 @@ namespace proxy
 				{
 					auto b32Host = addr->ToBase32 ();
 					if (!b32Host.empty ())
-						m_ClientRequest.UpdateHeader("Host", b32Host + ".b32.i2p"); // replace our name to .b32.i2p address
+					{
+						b32Host += ".b32.i2p";
+						if (m_RequestURL.port) b32Host += ":" + std::to_string(m_RequestURL.port);
+						m_ClientRequest.UpdateHeader("Host", b32Host); // replace our name to .b32.i2p address
+					}
 					else
 					{
 						// invaild address
