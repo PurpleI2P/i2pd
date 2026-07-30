@@ -286,7 +286,7 @@ namespace client
 					response << "{\"code\":-32601,\"message\":\"Method not found\"},";
 					response << "\"jsonrpc\":\"2.0\"}\n";
 				}
-				SendResponse (socket, buf, response, isHtml);
+				SendResponse (socket, response, isHtml);
 			}
 			catch (std::exception& ex)
 			{
@@ -295,7 +295,7 @@ namespace client
 				response << "{\"id\":null,\"error\":";
 				response << "{\"code\":-32700,\"message\":\"" << ex.what () << "\"},";
 				response << "\"jsonrpc\":\"2.0\"}\n";
-				SendResponse (socket, buf, response, isHtml);
+				SendResponse (socket, response, isHtml);
 			}
 			catch (...)
 			{
@@ -306,28 +306,27 @@ namespace client
 
 	template<typename ssl_socket>
 	void I2PControlService::SendResponse (std::shared_ptr<ssl_socket> socket,
-		std::shared_ptr<I2PControlBuffer> buf, std::ostringstream& response, bool isHtml)
+		std::ostringstream& response, bool isHtml)
 	{
-		size_t len = response.str ().length (), offset = 0;
+		auto message = std::make_shared<std::string> ();
 		if (isHtml)
 		{
 			std::ostringstream header;
 			header << "HTTP/1.1 200 OK\r\n";
 			header << "Connection: close\r\n";
-			header << "Content-Length: " << std::to_string(len) << "\r\n";
+			header << "Content-Length: " << std::to_string (response.str ().length ()) << "\r\n";
 			header << "Content-Type: application/json\r\n";
 			header << "Date: ";
 			std::time_t t = std::time (nullptr);
     		std::tm tm = *std::gmtime (&t);
 			header << std::put_time(&tm, "%a, %d %b %Y %T GMT") << "\r\n";
 			header << "\r\n";
-			offset = header.str ().size ();
-			memcpy (buf->data (), header.str ().c_str (), offset);
+			*message = header.str ();
 		}
-		memcpy (buf->data () + offset, response.str ().c_str (), len);
-		boost::asio::async_write (*socket, boost::asio::buffer (buf->data (), offset + len),
+		*message += response.str ();
+		boost::asio::async_write (*socket, boost::asio::buffer (*message),
 			boost::asio::transfer_all (),
-		    [socket, buf](const boost::system::error_code& ecode, std::size_t bytes_transferred)
+		    [socket, message](const boost::system::error_code& ecode, std::size_t bytes_transferred)
 		    {
 				if (ecode)
 					LogPrint (eLogError, "I2PControl: Write error: ", ecode.message ());

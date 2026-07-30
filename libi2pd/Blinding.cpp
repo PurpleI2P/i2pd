@@ -249,11 +249,6 @@ namespace data
 		size_t publicKeyLength = 0;
 		switch (m_SigType)
 		{
-			case i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
-			case i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
-			case i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
-				publicKeyLength = BlindECDSA (m_SigType, GetPublicKey (), seed, BlindEncodedPublicKeyECDSA, blindedKey);
-			break;
 			case i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
 			case i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 				i2p::crypto::GetEd25519 ()->BlindPublicKey (GetPublicKey (), seed, blindedKey);
@@ -272,11 +267,6 @@ namespace data
 		size_t publicKeyLength = 0;
 		switch (m_SigType)
 		{
-			case i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
-			case i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
-			case i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
-				publicKeyLength = BlindECDSA (m_SigType, priv, seed, BlindEncodedPrivateKeyECDSA, blindedPriv, blindedPub);
-			break;
 			case i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
 				i2p::crypto::GetEd25519 ()->BlindPrivateKey (priv, seed, blindedPriv, blindedPub);
 				publicKeyLength = i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH;
@@ -310,7 +300,7 @@ namespace data
 	i2p::data::IdentHash BlindedPublicKey::GetStoreHash (const char * date) const
 	{
 		i2p::data::IdentHash hash;
-		uint8_t blinded[128];
+		uint8_t blinded[i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH]; // 32 max
 		size_t publicKeyLength = 0;
 		if (date)
 			publicKeyLength = GetBlindedKey (date, blinded);

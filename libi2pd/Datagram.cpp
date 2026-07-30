@@ -136,6 +136,7 @@ namespace datagram
 		if (!identityLen) return;
 		const uint8_t * signature = buf + identityLen;
 		size_t headerLen = identityLen + identity.GetSignatureLen ();
+		if (headerLen > len) return;
 
 		std::shared_ptr<i2p::data::LeaseSet> ls;
 		bool verified = false;

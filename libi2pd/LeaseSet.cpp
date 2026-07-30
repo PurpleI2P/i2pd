@@ -15,6 +15,7 @@
 #include "NetDb.hpp"
 #include "Tunnel.h"
 #include "CryptoKey.h"
+#include "Signature.h"
 #include "LeaseSet.h"
 
 namespace i2p
@@ -1001,7 +1002,7 @@ namespace data
 		auto timestamp = i2p::util::GetSecondsSinceEpoch ();
 		char date[9];
 		i2p::util::GetDateString (timestamp, date);
-		uint8_t blindedPriv[64], blindedPub[128]; // 64 and 128 max
+		uint8_t blindedPriv[i2p::crypto::EDDSA25519_PRIVATE_KEY_LENGTH], blindedPub[i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH]; // 32 and 32 max
 		size_t publicKeyLen = blindedKey.BlindPrivateKey (keys.GetSigningPrivateKey (), date, blindedPriv, blindedPub);
 		std::unique_ptr<i2p::crypto::Signer> blindedSigner (i2p::data::PrivateKeys::CreateSigner (blindedKey.GetBlindedSigType (), blindedPriv));
 		if (!blindedSigner)
