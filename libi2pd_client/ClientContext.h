@@ -10,6 +10,7 @@
 #define CLIENT_CONTEXT_H__
 
 #include <map>
+#include <unordered_map>
 #include <mutex>
 #include <memory>
 #include <string_view>
@@ -22,6 +23,7 @@
 #include "BOB.h"
 #include "I2CP.h"
 #include "AddressBook.h"
+#include "Torrents.h"
 #include "I18N_langs.h"
 
 namespace i2p
@@ -38,6 +40,7 @@ namespace client
 	const char I2P_TUNNELS_SECTION_TYPE_SOCKS[] = "socks";
 	const char I2P_TUNNELS_SECTION_TYPE_WEBSOCKS[] = "websocks";
 	const char I2P_TUNNELS_SECTION_TYPE_HTTPPROXY[] = "httpproxy";
+	const char I2P_TUNNELS_SECTION_TYPE_TORRENTS[] = "torrents";
 	const char I2P_CLIENT_TUNNEL_PORT[] = "port";
 	const char I2P_CLIENT_TUNNEL_ADDRESS[] = "address";
 	const char I2P_CLIENT_TUNNEL_DESTINATION[] = "destination";
@@ -66,6 +69,10 @@ namespace client
 	const char I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL[] = "enableuniquelocal";
 	const char I2P_SERVER_TUNNEL_SSL[] = "ssl";
 	const char UDP_CLIENT_TUNNEL_DATAGRAM_VERSION[] = "datagramversion";
+	const char TORRENTS_TUNNEL_KEYS[] = "keys";
+	const char TORRENTS_TUNNEL_SIGNATURE_TYPE[] = "signaturetype";
+	const char TORRENTS_TUNNEL_TORRENTS_DIR[] = "torrentsdir";
+	const char TORRENTS_TUNNEL_TRACKERS[] = "trackers";
 
 	class ClientContext
 	{
@@ -152,6 +159,8 @@ namespace client
 			std::mutex m_ForwardsMutex;
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<I2PUDPClientTunnel> > m_ClientForwards; // local endpoint -> udp tunnel
 			std::map<std::pair<i2p::data::IdentHash, int>, std::shared_ptr<I2PUDPServerTunnel> > m_ServerForwards; // <destination,port> -> udp tunnel
+
+			std::unordered_map<i2p::data::IdentHash, std::shared_ptr<i2p::torrents::TorrentsTunnel> > m_TorrentsTunnels; // local destination -> torrents tunnel
 
 			SAMBridge * m_SamBridge;
 			BOBCommandChannel * m_BOBCommandChannel;

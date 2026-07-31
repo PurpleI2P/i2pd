@@ -155,6 +155,13 @@ namespace client
 		}
 		m_ServerTunnels.clear ();
 
+		for (auto& it: m_TorrentsTunnels)
+		{
+			LogPrint(eLogInfo, "Clients: Stopping torrents tunnel");
+			it.second->Stop ();
+		}
+		m_TorrentsTunnels.clear ();
+
 		if (m_SamBridge)
 		{
 			LogPrint(eLogInfo, "Clients: Stopping SAM bridge");
@@ -941,6 +948,53 @@ namespace client
 						LogPrint (eLogInfo, "Clients: I2P server tunnel for destination/port ", m_AddressBook.ToAddress(localDestination->GetIdentHash ()), "/", inPort, " already exists");
 					}
 
+				}
+				else if (type == I2P_TUNNELS_SECTION_TYPE_TORRENTS)
+				{
+
+					// mandatory params
+					std::string keys = section.second.get<std::string> (TORRENTS_TUNNEL_KEYS);
+					std::string torrentsDir = section.second.get<std::string> (TORRENTS_TUNNEL_TORRENTS_DIR);
+					// optional params
+					std::string trackers = section.second.get<std::string> (TORRENTS_TUNNEL_TRACKERS, "");
+					i2p::data::SigningKeyType sigType = section.second.get (TORRENTS_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
+					if (sigType > i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519) sigType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519;
+
+					// I2CP
+					i2p::util::Mapping options;
+					ReadI2CPOptions (section, true, options);
+
+					// Set I2CP name if not set
+					if (!options.Contains (I2CP_PARAM_INBOUND_NICKNAME))
+						options.Insert (I2CP_PARAM_INBOUND_NICKNAME, name);
+
+					std::shared_ptr<ClientDestination> localDestination = nullptr;
+					auto it = destinations.find (keys);
+					if (it != destinations.end ())
+					{
+						localDestination = it->second;
+						localDestination->SetPublic (true);
+					}
+					else
+					{
+						i2p::data::PrivateKeys k;
+						if(!LoadPrivateKeys (k, keys, sigType, i2p::data::CRYPTO_KEY_TYPE_ELGAMAL))
+							continue;
+						localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
+						if (!localDestination)
+						{
+							localDestination = CreateNewLocalDestination (k, true, &options);
+							destinations[keys] = localDestination;
+						}
+						else
+							localDestination->SetPublic (true);
+					}
+					auto torrentsTunnel = std::make_shared<i2p::torrents::TorrentsTunnel> (localDestination, torrentsDir, trackers);
+					auto [iit, inserted] = m_TorrentsTunnels.emplace (localDestination->GetIdentHash (), torrentsTunnel);
+					if (inserted)
+						torrentsTunnel->Start ();
+					else
+						LogPrint (eLogError, "Clients: Failed to create torrents tunnel ", name, ". Duplicate keys ", keys);
 				}
 				else
 					LogPrint (eLogError, "Clients: Unknown section type = ", type, " of ", name, " in ", tunConf);
