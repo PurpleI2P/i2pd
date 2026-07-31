@@ -397,7 +397,7 @@ namespace stream
 		auto s = shared_from_this();
 		boost::asio::post (m_Service, [s, buffer, handler = std::move (handler), timeout](void) mutable
 		{
-			if (!s->m_ReceiveQueue.empty () || s->m_Status == eStreamStatusReset)
+			if (!s->m_ReceiveQueue.empty () || (s->m_Status != eStreamStatusNew && s->m_Status != eStreamStatusOpen))
 				s->HandleReceiveTimer (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), buffer, handler, 0);
 			else
 			{
