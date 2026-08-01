@@ -570,6 +570,7 @@ namespace transport
 		{
 			m_IsEstablished = false;
 			boost::system::error_code ec;
+			m_Socket.cancel ();
 			m_Socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
 			if (ec)
 				LogPrint (eLogDebug, "NTCP2: Couldn't shutdown socket: ", ec.message ());
@@ -600,6 +601,7 @@ namespace transport
 
 	void NTCP2Session::Close ()
 	{
+		m_Socket.cancel ();
 		m_Socket.close ();
 	}
 

@@ -69,6 +69,7 @@ namespace client
 		if (m_Socket.is_open ())
 		{
 			boost::system::error_code ec;
+			m_Socket.cancel ();
 			m_Socket.shutdown (boost::asio::ip::tcp::socket::shutdown_both, ec);
 			m_Socket.close ();
 		}
