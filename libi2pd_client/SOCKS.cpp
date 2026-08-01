@@ -831,6 +831,15 @@ namespace proxy
 	template<typename Socket>
 	void SOCKSHandler::SocksUpstreamSuccess(std::shared_ptr<Socket>& upstreamSock)
 	{
+		if (!m_sock->is_open ())
+		{
+			// check if the socket got closed during upstream handshake
+			LogPrint(eLogWarning, "SOCKS: Can't link to upstream because socket is closed");
+			upstreamSock = nullptr;
+			m_sock = nullptr;
+			Terminate();
+			return;
+		}
 		LogPrint(eLogInfo, "SOCKS: Upstream success");
 		boost::asio::const_buffer response(nullptr, 0);
 		switch (m_socksv)

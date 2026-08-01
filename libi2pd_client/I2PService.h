@@ -157,9 +157,19 @@ namespace client
 			SocketsPipe(I2PService * owner, std::shared_ptr<SocketUpstream> upstream, std::shared_ptr<SocketDownstream> downstream):
 				I2PServiceHandler(owner), m_up(upstream), m_down(downstream)
 			{
-				boost::asio::socket_base::receive_buffer_size option(SOCKETS_PIPE_BUFFER_SIZE);
-				upstream->set_option(option);
-				downstream->set_option(option);
+				try
+				{
+					boost::asio::socket_base::receive_buffer_size option(SOCKETS_PIPE_BUFFER_SIZE);
+					upstream->set_option(option);
+					downstream->set_option(option);
+				}
+				catch (boost::system::system_error& ex)
+				{
+					std::string name;
+					if (GetOwner ())
+						name = GetOwner ()->GetName ();
+					LogPrint(eLogWarning, "SocketsPipe: ", name, " failed to set receive buffer size: " , ex.what());
+				}
 			}
 			~SocketsPipe() { Terminate(); }
 
