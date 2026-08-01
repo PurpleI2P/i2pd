@@ -49,15 +49,19 @@ namespace transport
 #if OPENSSL_PQ
         switch (version)
         {
+#ifndef LIBRESSL_VERSION_NUMBER
             case 3:
                  m_CryptoType = i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD;
             break;
+#endif
             case 4:
                  m_CryptoType = i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM768_X25519_AEAD;
             break;
+#ifndef LIBRESSL_VERSION_NUMBER
             case 5:
                  m_CryptoType = i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM1024_X25519_AEAD;
             break;
+#endif
             default:
                 m_CryptoType = i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD;
                 m_IsLongPadding = false;

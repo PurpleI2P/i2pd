@@ -3492,7 +3492,11 @@ namespace transport
 		switch (version)
 		{
 			case 3:
+#ifndef LIBRESSL_VERSION_NUMBER
 				m_Version = 3;
+#else
+				m_Version = 2; // MLKEM512 is not supported by LibreSSL
+#endif
 			break;
 			case 4:
 				m_Version = (m_MaxPayloadSize >= SSU2_MLKEM768_MIN_PAYLOAD_SIZE) ? 4: 2;
