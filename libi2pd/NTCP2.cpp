@@ -2286,6 +2286,9 @@ namespace transport
 	void NTCP2Server::SetVersion (int version)
 	{
 #if OPENSSL_PQ
+#ifdef LIBRESSL_VERSION_NUMBER
+	if (version == 2 || version == 5) version = 2; // 3 and 5 are not supported by LibreSSL
+#endif
         m_Version = version;
 #endif
 	}
