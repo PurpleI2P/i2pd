@@ -2287,7 +2287,7 @@ namespace transport
 	{
 #if OPENSSL_PQ
 #ifdef LIBRESSL_VERSION_NUMBER
-	if (version == 2 || version == 5) version = 2; // 3 and 5 are not supported by LibreSSL
+	if (version == 3 || version == 5) version = 2; // 3 and 5 are not supported by LibreSSL
 #endif
         m_Version = version;
 #endif
