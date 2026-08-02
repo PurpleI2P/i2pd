@@ -34,6 +34,7 @@ namespace i2p
 namespace torrents
 {
 	constexpr size_t REQUEST_BLOCK_SIZE = 16384;
+	constexpr uint16_t TORRENT_PORT = 6881; //  not used by required by protocol
 	constexpr int TRACKER_RESPONSE_TIMEOUT = 8; // in seconds
 	constexpr int TRACKER_REQUESTS_CHECK_TIMEOUT = 1900; // in milliseconds
 	constexpr int MIN_TRACKER_REQUESTS_INTERVAL = 15000; // in milliseconds
@@ -108,6 +109,7 @@ namespace torrents
 			size_t GetNumPieces () const { return m_Pieces.size (); }
 			Piece& GetPiece (int index) { return m_Pieces[index]; }
 			std::vector<uint8_t> CreateBitfield () const;
+			std::list<i2p::data::IdentHash> GetNonConnectedPeers () const;
 
 			uint64_t GetNextTrackerRequestTime () const { return m_NextTrackerRequestTime; }
 			void SetNextTrackerRequestTime (uint64_t ts) { m_NextTrackerRequestTime = ts; }
@@ -126,7 +128,7 @@ namespace torrents
 			uint64_t m_NextTrackerRequestTime; // monotonic millicesonds
 			InfoHash m_InfoHash; // SHA1
 			std::vector<Piece> m_Pieces;
-			std::list<std::shared_ptr<const i2p::client::Address> > m_Peers;
+			std::list<i2p::data::IdentHash> m_Peers;
 	};
 
 	class TorrentsTunnel;
@@ -206,7 +208,7 @@ namespace torrents
 			const std::string& GetPeerID () const { return m_PeerID; }
 			std::string GetTorrentFilePath (const std::string& filename) const;
 			std::shared_ptr<Torrent> FindTorrent (const Torrent::InfoHash& infoHash) const;
-			void ConnectToPeer (std::shared_ptr<Torrent> torrent, std::shared_ptr<const i2p::client::Address> peer);
+			void ConnectToPeer (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& peer);
 
 			const char* GetName() const override { return "Torrents"; }
 

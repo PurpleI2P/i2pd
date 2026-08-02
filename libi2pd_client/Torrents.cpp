@@ -315,7 +315,11 @@ namespace torrents
 				if (key == "interval")
 				{
 					auto [value, l] = ExtractInteger (buf);
-					if (l) m_Interval = std::max (MIN_TRACKER_REQUESTS_INTERVAL, (int)value*1000); // in milliseconds
+					if (l)
+					{
+						m_Interval = std::max (MIN_TRACKER_REQUESTS_INTERVAL, (int)value*1000); // in milliseconds
+						m_NextTrackerRequestTime = i2p::util::GetMonotonicMilliseconds () + m_Interval; // reset next request
+					}
 					return l;
 				}
 				else if (key == "peers")
@@ -330,11 +334,18 @@ namespace torrents
 		auto [hashes, len] = ExtractByteString (buf);
 		while (!hashes.empty ())
 		{
-			m_Peers.emplace_back (std::make_shared<const i2p::client::Address>(
-				i2p::data::IdentHash((const uint8_t *)hashes.substr (0, i2p::data::IdentHash::len).data ())));
+			m_Peers.emplace_back (i2p::data::IdentHash ((const uint8_t *)hashes.substr (0, i2p::data::IdentHash::len).data ()));
 			hashes = hashes.substr (i2p::data::IdentHash::len);
 		}
 		return len;
+	}
+
+	std::list<i2p::data::IdentHash> Torrent::GetNonConnectedPeers () const
+	{
+		std::list<i2p::data::IdentHash> nonConnectedPeers;
+		for (auto& it: m_Peers)
+			nonConnectedPeers.push_back (it);
+		return nonConnectedPeers;
 	}
 
 	std::vector<uint8_t> Torrent::CreateBitfield () const
@@ -394,6 +405,7 @@ namespace torrents
 
 	void PeerConnection::WriteToStream (const uint8_t * buf, size_t len)
 	{
+		LogPrint (eLogDebug, "Torrents: Sending ", len, " bytes");
 		m_Stream->AsyncSend (buf, len,
 			[s = shared_from_this ()](const boost::system::error_code& ecode, size_t bytes_transferred)
 			{
@@ -405,6 +417,7 @@ namespace torrents
 	void PeerConnection::Connect ()
 	{
 		SendHandshakeMsg ();
+		StreamReceive ();
 	}
 
 	void PeerConnection::ReceiveHandshake ()
@@ -414,7 +427,7 @@ namespace torrents
 
 	void PeerConnection::CheckKeepAlive (uint64_t ts)
 	{
-		if (ts > m_LastSendTime)
+		if (m_IsEstablished && ts > m_LastSendTime)
 		{
 			// send keep-alive
 			uint32_t len = 0;
@@ -474,6 +487,7 @@ namespace torrents
 		}
 		else
 		{
+			LogPrint (eLogDebug, "Torrents: Received ", bytes_transferred, " bytes");
 			m_ReceiveBufferOffset += bytes_transferred;
 			HandleReceived ();
 			StreamReceive ();
@@ -509,6 +523,7 @@ namespace torrents
 		offset += 4;
 		if (msgLen >= 1)
 		{
+			LogPrint (eLogDebug, "Torrents: Received msg type ", (int)m_ReceiveBuffer[offset]);
 			switch (m_ReceiveBuffer[offset])
 			{
 				case eMessageTypeHave:
@@ -534,12 +549,13 @@ namespace torrents
 			};
 		}
 		else
-			LogPrint (eLogInfo, "Torrents: Keep-alieve received");
+			LogPrint (eLogInfo, "Torrents: Keep-alive received");
 		return msgLen + 4;
 	}
 
 	size_t PeerConnection::HandleHandshakeMsg ()
 	{
+		LogPrint (eLogDebug, "Torrents: Handshake received");
 		if (m_ReceiveBufferOffset < HANDSHAKE_MSG_LENGTH) return 0;
 		if (m_ReceiveBuffer[0] != 19 || std::string_view ((const char *)(m_ReceiveBuffer + 1), 19) != "BitTorrent protocol")
 		{
@@ -573,7 +589,7 @@ namespace torrents
 
 	void PeerConnection::SendHandshakeMsg ()
 	{
-		if (!m_Torrent || !m_Stream || !m_Stream->IsOpen ()) return;
+		if (!m_Torrent || !m_Stream) return;
 		uint8_t buf[HANDSHAKE_MSG_LENGTH];
 		buf[0] = 19; memcpy (buf + 1, "BitTorrent protocol", 19);
 		memset (buf + 20, 0, 8);
@@ -882,7 +898,7 @@ namespace torrents
 		params.emplace ("info_hash", torrent->GetHexStringInfoHash ());
 		params.emplace ("peer_id", m_PeerID);
 		params.emplace ("ip", GetLocalDestination ()->GetIdentity ()->ToBase64 ());
-		params.emplace ("port", std::to_string (6881));
+		params.emplace ("port", std::to_string (TORRENT_PORT)); // 6881
 		params.emplace ("compact", "1");
 		params.emplace ("uploaded", "0"); // TODO
 		params.emplace ("downloaded", "0"); // TODO
@@ -915,12 +931,17 @@ namespace torrents
 			auto buf = std::make_shared<boost::beast::flat_buffer> ();
 			auto res = std::make_shared<boost::beast::http::response<boost::beast::http::string_body> >();
 			boost::beast::http::async_read (*httpStream, *buf, *res,
-				[httpStream, torrent, buf, res](const boost::beast::error_code& ecode, size_t bytes_transferred)
+				[this, httpStream, torrent, buf, res](const boost::beast::error_code& ecode, size_t bytes_transferred)
 				{
 					if (!ecode)
 					{
 						if (res->result () == boost::beast::http::status::ok)
+						{
 							torrent->ParseTrackerResponse (res->body ());
+							auto peersToConnect = torrent->GetNonConnectedPeers ();
+							for (const auto& it: peersToConnect)
+								ConnectToPeer (torrent, it);
+						}
 						else
 							LogPrint (eLogWarning, "Torrents: Tracker response code ", res->result_int());
 					}
@@ -928,21 +949,22 @@ namespace torrents
 		}
 	}
 
-	void TorrentsTunnel::ConnectToPeer (std::shared_ptr<Torrent> torrent,
-		std::shared_ptr<const i2p::client::Address> peer)
+	void TorrentsTunnel::ConnectToPeer (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& peer)
 	{
-		if (!torrent && !peer) return;
+		if (!torrent) return;
+		LogPrint (eLogDebug, "Torrents: Connecting to peer ", peer.ToBase32 () + ".b32.i2p");
 		CreateStream ([this, torrent](std::shared_ptr<i2p::stream::Stream> stream)
 			{
 				if (stream)
 				{
+					LogPrint (eLogDebug, "Torrents: Connected to peer");
 					auto connection = std::make_shared<PeerConnection>(this, stream, torrent);
 					AddHandler (connection);
 					connection->Connect ();
 				}
 				else
 					LogPrint (eLogInfo, "Torrents: Can't connect to peer");
-			}, peer, 6881);
+			}, std::make_shared<i2p::client::Address>(peer), TORRENT_PORT);
 	}
 
 	std::string TorrentsTunnel::GetTorrentFilePath (const std::string& filename) const
