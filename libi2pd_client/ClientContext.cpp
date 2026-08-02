@@ -953,9 +953,9 @@ namespace client
 				{
 
 					// mandatory params
-					std::string keys = section.second.get<std::string> (TORRENTS_TUNNEL_KEYS);
 					std::string torrentsDir = section.second.get<std::string> (TORRENTS_TUNNEL_TORRENTS_DIR);
 					// optional params
+					std::string keys = section.second.get<std::string> (TORRENTS_TUNNEL_KEYS, "transient");
 					std::string trackers = section.second.get<std::string> (TORRENTS_TUNNEL_TRACKERS, "");
 					i2p::data::SigningKeyType sigType = section.second.get (TORRENTS_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
 					if (sigType > i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519) sigType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519;
