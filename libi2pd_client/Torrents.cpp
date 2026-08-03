@@ -246,6 +246,14 @@ namespace torrents
 		return { 0, 0 };
 	}
 
+	void Piece::ClearAllRequests ()
+	{
+		if (!m_Blocks) return;
+		for (auto& it: *m_Blocks)
+			if (it == BlockStatus::Requested)
+				it = BlockStatus::Missing;
+	}
+
 	void Piece::AddConnection (std::shared_ptr<PeerConnection> connection)
 	{
 		m_Connections.emplace_back (connection);
@@ -415,9 +423,17 @@ namespace torrents
 		return { 0, 0, 0 };
 	}
 
+	void Torrent::ClearAllRequests ()
+	{
+		for (auto& it: m_Pieces)
+			if (!it.IsComplete ())
+				it.ClearAllRequests ();
+	}
+
 	PeerConnection::PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream):
 		i2p::client::I2PServiceHandler (owner), m_Stream (stream), m_ReceiveBufferOffset (0),
-		m_IsHandshakeSent (false), m_IsEstablished (false), m_LastReceiveTime (0), m_LastSendTime (0)
+		m_IsHandshakeSent (false), m_IsEstablished (false), m_IsChoked (false),
+		m_LastReceiveTime (0), m_LastSendTime (0)
 	{
 	}
 
@@ -571,6 +587,14 @@ namespace torrents
 			LogPrint (eLogDebug, "Torrents: Received msg type ", (int)m_ReceiveBuffer[offset], " len ", msgLen);
 			switch (m_ReceiveBuffer[offset])
 			{
+				case eMessageTypeChoke:
+					m_IsChoked = true;
+					if (m_Torrent) m_Torrent->ClearAllRequests ();
+				break;
+				case eMessageTypeUnchoke:
+					m_IsChoked = false;
+					RequestNextBlock (); // TODO: remove later
+				break;
 				case eMessageTypeHave:
 					HandleHaveMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
 				break;
@@ -629,7 +653,6 @@ namespace torrents
 		if (bitfield.size ())
 			SendBitfieldMsg (bitfield.data (), bitfield.size ());
 		m_IsEstablished = true;
-		RequestNextBlock (); // TODO: remove later
 		return HANDSHAKE_MSG_LENGTH;
 	}
 

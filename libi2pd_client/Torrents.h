@@ -49,6 +49,8 @@ namespace torrents
 	constexpr size_t REQUEST_MSG_PAYLOAD_LENGTH = 12;
 	enum MessageType
 	{
+		eMessageTypeChoke = 0,
+		eMessageTypeUnchoke = 1,
 		eMessageTypeHave = 4,
 		eMessageTypeBitfield = 5,
 		eMessageTypeRequest = 6,
@@ -83,6 +85,7 @@ namespace torrents
 			size_t GetSize () const { return m_Size; }
 			std::pair<size_t, size_t> GetAvailableBuffer (size_t offset, size_t len) const; // return (offset, len) of available data
 			std::pair<size_t, size_t> GetNextBlockToRequest (); // return (offset, len) of next buffer, len = 0 if no next buffer
+			void ClearAllRequests ();
 
 			void AddConnection (std::shared_ptr<PeerConnection> connection);
 			void RemoveConnection (std::shared_ptr<PeerConnection> connection);
@@ -121,6 +124,7 @@ namespace torrents
 			std::vector<uint8_t> CreateBitfield () const;
 			std::list<i2p::data::IdentHash> GetNonConnectedPeers () const;
 			std::tuple<uint32_t, uint32_t, uint32_t> GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn); // return (index, offest, len)
+			void ClearAllRequests ();
 
 			uint64_t GetNextTrackerRequestTime () const { return m_NextTrackerRequestTime; }
 			void SetNextTrackerRequestTime (uint64_t ts) { m_NextTrackerRequestTime = ts; }
@@ -190,7 +194,7 @@ namespace torrents
 			std::shared_ptr<Torrent> m_Torrent;
 			std::string m_RemotePeerID;
 			boost::dynamic_bitset<> m_RemoteBitfield;
-			bool m_IsHandshakeSent, m_IsEstablished;
+			bool m_IsHandshakeSent, m_IsEstablished, m_IsChoked;
 			uint64_t m_LastReceiveTime, m_LastSendTime; // monotonic seconds
 	};
 
