@@ -44,6 +44,7 @@ namespace torrents
 	constexpr int PEER_CONNECTION_MAX_IDLE = 3600; // in seconds
 	constexpr int PEER_KEEP_ALIVE_INTERVAL = 120; // in seconds
 	constexpr int PEER_KEEP_ALIVE_CHECK_TIMEOUT = 15; // in seconds
+	constexpr size_t MAX_NUM_REQUESTS = 8;
 
 	constexpr size_t HANDSHAKE_MSG_LENGTH = 68;
 	constexpr size_t INTERESTED_MSG_LENGTH = 5;
@@ -91,9 +92,6 @@ namespace torrents
 			std::pair<size_t, size_t> GetNextBlockToRequest (); // return (offset, len) of next buffer, len = 0 if no next buffer
 			void ClearAllRequests ();
 
-			void AddConnection (std::shared_ptr<PeerConnection> connection);
-			void RemoveConnection (std::shared_ptr<PeerConnection> connection);
-
 		private:
 
 			bool IsAvailable (int block) const;
@@ -104,7 +102,6 @@ namespace torrents
 			size_t m_Size;
 			uint8_t * m_Data, m_Hash[SHA_DIGEST_LENGTH];
 			std::unique_ptr<std::vector<BlockStatus> > m_Blocks;
-			std::list<std::weak_ptr<PeerConnection> > m_Connections; // for incomplete pieces only
 	};
 
 	class Torrent final
@@ -164,6 +161,8 @@ namespace torrents
 			void ReceiveHandshake ();
 			void CheckKeepAlive (uint64_t ts);
 
+			bool IsPieceAvailable (size_t ind) const;
+
 		private:
 
 			void Terminate ();
@@ -189,7 +188,8 @@ namespace torrents
 			void SendRequestMsg (uint32_t index, uint32_t offset, uint32_t len);
 			void SendInterestedMsg ();
 
-			void RequestNextBlock ();
+			bool RequestNextBlock ();
+			void RequestNextBlocks ();
 
 		private:
 
@@ -201,6 +201,7 @@ namespace torrents
 			boost::dynamic_bitset<> m_RemoteBitfield;
 			bool m_IsHandshakeSent, m_IsEstablished, m_IsChoked;
 			uint64_t m_LastReceiveTime, m_LastSendTime; // monotonic seconds
+			size_t m_NumRequests;
 	};
 
 	class TorrentsTunnel final: public i2p::client::I2PService

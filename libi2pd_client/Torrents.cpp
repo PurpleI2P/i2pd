@@ -176,8 +176,11 @@ namespace torrents
 			std::fill_n (m_Blocks->begin () + startBlock, numBlocks, BlockStatus::Available);
 			if (std::find_if (m_Blocks->begin (), m_Blocks->end (),
 				[](BlockStatus status) { return status != BlockStatus::Available; }) == m_Blocks->end ())
+			{
 				// all blocks are available
+				LogPrint (eLogDebug, "Torrents: piece complete");
 				m_Blocks = nullptr;
+			}
 		}
 	}
 
@@ -191,7 +194,6 @@ namespace torrents
 			f.write ((const char *)m_Data, m_Size);
 			delete[] m_Data; m_Data = nullptr;
 			m_Blocks = nullptr;
-			m_Connections.clear ();
 		}
 	}
 
@@ -252,16 +254,6 @@ namespace torrents
 		for (auto& it: *m_Blocks)
 			if (it == BlockStatus::Requested)
 				it = BlockStatus::Missing;
-	}
-
-	void Piece::AddConnection (std::shared_ptr<PeerConnection> connection)
-	{
-		m_Connections.emplace_back (connection);
-	}
-
-	void Piece::RemoveConnection (std::shared_ptr<PeerConnection> connection)
-	{
-		m_Connections.remove_if ([connection](std::weak_ptr<PeerConnection> c) { return c.lock () == connection; });
 	}
 
 	Torrent::Torrent (std::string_view buf):
@@ -411,7 +403,7 @@ namespace torrents
 			uint32_t ind = 0;
 			for (auto& it: m_Pieces)
 			{
-				if (!it.IsComplete ())
+				if (!it.IsComplete () && conn->IsPieceAvailable (ind))
 				{
 					auto [offset, len] = it.GetNextBlockToRequest ();
 					if (len > 0)
@@ -433,7 +425,7 @@ namespace torrents
 	PeerConnection::PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream):
 		i2p::client::I2PServiceHandler (owner), m_Stream (stream), m_ReceiveBufferOffset (0),
 		m_IsHandshakeSent (false), m_IsEstablished (false), m_IsChoked (true),
-		m_LastReceiveTime (0), m_LastSendTime (0)
+		m_LastReceiveTime (0), m_LastSendTime (0), m_NumRequests (0)
 	{
 	}
 
@@ -462,6 +454,12 @@ namespace torrents
 	TorrentsTunnel * PeerConnection::GetTorrentsTunnel () const
 	{
 		return static_cast<TorrentsTunnel *>(GetOwner ());
+	}
+
+	bool PeerConnection::IsPieceAvailable (size_t ind) const
+	{
+		if (ind >= m_RemoteBitfield.size ()) return false;
+		return m_RemoteBitfield.test (ind);
 	}
 
 	void PeerConnection::WriteToStream (const uint8_t * buf, size_t len)
@@ -603,7 +601,7 @@ namespace torrents
 				break;
 				case eMessageTypeUnchoke:
 					m_IsChoked = false;
-					RequestNextBlock (); // TODO: remove later
+					RequestNextBlocks ();
 				break;
 				case eMessageTypeInterested:
 					LogPrint (eLogInfo, "Torrents: Interested message is not implemented");
@@ -705,10 +703,7 @@ namespace torrents
 			{
 				if (idx >= numPieces) break;
 				if (buf[i] & bit)
-				{
 					m_RemoteBitfield.set (idx);
-					m_Torrent->GetPiece (idx).AddConnection (shared_from_this ());
-				}
 				bit >>= 1;
 				idx++;
 			}
@@ -731,12 +726,6 @@ namespace torrents
 		size_t numPieces = m_Torrent->GetNumPieces ();
 		m_RemoteBitfield.resize (numPieces);
 		m_RemoteBitfield.set ();
-		for (size_t i = 0; i < numPieces; i++)
-		{
-			Piece& piece = m_Torrent->GetPiece (i);
-			if (!piece.IsComplete ())
-				piece.AddConnection (shared_from_this ());
-		}
 	}
 
 	void PeerConnection::HandleHaveNoneMsg ()
@@ -745,12 +734,6 @@ namespace torrents
 		size_t numPieces = m_Torrent->GetNumPieces ();
 		m_RemoteBitfield.resize (numPieces);
 		m_RemoteBitfield.reset ();
-		for (size_t i = 0; i < numPieces; i++)
-		{
-			Piece& piece = m_Torrent->GetPiece (i);
-			if (!piece.IsComplete ())
-				piece.RemoveConnection (shared_from_this ());
-		}
 	}
 
 	void PeerConnection::HandlePieceMsg (const uint8_t * buf, size_t len)
@@ -774,6 +757,8 @@ namespace torrents
 					});
 			}
 		}
+		if (m_NumRequests > 0) m_NumRequests--;
+		RequestNextBlocks ();
 	}
 
 	void PeerConnection::SendPieceMsg (uint32_t index, uint32_t offset, const uint8_t * data, size_t len)
@@ -851,12 +836,24 @@ namespace torrents
 		WriteToStream (buf, INTERESTED_MSG_LENGTH);
 	}
 
-	void PeerConnection::RequestNextBlock ()
+	bool PeerConnection::RequestNextBlock ()
 	{
-		if (!m_Torrent) return;
+		if (!m_Torrent) return false;
 		auto [index, offset, len] = m_Torrent->GetNextBlockToRequest (shared_from_this ());
 		if (len > 0)
+		{
 			SendRequestMsg (index, offset, len);
+			m_NumRequests++;
+		}
+		return len > 0;
+	}
+
+	void PeerConnection::RequestNextBlocks ()
+	{
+		while (m_NumRequests < MAX_NUM_REQUESTS)
+		{
+			if (!RequestNextBlock ()) break;
+		}
 	}
 
 	TorrentsTunnel::TorrentsTunnel (std::shared_ptr<i2p::client::ClientDestination> localDestination,
