@@ -130,9 +130,10 @@ namespace torrents
 //------------------------------------
 
 	Piece::Piece (size_t size, const uint8_t * hash):
-		m_Size (size), m_Data (nullptr), m_Blocks (GetNumBlocks (size))
+		m_Size (size), m_Data (nullptr)
 	{
 		memcpy (m_Hash, hash, SHA_DIGEST_LENGTH);
+		m_Blocks = std::make_unique<std::vector<BlockStatus> >(GetNumBlocks (size), BlockStatus::Missing);
 	}
 
 	Piece::~Piece ()
@@ -150,9 +151,9 @@ namespace torrents
 
 	bool Piece::IsAvailable (int block) const
 	{
-		if (m_Blocks.empty ()) return true;
-		if (block < 0 || block >= (int)m_Blocks.size ()) return false;
-		return m_Blocks.test (block);
+		if (!m_Blocks) return true;
+		if (block < 0 || block >= (int)m_Blocks->size ()) return false;
+		return (*m_Blocks)[block] == BlockStatus::Available;
 	}
 
 	size_t Piece::GetNumBlocks (size_t len) const
@@ -165,13 +166,19 @@ namespace torrents
 
 	void Piece::BlockReceived (const uint8_t * block, size_t len, size_t offset)
 	{
-		if (offset + len >= m_Size) return;
+		if (offset + len >= m_Size || !m_Blocks) return;
 		if (!m_Data) m_Data = new uint8_t[m_Size];
 		memcpy (m_Data + offset, block, len);
 		size_t startBlock = offset/REQUEST_BLOCK_SIZE;
 		auto numBlocks = GetNumBlocks (len);
-		for (size_t i = 0; i < numBlocks; i++)
-			m_Blocks.set (startBlock + i);
+		if (numBlocks > 0)
+		{
+			std::fill_n (m_Blocks->begin () + startBlock, numBlocks, BlockStatus::Available);
+			if (std::find_if (m_Blocks->begin (), m_Blocks->end (),
+				[](BlockStatus status) { return status != BlockStatus::Available; }) == m_Blocks->end ())
+				// all blocks are available
+				m_Blocks = nullptr;
+		}
 	}
 
 	void Piece::Dump (const std::string& fullPath, size_t offset)
@@ -183,7 +190,7 @@ namespace torrents
 			f.seekp (offset, std::ios::beg);
 			f.write ((const char *)m_Data, m_Size);
 			delete[] m_Data; m_Data = nullptr;
-			m_Blocks.resize (0);
+			m_Blocks = nullptr;
 			m_Connections.clear ();
 		}
 	}
@@ -216,6 +223,25 @@ namespace torrents
 				return { offset, m_Size - offset };
 			else
 				return { offset, ind*REQUEST_BLOCK_SIZE };
+		}
+		return { 0, 0 };
+	}
+
+	std::pair<size_t, size_t> Piece::GetNextBlockToRequest ()
+	{
+		if (m_Blocks)
+		{
+			size_t ind = 0;
+			for (auto& it: *m_Blocks)
+			{
+				if (it == BlockStatus::Missing)
+				{
+					it = BlockStatus::Requested;
+					auto offset = ind*REQUEST_BLOCK_SIZE;
+					return { offset, (offset + REQUEST_BLOCK_SIZE <= m_Size) ? REQUEST_BLOCK_SIZE : m_Size - offset };
+				}
+				ind++;
+			}
 		}
 		return { 0, 0 };
 	}
@@ -368,6 +394,25 @@ namespace torrents
 			}
 		}
 		return ret;
+	}
+
+	std::tuple<uint32_t, uint32_t, uint32_t> Torrent::GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn)
+	{
+		if (conn)
+		{
+			uint32_t ind = 0;
+			for (auto& it: m_Pieces)
+			{
+				if (!it.IsComplete ())
+				{
+					auto [offset, len] = it.GetNextBlockToRequest ();
+					if (len > 0)
+						return { ind, offset, len };
+				}
+				ind++;
+			}
+		}
+		return { 0, 0, 0 };
 	}
 
 	PeerConnection::PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream):
@@ -523,7 +568,7 @@ namespace torrents
 		offset += 4;
 		if (msgLen >= 1)
 		{
-			LogPrint (eLogDebug, "Torrents: Received msg type ", (int)m_ReceiveBuffer[offset]);
+			LogPrint (eLogDebug, "Torrents: Received msg type ", (int)m_ReceiveBuffer[offset], " len ", msgLen);
 			switch (m_ReceiveBuffer[offset])
 			{
 				case eMessageTypeHave:
@@ -584,6 +629,7 @@ namespace torrents
 		if (bitfield.size ())
 			SendBitfieldMsg (bitfield.data (), bitfield.size ());
 		m_IsEstablished = true;
+		RequestNextBlock (); // TODO: remove later
 		return HANDSHAKE_MSG_LENGTH;
 	}
 
@@ -752,16 +798,23 @@ namespace torrents
 		}
 	}
 
-	void PeerConnection::RequestPiece (uint32_t index)
+	void PeerConnection::SendRequestMsg (uint32_t index, uint32_t offset, uint32_t len)
 	{
-		if (!m_Torrent) return;
 		std::vector<uint8_t> sendBuffer (REQUEST_MSG_PAYLOAD_LENGTH + 5);
 		htobe32buf (sendBuffer.data (), REQUEST_MSG_PAYLOAD_LENGTH + 1); // msg length
 		sendBuffer[4] = eMessageTypeRequest; // msg ID
 		htobe32buf (sendBuffer.data () + 5, index); // index
-		memset (sendBuffer.data () + 9, 0, 4); // offset
-		htobe32buf (sendBuffer.data () + 13, m_Torrent->GetPieceLength ()); // length
+		memset (sendBuffer.data () + 9, offset, 4); // offset
+		htobe32buf (sendBuffer.data () + 13, len); // length
 		WriteToStream (sendBuffer.data (), sendBuffer.size ());
+	}
+
+	void PeerConnection::RequestNextBlock ()
+	{
+		if (!m_Torrent) return;
+		auto [index, offset, len] = m_Torrent->GetNextBlockToRequest (shared_from_this ());
+		if (len > 0)
+			SendRequestMsg (index, offset, len);
 	}
 
 	TorrentsTunnel::TorrentsTunnel (std::shared_ptr<i2p::client::ClientDestination> localDestination,

@@ -22,6 +22,7 @@
 #include <string>
 #include <string_view>
 #include <random>
+#include <tuple>
 #include "util.h"
 #include "Streaming.h"
 #include "HTTP.h"
@@ -59,12 +60,20 @@ namespace torrents
 	class PeerConnection;
 	class Piece final
 	{
+		enum class BlockStatus
+		{
+			Missing,
+			Available,
+			Requested
+		};
+
 		public:
 
 			Piece (size_t size, const uint8_t * hash);
+			Piece (Piece&& ) = default;
 			~Piece ();
 
-			bool IsComplete () const { return m_Blocks.all (); }
+			bool IsComplete () const { return !m_Blocks; }
 			bool VerifyHash () const;
 
 			void BlockReceived (const uint8_t * block, size_t len, size_t offset);
@@ -73,6 +82,7 @@ namespace torrents
 			const uint8_t * GetData () const { return m_Data; }
 			size_t GetSize () const { return m_Size; }
 			std::pair<size_t, size_t> GetAvailableBuffer (size_t offset, size_t len) const; // return (offset, len) of available data
+			std::pair<size_t, size_t> GetNextBlockToRequest (); // return (offset, len) of next buffer, len = 0 if no next buffer
 
 			void AddConnection (std::shared_ptr<PeerConnection> connection);
 			void RemoveConnection (std::shared_ptr<PeerConnection> connection);
@@ -86,7 +96,7 @@ namespace torrents
 
 			size_t m_Size;
 			uint8_t * m_Data, m_Hash[SHA_DIGEST_LENGTH];
-			boost::dynamic_bitset<> m_Blocks;
+			std::unique_ptr<std::vector<BlockStatus> > m_Blocks;
 			std::list<std::weak_ptr<PeerConnection> > m_Connections; // for incomplete pieces only
 	};
 
@@ -110,6 +120,7 @@ namespace torrents
 			Piece& GetPiece (int index) { return m_Pieces[index]; }
 			std::vector<uint8_t> CreateBitfield () const;
 			std::list<i2p::data::IdentHash> GetNonConnectedPeers () const;
+			std::tuple<uint32_t, uint32_t, uint32_t> GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn); // return (index, offest, len)
 
 			uint64_t GetNextTrackerRequestTime () const { return m_NextTrackerRequestTime; }
 			void SetNextTrackerRequestTime (uint64_t ts) { m_NextTrackerRequestTime = ts; }
@@ -145,8 +156,6 @@ namespace torrents
 			void ReceiveHandshake ();
 			void CheckKeepAlive (uint64_t ts);
 
-			void RequestPiece (uint32_t index);
-
 		private:
 
 			void Terminate ();
@@ -169,6 +178,9 @@ namespace torrents
 			void HandlePieceMsg (const uint8_t * buf, size_t len);
 			void SendPieceMsg (uint32_t index, uint32_t offset, const uint8_t * data, size_t len);
 			void HandleRequestMsg (const uint8_t * buf, size_t len);
+			void SendRequestMsg (uint32_t index, uint32_t offset, uint32_t len);
+
+			void RequestNextBlock ();
 
 		private:
 
