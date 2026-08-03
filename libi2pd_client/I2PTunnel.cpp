@@ -180,7 +180,6 @@ namespace client
 		if (m_Socket && m_Socket->is_open ())
 		{
 			boost::system::error_code ec;
-		boost::system::error_code ec;
 		#ifdef MAC_OSX
 			m_Socket->cancel ();
 		#endif
