@@ -275,6 +275,9 @@ namespace client
 
 	void BOBCommandSession::Terminate ()
 	{
+		#ifdef MAC_OSX
+			m_Socket.cancel ();
+		#endif
 		m_Socket.close ();
 		m_IsOpen = false;
 	}

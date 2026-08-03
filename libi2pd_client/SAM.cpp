@@ -69,6 +69,9 @@ namespace client
 		if (m_Socket.is_open ())
 		{
 			boost::system::error_code ec;
+			#ifdef MAC_OSX
+				m_Socket.cancel ();
+			#endif
 			m_Socket.shutdown (boost::asio::ip::tcp::socket::shutdown_both, ec);
 			m_Socket.close ();
 		}
