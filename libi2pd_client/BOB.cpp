@@ -273,6 +273,7 @@ namespace client
 
 	void BOBCommandSession::Terminate ()
 	{
+		m_Socket.cancel ();
 		m_Socket.close ();
 		m_IsOpen = false;
 	}

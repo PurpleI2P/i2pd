@@ -377,7 +377,7 @@ namespace proxy
 			return false;
 		}
 		// TODO: we may want to support other address types!
-		if ( m_addrtype != ADDR_DNS )
+		if ( m_addrtype != ADDR_DNS && m_addrtype != ADDR_IPV4 )
 		{
 			switch (m_socksv)
 			{
@@ -615,6 +615,14 @@ namespace proxy
 		{
 			if (m_state == READY)
 			{
+
+			if (m_addrtype == ADDR_IPV4)
+			{
+				auto ip = boost::asio::ip::address_v4(m_address.ip);
+				m_address.dns.SetString (ip.to_string());
+				m_addrtype = ADDR_DNS;
+			}
+
 				const std::string addr = m_address.dns.ToString();
 				LogPrint(eLogInfo, "SOCKS: Requested ", addr, ":" , m_port);
 				const size_t addrlen = addr.size();
