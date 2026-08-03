@@ -166,7 +166,7 @@ namespace torrents
 
 	void Piece::BlockReceived (const uint8_t * block, size_t len, size_t offset)
 	{
-		if (offset + len >= m_Size || !m_Blocks) return;
+		if (offset + len > m_Size || !m_Blocks) return;
 		if (!m_Data) m_Data = new uint8_t[m_Size];
 		memcpy (m_Data + offset, block, len);
 		size_t startBlock = offset/REQUEST_BLOCK_SIZE;
@@ -374,12 +374,13 @@ namespace torrents
 		return nonConnectedPeers;
 	}
 
-	std::vector<uint8_t> Torrent::CreateBitfield () const
+	std::pair<std::vector<uint8_t>, bool> Torrent::CreateBitfield () const
 	{
 		size_t numPieces = m_Pieces.size ();
 		size_t bitfieldSize = numPieces / 8;
 		if (numPieces % 8) bitfieldSize++;
 		std::vector<uint8_t> ret(bitfieldSize); // filled with 0
+		bool empty = true;
 		size_t idx = 0;
 		for (size_t i = 0; i < ret.size (); i++) // bytes
 		{
@@ -388,12 +389,15 @@ namespace torrents
 			{
 				if (idx >= numPieces) break;
 				if (m_Pieces[idx].IsComplete ())
+				{
 					ret[i] |= bit;
+					empty = false;
+				}
 				bit >>= 1;
 				idx++;
 			}
 		}
-		return ret;
+		return { ret, empty };
 	}
 
 	std::tuple<uint32_t, uint32_t, uint32_t> Torrent::GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn)
@@ -657,8 +661,8 @@ namespace torrents
 		if (!m_IsHandshakeSent)
 			SendHandshakeMsg ();
 		// send bitfield if not empty
-		auto bitfield = m_Torrent->CreateBitfield ();
-		if (bitfield.size ())
+		auto [bitfield, empty] = m_Torrent->CreateBitfield ();
+		if (!empty)
 			SendBitfieldMsg (bitfield.data (), bitfield.size ());
 		m_IsEstablished = true;
 		return HANDSHAKE_MSG_LENGTH;
@@ -823,7 +827,7 @@ namespace torrents
 		htobe32buf (sendBuffer.data (), REQUEST_MSG_PAYLOAD_LENGTH + 1); // msg length
 		sendBuffer[4] = eMessageTypeRequest; // msg ID
 		htobe32buf (sendBuffer.data () + 5, index); // index
-		memset (sendBuffer.data () + 9, offset, 4); // offset
+		htobe32buf (sendBuffer.data () + 9, offset); // offset
 		htobe32buf (sendBuffer.data () + 13, len); // length
 		WriteToStream (sendBuffer.data (), sendBuffer.size ());
 	}
@@ -933,8 +937,8 @@ namespace torrents
 	void TorrentsTunnel::SaveTorrentResumeFile (std::shared_ptr<const Torrent> torrent)
 	{
 		if (!torrent) return;
-		auto bitfield = torrent->CreateBitfield ();
-		if (!bitfield.size ()) return;
+		auto [bitfield, empty] = torrent->CreateBitfield ();
+		if (empty) return;
 		std::ofstream f(GetTorrentFilePath (torrent->GetName ()) + ".resume", std::ofstream::binary);
 		if (f.is_open ())
 			f.write ((const char *)bitfield.data (), bitfield.size ());

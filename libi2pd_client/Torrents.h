@@ -122,9 +122,9 @@ namespace torrents
 			std::string GetHexStringInfoHash () const; // in url format
 			size_t GetNumPieces () const { return m_Pieces.size (); }
 			Piece& GetPiece (int index) { return m_Pieces[index]; }
-			std::vector<uint8_t> CreateBitfield () const;
+			std::pair<std::vector<uint8_t>, bool> CreateBitfield () const; // (bitfield, empty)
 			std::list<i2p::data::IdentHash> GetNonConnectedPeers () const;
-			std::tuple<uint32_t, uint32_t, uint32_t> GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn); // return (index, offest, len)
+			std::tuple<uint32_t, uint32_t, uint32_t> GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn); // return (index, offset, len)
 			void ClearAllRequests ();
 
 			uint64_t GetNextTrackerRequestTime () const { return m_NextTrackerRequestTime; }
