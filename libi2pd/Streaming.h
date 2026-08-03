@@ -416,35 +416,41 @@ namespace stream
 	template<typename Buffer, typename ReceiveHandler>
 	void Stream::HandleReceiveTimer (const boost::system::error_code& ecode, Buffer& buffer, ReceiveHandler&& handler, int remainingTimeout)
 	{
-		size_t received = ConcatenatePackets ((uint8_t *)buffer.data (), buffer.size ());
-		if (received > 0)
-			handler (boost::system::error_code (), received);
-		else if (ecode == boost::asio::error::operation_aborted)
+		if (ecode == boost::asio::error::operation_aborted)
 		{
 			// timeout not expired
-			boost::system::error_code retCode;
-			switch (m_Status)
+			size_t received = ConcatenatePackets ((uint8_t *)buffer.data (), buffer.size ());
+			if (received > 0)
+				handler (boost::system::error_code (), received);
+			else
 			{
-				case eStreamStatusClosed:
-				case eStreamStatusTerminated:
-					retCode = boost::asio::error::make_error_code (boost::asio::error::eof);
-				break;
-				case eStreamStatusReset:
-					retCode = boost::asio::error::make_error_code (boost::asio::error::connection_reset);
-				break;
-				case eStreamStatusNew:
-					retCode = boost::asio::error::make_error_code (boost::asio::error::not_connected);
-				break;
-				default:
-					retCode = boost::asio::error::make_error_code (boost::asio::error::operation_aborted);
+				boost::system::error_code retCode;
+				switch (m_Status)
+				{
+					case eStreamStatusClosed:
+					case eStreamStatusTerminated:
+						retCode = boost::asio::error::make_error_code (boost::asio::error::eof);
+					break;
+					case eStreamStatusReset:
+						retCode = boost::asio::error::make_error_code (boost::asio::error::connection_reset);
+					break;
+					case eStreamStatusNew:
+						retCode = boost::asio::error::make_error_code (boost::asio::error::not_connected);
+					break;
+					default:
+						retCode = boost::asio::error::make_error_code (boost::asio::error::operation_aborted);
+				}
+				handler (retCode, 0);
 			}
-			handler (retCode, 0);
 		}
 		else
 		{
 			// timeout expired
 			if (remainingTimeout <= 0)
-				handler (boost::asio::error::make_error_code (boost::asio::error::timed_out), 0);
+			{
+				if (m_Status != eStreamStatusTerminated)
+					handler (boost::asio::error::make_error_code (boost::asio::error::timed_out), 0);
+			}
 			else
 			{
 				// intermediate interrupt
