@@ -432,7 +432,7 @@ namespace torrents
 
 	PeerConnection::PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream):
 		i2p::client::I2PServiceHandler (owner), m_Stream (stream), m_ReceiveBufferOffset (0),
-		m_IsHandshakeSent (false), m_IsEstablished (false), m_IsChoked (false),
+		m_IsHandshakeSent (false), m_IsEstablished (false), m_IsChoked (true),
 		m_LastReceiveTime (0), m_LastSendTime (0)
 	{
 	}
@@ -561,14 +561,18 @@ namespace torrents
 		size_t offset = 0;
 		while (size_t len = HandleNextMsg (offset))
 			offset += len;
-		if (offset && offset < m_ReceiveBufferOffset)
+
+		if (offset)
 		{
-			// move remaining data
-			m_ReceiveBufferOffset -= offset;
-			memmove (m_ReceiveBuffer, m_ReceiveBuffer + offset, m_ReceiveBufferOffset);
+			if (offset < m_ReceiveBufferOffset)
+			{
+				// move remaining data
+				m_ReceiveBufferOffset -= offset;
+				memmove (m_ReceiveBuffer, m_ReceiveBuffer + offset, m_ReceiveBufferOffset);
+			}
+			else
+				m_ReceiveBufferOffset = 0;
 		}
-		else
-			m_ReceiveBufferOffset = 0;
 	}
 
 	size_t PeerConnection::HandleNextMsg (size_t offset)
@@ -587,6 +591,12 @@ namespace torrents
 			LogPrint (eLogDebug, "Torrents: Received msg type ", (int)m_ReceiveBuffer[offset], " len ", msgLen);
 			switch (m_ReceiveBuffer[offset])
 			{
+				case eMessageTypeRequest:
+					HandleRequestMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
+				break;
+				case eMessageTypePiece:
+					HandlePieceMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
+				break;
 				case eMessageTypeChoke:
 					m_IsChoked = true;
 					if (m_Torrent) m_Torrent->ClearAllRequests ();
@@ -595,17 +605,17 @@ namespace torrents
 					m_IsChoked = false;
 					RequestNextBlock (); // TODO: remove later
 				break;
+				case eMessageTypeInterested:
+					LogPrint (eLogInfo, "Torrents: Interested message is not implemented");
+				break;
+				case eMessageTypeNotInterested:
+					LogPrint (eLogInfo, "Torrents: Not interested message is not implemented");
+				break;
 				case eMessageTypeHave:
 					HandleHaveMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
 				break;
 				case eMessageTypeBitfield:
 					HandleBitfieldMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
-				break;
-				case eMessageTypeRequest:
-					HandleRequestMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
-				break;
-				case eMessageTypePiece:
-					HandlePieceMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
 				break;
 				case eMessageTypeHaveAll:
 					HandleHaveAllMsg ();
@@ -703,6 +713,7 @@ namespace torrents
 				idx++;
 			}
 		}
+		SendInterestedMsg ();
 	}
 
 	void PeerConnection::SendBitfieldMsg (const uint8_t * bitfield, size_t bitfieldLen)
@@ -830,6 +841,14 @@ namespace torrents
 		memset (sendBuffer.data () + 9, offset, 4); // offset
 		htobe32buf (sendBuffer.data () + 13, len); // length
 		WriteToStream (sendBuffer.data (), sendBuffer.size ());
+	}
+
+	void PeerConnection::SendInterestedMsg ()
+	{
+		uint8_t buf[INTERESTED_MSG_LENGTH];
+		htobe32buf (buf, 1);
+		buf[4] = eMessageTypeInterested;
+		WriteToStream (buf, INTERESTED_MSG_LENGTH);
 	}
 
 	void PeerConnection::RequestNextBlock ()

@@ -46,11 +46,15 @@ namespace torrents
 	constexpr int PEER_KEEP_ALIVE_CHECK_TIMEOUT = 15; // in seconds
 
 	constexpr size_t HANDSHAKE_MSG_LENGTH = 68;
+	constexpr size_t INTERESTED_MSG_LENGTH = 5;
 	constexpr size_t REQUEST_MSG_PAYLOAD_LENGTH = 12;
+
 	enum MessageType
 	{
 		eMessageTypeChoke = 0,
 		eMessageTypeUnchoke = 1,
+		eMessageTypeInterested = 2,
+		eMessageTypeNotInterested = 3,
 		eMessageTypeHave = 4,
 		eMessageTypeBitfield = 5,
 		eMessageTypeRequest = 6,
@@ -183,6 +187,7 @@ namespace torrents
 			void SendPieceMsg (uint32_t index, uint32_t offset, const uint8_t * data, size_t len);
 			void HandleRequestMsg (const uint8_t * buf, size_t len);
 			void SendRequestMsg (uint32_t index, uint32_t offset, uint32_t len);
+			void SendInterestedMsg ();
 
 			void RequestNextBlock ();
 
