@@ -398,7 +398,7 @@ namespace proxy
 			return false;
 		}
 		// TODO: we may want to support other address types!
-		if ( m_addrtype != ADDR_DNS )
+        if ( m_addrtype != ADDR_DNS && m_addrtype != ADDR_IPV4 )
 		{
 			switch (m_socksv)
 			{
@@ -660,12 +660,20 @@ namespace proxy
 						m_addrtype = ADDR_DNS;
 					}
 				}
-				if (m_addrtype != ADDR_DNS)
+
+	            if (m_addrtype != ADDR_DNS && m_addrtype != ADDR_IPV4)
 				{
 					LogPrint(eLogInfo, "SOCKS: Unexpected address type ", (int)m_addrtype);
 					SocksRequestFailed(SOCKS5_ADDR_UNSUP);
 					return;
 				}
+
+	            if (m_addrtype == ADDR_IPV4)
+	            {
+	                auto ip = boost::asio::ip::address_v4(m_address.ip);
+	                m_address.dns.SetString (ip.to_string());
+	                m_addrtype = ADDR_DNS;
+	            }
 
 				std::string_view addr = m_address.dns.GetString();
 				if (m_cmd == CMD_RESOLVE)
