@@ -194,6 +194,7 @@ namespace torrents
 			f.write ((const char *)m_Data, m_Size);
 			delete[] m_Data; m_Data = nullptr;
 			m_Blocks = nullptr;
+			LogPrint (eLogDebug, "Torrents: Saved bytes ", offset, " - ", offset + m_Size - 1, " to ", fullPath);
 		}
 	}
 
@@ -694,6 +695,15 @@ namespace torrents
 			m_RemoteBitfield.set (index);
 	}
 
+	void PeerConnection::SendHaveMsg (uint32_t index)
+	{
+		uint8_t buf[HAVE_MSG_PAYLOAD_LENGTH + 5];
+		htobe32buf (buf, HAVE_MSG_PAYLOAD_LENGTH + 1); // length
+		buf[4] = eMessageTypeHave; // msg ID
+		htobe32buf (buf + 5, index);
+		WriteToStream (buf, HAVE_MSG_PAYLOAD_LENGTH + 5);
+	}
+
 	void PeerConnection::HandleBitfieldMsg (const uint8_t * buf, size_t len)
 	{
 		if (!m_Torrent) return;
@@ -759,6 +769,10 @@ namespace torrents
 					{
 						piece.Dump (path, offset);
 					});
+				// send have
+				auto conns = GetTorrentsTunnel ()->GetTorrentConnections (m_Torrent);
+				for (auto it: conns)
+					it->SendHaveMsg (index);
 			}
 		}
 		if (m_NumRequests > 0) m_NumRequests--;
@@ -823,13 +837,13 @@ namespace torrents
 
 	void PeerConnection::SendRequestMsg (uint32_t index, uint32_t offset, uint32_t len)
 	{
-		std::vector<uint8_t> sendBuffer (REQUEST_MSG_PAYLOAD_LENGTH + 5);
-		htobe32buf (sendBuffer.data (), REQUEST_MSG_PAYLOAD_LENGTH + 1); // msg length
-		sendBuffer[4] = eMessageTypeRequest; // msg ID
-		htobe32buf (sendBuffer.data () + 5, index); // index
-		htobe32buf (sendBuffer.data () + 9, offset); // offset
-		htobe32buf (sendBuffer.data () + 13, len); // length
-		WriteToStream (sendBuffer.data (), sendBuffer.size ());
+		uint8_t buf[REQUEST_MSG_PAYLOAD_LENGTH + 5];
+		htobe32buf (buf, REQUEST_MSG_PAYLOAD_LENGTH + 1); // msg length
+		buf[4] = eMessageTypeRequest; // msg ID
+		htobe32buf (buf + 5, index); // index
+		htobe32buf (buf + 9, offset); // offset
+		htobe32buf (buf + 13, len); // length
+		WriteToStream (buf, REQUEST_MSG_PAYLOAD_LENGTH + 5);
 	}
 
 	void PeerConnection::SendInterestedMsg ()
@@ -1112,6 +1126,29 @@ namespace torrents
 				});
 			ScheduleKeepAliveCheck ();
 		}
+	}
+
+	std::list<std::shared_ptr<PeerConnection> > TorrentsTunnel::GetTorrentConnections (std::shared_ptr<Torrent> torrent)
+	{
+		std::list<std::shared_ptr<PeerConnection> > ret;
+		if (torrent)
+		{
+			const auto& peers = torrent->GetPeers ();
+			IterateHandlers ([&peers, &ret](std::shared_ptr<i2p::client::I2PServiceHandler> handler)
+				{
+					if (handler)
+					{
+						auto conn = std::static_pointer_cast<PeerConnection>(handler);
+						auto ident = conn->GetStream ()->GetRemoteIdentity ();
+						if (ident)
+						{
+							if (std::find (peers.begin (), peers.end (), ident->GetIdentHash ()) != peers.end ())
+								ret.emplace_back (conn);
+						}
+					}
+				});
+		}
+		return ret;
 	}
 }
 }

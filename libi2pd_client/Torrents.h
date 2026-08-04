@@ -49,6 +49,7 @@ namespace torrents
 	constexpr size_t HANDSHAKE_MSG_LENGTH = 68;
 	constexpr size_t INTERESTED_MSG_LENGTH = 5;
 	constexpr size_t REQUEST_MSG_PAYLOAD_LENGTH = 12;
+	constexpr size_t HAVE_MSG_PAYLOAD_LENGTH = 4;
 
 	enum MessageType
 	{
@@ -124,6 +125,7 @@ namespace torrents
 			Piece& GetPiece (int index) { return m_Pieces[index]; }
 			std::pair<std::vector<uint8_t>, bool> CreateBitfield () const; // (bitfield, empty)
 			std::list<i2p::data::IdentHash> GetNonConnectedPeers () const;
+			const std::list<i2p::data::IdentHash>&  GetPeers () const { return m_Peers; }
 			std::tuple<uint32_t, uint32_t, uint32_t> GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn); // return (index, offset, len)
 			void ClearAllRequests ();
 
@@ -162,6 +164,7 @@ namespace torrents
 			void CheckKeepAlive (uint64_t ts);
 
 			bool IsPieceAvailable (size_t ind) const;
+			std::shared_ptr<i2p::stream::Stream> GetStream () const { return m_Stream; }
 
 		private:
 
@@ -178,6 +181,7 @@ namespace torrents
 			void SendHandshakeMsg ();
 
 			void HandleHaveMsg (const uint8_t * buf, size_t len);
+			void SendHaveMsg (uint32_t index);
 			void HandleBitfieldMsg (const uint8_t * buf, size_t len);
 			void SendBitfieldMsg (const uint8_t * bitfield, size_t bitfieldLen);
 			void HandleHaveAllMsg ();
@@ -231,6 +235,7 @@ namespace torrents
 			std::string GetTorrentFilePath (const std::string& filename) const;
 			std::shared_ptr<Torrent> FindTorrent (const Torrent::InfoHash& infoHash) const;
 			void ConnectToPeer (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& peer);
+			std::list<std::shared_ptr<PeerConnection> > GetTorrentConnections (std::shared_ptr<Torrent> torrent);
 
 			const char* GetName() const override { return "Torrents"; }
 
