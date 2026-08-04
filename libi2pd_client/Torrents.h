@@ -38,6 +38,7 @@ namespace torrents
 	constexpr uint16_t TORRENT_PORT = 6881; //  not used by required by protocol
 	constexpr int TRACKER_RESPONSE_TIMEOUT = 8; // in seconds
 	constexpr int TRACKER_REQUESTS_CHECK_TIMEOUT = 1900; // in milliseconds
+	constexpr int RECONNECT_CHECK_INTERVAL = 70; // in seconds
 	constexpr int MIN_TRACKER_REQUESTS_INTERVAL = 15000; // in milliseconds
 	constexpr int TRACKER_REQUESTS_INTERVAL_VARIANCE = 3000; // in milliseconds
 	constexpr size_t PEER_CONNECTION_RECEIVE_BUFFER_SIZE = 65535;
@@ -124,7 +125,6 @@ namespace torrents
 			size_t GetNumPieces () const { return m_Pieces.size (); }
 			Piece& GetPiece (int index) { return m_Pieces[index]; }
 			std::pair<std::vector<uint8_t>, bool> CreateBitfield () const; // (bitfield, empty)
-			std::list<i2p::data::IdentHash> GetNonConnectedPeers () const;
 			const std::list<i2p::data::IdentHash>&  GetPeers () const { return m_Peers; }
 			std::tuple<uint32_t, uint32_t, uint32_t> GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn); // return (index, offset, len)
 			void ClearAllRequests ();
@@ -234,7 +234,6 @@ namespace torrents
 			const std::string& GetPeerID () const { return m_PeerID; }
 			std::string GetTorrentFilePath (const std::string& filename) const;
 			std::shared_ptr<Torrent> FindTorrent (const Torrent::InfoHash& infoHash) const;
-			void ConnectToPeer (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& peer);
 			std::list<std::shared_ptr<PeerConnection> > GetTorrentConnections (std::shared_ptr<Torrent> torrent);
 
 			const char* GetName() const override { return "Torrents"; }
@@ -257,13 +256,20 @@ namespace torrents
 			void ScheduleKeepAliveCheck ();
 			void HandleKeepAliveCheckTimer (const boost::system::error_code& ecode);
 
+			void ScheduleReconnectCheck ();
+			void HandleReconnectCheckTimer (const boost::system::error_code& ecode);
+
+			std::list<i2p::data::IdentHash> GetNonConnectedPeers (std::shared_ptr<Torrent> torrent);
+			void ConnectToPeer (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& peer);
+			void ConnectToPeers (std::shared_ptr<Torrent> torrent);
+
 		private:
 
 			std::string m_TorrentsDir, m_PeerID; // 20 characters
 			std::vector<std::string> m_Trackers;
 			std::map<Torrent::InfoHash, std::shared_ptr<Torrent> > m_Torrents;
 			std::mt19937 m_Rng;
-			boost::asio::steady_timer m_TrackerRequestsCheckTimer, m_KeepAliveCheckTimer;
+			boost::asio::steady_timer m_TrackerRequestsCheckTimer, m_KeepAliveCheckTimer, m_ReconnectCheckTimer;
 			DiskIOService m_DiskIOService;
 	};
 }

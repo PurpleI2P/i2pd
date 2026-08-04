@@ -367,14 +367,6 @@ namespace torrents
 		return len;
 	}
 
-	std::list<i2p::data::IdentHash> Torrent::GetNonConnectedPeers () const
-	{
-		std::list<i2p::data::IdentHash> nonConnectedPeers;
-		for (auto& it: m_Peers)
-			nonConnectedPeers.push_back (it);
-		return nonConnectedPeers;
-	}
-
 	std::pair<std::vector<uint8_t>, bool> Torrent::CreateBitfield () const
 	{
 		size_t numPieces = m_Pieces.size ();
@@ -878,7 +870,8 @@ namespace torrents
 		std::string_view torrentsDir, std::string_view trackers):
 		i2p::client::I2PService (localDestination), m_TorrentsDir (torrentsDir),
 		m_PeerID ("-I2PD-"), m_Rng(i2p::util::GetMonotonicMicroseconds ()%1000000LL),
-		m_TrackerRequestsCheckTimer (GetService ()), m_KeepAliveCheckTimer (GetService ())
+		m_TrackerRequestsCheckTimer (GetService ()), m_KeepAliveCheckTimer (GetService ()),
+		m_ReconnectCheckTimer (GetService ())
 	{
 		if (localDestination)
 			m_PeerID += localDestination->GetIdentHash ().ToBase64 ();
@@ -917,6 +910,7 @@ namespace torrents
 	{
 		m_TrackerRequestsCheckTimer.cancel ();
 		m_KeepAliveCheckTimer.cancel ();
+		m_ReconnectCheckTimer.cancel ();
 		m_Torrents.clear ();
 		for (auto it: m_Torrents)
 			boost::asio::post (m_DiskIOService.GetService (), std::bind (&TorrentsTunnel::SaveTorrentResumeFile, this, it.second));
@@ -1049,9 +1043,8 @@ namespace torrents
 						if (res->result () == boost::beast::http::status::ok)
 						{
 							torrent->ParseTrackerResponse (res->body ());
-							auto peersToConnect = torrent->GetNonConnectedPeers ();
-							for (const auto& it: peersToConnect)
-								ConnectToPeer (torrent, it);
+							ConnectToPeers (torrent);
+							ScheduleReconnectCheck ();
 						}
 						else
 							LogPrint (eLogWarning, "Torrents: Tracker response code ", res->result_int());
@@ -1076,6 +1069,17 @@ namespace torrents
 				else
 					LogPrint (eLogInfo, "Torrents: Can't connect to peer");
 			}, std::make_shared<i2p::client::Address>(peer), TORRENT_PORT);
+	}
+
+	void TorrentsTunnel::ConnectToPeers (std::shared_ptr<Torrent> torrent)
+	{
+		if (!torrent) return;
+		auto peersToConnect = GetNonConnectedPeers (torrent);
+		if (!peersToConnect.empty ())
+		{
+			for (const auto& it: peersToConnect)
+				ConnectToPeer (torrent, it);
+		}
 	}
 
 	std::string TorrentsTunnel::GetTorrentFilePath (const std::string& filename) const
@@ -1129,6 +1133,24 @@ namespace torrents
 		}
 	}
 
+	void TorrentsTunnel::ScheduleReconnectCheck ()
+	{
+		m_ReconnectCheckTimer.cancel ();
+		m_ReconnectCheckTimer.expires_after (std::chrono::seconds(RECONNECT_CHECK_INTERVAL));
+		m_ReconnectCheckTimer.async_wait (std::bind (&TorrentsTunnel::HandleReconnectCheckTimer,
+			this, std::placeholders::_1));
+	}
+
+	void TorrentsTunnel::HandleReconnectCheckTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			for (auto it: m_Torrents)
+				ConnectToPeers (it.second);
+			ScheduleReconnectCheck ();
+		}
+	}
+
 	std::list<std::shared_ptr<PeerConnection> > TorrentsTunnel::GetTorrentConnections (std::shared_ptr<Torrent> torrent)
 	{
 		std::list<std::shared_ptr<PeerConnection> > ret;
@@ -1148,6 +1170,29 @@ namespace torrents
 						}
 					}
 				});
+		}
+		return ret;
+	}
+
+	std::list<i2p::data::IdentHash> TorrentsTunnel::GetNonConnectedPeers (std::shared_ptr<Torrent> torrent)
+	{
+		std::list<i2p::data::IdentHash> ret;
+		if (torrent)
+		{
+			ret = torrent->GetPeers ();
+			if(!ret.empty ())
+			{
+				IterateHandlers ([&ret](std::shared_ptr<i2p::client::I2PServiceHandler> handler)
+					{
+						if (handler)
+						{
+							auto conn = std::static_pointer_cast<PeerConnection>(handler);
+							auto ident = conn->GetStream ()->GetRemoteIdentity ();
+							if (ident)
+								std::remove (ret.begin (), ret.end (), ident->GetIdentHash ());
+						}
+					});
+			}
 		}
 		return ret;
 	}
