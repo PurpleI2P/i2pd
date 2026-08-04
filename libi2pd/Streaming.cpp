@@ -2285,6 +2285,7 @@ namespace stream
 					return;
 				}
 				// save follow on packet
+				packet->from = nullptr; // session might be invalid when saved packet gets handled
 				auto it = m_SavedPackets.find (receiveStreamID);
 				if (it != m_SavedPackets.end ())
 					it->second.push_back (packet);
