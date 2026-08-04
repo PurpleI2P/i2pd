@@ -1043,6 +1043,7 @@ namespace torrents
 			boost::beast::http::async_read (*httpStream, *buf, *res,
 				[this, httpStream, torrent, buf, res](const boost::beast::error_code& ecode, size_t bytes_transferred)
 				{
+					httpStream->GetStream ()->AsyncClose ();
 					if (!ecode)
 					{
 						if (res->result () == boost::beast::http::status::ok)

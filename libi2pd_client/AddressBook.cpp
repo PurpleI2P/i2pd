@@ -1035,6 +1035,7 @@ namespace client
 			LogPrint(eLogError, "Addressbook: Receive HTTP response exception: ", ex.what ());
 			return false;
 		}
+		stream->AsyncClose ();
 		// check result
 		if (res.result () != boost::beast::http::status::ok)
 		{
