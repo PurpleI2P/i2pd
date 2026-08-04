@@ -7,6 +7,7 @@ LIBI2PD = ../libi2pd.a
 
 TESTS = \
 	test-http-merge_chunked test-http-req test-http-res test-http-url test-http-url_decode \
+	test-config \
 	test-gost test-gost-sig test-base-64 test-aeadchacha20poly1305 test-blinding \
 	test-elligator test-eddsa test-aes
 
@@ -33,6 +34,9 @@ $(LIBI2PD):
 	@echo "Building libi2pd.a ..." && cd .. && $(MAKE) libi2pd.a
 
 test-http-%: test-http-%.cpp $(LIBI2PD)
+	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+
+test-config: test-config.cpp $(LIBI2PD)
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 test-base-%: test-base-%.cpp $(LIBI2PD)

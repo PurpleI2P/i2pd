@@ -37,6 +37,10 @@ set(test-http-url_SRCS
   test-http-url.cpp
 )
 
+set(test-config_SRCS
+  test-config.cpp
+)
+
 set(test-base-64_SRCS
   test-base-64.cpp
 )
@@ -74,6 +78,7 @@ add_executable(test-http-req ${test-http-req_SRCS})
 add_executable(test-http-res ${test-http-res_SRCS})
 add_executable(test-http-url_decode ${test-http-url_decode_SRCS})
 add_executable(test-http-url ${test-http-url_SRCS})
+add_executable(test-config ${test-config_SRCS})
 add_executable(test-base-64 ${test-base-64_SRCS})
 add_executable(test-gost ${test-gost_SRCS})
 add_executable(test-gost-sig ${test-gost-sig_SRCS})
@@ -99,6 +104,7 @@ target_link_libraries(test-http-req ${LIBS})
 target_link_libraries(test-http-res ${LIBS})
 target_link_libraries(test-http-url_decode ${LIBS})
 target_link_libraries(test-http-url ${LIBS})
+target_link_libraries(test-config ${LIBS})
 target_link_libraries(test-base-64 ${LIBS})
 target_link_libraries(test-gost ${LIBS})
 target_link_libraries(test-gost-sig ${LIBS})
@@ -113,6 +119,7 @@ add_test(test-http-req ${TEST_PATH}/test-http-req)
 add_test(test-http-res ${TEST_PATH}/test-http-res)
 add_test(test-http-url_decode ${TEST_PATH}/test-http-url_decode)
 add_test(test-http-url ${TEST_PATH}/test-http-url)
+add_test(test-config ${TEST_PATH}/test-config)
 add_test(test-base-64 ${TEST_PATH}/test-base-64)
 add_test(test-gost ${TEST_PATH}/test-gost)
 add_test(test-gost-sig ${TEST_PATH}/test-gost-sig)

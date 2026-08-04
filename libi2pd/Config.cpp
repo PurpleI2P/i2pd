@@ -10,6 +10,7 @@
 #include <iostream>
 #include <fstream>
 #include <map>
+#include <memory>
 #include <string>
 #include <boost/program_options/cmdline.hpp>
 #include <boost/program_options/options_description.hpp>
@@ -25,7 +26,7 @@ using namespace boost::program_options;
 
 namespace i2p {
 namespace config {
-	options_description m_OptionsDesc;
+	std::unique_ptr<options_description> m_OptionsDesc = std::make_unique<options_description> ();
 	variables_map m_Options;
 
 #if defined(_WIN32)
@@ -40,6 +41,9 @@ namespace config {
 
 	void Init()
 	{
+		m_OptionsDesc = std::make_unique<options_description> ();
+		m_Options.clear ();
+
 		options_description general("General options");
 		general.add_options()
 			("help",                                                          "Show this message")
@@ -406,8 +410,7 @@ namespace config {
 			;
 #endif
 
-		m_OptionsDesc
-			.add(general)
+		m_OptionsDesc->add(general)
 			.add(limits)
 			.add(httpserver)
 			.add(httpproxy)
@@ -447,9 +450,9 @@ namespace config {
 			           | boost::program_options::command_line_style::allow_long_disguise;
 			style &=   ~ boost::program_options::command_line_style::allow_guessing;
 			if (ignoreUnknown)
-				store(command_line_parser(argc, argv).options(m_OptionsDesc).style (style).allow_unregistered().run(), m_Options);
+				store(command_line_parser(argc, argv).options(*m_OptionsDesc).style (style).allow_unregistered().run(), m_Options);
 			else
-				store(parse_command_line(argc, argv, m_OptionsDesc, style), m_Options);
+				store(parse_command_line(argc, argv, *m_OptionsDesc, style), m_Options);
 		}
 		catch (boost::program_options::error& e)
 		{
@@ -461,7 +464,7 @@ namespace config {
 		if (!ignoreUnknown && (m_Options.count("help") || m_Options.count("h")))
 		{
 			std::cout << "i2pd version " << I2PD_VERSION << " (" << I2P_VERSION << ")" << std::endl;
-			std::cout << m_OptionsDesc;
+			std::cout << *m_OptionsDesc;
 			exit(EXIT_SUCCESS);
 		}
 		else if (m_Options.count("version"))
@@ -498,7 +501,7 @@ namespace config {
 
 		try
 		{
-			store(boost::program_options::parse_config_file(config, m_OptionsDesc), m_Options);
+			store(boost::program_options::parse_config_file(config, *m_OptionsDesc), m_Options);
 		}
 		catch (boost::program_options::error& e)
 		{
