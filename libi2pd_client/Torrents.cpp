@@ -179,7 +179,7 @@ namespace torrents
 			{
 				// all blocks are available
 				LogPrint (eLogDebug, "Torrents: piece complete");
-				m_Blocks = nullptr;
+				Complete ();
 			}
 		}
 	}
@@ -193,7 +193,6 @@ namespace torrents
 			f.seekp (offset, std::ios::beg);
 			f.write ((const char *)m_Data, m_Size);
 			delete[] m_Data; m_Data = nullptr;
-			m_Blocks = nullptr;
 			LogPrint (eLogDebug, "Torrents: Saved bytes ", offset, " - ", offset + m_Size - 1, " to ", fullPath);
 		}
 	}
@@ -417,6 +416,22 @@ namespace torrents
 		for (auto& it: m_Pieces)
 			if (!it.IsComplete ())
 				it.ClearAllRequests ();
+	}
+
+	void Torrent::Complete ()
+	{
+		for (auto& it: m_Pieces)
+			if (!it.IsComplete ())
+				it.Complete ();
+	}
+
+	void Torrent::SaveTorrentResumeFile (const std::string& fullPath)
+	{
+		auto [bitfield, empty] = CreateBitfield ();
+		if (empty) return;
+		std::ofstream f(fullPath, std::ofstream::binary);
+		if (f.is_open ())
+			f.write ((const char *)bitfield.data (), bitfield.size ());
 	}
 
 	PeerConnection::PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream):
@@ -754,12 +769,14 @@ namespace torrents
 			piece.BlockReceived (buf + 8, len, offset);
 			if (piece.IsComplete () && piece.VerifyHash ())
 			{
-				auto path = GetTorrentsTunnel ()->GetTorrentFilePath (m_Torrent->GetName ());
+				auto path = GetTorrentsTunnel ()->GetTorrentFilePath (m_Torrent->GetName () + ".part");
+				auto resumePath = GetTorrentsTunnel ()->GetTorrentFilePath (m_Torrent->GetName () + ".resume");
 				auto offset = index*m_Torrent->GetPieceLength ();
 				boost::asio::post (GetTorrentsTunnel ()->GetDiskIOService (),
-					[&piece, path, offset, torrent = m_Torrent]() // piece belongs to torrent
+					[&piece, path, resumePath, offset, torrent = m_Torrent]() // piece belongs to torrent
 					{
 						piece.Dump (path, offset);
+						torrent->SaveTorrentResumeFile (resumePath);
 					});
 				// send have
 				auto conns = GetTorrentsTunnel ()->GetTorrentConnections (m_Torrent);
@@ -860,6 +877,7 @@ namespace torrents
 
 	void PeerConnection::RequestNextBlocks ()
 	{
+		if (m_IsChoked) return;
 		while (m_NumRequests < MAX_NUM_REQUESTS)
 		{
 			if (!RequestNextBlock ()) break;
@@ -913,7 +931,13 @@ namespace torrents
 		m_ReconnectCheckTimer.cancel ();
 		m_Torrents.clear ();
 		for (auto it: m_Torrents)
-			boost::asio::post (m_DiskIOService.GetService (), std::bind (&TorrentsTunnel::SaveTorrentResumeFile, this, it.second));
+		{
+			auto fullPath = GetTorrentFilePath (it.second->GetName () + ".resume");
+			boost::asio::post (m_DiskIOService.GetService (),  [torrent = it.second, fullPath]()
+				{
+					torrent->SaveTorrentResumeFile (fullPath);
+				});
+		}
 		m_DiskIOService.Stop ();
 		i2p::client::I2PService::Stop ();
 	}
@@ -933,23 +957,21 @@ namespace torrents
 				auto torrent = std::make_shared<Torrent>(std::string_view{buf, len});
 				delete[] buf;
 				m_Torrents.emplace (torrent->GetInfoHash (), torrent);
-				i2p::fs::CreateAndReserveFile (GetTorrentFilePath (torrent->GetName ()), torrent->GetLength ());
+				auto filePath = GetTorrentFilePath (torrent->GetName ());
+				if (i2p::fs::Exists (filePath))
+					torrent->Complete ();
+				else
+				{
+					auto partFilePath = GetTorrentFilePath (torrent->GetName () + ".part");
+					if (!i2p::fs::Exists (partFilePath))
+						i2p::fs::CreateAndReserveFile (partFilePath, torrent->GetLength ());
+				}
 			}
 			else
 				LogPrint (eLogError, "Torrents: Empty file ", path);
 		}
 		else
 			LogPrint (eLogError, "Torrents: Can't open file ", path);
-	}
-
-	void TorrentsTunnel::SaveTorrentResumeFile (std::shared_ptr<const Torrent> torrent)
-	{
-		if (!torrent) return;
-		auto [bitfield, empty] = torrent->CreateBitfield ();
-		if (empty) return;
-		std::ofstream f(GetTorrentFilePath (torrent->GetName ()) + ".resume", std::ofstream::binary);
-		if (f.is_open ())
-			f.write ((const char *)bitfield.data (), bitfield.size ());
 	}
 
 	std::shared_ptr<Torrent> TorrentsTunnel::FindTorrent (const Torrent::InfoHash& infoHash) const

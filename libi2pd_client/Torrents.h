@@ -83,6 +83,7 @@ namespace torrents
 			~Piece ();
 
 			bool IsComplete () const { return !m_Blocks; }
+			void Complete () { m_Blocks = nullptr; }
 			bool VerifyHash () const;
 
 			void BlockReceived (const uint8_t * block, size_t len, size_t offset);
@@ -128,9 +129,12 @@ namespace torrents
 			const std::list<i2p::data::IdentHash>&  GetPeers () const { return m_Peers; }
 			std::tuple<uint32_t, uint32_t, uint32_t> GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn); // return (index, offset, len)
 			void ClearAllRequests ();
+			void Complete ();
 
 			uint64_t GetNextTrackerRequestTime () const { return m_NextTrackerRequestTime; }
 			void SetNextTrackerRequestTime (uint64_t ts) { m_NextTrackerRequestTime = ts; }
+
+			void SaveTorrentResumeFile (const std::string& fullPath);
 
 		private:
 
@@ -241,10 +245,7 @@ namespace torrents
 		private:
 
 			void Accept ();
-
 			void ReadTorrentFile (const std::string& path);
-			void SaveTorrentResumeFile (std::shared_ptr<const Torrent> torrent);
-
 			void RequestTracker (std::shared_ptr<Torrent> torrent);
 			void TrackerRequestSent (const boost::beast::error_code& ecode, size_t bytes_transferred,
 				std::shared_ptr<i2p::client::BoostAsyncStream> httpStream, std::shared_ptr<Torrent> torrent,
