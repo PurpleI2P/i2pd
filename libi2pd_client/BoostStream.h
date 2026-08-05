@@ -43,15 +43,24 @@ namespace client
 					if (received < it->size ()) break;
 				}
 				if (received > 0) // we have some data
-					handler (boost::system::error_code (), received);
+					boost::asio::post (get_executor (), [received, handler = std::move (handler)]() mutable
+						{
+							handler (boost::system::error_code (), received);
+						});
 				else if (m_Stream->GetStatus () == i2p::stream::eStreamStatusClosed ||
 					m_Stream->GetStatus () == i2p::stream::eStreamStatusTerminated)
-					//  read stream after close, return eof with outstanding data
-					handler (boost::asio::error::make_error_code (boost::asio::error::eof), 0);
+					//  return eof
+					boost::asio::post (get_executor (), [handler = std::move (handler)]() mutable
+						{
+							handler (boost::asio::error::make_error_code (boost::asio::error::eof), 0);
+						});
 				else if (bufs.size () > 0) // wait for incoming data
 					m_Stream->AsyncReceive (*boost::asio::buffer_sequence_begin (bufs), std::move (handler), m_ReceiveTimeout);
 				else
-					handler (boost::system::error_code (), 0);
+					boost::asio::post (get_executor (), [handler = std::move (handler)]() mutable
+					{
+						handler (boost::system::error_code (), 0);
+					});
 			}
 
 			// AsyncWriteStream
@@ -78,11 +87,17 @@ namespace client
 					m_Stream->Send (std::move (sendBuffer));
 #ifndef __cpp_lib_move_only_function // no std::move_only_function
 					// invoke handler right after send
-					handler (boost::system::error_code (), sent);
+					boost::asio::post (get_executor (), [sent, handler = std::move (handler)]() mutable
+					{
+						handler (boost::system::error_code (), sent);
+					});
 #endif
 				}
 				else
-					handler (boost::system::error_code (), 0);
+					boost::asio::post (get_executor (), [handler = std::move (handler)]() mutable
+					{
+						handler (boost::system::error_code (), 0);
+					});
 			}
 
 		private:

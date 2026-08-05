@@ -960,7 +960,12 @@ namespace stream
 		if (len > 0 && buf)
 			buffer = std::make_shared<i2p::stream::SendBuffer>(buf, len, std::move (handler));
 		else if (handler)
-			handler(boost::system::error_code (), 0);
+		{
+			boost::asio::post (GetService (), [handler = std::move(handler)]() mutable
+			{
+				handler(boost::system::error_code (), 0);
+			});
+		}
 		Send (std::move (buffer));
 	}
 
