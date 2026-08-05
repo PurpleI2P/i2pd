@@ -903,9 +903,9 @@ namespace torrents
 		}
 	}
 
-	TorrentsTunnel::TorrentsTunnel (std::shared_ptr<i2p::client::ClientDestination> localDestination,
+	TorrentsTunnel::TorrentsTunnel (std::string_view name, std::shared_ptr<i2p::client::ClientDestination> localDestination,
 		std::string_view torrentsDir, std::string_view trackers):
-		i2p::client::I2PService (localDestination), m_TorrentsDir (torrentsDir),
+		i2p::client::I2PService (localDestination), m_Name (name), m_TorrentsDir (torrentsDir),
 		m_PeerID ("-I2PD-"), m_Rng(i2p::util::GetMonotonicMicroseconds ()%1000000LL),
 		m_TrackerRequestsCheckTimer (GetService ()), m_KeepAliveCheckTimer (GetService ()),
 		m_ReconnectCheckTimer (GetService ())

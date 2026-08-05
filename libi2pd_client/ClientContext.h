@@ -179,6 +179,7 @@ namespace client
 			const decltype(m_ServerTunnels)& GetServerTunnels () const { return m_ServerTunnels; };
 			const decltype(m_ClientForwards)& GetClientForwards () const { return m_ClientForwards; }
 			const decltype(m_ServerForwards)& GetServerForwards () const { return m_ServerForwards; }
+			const decltype(m_TorrentsTunnels)& GetTorrentsTunnels () const { return m_TorrentsTunnels; }
 			std::shared_ptr<const I2PService> GetHttpProxy () const { return m_HttpProxy; }
 			std::shared_ptr<const I2PService> GetSocksProxy () const { return m_SocksProxy; }
 	};

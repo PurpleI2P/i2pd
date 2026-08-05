@@ -989,7 +989,7 @@ namespace client
 						else
 							localDestination->SetPublic (true);
 					}
-					auto torrentsTunnel = std::make_shared<i2p::torrents::TorrentsTunnel> (localDestination, torrentsDir, trackers);
+					auto torrentsTunnel = std::make_shared<i2p::torrents::TorrentsTunnel> (name, localDestination, torrentsDir, trackers);
 					auto [iit, inserted] = m_TorrentsTunnels.emplace (localDestination->GetIdentHash (), torrentsTunnel);
 					if (inserted)
 						torrentsTunnel->Start ();

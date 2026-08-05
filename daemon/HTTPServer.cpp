@@ -1188,6 +1188,20 @@ namespace http {
 			}
 			s << "</div>\r\n<br>\r\n";
 		}
+		auto& torrentsTunnels = i2p::client::context.GetTorrentsTunnels ();
+		if (!torrentsTunnels.empty ())
+		{
+			s << "<br>\r\n<b>" << tr("Torrents") << ":</b><br>\r\n<div class=\"list\">\r\n";
+			for (auto& it: torrentsTunnels)
+			{
+				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
+				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+				s << it.second->GetName () << "</a> &#8656; ";
+				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+				s << "</div>\r\n"<< std::endl;
+			}
+			s << "</div>\r\n<br>\r\n";
+		}
 	}
 
 	HTTPConnection::HTTPConnection (std::string hostname, std::shared_ptr<boost::asio::ip::tcp::socket> socket):

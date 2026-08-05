@@ -229,7 +229,7 @@ namespace torrents
 
 		public:
 
-			TorrentsTunnel (std::shared_ptr<i2p::client::ClientDestination> localDestination,
+			TorrentsTunnel (std::string_view name, std::shared_ptr<i2p::client::ClientDestination> localDestination,
 				std::string_view torrentsDir, std::string_view trackers = "");
 
 			void Start () override;
@@ -241,7 +241,7 @@ namespace torrents
 			std::shared_ptr<Torrent> FindTorrent (const Torrent::InfoHash& infoHash) const;
 			std::list<std::shared_ptr<PeerConnection> > GetTorrentConnections (std::shared_ptr<Torrent> torrent);
 
-			const char* GetName() const override { return "Torrents"; }
+			const char* GetName() const override { return m_Name.c_str (); }
 
 		private:
 
@@ -267,7 +267,7 @@ namespace torrents
 
 		private:
 
-			std::string m_TorrentsDir, m_PeerID; // 20 characters
+			std::string m_Name, m_TorrentsDir, m_PeerID; // 20 characters
 			std::vector<std::string> m_Trackers;
 			std::map<Torrent::InfoHash, std::shared_ptr<Torrent> > m_Torrents;
 			std::mt19937 m_Rng;
