@@ -360,7 +360,7 @@ namespace torrents
 		auto [hashes, len] = ExtractByteString (buf);
 		while (!hashes.empty ())
 		{
-			m_Peers.emplace_back (i2p::data::IdentHash ((const uint8_t *)hashes.substr (0, i2p::data::IdentHash::len).data ()));
+			m_Peers.emplace (i2p::data::IdentHash ((const uint8_t *)hashes.substr (0, i2p::data::IdentHash::len).data ()));
 			hashes = hashes.substr (i2p::data::IdentHash::len);
 		}
 		return len;
@@ -517,12 +517,20 @@ namespace torrents
 
 	void PeerConnection::CheckKeepAlive (uint64_t ts)
 	{
-		if (m_IsEstablished && ts > m_LastSendTime)
+		if (m_IsEstablished)
 		{
-			// send keep-alive
-			uint32_t len = 0;
-			WriteToStream ((const uint8_t *)&len, 4);
-			m_LastSendTime = ts;
+			if (ts > m_LastReceiveTime + PEER_KEEP_ALIVE_TIMEOUT)
+			{
+				LogPrint (eLogInfo, "Torrent: Peer timeout expired");
+				Terminate ();
+			}
+			else if (ts > m_LastSendTime + PEER_KEEP_SEND_INTERVAL)
+			{
+				// send keep-alive
+				uint32_t len = 0;
+				WriteToStream ((const uint8_t *)&len, 4);
+				m_LastSendTime = ts;
+			}
 		}
 	}
 
@@ -1115,29 +1123,30 @@ namespace torrents
 	{
 		if (!torrent) return;
 		LogPrint (eLogDebug, "Torrents: Connecting to peer ", peer.ToBase32 () + ".b32.i2p");
-		CreateStream ([this, torrent](std::shared_ptr<i2p::stream::Stream> stream)
+		CreateStream ([this, torrent, peer](std::shared_ptr<i2p::stream::Stream> stream)
 			{
 				if (stream)
 				{
-					LogPrint (eLogDebug, "Torrents: Connected to peer");
+					LogPrint (eLogDebug, "Torrents: Connected to peer ", peer.ToBase32 () + ".b32.i2p");
 					auto connection = std::make_shared<PeerConnection>(this, stream, torrent);
 					AddHandler (connection);
 					connection->Connect ();
 				}
 				else
-					LogPrint (eLogInfo, "Torrents: Can't connect to peer");
+					LogPrint (eLogInfo, "Torrents: Can't connect to peer ", peer.ToBase32 () + ".b32.i2p");
 			}, std::make_shared<i2p::client::Address>(peer), TORRENT_PORT);
 	}
 
-	void TorrentsTunnel::ConnectToPeers (std::shared_ptr<Torrent> torrent)
+	size_t TorrentsTunnel::ConnectToPeers (std::shared_ptr<Torrent> torrent)
 	{
-		if (!torrent) return;
+		if (!torrent) return 0;
 		auto peersToConnect = GetNonConnectedPeers (torrent);
 		if (!peersToConnect.empty ())
 		{
 			for (const auto& it: peersToConnect)
 				ConnectToPeer (torrent, it);
 		}
+		return peersToConnect.size ();
 	}
 
 	std::string TorrentsTunnel::GetTorrentFilePath (const std::string& filename) const
@@ -1172,7 +1181,7 @@ namespace torrents
 
 	void TorrentsTunnel::ScheduleKeepAliveCheck ()
 	{
-		m_KeepAliveCheckTimer.expires_after (std::chrono::seconds(PEER_KEEP_ALIVE_CHECK_TIMEOUT));
+		m_KeepAliveCheckTimer.expires_after (std::chrono::seconds(PEER_KEEP_ALIVE_CHECK_INTERVAL));
 		m_KeepAliveCheckTimer.async_wait (std::bind (&TorrentsTunnel::HandleKeepAliveCheckTimer,
 			this, std::placeholders::_1));
 	}
@@ -1204,7 +1213,11 @@ namespace torrents
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			for (auto it: m_Torrents)
-				ConnectToPeers (it.second);
+			{
+				auto numPeers = ConnectToPeers (it.second);
+				if (numPeers)
+					LogPrint (eLogDebug, "Torrents: Reconnecting to ", numPeers, " peers");
+			}
 			ScheduleReconnectCheck ();
 		}
 	}
@@ -1223,7 +1236,11 @@ namespace torrents
 						auto ident = conn->GetStream ()->GetRemoteIdentity ();
 						if (ident)
 						{
-							if (std::find (peers.begin (), peers.end (), ident->GetIdentHash ()) != peers.end ())
+#if __cplusplus >= 202002L // C++20
+							if (peers.contains (ident->GetIdentHash ()))
+#else
+							if (peers.count (ident->GetIdentHash ()) > 0)
+#endif
 								ret.emplace_back (conn);
 						}
 					}
@@ -1232,9 +1249,9 @@ namespace torrents
 		return ret;
 	}
 
-	std::list<i2p::data::IdentHash> TorrentsTunnel::GetNonConnectedPeers (std::shared_ptr<Torrent> torrent)
+	std::unordered_set<i2p::data::IdentHash> TorrentsTunnel::GetNonConnectedPeers (std::shared_ptr<Torrent> torrent)
 	{
-		std::list<i2p::data::IdentHash> ret;
+		std::unordered_set<i2p::data::IdentHash> ret;
 		if (torrent)
 		{
 			ret = torrent->GetPeers ();
@@ -1247,7 +1264,7 @@ namespace torrents
 							auto conn = std::static_pointer_cast<PeerConnection>(handler);
 							auto ident = conn->GetStream ()->GetRemoteIdentity ();
 							if (ident)
-								(void)std::remove (ret.begin (), ret.end (), ident->GetIdentHash ());
+								ret.erase (ident->GetIdentHash ());
 						}
 					});
 			}

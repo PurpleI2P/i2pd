@@ -43,8 +43,9 @@ namespace torrents
 	constexpr int TRACKER_REQUESTS_INTERVAL_VARIANCE = 3000; // in milliseconds
 	constexpr size_t PEER_CONNECTION_RECEIVE_BUFFER_SIZE = 65535;
 	constexpr int PEER_CONNECTION_MAX_IDLE = 3600; // in seconds
-	constexpr int PEER_KEEP_ALIVE_INTERVAL = 120; // in seconds
-	constexpr int PEER_KEEP_ALIVE_CHECK_TIMEOUT = 15; // in seconds
+	constexpr int PEER_KEEP_ALIVE_TIMEOUT = 120; // in seconds
+	constexpr int PEER_KEEP_SEND_INTERVAL = 95; // in seconds
+	constexpr int PEER_KEEP_ALIVE_CHECK_INTERVAL = 15; // in seconds
 	constexpr size_t MAX_NUM_REQUESTS = 8;
 
 	constexpr size_t HANDSHAKE_MSG_LENGTH = 68;
@@ -127,7 +128,7 @@ namespace torrents
 			Piece& GetPiece (int index) { return m_Pieces[index]; }
 			std::pair<std::vector<uint8_t>, bool> CreateBitfield () const; // (bitfield, empty)
 			void ApplyBitfield (const std::vector<uint8_t>& bitfield);
-			const std::list<i2p::data::IdentHash>&  GetPeers () const { return m_Peers; }
+			const std::unordered_set<i2p::data::IdentHash>&  GetPeers () const { return m_Peers; }
 			std::tuple<uint32_t, uint32_t, uint32_t> GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn); // return (index, offset, len)
 			void ClearAllRequests ();
 			void Complete ();
@@ -151,7 +152,7 @@ namespace torrents
 			uint64_t m_NextTrackerRequestTime; // monotonic millicesonds
 			InfoHash m_InfoHash; // SHA1
 			std::vector<Piece> m_Pieces;
-			std::list<i2p::data::IdentHash> m_Peers;
+			std::unordered_set<i2p::data::IdentHash> m_Peers;
 	};
 
 	class TorrentsTunnel;
@@ -261,9 +262,9 @@ namespace torrents
 			void ScheduleReconnectCheck ();
 			void HandleReconnectCheckTimer (const boost::system::error_code& ecode);
 
-			std::list<i2p::data::IdentHash> GetNonConnectedPeers (std::shared_ptr<Torrent> torrent);
+			std::unordered_set<i2p::data::IdentHash> GetNonConnectedPeers (std::shared_ptr<Torrent> torrent);
 			void ConnectToPeer (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& peer);
-			void ConnectToPeers (std::shared_ptr<Torrent> torrent);
+			size_t ConnectToPeers (std::shared_ptr<Torrent> torrent);
 
 		private:
 
