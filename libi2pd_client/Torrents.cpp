@@ -392,6 +392,25 @@ namespace torrents
 		return { ret, empty };
 	}
 
+	void Torrent::ApplyBitfield (const std::vector<uint8_t>& bitfield)
+	{
+		size_t numPieces = m_Pieces.size ();
+		size_t idx = 0;
+		for (size_t i = 0; i < bitfield.size (); i++)
+		{
+			uint8_t bit = 0x80;
+			for (int j = 0; j < 8; j++)
+			{
+				if (idx >= numPieces) break;
+				if (bitfield[i] & bit)
+					m_Pieces[idx].Complete ();
+				bit >>= 1;
+				idx++;
+			}
+			if (idx >= numPieces) break;
+		}
+	}
+
 	std::tuple<uint32_t, uint32_t, uint32_t> Torrent::GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn)
 	{
 		if (conn)
@@ -963,7 +982,24 @@ namespace torrents
 				else
 				{
 					auto partFilePath = GetTorrentFilePath (torrent->GetName () + ".part");
-					if (!i2p::fs::Exists (partFilePath))
+					if (i2p::fs::Exists (partFilePath))
+					{
+						auto resumeFilePath = GetTorrentFilePath (torrent->GetName () + ".resume");
+						std::ifstream rs(resumeFilePath, std::ifstream::binary);
+						if (rs)
+						{
+							rs.seekg (0,std::ios::end);
+							size_t l = rs.tellg ();
+							if (l > 0)
+							{
+								rs.seekg(0, std::ios::beg);
+								std::vector<uint8_t> bitfield(l);
+								rs.read((char *)bitfield.data (), l);
+								torrent->ApplyBitfield (bitfield);
+							}
+						}
+					}
+					else
 						i2p::fs::CreateAndReserveFile (partFilePath, torrent->GetLength ());
 				}
 			}
@@ -1211,7 +1247,7 @@ namespace torrents
 							auto conn = std::static_pointer_cast<PeerConnection>(handler);
 							auto ident = conn->GetStream ()->GetRemoteIdentity ();
 							if (ident)
-								std::remove (ret.begin (), ret.end (), ident->GetIdentHash ());
+								(void)std::remove (ret.begin (), ret.end (), ident->GetIdentHash ());
 						}
 					});
 			}
