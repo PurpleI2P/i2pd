@@ -187,8 +187,8 @@ namespace torrents
 	void Piece::Dump (const std::string& fullPath, size_t offset)
 	{
 		if (!m_Data) return;
-		std::ofstream f(fullPath, std::ofstream::binary | std::ofstream::app);
-		if (f.is_open ())
+		std::fstream f(fullPath, std::ios::binary | std::ios::in | std::ios::out );
+		if (f)
 		{
 			f.seekp (offset, std::ios::beg);
 			f.write ((const char *)m_Data, m_Size);
