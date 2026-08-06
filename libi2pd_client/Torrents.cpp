@@ -258,7 +258,7 @@ namespace torrents
 
 	Torrent::Torrent (std::string_view buf):
 		m_Length (0), m_PieceLength (0), m_Interval (MIN_TRACKER_REQUESTS_INTERVAL),
-		m_NextTrackerRequestTime (0)
+		m_NextTrackerRequestTime (0), m_IsComplete (false)
 	{
 		ParseDictionary (buf, [this](std::string_view key, std::string_view buf)->size_t
 			{
@@ -394,6 +394,7 @@ namespace torrents
 
 	void Torrent::ApplyBitfield (const std::vector<uint8_t>& bitfield)
 	{
+		m_IsComplete = true;
 		size_t numPieces = m_Pieces.size ();
 		size_t idx = 0;
 		for (size_t i = 0; i < bitfield.size (); i++)
@@ -404,6 +405,8 @@ namespace torrents
 				if (idx >= numPieces) break;
 				if (bitfield[i] & bit)
 					m_Pieces[idx].Complete ();
+				else
+					m_IsComplete = false;
 				bit >>= 1;
 				idx++;
 			}
@@ -442,6 +445,7 @@ namespace torrents
 		for (auto& it: m_Pieces)
 			if (!it.IsComplete ())
 				it.Complete ();
+		m_IsComplete = true;
 	}
 
 	void Torrent::SaveTorrentResumeFile (const std::string& fullPath)
@@ -731,11 +735,14 @@ namespace torrents
 
 	void PeerConnection::SendHaveMsg (uint32_t index)
 	{
-		uint8_t buf[HAVE_MSG_PAYLOAD_LENGTH + 5];
-		htobe32buf (buf, HAVE_MSG_PAYLOAD_LENGTH + 1); // length
-		buf[4] = eMessageTypeHave; // msg ID
-		htobe32buf (buf + 5, index);
-		WriteToStream (buf, HAVE_MSG_PAYLOAD_LENGTH + 5);
+		if (m_IsEstablished)
+		{
+			uint8_t buf[HAVE_MSG_PAYLOAD_LENGTH + 5];
+			htobe32buf (buf, HAVE_MSG_PAYLOAD_LENGTH + 1); // length
+			buf[4] = eMessageTypeHave; // msg ID
+			htobe32buf (buf + 5, index);
+			WriteToStream (buf, HAVE_MSG_PAYLOAD_LENGTH + 5);
+		}
 	}
 
 	void PeerConnection::HandleBitfieldMsg (const uint8_t * buf, size_t len)
@@ -904,7 +911,7 @@ namespace torrents
 
 	void PeerConnection::RequestNextBlocks ()
 	{
-		if (m_IsChoked) return;
+		if (m_IsChoked || !m_Torrent || m_Torrent->IsComplete ()) return;
 		while (m_NumRequests < MAX_NUM_REQUESTS)
 		{
 			if (!RequestNextBlock ()) break;
@@ -1227,21 +1234,23 @@ namespace torrents
 		std::list<std::shared_ptr<PeerConnection> > ret;
 		if (torrent)
 		{
-			const auto& peers = torrent->GetPeers ();
-			IterateHandlers ([&peers, &ret](std::shared_ptr<i2p::client::I2PServiceHandler> handler)
+			IterateHandlers ([&ret, torrent](std::shared_ptr<i2p::client::I2PServiceHandler> handler)
 				{
 					if (handler)
 					{
 						auto conn = std::static_pointer_cast<PeerConnection>(handler);
-						auto ident = conn->GetStream ()->GetRemoteIdentity ();
-						if (ident)
+						if (conn->GetTorrent () == torrent)
 						{
+							auto ident = conn->GetStream ()->GetRemoteIdentity ();
+							if (ident)
+							{
 #if __cplusplus >= 202002L // C++20
-							if (peers.contains (ident->GetIdentHash ()))
+								if (torrent->GetPeers ().contains (ident->GetIdentHash ()))
 #else
-							if (peers.count (ident->GetIdentHash ()) > 0)
+								if (torrent->GetPeers ().count (ident->GetIdentHash ()) > 0)
 #endif
-								ret.emplace_back (conn);
+									ret.emplace_back (conn);
+							}
 						}
 					}
 				});
@@ -1257,14 +1266,17 @@ namespace torrents
 			ret = torrent->GetPeers ();
 			if(!ret.empty ())
 			{
-				IterateHandlers ([&ret](std::shared_ptr<i2p::client::I2PServiceHandler> handler)
+				IterateHandlers ([&ret, torrent](std::shared_ptr<i2p::client::I2PServiceHandler> handler)
 					{
 						if (handler)
 						{
 							auto conn = std::static_pointer_cast<PeerConnection>(handler);
-							auto ident = conn->GetStream ()->GetRemoteIdentity ();
-							if (ident)
-								ret.erase (ident->GetIdentHash ());
+							if (conn->GetTorrent () == torrent)
+							{
+								auto ident = conn->GetStream ()->GetRemoteIdentity ();
+								if (ident)
+									ret.erase (ident->GetIdentHash ());
+							}
 						}
 					});
 			}

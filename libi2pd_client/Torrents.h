@@ -132,6 +132,7 @@ namespace torrents
 			std::tuple<uint32_t, uint32_t, uint32_t> GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn); // return (index, offset, len)
 			void ClearAllRequests ();
 			void Complete ();
+			bool IsComplete () const { return m_IsComplete; }
 
 			uint64_t GetNextTrackerRequestTime () const { return m_NextTrackerRequestTime; }
 			void SetNextTrackerRequestTime (uint64_t ts) { m_NextTrackerRequestTime = ts; }
@@ -153,6 +154,7 @@ namespace torrents
 			InfoHash m_InfoHash; // SHA1
 			std::vector<Piece> m_Pieces;
 			std::unordered_set<i2p::data::IdentHash> m_Peers;
+			bool m_IsComplete;
 	};
 
 	class TorrentsTunnel;
@@ -171,6 +173,7 @@ namespace torrents
 
 			bool IsPieceAvailable (size_t ind) const;
 			std::shared_ptr<i2p::stream::Stream> GetStream () const { return m_Stream; }
+			std::shared_ptr<Torrent> GetTorrent () const { return m_Torrent; }
 
 		private:
 
