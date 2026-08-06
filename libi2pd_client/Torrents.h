@@ -50,6 +50,7 @@ namespace torrents
 
 	constexpr size_t HANDSHAKE_MSG_LENGTH = 68;
 	constexpr size_t INTERESTED_MSG_LENGTH = 5;
+	constexpr size_t UNCHOKE_MSG_LENGTH = 5;
 	constexpr size_t REQUEST_MSG_PAYLOAD_LENGTH = 12;
 	constexpr size_t HAVE_MSG_PAYLOAD_LENGTH = 4;
 
@@ -86,13 +87,14 @@ namespace torrents
 			bool IsComplete () const { return !m_Blocks; }
 			void Complete () { m_Blocks = nullptr; }
 			bool VerifyHash () const;
+			void SetIsSending (bool isSending) { m_IsSending = isSending; };
 
 			void BlockReceived (const uint8_t * block, size_t len, size_t offset);
 			void Dump (const std::string& fullPath, size_t offset);
-			void Load (const std::string& fullPath, size_t offset);
+			bool Load (const std::string& fullPath, size_t offset);
 			const uint8_t * GetData () const { return m_Data; }
 			size_t GetSize () const { return m_Size; }
-			std::pair<size_t, size_t> GetAvailableBuffer (size_t offset, size_t len) const; // return (offset, len) of available data
+			bool HasBlock (size_t offset) const;
 			std::pair<size_t, size_t> GetNextBlockToRequest (); // return (offset, len) of next buffer, len = 0 if no next buffer
 			void ClearAllRequests ();
 
@@ -106,6 +108,7 @@ namespace torrents
 			size_t m_Size;
 			uint8_t * m_Data, m_Hash[SHA_DIGEST_LENGTH];
 			std::unique_ptr<std::vector<BlockStatus> > m_Blocks;
+			bool m_IsSending;
 	};
 
 	class Torrent final
@@ -116,6 +119,9 @@ namespace torrents
 
 			Torrent (std::string_view buf);
 			void ParseTrackerResponse (std::string_view buf);
+
+			bool IsComplete () const { return m_IsComplete; }
+			void SetComplete ();
 
 			const std::string& GetAnnounce () const { return m_Announce; }
 			const std::string& GetName () const { return m_Name; }
@@ -131,8 +137,6 @@ namespace torrents
 			const std::unordered_set<i2p::data::IdentHash>&  GetPeers () const { return m_Peers; }
 			std::tuple<uint32_t, uint32_t, uint32_t> GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn); // return (index, offset, len)
 			void ClearAllRequests ();
-			void Complete ();
-			bool IsComplete () const { return m_IsComplete; }
 
 			uint64_t GetNextTrackerRequestTime () const { return m_NextTrackerRequestTime; }
 			void SetNextTrackerRequestTime (uint64_t ts) { m_NextTrackerRequestTime = ts; }
@@ -160,6 +164,11 @@ namespace torrents
 	class TorrentsTunnel;
 	class PeerConnection: public i2p::client::I2PServiceHandler, public std::enable_shared_from_this<PeerConnection>
 	{
+		struct RequestedBlock
+		{
+			uint32_t index, offset, length;
+		};
+
 		public:
 
 			PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream); // incoming
@@ -200,9 +209,12 @@ namespace torrents
 			void HandleRequestMsg (const uint8_t * buf, size_t len);
 			void SendRequestMsg (uint32_t index, uint32_t offset, uint32_t len);
 			void SendInterestedMsg ();
+			void SendUnchokeMsg ();
 
 			bool RequestNextBlock ();
 			void RequestNextBlocks ();
+
+			bool SendRequestedBlock (const RequestedBlock& requestedBlock);
 
 		private:
 
@@ -214,7 +226,9 @@ namespace torrents
 			boost::dynamic_bitset<> m_RemoteBitfield;
 			bool m_IsHandshakeSent, m_IsEstablished, m_IsChoked;
 			uint64_t m_LastReceiveTime, m_LastSendTime; // monotonic seconds
-			size_t m_NumRequests;
+			size_t m_NumRequests; // outgoing
+			std::list<RequestedBlock> m_IncomingRequestsQueue;
+			bool m_IsSendingPieceMsg;
 	};
 
 	class TorrentsTunnel final: public i2p::client::I2PService

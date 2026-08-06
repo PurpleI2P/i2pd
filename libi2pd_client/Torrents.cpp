@@ -130,7 +130,7 @@ namespace torrents
 //------------------------------------
 
 	Piece::Piece (size_t size, const uint8_t * hash):
-		m_Size (size), m_Data (nullptr)
+		m_Size (size), m_Data (nullptr), m_IsSending (false)
 	{
 		memcpy (m_Hash, hash, SHA_DIGEST_LENGTH);
 		m_Blocks = std::make_unique<std::vector<BlockStatus> >(GetNumBlocks (size), BlockStatus::Missing);
@@ -192,41 +192,34 @@ namespace torrents
 		{
 			f.seekp (offset, std::ios::beg);
 			f.write ((const char *)m_Data, m_Size);
-			delete[] m_Data; m_Data = nullptr;
+			if (!m_IsSending)
+			{
+				delete[] m_Data; m_Data = nullptr;
+			}
 			LogPrint (eLogDebug, "Torrents: Saved bytes ", offset, " - ", offset + m_Size - 1, " to ", fullPath);
 		}
 	}
 
-	void Piece::Load (const std::string& fullPath, size_t offset)
+	bool Piece::Load (const std::string& fullPath, size_t offset)
 	{
-		if (m_Data) return;
-		m_Data = new uint8_t[m_Size];
+		if (m_Data) return true;
 		std::ifstream f(fullPath, std::ifstream::binary);
-		if (f.is_open ())
+		if (f)
 		{
+			m_Data = new uint8_t[m_Size];
 			f.seekg (offset, std::ios::beg);
 			f.read ((char *)m_Data, m_Size);
+			LogPrint (eLogDebug, "Torrents: Loaded bytes ", offset, " - ", offset + m_Size - 1, " from ", fullPath);
 		}
+		else
+			return false;
+		return true;
 	}
 
-	std::pair<size_t, size_t> Piece::GetAvailableBuffer (size_t offset, size_t len) const
+	bool Piece::HasBlock (size_t offset) const
 	{
-		size_t block = offset/REQUEST_BLOCK_SIZE;
-		auto numBlocks = GetNumBlocks (len);
-		size_t ind = 0;
-		while (ind < numBlocks)
-		{
-			if (!IsAvailable (block + ind)) break;
-			ind++;
-		}
-		if (ind > 0)
-		{
-			if (offset + ind*REQUEST_BLOCK_SIZE > m_Size)
-				return { offset, m_Size - offset };
-			else
-				return { offset, ind*REQUEST_BLOCK_SIZE };
-		}
-		return { 0, 0 };
+		if (offset >= m_Size) return false;
+		return IsAvailable (offset/REQUEST_BLOCK_SIZE);
 	}
 
 	std::pair<size_t, size_t> Piece::GetNextBlockToRequest ()
@@ -440,7 +433,7 @@ namespace torrents
 				it.ClearAllRequests ();
 	}
 
-	void Torrent::Complete ()
+	void Torrent::SetComplete ()
 	{
 		for (auto& it: m_Pieces)
 			if (!it.IsComplete ())
@@ -460,7 +453,7 @@ namespace torrents
 	PeerConnection::PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream):
 		i2p::client::I2PServiceHandler (owner), m_Stream (stream), m_ReceiveBufferOffset (0),
 		m_IsHandshakeSent (false), m_IsEstablished (false), m_IsChoked (true),
-		m_LastReceiveTime (0), m_LastSendTime (0), m_NumRequests (0)
+		m_LastReceiveTime (0), m_LastSendTime (0), m_NumRequests (0), m_IsSendingPieceMsg (false)
 	{
 	}
 
@@ -647,7 +640,7 @@ namespace torrents
 					RequestNextBlocks ();
 				break;
 				case eMessageTypeInterested:
-					LogPrint (eLogInfo, "Torrents: Interested message is not implemented");
+					SendUnchokeMsg ();
 				break;
 				case eMessageTypeNotInterested:
 					LogPrint (eLogInfo, "Torrents: Not interested message is not implemented");
@@ -830,11 +823,29 @@ namespace torrents
 		htobe32buf (sendBuffer.data () + 5, index);
 		htobe32buf (sendBuffer.data () + 9, offset);
 		memcpy (sendBuffer.data () + 13, data, len);
-		WriteToStream (sendBuffer.data (), sendBuffer.size ());
+		LogPrint (eLogDebug, "Torrents: Sending piece of ", sendBuffer.size (), " bytes");
+		m_IsSendingPieceMsg = true;
+		m_Stream->AsyncSend (sendBuffer.data (), sendBuffer.size (),
+			[s = shared_from_this ()](const boost::system::error_code& ecode, size_t bytes_transferred)
+			{
+				s->m_IsSendingPieceMsg = false;
+				if (!ecode)
+				{
+					if (!s->m_IncomingRequestsQueue.empty ())
+					{
+						s->SendRequestedBlock (s->m_IncomingRequestsQueue.front ());
+						s->m_IncomingRequestsQueue.pop_front ();
+					}
+				}
+				else
+					s->Terminate ();
+			});
+		m_LastSendTime = i2p::util::GetMonotonicSeconds ();
 	}
 
 	void PeerConnection::HandleRequestMsg (const uint8_t * buf, size_t len)
 	{
+		if (!m_Torrent) return;
 		if (len != REQUEST_MSG_PAYLOAD_LENGTH)
 		{
 			LogPrint (eLogWarning, "Torrents: Unexpected length of request message ", len);
@@ -843,39 +854,60 @@ namespace torrents
 		uint32_t index = bufbe32toh (buf);
 		uint32_t offset = bufbe32toh (buf + 4);
 		uint32_t length = bufbe32toh (buf + 8);
+		if (length > REQUEST_BLOCK_SIZE)
+		{
+			LogPrint (eLogWarning, "Torrents: Requested length is too long ", length);
+			return;
+		}
 		if (index < m_Torrent->GetNumPieces ())
 		{
 			Piece& piece = m_Torrent->GetPiece (index);
-			auto [availableOffset, availableLen] = piece.GetAvailableBuffer (offset, length);
-			if (availableLen)
+			if (piece.HasBlock (offset))
 			{
-				auto data = piece.GetData ();
-				if (data)
-					SendPieceMsg (index, availableOffset, data + availableOffset, availableLen);
-				else
+				if (m_IsSendingPieceMsg)
+					 m_IncomingRequestsQueue.emplace_back (index, offset, length);
+				else if (!SendRequestedBlock ({index, offset, length})) // block was not sent
 				{
 					// try to load from file
-					auto path = GetTorrentsTunnel ()->GetTorrentFilePath (m_Torrent->GetName ());
-					auto offset = index*m_Torrent->GetPieceLength ();
+					auto path = GetTorrentsTunnel ()->GetTorrentFilePath (m_Torrent->GetName () + (m_Torrent->IsComplete () ? "" : ".part"));
 					boost::asio::post (GetTorrentsTunnel ()->GetDiskIOService (),
-						[&piece, path, offset, length, index, torrent = m_Torrent, this]() // piece belongs to torrent
+					[&piece, path, index, offset, length, torrent = m_Torrent, s = shared_from_this ()]() // piece belongs to torrent
+					{
+						piece.SetIsSending (true);
+						if (piece.Load (path, index*torrent->GetPieceLength ()))
 						{
-							piece.Load (path, offset);
-							// send after loading
-							boost::asio::post (GetTorrentsTunnel ()->GetService (),
-								[&piece, offset, length, index, torrent, this]()
+							boost::asio::post (s->GetTorrentsTunnel ()->GetService (),
+								[requestedBlock = RequestedBlock{index, offset, length}, s]()
 								{
-									auto data = piece.GetData ();
-									if (data)
-									{
-										auto [availableOffset, availableLen] = piece.GetAvailableBuffer (offset, length);
-										SendPieceMsg (index, availableOffset, data + availableOffset, availableLen);
-									}
+									if (s->m_IncomingRequestsQueue.empty ())
+										s->SendRequestedBlock (requestedBlock);
+									else
+										s->m_IncomingRequestsQueue.push_back (requestedBlock);
 								});
-						});
+						}
+						piece.SetIsSending (false);
+					});
 				}
 			}
+			else
+				LogPrint (eLogWarning, "Torrents: Requested block (", index, ",", offset, ") is not available");
 		}
+		else
+			LogPrint (eLogWarning, "Torrents: Requested index ", index, "exceeds number of pieces", m_Torrent->GetNumPieces ());
+	}
+
+	bool PeerConnection::SendRequestedBlock (const RequestedBlock& requestedBlock)
+	{
+		bool ret = true;
+		Piece& piece = m_Torrent->GetPiece (requestedBlock.index);
+		piece.SetIsSending (true);
+		auto data = piece.GetData ();
+		if (data && piece.HasBlock (requestedBlock.offset))
+			SendPieceMsg (requestedBlock.index, requestedBlock.offset, data + requestedBlock.offset, requestedBlock.length);
+		else
+			ret = false;
+		piece.SetIsSending (false);
+		return ret;
 	}
 
 	void PeerConnection::SendRequestMsg (uint32_t index, uint32_t offset, uint32_t len)
@@ -895,6 +927,14 @@ namespace torrents
 		htobe32buf (buf, 1);
 		buf[4] = eMessageTypeInterested;
 		WriteToStream (buf, INTERESTED_MSG_LENGTH);
+	}
+
+	void PeerConnection::SendUnchokeMsg ()
+	{
+		uint8_t buf[UNCHOKE_MSG_LENGTH];
+		htobe32buf (buf, 1);
+		buf[4] = eMessageTypeUnchoke;
+		WriteToStream (buf, UNCHOKE_MSG_LENGTH);
 	}
 
 	bool PeerConnection::RequestNextBlock ()
@@ -960,6 +1000,9 @@ namespace torrents
 
 	void TorrentsTunnel::Stop ()
 	{
+		auto localDestination = GetLocalDestination ();
+		if (localDestination)
+			localDestination->StopAcceptingStreams ();
 		m_TrackerRequestsCheckTimer.cancel ();
 		m_KeepAliveCheckTimer.cancel ();
 		m_ReconnectCheckTimer.cancel ();
@@ -993,7 +1036,7 @@ namespace torrents
 				m_Torrents.emplace (torrent->GetInfoHash (), torrent);
 				auto filePath = GetTorrentFilePath (torrent->GetName ());
 				if (i2p::fs::Exists (filePath))
-					torrent->Complete ();
+					torrent->SetComplete ();
 				else
 				{
 					auto partFilePath = GetTorrentFilePath (torrent->GetName () + ".part");
