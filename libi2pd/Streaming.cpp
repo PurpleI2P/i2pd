@@ -181,6 +181,7 @@ namespace stream
 		m_ReceiveTimer.cancel ();
 		m_ResendTimer.cancel ();
 		m_SendTimer.cancel ();
+		m_AckSendTimer.cancel ();
 		m_Status = eStreamStatusTerminated;
 		//CleanUp (); /* Need to recheck - broke working on windows */
 		if (deleteFromDestination)
@@ -1908,41 +1909,44 @@ namespace stream
 
 	void Stream::HandleAckSendTimer (const boost::system::error_code& ecode)
 	{
-		if (m_IsAckSendScheduled)
+		if (ecode != boost::asio::error::operation_aborted)
 		{
-			if (m_LastReceivedSequenceNumber < 0)
+			if (m_IsAckSendScheduled)
 			{
-				LogPrint (eLogWarning, "Streaming: SYN has not been received after ", SYN_TIMEOUT, " milliseconds after follow on, terminate rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
-				m_Status = eStreamStatusReset;
-				Close ();
-				return;
-			}
-			if (m_Status == eStreamStatusOpen)
-			{
-				if (m_RoutingSession && m_RoutingSession->IsLeaseSetNonConfirmed ())
+				if (m_LastReceivedSequenceNumber < 0)
 				{
-					auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-					if (ts > m_RoutingSession->GetLeaseSetSubmissionTime () + i2p::garlic::LEASESET_CONFIRMATION_TIMEOUT)
-					{
-						// seems something went wrong and we should re-select tunnels
-						m_CurrentOutboundTunnel = nullptr;
-						m_CurrentRemoteLease = nullptr;
-					}
+					LogPrint (eLogWarning, "Streaming: SYN has not been received after ", SYN_TIMEOUT, " milliseconds after follow on, terminate rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
+					m_Status = eStreamStatusReset;
+					Close ();
+					return;
 				}
-				if (m_LastReceivedSequenceNumber == 0 && m_SequenceNumber == 1)
+				if (m_Status == eStreamStatusOpen)
 				{
-					if (m_NumResendAttempts > 1)
+					if (m_RoutingSession && m_RoutingSession->IsLeaseSetNonConfirmed ())
 					{
-						m_Status = eStreamStatusReset;
-						Close ();
-						return;
+						auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+						if (ts > m_RoutingSession->GetLeaseSetSubmissionTime () + i2p::garlic::LEASESET_CONFIRMATION_TIMEOUT)
+						{
+							// seems something went wrong and we should re-select tunnels
+							m_CurrentOutboundTunnel = nullptr;
+							m_CurrentRemoteLease = nullptr;
+						}
 					}
-					m_NumResendAttempts++;
-					ScheduleAck (INITIAL_RTO);
+					if (m_LastReceivedSequenceNumber == 0 && m_SequenceNumber == 1)
+					{
+						if (m_NumResendAttempts > 1)
+						{
+							m_Status = eStreamStatusReset;
+							Close ();
+							return;
+						}
+						m_NumResendAttempts++;
+						ScheduleAck (INITIAL_RTO);
+					}
+					SendQuickAck ();
 				}
-				SendQuickAck ();
+				m_IsAckSendScheduled = false;
 			}
-			m_IsAckSendScheduled = false;
 		}
 	}
 
