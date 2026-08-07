@@ -51,7 +51,7 @@ namespace transport
 	const size_t SSU2_MIN_WINDOW_SIZE = 16; // in packets
 	const size_t SSU2_MIN_MAX_WINDOW_SIZE = 256; // in packets
 	const size_t SSU2_MAX_WINDOW_SIZE = 2048; // in packets
-	const size_t SSU2_WINDOW_GAIN = 2; // how many bandwidth-delay products window is allowed to reach
+	const size_t SSU2_WINDOW_GAIN = 2; // in bandwidth-delay products
 	const uint64_t SSU2_MIN_RTT_EXPIRATION_TIMEOUT = 15000; // in milliseconds
 	const uint64_t SSU2_DELIVERY_RATE_INTERVAL = 200; // in milliseconds
 	const size_t SSU2_MIN_RTO = 100; // in milliseconds
@@ -408,7 +408,7 @@ namespace transport
 			std::list<std::shared_ptr<I2NPMessage> > m_IntermediateQueue; // from transports
 			mutable std::mutex m_IntermediateQueueMutex;
 			bool m_IsDataReceived, m_IsInvalidMessage;
-			double m_RTT, m_MinRTT, m_MinRTTCandidate; // m_MinRTT is path propagation delay, without queueing
+			double m_RTT, m_MinRTT, m_MinRTTCandidate; // m_MinRTT is path delay, without queueing
 			int m_MsgLocalExpirationTimeout;
 			int m_MsgLocalSemiExpirationTimeout;
 			size_t m_WindowSize, m_MaxWindowSize, m_RTO;

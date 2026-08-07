@@ -633,7 +633,7 @@ namespace transport
 		}
 		// resend data packets
 		if (m_SentPackets.empty ()) return 0;
-		// packet numbers grow with send time, so nothing can be due before the oldest packet is
+		// packet numbers grow with send time, so the oldest packet is due first
 		if (ts < m_SentPackets.begin ()->second->sendTime + m_RTO) return 0;
 		std::map<uint32_t, std::shared_ptr<SSU2SentPacket> > resentPackets;
 		for (auto it = m_SentPackets.begin (); it != m_SentPackets.end (); )
@@ -2071,8 +2071,7 @@ namespace transport
 					else
 					{
 						if (m_MinRTTCandidate == SSU2_UNKNOWN_RTT || rtt < m_MinRTTCandidate) m_MinRTTCandidate = rtt;
-						// windowed minimum: the best sample of the last interval, so a path that got
-						// slower is picked up while our own queueing delay is not taken for path delay
+						// windowed minimum, so queueing delay is not taken for path delay
 						if (ts > m_MinRTTUpdateTime + SSU2_MIN_RTT_EXPIRATION_TIMEOUT)
 						{
 							m_MinRTT = m_MinRTTCandidate;
@@ -2116,7 +2115,7 @@ namespace transport
 		m_NumAckedPackets = 0;
 		m_DeliveryRateUpdateTime = ts;
 		m_DeliveryRate = (rate > m_DeliveryRate) ? rate : (3*m_DeliveryRate + rate)/4;
-		// as many packets as fit into the path at its own delay, queueing excluded
+		// bandwidth-delay product at path delay, queueing excluded
 		size_t bdp = SSU2_WINDOW_GAIN * m_DeliveryRate * m_MinRTT / 1000;
 		if (bdp < SSU2_MIN_MAX_WINDOW_SIZE) bdp = SSU2_MIN_MAX_WINDOW_SIZE;
 		if (bdp > SSU2_MAX_WINDOW_SIZE) bdp = SSU2_MAX_WINDOW_SIZE;
