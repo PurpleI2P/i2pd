@@ -20,6 +20,7 @@
 #if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
 #include <openssl/param_build.h>
 #include <openssl/core_names.h>
+#include <openssl/params.h>
 #endif
 #include "CPU.h"
 #include "Crypto.h"
@@ -778,7 +779,7 @@ namespace crypto
 
 	uint32_t RandUint32 ()
 	{
-		// RAND_bytes for four bytes at a time costs more than the drawn randomness itself
+		// buffered, a RAND_bytes call per four bytes costs more than the randomness itself
 		static thread_local uint8_t buf[256];
 		static thread_local size_t offset = sizeof (buf);
 		if (offset + 4 > sizeof (buf))
@@ -794,12 +795,33 @@ namespace crypto
 
 	static void HMACSHA256 (const uint8_t * key, size_t keyLen, const uint8_t * buf, size_t len, uint8_t * out)
 	{
-		// a context per call costs an algorithm fetch in openssl 3, and this runs per garlic message
+		// a context per call costs an algorithm fetch
+#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+		static thread_local std::unique_ptr<EVP_MAC_CTX, void (*)(EVP_MAC_CTX *)> ctx (nullptr, EVP_MAC_CTX_free);
+		if (ctx)
+			EVP_MAC_init (ctx.get (), key, keyLen, nullptr); // digest is already set
+		else
+		{
+			std::unique_ptr<EVP_MAC, void (*)(EVP_MAC *)> mac (EVP_MAC_fetch (nullptr, "HMAC", nullptr), EVP_MAC_free);
+			ctx.reset (EVP_MAC_CTX_new (mac.get ()));
+			char digest[] = "SHA256";
+			OSSL_PARAM params[] =
+			{
+				OSSL_PARAM_construct_utf8_string (OSSL_MAC_PARAM_DIGEST, digest, 0),
+				OSSL_PARAM_construct_end ()
+			};
+			EVP_MAC_init (ctx.get (), key, keyLen, params);
+		}
+		size_t outLen = 32;
+		if (len) EVP_MAC_update (ctx.get (), buf, len);
+		EVP_MAC_final (ctx.get (), out, &outLen, 32);
+#else
 		static thread_local std::unique_ptr<HMAC_CTX, void (*)(HMAC_CTX *)> ctx (HMAC_CTX_new (), HMAC_CTX_free);
 		unsigned int outLen;
 		HMAC_Init_ex (ctx.get (), key, keyLen, EVP_sha256 (), nullptr);
 		if (len) HMAC_Update (ctx.get (), buf, len);
 		HMAC_Final (ctx.get (), out, &outLen);
+#endif
 	}
 
 	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, std::string_view info,
