@@ -564,6 +564,14 @@ namespace client
 			options.Insert (I2CP_PARAM_STREAMING_MAX_RESENDS, value);
 	}
 
+	static size_t GetUDPTunnelMaxWindow (const boost::property_tree::ptree& section)
+	{
+		size_t w = section.get<size_t> (UDP_TUNNEL_MAX_WINDOW, I2P_UDP_DEFAULT_MAX_NUM_UNACKED_DATAGRAMS);
+		if (w < I2P_UDP_MIN_MAX_NUM_UNACKED_DATAGRAMS) w = I2P_UDP_MIN_MAX_NUM_UNACKED_DATAGRAMS;
+		if (w > I2P_UDP_MAX_NUM_UNACKED_DATAGRAMS) w = I2P_UDP_MAX_NUM_UNACKED_DATAGRAMS;
+		return w;
+	}
+
 	void ClientContext::ReadTunnels ()
 	{
 		int numClientTunnels = 0, numServerTunnels = 0;
@@ -686,6 +694,7 @@ namespace client
 						int datagramVersion = (i2p::datagram::DatagramVersion)section.second.get (UDP_CLIENT_TUNNEL_DATAGRAM_VERSION, (int)i2p::datagram::eDatagramV3);
 						auto clientTunnel = std::make_shared<I2PUDPClientTunnel> (name, dest, end,
 							localDestination, destinationPort, gzip, (i2p::datagram::DatagramVersion)datagramVersion);
+						clientTunnel->SetMaxWindow (GetUDPTunnelMaxWindow (section.second));
 
 						uint32_t keepAlive = section.second.get<uint32_t>(I2P_CLIENT_TUNNEL_KEEP_ALIVE_INTERVAL, 0);
 						if (keepAlive)
@@ -864,6 +873,7 @@ namespace client
 						}
 						auto localAddress = boost::asio::ip::make_address(address);
 						auto serverTunnel = std::make_shared<I2PUDPServerTunnel>(name, localDestination, localAddress, endpoint, inPort, gzip);
+						serverTunnel->SetMaxWindow (GetUDPTunnelMaxWindow (section.second));
 						if(!isUniqueLocal)
 						{
 							LogPrint(eLogInfo, "Clients: Disabling loopback address mapping");

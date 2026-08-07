@@ -36,6 +36,7 @@ namespace client
 	const uint64_t I2P_UDP_MIN_WINDOW_PROBE_INTERVAL = 50; // in milliseconds
 	const uint64_t I2P_UDP_FIRST_PACKET_RESEND_INTERVAL = 1000; // in milliseconds
 	const size_t I2P_UDP_MIN_MAX_NUM_UNACKED_DATAGRAMS = 500;
+	const size_t I2P_UDP_DEFAULT_MAX_NUM_UNACKED_DATAGRAMS = 1000;
 	const size_t I2P_UDP_MAX_NUM_UNACKED_DATAGRAMS = 8192;
 	const size_t I2P_UDP_WINDOW_GAIN = 2; // in bandwidth-delay products
 	const uint64_t I2P_UDP_MIN_RTT_EXPIRATION_TIMEOUT = 15000; // in milliseconds
