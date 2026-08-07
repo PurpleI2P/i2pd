@@ -130,7 +130,8 @@ namespace torrents
 //------------------------------------
 
 	Piece::Piece (size_t size, const uint8_t * hash):
-		m_Size (size), m_Data (nullptr), m_IsSending (false)
+		m_Size (size), m_Data (nullptr), m_IsSending (false), m_IsRequested (false),
+		m_LastActivityTimestamp (0)
 	{
 		memcpy (m_Hash, hash, SHA_DIGEST_LENGTH);
 		m_Blocks = std::make_unique<std::vector<BlockStatus> >(GetNumBlocks (size), BlockStatus::Missing);
@@ -154,6 +155,13 @@ namespace torrents
 		if (!m_Blocks) return true;
 		if (block < 0 || block >= (int)m_Blocks->size ()) return false;
 		return (*m_Blocks)[block] == BlockStatus::Available;
+	}
+
+	void Piece::SetIsSending (bool isSending)
+	{
+		m_IsSending = isSending;
+		if (m_IsSending)
+			m_LastActivityTimestamp = i2p::util::GetMonotonicSeconds ();
 	}
 
 	size_t Piece::GetNumBlocks (size_t len) const
@@ -186,18 +194,18 @@ namespace torrents
 
 	void Piece::Dump (const std::string& fullPath, size_t offset)
 	{
-		if (!m_Data) return;
-		std::fstream f(fullPath, std::ios::binary | std::ios::in | std::ios::out );
-		if (f)
+		m_IsSending = true;
+		if (m_Data)
 		{
-			f.seekp (offset, std::ios::beg);
-			f.write ((const char *)m_Data, m_Size);
-			if (!m_IsSending)
+			std::fstream f(fullPath, std::ios::binary | std::ios::in | std::ios::out );
+			if (f)
 			{
-				delete[] m_Data; m_Data = nullptr;
+				f.seekp (offset, std::ios::beg);
+				f.write ((const char *)m_Data, m_Size);
+				LogPrint (eLogDebug, "Torrents: Saved bytes ", offset, " - ", offset + m_Size - 1, " to ", fullPath);
 			}
-			LogPrint (eLogDebug, "Torrents: Saved bytes ", offset, " - ", offset + m_Size - 1, " to ", fullPath);
 		}
+		m_IsSending = false;
 	}
 
 	bool Piece::Load (const std::string& fullPath, size_t offset)
@@ -233,6 +241,8 @@ namespace torrents
 				{
 					it = BlockStatus::Requested;
 					auto offset = ind*REQUEST_BLOCK_SIZE;
+					m_LastActivityTimestamp = i2p::util::GetMonotonicSeconds ();
+					m_IsRequested = true;
 					return { offset, (offset + REQUEST_BLOCK_SIZE <= m_Size) ? REQUEST_BLOCK_SIZE : m_Size - offset };
 				}
 				ind++;
@@ -247,6 +257,20 @@ namespace torrents
 		for (auto& it: *m_Blocks)
 			if (it == BlockStatus::Requested)
 				it = BlockStatus::Missing;
+	}
+
+	void Piece::Reset ()
+	{
+		if (m_Blocks)
+		{
+			ClearAllRequests ();
+			m_IsRequested = false;
+		}
+		else if (m_Data && !m_IsSending)
+		{
+			delete[] m_Data; m_Data = nullptr;
+			LogPrint (eLogDebug, "Torrents: piece's data deleted");
+		}
 	}
 
 	Torrent::Torrent (std::string_view buf):
@@ -414,7 +438,8 @@ namespace torrents
 			uint32_t ind = 0;
 			for (auto& it: m_Pieces)
 			{
-				if (!it.IsComplete () && conn->IsPieceAvailable (ind))
+				if (!it.IsComplete () && conn->IsPieceAvailable (ind) &&
+					(!it.IsRequested () || (int)ind == conn->GetLastRequestedPieceIndex ()))
 				{
 					auto [offset, len] = it.GetNextBlockToRequest ();
 					if (len > 0)
@@ -431,6 +456,17 @@ namespace torrents
 		for (auto& it: m_Pieces)
 			if (!it.IsComplete ())
 				it.ClearAllRequests ();
+	}
+
+	void Torrent::UpdateStatus (uint64_t ts)
+	{
+		//bool complete = true;
+		for (auto& it: m_Pieces)
+		{
+		//	if (!it.IsComplete ()) complete = false;
+			if (ts > it.GetLastActivityTimestamp () + PIECE_INACTIVITY_TIMEOUT) // piece was incactive recently
+				it.Reset ();
+		}
 	}
 
 	void Torrent::SetComplete ()
@@ -453,7 +489,8 @@ namespace torrents
 	PeerConnection::PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream):
 		i2p::client::I2PServiceHandler (owner), m_Stream (stream), m_ReceiveBufferOffset (0),
 		m_IsHandshakeSent (false), m_IsEstablished (false), m_IsChoked (true),
-		m_LastReceiveTime (0), m_LastSendTime (0), m_NumRequests (0), m_IsSendingPieceMsg (false)
+		m_LastReceiveTime (0), m_LastSendTime (0), m_NumRequests (0), m_IsSendingPieceMsg (false),
+		 m_LastRequestedPieceIndex (-1)
 	{
 	}
 
@@ -943,6 +980,7 @@ namespace torrents
 		auto [index, offset, len] = m_Torrent->GetNextBlockToRequest (shared_from_this ());
 		if (len > 0)
 		{
+			m_LastRequestedPieceIndex = index;
 			SendRequestMsg (index, offset, len);
 			m_NumRequests++;
 		}
@@ -963,7 +1001,7 @@ namespace torrents
 		i2p::client::I2PService (localDestination), m_Name (name), m_TorrentsDir (torrentsDir),
 		m_PeerID ("-I2PD-"), m_Rng(i2p::util::GetMonotonicMicroseconds ()%1000000LL),
 		m_TrackerRequestsCheckTimer (GetService ()), m_KeepAliveCheckTimer (GetService ()),
-		m_ReconnectCheckTimer (GetService ())
+		m_ReconnectCheckTimer (GetService ()), m_TorrentsStatusUpdateTimer (GetService ())
 	{
 		if (localDestination)
 			m_PeerID += localDestination->GetIdentHash ().ToBase64 ();
@@ -996,6 +1034,7 @@ namespace torrents
 		}
 		ScheduleTrackerRequestsCheck ();
 		ScheduleKeepAliveCheck ();
+		ScheduleStatusUpdate ();
 	}
 
 	void TorrentsTunnel::Stop ()
@@ -1006,6 +1045,7 @@ namespace torrents
 		m_TrackerRequestsCheckTimer.cancel ();
 		m_KeepAliveCheckTimer.cancel ();
 		m_ReconnectCheckTimer.cancel ();
+		m_TorrentsStatusUpdateTimer.cancel ();
 		m_Torrents.clear ();
 		for (auto it: m_Torrents)
 		{
@@ -1269,6 +1309,25 @@ namespace torrents
 					LogPrint (eLogDebug, "Torrents: Reconnecting to ", numPeers, " peers");
 			}
 			ScheduleReconnectCheck ();
+		}
+	}
+
+	void TorrentsTunnel::ScheduleStatusUpdate ()
+	{
+		m_TorrentsStatusUpdateTimer.cancel ();
+		m_TorrentsStatusUpdateTimer.expires_after (std::chrono::seconds(TORRENTS_STATUS_UPDATE_INTERVAL));
+		m_TorrentsStatusUpdateTimer.async_wait (std::bind (&TorrentsTunnel::HandleTorrentsStatusUpdateTimer,
+			this, std::placeholders::_1));
+	}
+
+	void TorrentsTunnel::HandleTorrentsStatusUpdateTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			auto ts = i2p::util::GetMonotonicSeconds ();
+			for (auto it: m_Torrents)
+				it.second->UpdateStatus (ts);
+			ScheduleStatusUpdate ();
 		}
 	}
 

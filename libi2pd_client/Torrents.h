@@ -47,6 +47,8 @@ namespace torrents
 	constexpr int PEER_KEEP_SEND_INTERVAL = 95; // in seconds
 	constexpr int PEER_KEEP_ALIVE_CHECK_INTERVAL = 15; // in seconds
 	constexpr size_t MAX_NUM_REQUESTS = 8;
+	constexpr int PIECE_INACTIVITY_TIMEOUT = 60; // in seconds
+	constexpr int TORRENTS_STATUS_UPDATE_INTERVAL = 25; // in seconds
 
 	constexpr size_t HANDSHAKE_MSG_LENGTH = 68;
 	constexpr size_t INTERESTED_MSG_LENGTH = 5;
@@ -87,7 +89,9 @@ namespace torrents
 			bool IsComplete () const { return !m_Blocks; }
 			void Complete () { m_Blocks = nullptr; }
 			bool VerifyHash () const;
-			void SetIsSending (bool isSending) { m_IsSending = isSending; };
+			void SetIsSending (bool isSending);
+			uint64_t GetLastActivityTimestamp () const { return m_LastActivityTimestamp; }
+			bool IsRequested () const { return m_IsRequested; }
 
 			void BlockReceived (const uint8_t * block, size_t len, size_t offset);
 			void Dump (const std::string& fullPath, size_t offset);
@@ -97,6 +101,7 @@ namespace torrents
 			bool HasBlock (size_t offset) const;
 			std::pair<size_t, size_t> GetNextBlockToRequest (); // return (offset, len) of next buffer, len = 0 if no next buffer
 			void ClearAllRequests ();
+			void Reset ();
 
 		private:
 
@@ -108,7 +113,8 @@ namespace torrents
 			size_t m_Size;
 			uint8_t * m_Data, m_Hash[SHA_DIGEST_LENGTH];
 			std::unique_ptr<std::vector<BlockStatus> > m_Blocks;
-			bool m_IsSending;
+			bool m_IsSending, m_IsRequested;
+			uint64_t m_LastActivityTimestamp; // monotonic seconds
 	};
 
 	class Torrent final
@@ -137,6 +143,7 @@ namespace torrents
 			const std::unordered_set<i2p::data::IdentHash>&  GetPeers () const { return m_Peers; }
 			std::tuple<uint32_t, uint32_t, uint32_t> GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn); // return (index, offset, len)
 			void ClearAllRequests ();
+			void UpdateStatus (uint64_t ts);
 
 			uint64_t GetNextTrackerRequestTime () const { return m_NextTrackerRequestTime; }
 			void SetNextTrackerRequestTime (uint64_t ts) { m_NextTrackerRequestTime = ts; }
@@ -186,6 +193,7 @@ namespace torrents
 			bool IsPieceAvailable (size_t ind) const;
 			std::shared_ptr<i2p::stream::Stream> GetStream () const { return m_Stream; }
 			std::shared_ptr<Torrent> GetTorrent () const { return m_Torrent; }
+			int GetLastRequestedPieceIndex () const { return m_LastRequestedPieceIndex; }
 
 		private:
 
@@ -232,6 +240,7 @@ namespace torrents
 			size_t m_NumRequests; // outgoing
 			std::list<RequestedBlock> m_IncomingRequestsQueue;
 			bool m_IsSendingPieceMsg;
+			int m_LastRequestedPieceIndex;
 	};
 
 	class TorrentsTunnel final: public i2p::client::I2PService
@@ -282,6 +291,9 @@ namespace torrents
 			void ScheduleReconnectCheck ();
 			void HandleReconnectCheckTimer (const boost::system::error_code& ecode);
 
+			void ScheduleStatusUpdate ();
+			void HandleTorrentsStatusUpdateTimer (const boost::system::error_code& ecode);
+
 			std::unordered_set<i2p::data::IdentHash> GetNonConnectedPeers (std::shared_ptr<Torrent> torrent);
 			void ConnectToPeer (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& peer);
 			size_t ConnectToPeers (std::shared_ptr<Torrent> torrent);
@@ -292,7 +304,8 @@ namespace torrents
 			std::vector<std::string> m_Trackers;
 			std::map<Torrent::InfoHash, std::shared_ptr<Torrent> > m_Torrents;
 			std::mt19937 m_Rng;
-			boost::asio::steady_timer m_TrackerRequestsCheckTimer, m_KeepAliveCheckTimer, m_ReconnectCheckTimer;
+			boost::asio::steady_timer m_TrackerRequestsCheckTimer, m_KeepAliveCheckTimer,
+				m_ReconnectCheckTimer, m_TorrentsStatusUpdateTimer;
 			DiskIOService m_DiskIOService;
 	};
 }
