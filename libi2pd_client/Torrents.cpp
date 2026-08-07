@@ -760,7 +760,20 @@ namespace torrents
 		if (len < 4) return;
 		uint32_t index = bufbe32toh (buf);
 		if (index < m_RemoteBitfield.size ())
+		{
 			m_RemoteBitfield.set (index);
+			if (m_NumRequests < MAX_NUM_REQUESTS && m_Torrent && !m_Torrent->IsComplete ())
+			{
+				Piece& piece = m_Torrent->GetPiece (index);
+				if (!piece.IsComplete () && !piece.IsRequested ())
+				{
+					// new piece that was not requested yet
+					auto [offset, len] = piece.GetNextBlockToRequest ();
+					if (len > 0)
+						SendRequestMsg (index, offset, len);
+				}
+			}
+		}
 	}
 
 	void PeerConnection::SendHaveMsg (uint32_t index)
