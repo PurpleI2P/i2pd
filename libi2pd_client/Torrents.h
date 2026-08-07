@@ -167,6 +167,9 @@ namespace torrents
 		struct RequestedBlock
 		{
 			uint32_t index, offset, length;
+			RequestedBlock (uint32_t i, uint32_t o, uint32_t l): index(i), offset(0), length (l) {}
+			RequestedBlock(const RequestedBlock& ) = default;
+			RequestedBlock(RequestedBlock&& ) = default;
 		};
 
 		public:

@@ -882,7 +882,7 @@ namespace torrents
 									if (s->m_IncomingRequestsQueue.empty ())
 										s->SendRequestedBlock (requestedBlock);
 									else
-										s->m_IncomingRequestsQueue.push_back (requestedBlock);
+										s->m_IncomingRequestsQueue.emplace_back (std::move (requestedBlock));
 								});
 						}
 						piece.SetIsSending (false);
