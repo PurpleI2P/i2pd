@@ -198,7 +198,7 @@ namespace client
 		m_IsSendingAllowed = true; // if we recieve ack after path change, now can send new datagrams
 		if (!m_UnackedDatagrams.empty ())
 		{
-			// keep the timer armed while anything is unacked, otherwise a full window can't be unblocked
+			// keep armed while anything is unacked, otherwise a full window can't be unblocked
 			if (acknowledged)
 			{
 				m_AckTimer.cancel ();
@@ -230,8 +230,7 @@ namespace client
 		else
 		{
 			if (!m_MinRTTCandidate || rtt < m_MinRTTCandidate) m_MinRTTCandidate = rtt;
-			// windowed minimum: the best sample of the last interval, so a path that got slower
-			// is picked up while our own queueing delay is not mistaken for path delay
+			// windowed minimum, so queueing delay is not taken for path delay
 			if (ts > m_MinRTTUpdateTime + I2P_UDP_MIN_RTT_EXPIRATION_TIMEOUT)
 			{
 				m_MinRTT = m_MinRTTCandidate;
@@ -254,8 +253,7 @@ namespace client
 		uint32_t rate = m_NumSentSinceRateUpdate * 1000 / interval;
 		m_NumSentSinceRateUpdate = 0;
 		m_SendRateUpdateTime = ts;
-		// a window sized from the current rate shrinks as soon as the rate dips, which shrinks
-		// the rate further, so keep the best rate of the last few seconds instead
+		// best rate of the last few seconds, a rate following every dip would shrink the window
 		if (rate >= m_SendRate || ts > m_SendRateMaxTime + I2P_UDP_SEND_RATE_EXPIRATION_TIMEOUT)
 		{
 			m_SendRate = rate;
@@ -266,8 +264,7 @@ namespace client
 	size_t UDPConnection::GetMaxNumUnackedDatagrams () const
 	{
 		if (!m_MinRTT || !m_SendRate) return I2P_UDP_MIN_MAX_NUM_UNACKED_DATAGRAMS;
-		// an ack can't arrive sooner than one path delay plus one repliable interval,
-		// so that's how much data the path holds when it's not queueing
+		// bandwidth-delay product for one path delay plus one repliable interval
 		size_t w = I2P_UDP_WINDOW_GAIN * m_SendRate * (m_MinRTT + I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL) / 1000;
 		if (w < I2P_UDP_MIN_MAX_NUM_UNACKED_DATAGRAMS) w = I2P_UDP_MIN_MAX_NUM_UNACKED_DATAGRAMS;
 		if (w > m_MaxWindow) w = m_MaxWindow;
@@ -282,7 +279,7 @@ namespace client
 
 	void UDPConnection::ExpireUnackedDatagrams (uint64_t ts)
 	{
-		// an ack this old is never coming, and while it stays the window base it blocks the tunnel for good
+		// such an ack is never coming and would keep the window blocked
 		while (!m_UnackedDatagrams.empty () &&
 			ts > m_UnackedDatagrams.front ().second + I2P_UDP_MAX_UNACKED_DATAGRAM_TIME)
 			m_UnackedDatagrams.pop_front ();
@@ -299,7 +296,7 @@ namespace client
 
 	uint64_t UDPConnection::GetWindowProbeInterval () const
 	{
-		// an ack can't come back sooner than one RTT, probing more often is pointless
+		// an ack can't come back sooner than one rtt
 		if (!m_RTT) return GetRTO ();
 		return (m_RTT > I2P_UDP_MIN_WINDOW_PROBE_INTERVAL) ? m_RTT : I2P_UDP_MIN_WINDOW_PROBE_INTERVAL;
 	}
@@ -320,8 +317,7 @@ namespace client
 					{
 						auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 						m_NumAckTimeouts++; m_NumAckTimeoutsInRow++;
-						// timeouts alone mean nothing: they are what congestion looks like. only a peer
-						// gone silent proves the path is dead and is worth rebuilding
+						// timeouts happen under congestion, only silence means the path is dead
 						bool resetPath = m_NumAckTimeoutsInRow >= I2P_UDP_MAX_NUM_ACK_TIMEOUTS &&
 							ts > m_LastReceivedTime + I2P_UDP_MAX_UNACKED_DATAGRAM_TIME;
 						bool resetPeerPath = resetPath && ts > m_LastReceivedTime + I2P_UDP_PEER_PATH_RESET_TIMEOUT;
@@ -335,12 +331,10 @@ namespace client
 						if (resetPeerPath) flags |= UDP_SESSION_FLAG_RESET_PATH | UDP_SESSION_FLAG_RESET_SEQN;
 						i2p::util::Mapping options;
 						options.Put (UDP_SESSION_FLAGS, flags);
-						// the probe must carry a seqn, otherwise the peer acks its stale one
-						// and a full window can never be unblocked
+						// without seqn the peer acks a stale one and a full window stays blocked
 						options.Put (UDP_SESSION_SEQN, m_NextSendPacketNum);
 						m_NextSendPacketNum++;
-						// only keep probing while real data is outstanding, otherwise probes feed
-						// themselves: each one arms the timer whose timeout sends the next
+						// probe only while real data is outstanding, otherwise probes feed themselves
 						if (!m_UnackedDatagrams.empty ()) ScheduleAckTimer (0);
 						auto session = GetDatagramSession ();
 						if (session)
@@ -515,7 +509,7 @@ namespace client
 			{
 				auto& s = it.second;
 				auto session = s->GetDatagramSession ();
-				LogPrint (eLogWarning, "UDP Server: stats port=", s->RemotePort, " rtt=", s->m_RTT, "/",
+				LogPrint (eLogDebug, "UDP Server: stats port=", s->RemotePort, " rtt=", s->m_RTT, "/",
 					s->m_RTTVar, "/", s->m_MinRTT, "ms rto=", s->GetRTO (), "ms rate=", s->m_SendRate,
 					"/s window=", s->GetMaxNumUnackedDatagrams (), " unacked=", s->m_UnackedDatagrams.size (),
 					" nextSeqn=", s->m_NextSendPacketNum, " lastRecvSeqn=", s->m_LastReceivedPacketNum,
@@ -919,7 +913,7 @@ namespace client
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			auto session = GetDatagramSession ();
-			LogPrint (eLogWarning, "UDP Client: stats rtt=", m_RTT, "/", m_RTTVar, "/", m_MinRTT, "ms rto=", GetRTO (),
+			LogPrint (eLogDebug, "UDP Client: stats rtt=", m_RTT, "/", m_RTTVar, "/", m_MinRTT, "ms rto=", GetRTO (),
 				"ms rate=", m_SendRate, "/s window=", GetMaxNumUnackedDatagrams (),
 				" unacked=", m_UnackedDatagrams.size (),
 				" nextSeqn=", m_NextSendPacketNum, " winDrops=", m_NumWindowDrops,
