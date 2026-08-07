@@ -248,6 +248,7 @@ namespace transport
 			i2p::I2NPMessagesHandler m_Handler;
 
 			bool m_IsSending, m_IsReceiving;
+			uint32_t m_NumDroppedOverflow = 0;
 			std::list<std::shared_ptr<I2NPMessage> > m_SendQueue;
 			uint64_t m_NextRouterInfoResendTime; // seconds since epoch
 

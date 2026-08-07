@@ -356,14 +356,20 @@ namespace tunnel
 				if (it.second.first->GetState () == eTunnelStateTestFailed)
 				{
 					it.second.first->SetState (eTunnelStateFailed);
-					std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
-					if (m_OutboundTunnels.size () > 1) // don't fail last tunnel
-						m_OutboundTunnels.erase (it.second.first);
-					else
+					bool recreate = false;
 					{
-						it.second.first->SetState (eTunnelStateTestFailed);
-						CreateOutboundTunnel (ts); // create new tunnel immediately because last one failed
+						std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
+						if (m_OutboundTunnels.size () > 1) // don't fail last tunnel
+							m_OutboundTunnels.erase (it.second.first);
+						else
+						{
+							it.second.first->SetState (eTunnelStateTestFailed);
+							recreate = true;
+						}
 					}
+					// zero hops tunnel is created synchronously and locks the same mutex
+					if (recreate)
+						CreateOutboundTunnel (ts); // create new tunnel immediately because last one failed
 				}
 				else if (it.second.first->GetState () != eTunnelStateExpiring)
 					it.second.first->SetState (eTunnelStateTestFailed);
@@ -374,7 +380,7 @@ namespace tunnel
 				{
 					it.second.second->SetState (eTunnelStateFailed);
 					{
-						bool failed = false;
+						bool failed = false, recreate = false;
 						{
 							std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 							if (m_InboundTunnels.size () > 1) // don't fail last tunnel
@@ -385,9 +391,11 @@ namespace tunnel
 							else
 							{
 								it.second.second->SetState (eTunnelStateTestFailed);
-								CreateInboundTunnel (ts); // create new tunnel immediately because last one failed
+								recreate = true;
 							}
 						}
+						if (recreate)
+							CreateInboundTunnel (ts); // create new tunnel immediately because last one failed
 						if (failed && m_LocalDestination)
 							m_LocalDestination->SetLeaseSetUpdated (true);
 					}

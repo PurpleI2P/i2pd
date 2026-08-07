@@ -1706,9 +1706,17 @@ namespace transport
 			SendQueue ();
 		else if (m_SendQueue.size () > NTCP2_MAX_OUTGOING_QUEUE_SIZE)
 		{
-			LogPrint (eLogWarning, "NTCP2: Outgoing messages queue size to ",
-				GetIdentHashBase64(), " exceeds ", NTCP2_MAX_OUTGOING_QUEUE_SIZE);
-			Terminate ();
+			// drop the oldest, a slow peer must not cost us the session
+			while (m_SendQueue.size () > NTCP2_MAX_OUTGOING_QUEUE_SIZE)
+			{
+				if (m_SendQueue.front ()) m_SendQueue.front ()->Drop ();
+				m_SendQueue.pop_front ();
+				m_NumDroppedOverflow++;
+			}
+			if (m_NumDroppedOverflow == 1 || !(m_NumDroppedOverflow % 1000))
+				LogPrint (eLogWarning, "NTCP2: Outgoing messages queue size to ",
+					GetIdentHashBase64(), " exceeds ", NTCP2_MAX_OUTGOING_QUEUE_SIZE,
+					", dropped ", m_NumDroppedOverflow, " messages");
 		}
 		SetSendQueueSize (m_SendQueue.size ());
 	}

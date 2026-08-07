@@ -87,10 +87,12 @@ namespace transport
 		m_RemoteVersion (0), m_DestConnID (0), m_SourceConnID (0), m_State (eSSU2SessionStateUnknown),
 		m_SendPacketNum (0), m_ReceivePacketNum (0), m_LastDatetimeSentPacketNum (0),
 		m_IsDataReceived (false), m_IsInvalidMessage (false), m_RTT (SSU2_UNKNOWN_RTT),
+		m_MinRTT (SSU2_UNKNOWN_RTT), m_MinRTTCandidate (SSU2_UNKNOWN_RTT),
 		m_MsgLocalExpirationTimeout (I2NP_MESSAGE_LOCAL_EXPIRATION_TIMEOUT_MAX),
 		m_MsgLocalSemiExpirationTimeout (I2NP_MESSAGE_LOCAL_EXPIRATION_TIMEOUT_MAX / 2),
-		m_WindowSize (SSU2_MIN_WINDOW_SIZE),
-		m_RTO (SSU2_INITIAL_RTO), m_RelayTag (0),m_ConnectTimer (server.GetService ()),
+		m_WindowSize (SSU2_MIN_WINDOW_SIZE), m_MaxWindowSize (SSU2_MIN_MAX_WINDOW_SIZE),
+		m_RTO (SSU2_INITIAL_RTO), m_MinRTTUpdateTime (0), m_DeliveryRateUpdateTime (0),
+		m_NumAckedPackets (0), m_DeliveryRate (0), m_RelayTag (0),m_ConnectTimer (server.GetService ()),
 		m_TerminationReason (eSSU2TerminationReasonNormalClose),
 		m_MaxPayloadSize (SSU2_MAX_PACKET_SIZE - IPV6_HEADER_SIZE - UDP_HEADER_SIZE - 32), // max size
 		m_LastResendTime (0), m_LastResendAttemptTime (0), m_NextRouterInfoResendTime(0),
@@ -631,6 +633,8 @@ namespace transport
 		}
 		// resend data packets
 		if (m_SentPackets.empty ()) return 0;
+		// packet numbers grow with send time, so nothing can be due before the oldest packet is
+		if (ts < m_SentPackets.begin ()->second->sendTime + m_RTO) return 0;
 		std::map<uint32_t, std::shared_ptr<SSU2SentPacket> > resentPackets;
 		for (auto it = m_SentPackets.begin (); it != m_SentPackets.end (); )
 			if (ts >= it->second->sendTime + (it->second->numResends + 1) * m_RTO)
@@ -2020,7 +2024,9 @@ namespace transport
 		// acnt
 		uint32_t ackThrough = bufbe32toh (buf);
 		uint32_t firstPacketNum = ackThrough > buf[4] ? ackThrough - buf[4] : 0;
-		HandleAckRange (firstPacketNum, ackThrough, i2p::util::GetMillisecondsSinceEpoch ()); // acnt
+		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
+		HandleAckRange (firstPacketNum, ackThrough, ts); // acnt
+		UpdateMaxWindowSize (ts);
 		// ranges
 		len -= 5;
 		if (!len || m_SentPackets.empty ()) return; // don't handle ranges if nothing to acknowledge
@@ -2056,6 +2062,24 @@ namespace transport
 						m_RTT = SSU2_RTT_EWMA_ALPHA * rtt + (1.0 - SSU2_RTT_EWMA_ALPHA) * m_RTT;
 					else
 						m_RTT = rtt;
+					if (m_MinRTT == SSU2_UNKNOWN_RTT || rtt < m_MinRTT)
+					{
+						m_MinRTT = rtt;
+						m_MinRTTCandidate = rtt;
+						m_MinRTTUpdateTime = ts;
+					}
+					else
+					{
+						if (m_MinRTTCandidate == SSU2_UNKNOWN_RTT || rtt < m_MinRTTCandidate) m_MinRTTCandidate = rtt;
+						// windowed minimum: the best sample of the last interval, so a path that got
+						// slower is picked up while our own queueing delay is not taken for path delay
+						if (ts > m_MinRTTUpdateTime + SSU2_MIN_RTT_EXPIRATION_TIMEOUT)
+						{
+							m_MinRTT = m_MinRTTCandidate;
+							m_MinRTTCandidate = SSU2_UNKNOWN_RTT;
+							m_MinRTTUpdateTime = ts;
+						}
+					}
 					m_RTO = m_RTT*SSU2_kAPPA;
 					m_MsgLocalExpirationTimeout = std::max (I2NP_MESSAGE_LOCAL_EXPIRATION_TIMEOUT_MIN,
 						std::min (I2NP_MESSAGE_LOCAL_EXPIRATION_TIMEOUT_MAX,
@@ -2072,9 +2096,31 @@ namespace transport
 		m_SentPackets.erase (it, it1);
 		if (numPackets > 0)
 		{
+			m_NumAckedPackets += numPackets;
 			m_WindowSize += numPackets;
-			if (m_WindowSize > SSU2_MAX_WINDOW_SIZE) m_WindowSize = SSU2_MAX_WINDOW_SIZE;
+			if (m_WindowSize > m_MaxWindowSize) m_WindowSize = m_MaxWindowSize;
 		}
+	}
+
+	void SSU2Session::UpdateMaxWindowSize (uint64_t ts)
+	{
+		if (m_MinRTT == SSU2_UNKNOWN_RTT) return;
+		if (!m_DeliveryRateUpdateTime)
+		{
+			m_DeliveryRateUpdateTime = ts;
+			return;
+		}
+		uint64_t interval = ts - m_DeliveryRateUpdateTime;
+		if (interval < SSU2_DELIVERY_RATE_INTERVAL) return;
+		size_t rate = m_NumAckedPackets * 1000 / interval;
+		m_NumAckedPackets = 0;
+		m_DeliveryRateUpdateTime = ts;
+		m_DeliveryRate = (rate > m_DeliveryRate) ? rate : (3*m_DeliveryRate + rate)/4;
+		// as many packets as fit into the path at its own delay, queueing excluded
+		size_t bdp = SSU2_WINDOW_GAIN * m_DeliveryRate * m_MinRTT / 1000;
+		if (bdp < SSU2_MIN_MAX_WINDOW_SIZE) bdp = SSU2_MIN_MAX_WINDOW_SIZE;
+		if (bdp > SSU2_MAX_WINDOW_SIZE) bdp = SSU2_MAX_WINDOW_SIZE;
+		m_MaxWindowSize = bdp;
 	}
 
 	void SSU2Session::HandleAddress (const uint8_t * buf, size_t len)

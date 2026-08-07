@@ -30,6 +30,7 @@ namespace client
 	{
 		if (!m_LastSession || m_LastSession->Identity.GetLL()[0] != from.GetIdentHash ().GetLL()[0] || (fromPort && fromPort != m_LastSession->RemotePort))
 			m_LastSession = ObtainUDPSession(from, toPort, fromPort);
+		m_LastSession->m_LastReceivedTime = i2p::util::GetMillisecondsSinceEpoch ();
 		boost::system::error_code ec;
 		if (len > 0)
 			m_LastSession->IPSocket.send_to(boost::asio::buffer(buf, len), m_RemoteEndpoint, 0, ec);
@@ -73,6 +74,12 @@ namespace client
 				m_LastSession = it->second;
 			else
 				m_LastSession = nullptr;
+		}
+		if (!m_LastSession)
+		{
+			m_NumRawNoSession++;
+			LogPrint (eLogWarning, "UDP Server: No session for raw datagram from port ", fromPort, " to ", toPort,
+				", dropped, ", m_NumRawNoSession, " total");
 		}
 		if (m_LastSession)
 		{
@@ -147,6 +154,7 @@ namespace client
 
 		auto s = std::make_shared<UDPSession>(boost::asio::ip::udp::endpoint(addr, 0),
 			m_LocalDest, m_RemoteEndpoint, ih, localPort, remotePort);
+		s->SetMaxWindow (m_MaxWindow);
 		std::lock_guard<std::mutex> lock(m_SessionsMutex);
 		m_Sessions.emplace (idx, s);
 		return s;
@@ -165,6 +173,7 @@ namespace client
 			if (seqn >= m_AckTimerSeqn)
 			{
 				m_AckTimerSeqn = 0;
+				m_NumAckTimeoutsInRow = 0;
 				m_AckTimer.cancel ();
 			}
 		}
@@ -178,20 +187,121 @@ namespace client
 			if (it->first > seqn) break;
 			 if (it->first == seqn && m_IsSendingAllowed) // ignore first ack after path change
 			{
-				auto rtt = i2p::util::GetMillisecondsSinceEpoch () - it->second;
-				m_RTT = m_RTT ? (m_RTT + rtt)/2 : rtt;
+				auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+				UpdateRTT (ts - it->second, ts);
+				m_NumAckTimeoutsInRow = 0;
 				acknowledged = true;
 			}
 			it++;
 		}
 		m_UnackedDatagrams.erase (m_UnackedDatagrams.begin (), it);
 		m_IsSendingAllowed = true; // if we recieve ack after path change, now can send new datagrams
-		if (acknowledged && !m_UnackedDatagrams.empty ())
+		if (!m_UnackedDatagrams.empty ())
 		{
-			m_AckTimer.cancel ();
-			m_AckTimerSeqn = 0;
+			// keep the timer armed while anything is unacked, otherwise a full window can't be unblocked
+			if (acknowledged)
+			{
+				m_AckTimer.cancel ();
+				m_AckTimerSeqn = 0;
+			}
 			ScheduleAckTimer (m_UnackedDatagrams.back ().first);
 		}
+	}
+
+	void UDPConnection::UpdateRTT (uint64_t rtt, uint64_t ts)
+	{
+		if (m_RTT)
+		{
+			uint64_t diff = (rtt > m_RTT) ? rtt - m_RTT : m_RTT - rtt;
+			m_RTTVar = (3*m_RTTVar + diff)/4;
+			m_RTT = (7*m_RTT + rtt)/8;
+		}
+		else
+		{
+			m_RTT = rtt;
+			m_RTTVar = rtt/2;
+		}
+		if (!m_MinRTT || rtt < m_MinRTT)
+		{
+			m_MinRTT = rtt;
+			m_MinRTTCandidate = rtt;
+			m_MinRTTUpdateTime = ts;
+		}
+		else
+		{
+			if (!m_MinRTTCandidate || rtt < m_MinRTTCandidate) m_MinRTTCandidate = rtt;
+			// windowed minimum: the best sample of the last interval, so a path that got slower
+			// is picked up while our own queueing delay is not mistaken for path delay
+			if (ts > m_MinRTTUpdateTime + I2P_UDP_MIN_RTT_EXPIRATION_TIMEOUT)
+			{
+				m_MinRTT = m_MinRTTCandidate;
+				m_MinRTTCandidate = 0;
+				m_MinRTTUpdateTime = ts;
+			}
+		}
+	}
+
+	void UDPConnection::UpdateSendRate (uint32_t numDatagrams, uint64_t ts)
+	{
+		m_NumSentSinceRateUpdate += numDatagrams;
+		if (!m_SendRateUpdateTime)
+		{
+			m_SendRateUpdateTime = ts;
+			return;
+		}
+		uint64_t interval = ts - m_SendRateUpdateTime;
+		if (interval < I2P_UDP_SEND_RATE_INTERVAL) return;
+		uint32_t rate = m_NumSentSinceRateUpdate * 1000 / interval;
+		m_NumSentSinceRateUpdate = 0;
+		m_SendRateUpdateTime = ts;
+		// a window sized from the current rate shrinks as soon as the rate dips, which shrinks
+		// the rate further, so keep the best rate of the last few seconds instead
+		if (rate >= m_SendRate || ts > m_SendRateMaxTime + I2P_UDP_SEND_RATE_EXPIRATION_TIMEOUT)
+		{
+			m_SendRate = rate;
+			m_SendRateMaxTime = ts;
+		}
+	}
+
+	size_t UDPConnection::GetMaxNumUnackedDatagrams () const
+	{
+		if (!m_MinRTT || !m_SendRate) return I2P_UDP_MIN_MAX_NUM_UNACKED_DATAGRAMS;
+		// an ack can't arrive sooner than one path delay plus one repliable interval,
+		// so that's how much data the path holds when it's not queueing
+		size_t w = I2P_UDP_WINDOW_GAIN * m_SendRate * (m_MinRTT + I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL) / 1000;
+		if (w < I2P_UDP_MIN_MAX_NUM_UNACKED_DATAGRAMS) w = I2P_UDP_MIN_MAX_NUM_UNACKED_DATAGRAMS;
+		if (w > m_MaxWindow) w = m_MaxWindow;
+		return w;
+	}
+
+	bool UDPConnection::IsWindowFull () const
+	{
+		return !m_UnackedDatagrams.empty () &&
+			m_NextSendPacketNum > m_UnackedDatagrams.front ().first + GetMaxNumUnackedDatagrams ();
+	}
+
+	void UDPConnection::ExpireUnackedDatagrams (uint64_t ts)
+	{
+		// an ack this old is never coming, and while it stays the window base it blocks the tunnel for good
+		while (!m_UnackedDatagrams.empty () &&
+			ts > m_UnackedDatagrams.front ().second + I2P_UDP_MAX_UNACKED_DATAGRAM_TIME)
+			m_UnackedDatagrams.pop_front ();
+	}
+
+	uint64_t UDPConnection::GetRTO () const
+	{
+		if (!m_RTT) return I2P_UDP_MAX_UNACKED_DATAGRAM_TIME;
+		uint64_t rto = m_RTT + 4*m_RTTVar;
+		if (rto < I2P_UDP_MIN_ACK_TIMEOUT) rto = I2P_UDP_MIN_ACK_TIMEOUT;
+		if (rto > I2P_UDP_MAX_UNACKED_DATAGRAM_TIME) rto = I2P_UDP_MAX_UNACKED_DATAGRAM_TIME;
+		return rto;
+	}
+
+	uint64_t UDPConnection::GetWindowProbeInterval () const
+	{
+		// an ack can't come back sooner than one RTT, probing more often is pointless
+		if (!m_RTT) return GetRTO ();
+		return (m_RTT > I2P_UDP_MIN_WINDOW_PROBE_INTERVAL) ? m_RTT : I2P_UDP_MIN_WINDOW_PROBE_INTERVAL;
 	}
 
 	void UDPConnection::ScheduleAckTimer (uint32_t seqn)
@@ -199,24 +309,48 @@ namespace client
 		if (!m_AckTimerSeqn)
 		{
 			m_AckTimerSeqn = seqn;
-			m_AckTimer.expires_after (std::chrono::milliseconds (m_RTT ? 2*m_RTT : I2P_UDP_MAX_UNACKED_DATAGRAM_TIME));
+			uint32_t shift = m_NumAckTimeoutsInRow;
+			if (shift > I2P_UDP_MAX_NUM_ACK_TIMEOUTS) shift = I2P_UDP_MAX_NUM_ACK_TIMEOUTS;
+			uint64_t timeout = GetRTO () << shift;
+			if (timeout > I2P_UDP_MAX_UNACKED_DATAGRAM_TIME) timeout = I2P_UDP_MAX_UNACKED_DATAGRAM_TIME;
+			m_AckTimer.expires_after (std::chrono::milliseconds (timeout));
 			m_AckTimer.async_wait ([this](const boost::system::error_code& ecode)
 				{
 					if (ecode != boost::asio::error::operation_aborted)
 					{
-						LogPrint (eLogInfo, "UDP Connection: Packet ", m_AckTimerSeqn, " was not acked");
+						auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+						m_NumAckTimeouts++; m_NumAckTimeoutsInRow++;
+						// timeouts alone mean nothing: they are what congestion looks like. only a peer
+						// gone silent proves the path is dead and is worth rebuilding
+						bool resetPath = m_NumAckTimeoutsInRow >= I2P_UDP_MAX_NUM_ACK_TIMEOUTS &&
+							ts > m_LastReceivedTime + I2P_UDP_MAX_UNACKED_DATAGRAM_TIME;
+						bool resetPeerPath = resetPath && ts > m_LastReceivedTime + I2P_UDP_PEER_PATH_RESET_TIMEOUT;
+						LogPrint (eLogWarning, "UDP Connection: Packet ", m_AckTimerSeqn, " was not acked, rtt ",
+							m_RTT, "/", m_RTTVar, "ms, ", m_NumAckTimeoutsInRow, " in a row, ", m_NumAckTimeouts,
+							" total", resetPath ? ", resetting path" : "");
 						if (m_IsFirstPacket) m_IsSendingAllowed = false; // stop sending only if session is not established yet
 						m_AckTimerSeqn = 0;
-						m_RTT = 0;
-						if (!m_UnackedDatagrams.empty ()) ScheduleAckTimer (0); // try again if failed
-						// send empty packet with reset path flag
+						// probe the peer, reset path only after several timeouts in a row
+						uint8_t flags = UDP_SESSION_FLAG_ACK_REQUESTED;
+						if (resetPeerPath) flags |= UDP_SESSION_FLAG_RESET_PATH | UDP_SESSION_FLAG_RESET_SEQN;
 						i2p::util::Mapping options;
-						options.Put (UDP_SESSION_FLAGS, UDP_SESSION_FLAG_RESET_PATH | UDP_SESSION_FLAG_ACK_REQUESTED);
+						options.Put (UDP_SESSION_FLAGS, flags);
+						// the probe must carry a seqn, otherwise the peer acks its stale one
+						// and a full window can never be unblocked
+						options.Put (UDP_SESSION_SEQN, m_NextSendPacketNum);
+						m_NextSendPacketNum++;
+						// only keep probing while real data is outstanding, otherwise probes feed
+						// themselves: each one arms the timer whose timeout sends the next
+						if (!m_UnackedDatagrams.empty ()) ScheduleAckTimer (0);
 						auto session = GetDatagramSession ();
 						if (session)
 						{
-							session->DropSharedRoutingPath ();
-							session->RequestUpdatedLeaseSet (); // in case current leases are dead
+							if (resetPath)
+							{
+								session->DropSharedRoutingPath ();
+								session->RequestUpdatedLeaseSet (); // in case current leases are dead
+								m_NumAckTimeoutsInRow = 0;
+							}
 							m_Destination->SendDatagram (session, nullptr, 0, 0, 0, &options);
 						}
 					}
@@ -246,7 +380,8 @@ namespace client
 	{
 		SetIdentity (to);
 		Start ();
-		IPSocket.set_option (boost::asio::socket_base::receive_buffer_size (I2P_UDP_MAX_MTU ));
+		IPSocket.set_option (boost::asio::socket_base::receive_buffer_size (I2P_UDP_SOCKET_BUFFER_SIZE));
+		IPSocket.set_option (boost::asio::socket_base::send_buffer_size (I2P_UDP_SOCKET_BUFFER_SIZE));
 		IPSocket.non_blocking (true);
 		Receive();
 	}
@@ -262,23 +397,30 @@ namespace client
 	{
 		if(!ecode)
 		{
-			if (!m_UnackedDatagrams.empty () && m_NextSendPacketNum > m_UnackedDatagrams.front ().first + I2P_UDP_MAX_NUM_UNACKED_DATAGRAMS)
+			ExpireUnackedDatagrams (i2p::util::GetMillisecondsSinceEpoch ());
+			bool isWindowFull = IsWindowFull ();
+			if (isWindowFull && i2p::util::GetMillisecondsSinceEpoch () < m_LastWindowProbeTime + GetWindowProbeInterval ())
 			{
 				// window is full, drop packet
+				m_NumWindowDrops++;
+				if (m_NumWindowDrops == 1 || !(m_NumWindowDrops % 100))
+					LogPrint (eLogWarning, "UDP Server: Window full (front=", m_UnackedDatagrams.front ().first,
+						" next=", m_NextSendPacketNum, "), dropped ", m_NumWindowDrops, " packets");
 				Receive ();
 				return;
 			}
 			LogPrint(eLogDebug, "UDPSession: Forward ", len, "B from ", FromEndpoint);
 			auto ts = i2p::util::GetMillisecondsSinceEpoch();
+			if (isWindowFull) m_LastWindowProbeTime = ts;
 			auto session = GetDatagramSession ();
 			uint64_t repliableDatagramInterval = I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL;
 			if (m_RTT && m_RTT >= I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL && m_RTT < I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL*10) repliableDatagramInterval = m_RTT/10; // 10 - 100 ms
-			if (ts > m_LastRepliableDatagramTime + repliableDatagramInterval)
+			if (isWindowFull || ts > m_LastRepliableDatagramTime + repliableDatagramInterval)
 			{
 				if (session->GetVersion () == i2p::datagram::eDatagramV3)
 				{
 					uint8_t flags = 0;
-					if (!m_RTT || !m_AckTimerSeqn || (!m_UnackedDatagrams.empty () &&
+					if (isWindowFull || !m_RTT || !m_AckTimerSeqn || (!m_UnackedDatagrams.empty () &&
 						ts > m_UnackedDatagrams.back ().second + repliableDatagramInterval)) // last ack request
 					{
 						flags |= UDP_SESSION_FLAG_ACK_REQUESTED;
@@ -315,6 +457,7 @@ namespace client
 			if (numPackets > 0)
 				LogPrint(eLogDebug, "UDPSession: Forward more ", numPackets, "packets B from ", FromEndpoint);
 			m_NextSendPacketNum += numPackets + 1;
+			UpdateSendRate (numPackets + 1, ts);
 			m_Destination->FlushSendQueue (session);
 			LastActivity = ts;
 			Receive();
@@ -349,10 +492,44 @@ namespace client
 			std::bind (&I2PUDPServerTunnel::HandleRecvFromI2PRaw, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
 			m_inPort
 		);
+		m_StatsTimer.reset (new boost::asio::steady_timer (m_LocalDest->GetService ()));
+		ScheduleStatsTimer ();
+	}
+
+	void I2PUDPServerTunnel::ScheduleStatsTimer ()
+	{
+		if (m_StatsTimer)
+		{
+			m_StatsTimer->expires_after (std::chrono::seconds (10));
+			m_StatsTimer->async_wait (std::bind (&I2PUDPServerTunnel::HandleStatsTimer,
+				this, std::placeholders::_1));
+		}
+	}
+
+	void I2PUDPServerTunnel::HandleStatsTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			std::lock_guard<std::mutex> lock (m_SessionsMutex);
+			for (const auto& it: m_Sessions)
+			{
+				auto& s = it.second;
+				auto session = s->GetDatagramSession ();
+				LogPrint (eLogWarning, "UDP Server: stats port=", s->RemotePort, " rtt=", s->m_RTT, "/",
+					s->m_RTTVar, "/", s->m_MinRTT, "ms rto=", s->GetRTO (), "ms rate=", s->m_SendRate,
+					"/s window=", s->GetMaxNumUnackedDatagrams (), " unacked=", s->m_UnackedDatagrams.size (),
+					" nextSeqn=", s->m_NextSendPacketNum, " lastRecvSeqn=", s->m_LastReceivedPacketNum,
+					" winDrops=", s->m_NumWindowDrops, " ackTimeouts=", s->m_NumAckTimeouts,
+					" pathDrops=", session ? session->GetNumPathDrops () : 0,
+					" noPathDrops=", session ? session->GetNumDroppedNoPath () : 0);
+			}
+			ScheduleStatsTimer ();
+		}
 	}
 
 	void I2PUDPServerTunnel::Stop ()
 	{
+		if (m_StatsTimer) m_StatsTimer->cancel ();
 		auto dgram = m_LocalDest->GetDatagramDestination ();
 		if (dgram) {
 			dgram->ResetReceiver (m_inPort);
@@ -410,7 +587,8 @@ namespace client
 		if (m_cancel_resolve) m_cancel_resolve = false;
 
 		m_LocalSocket.reset (new boost::asio::ip::udp::socket (m_LocalDest->GetService (), m_LocalEndpoint));
-		m_LocalSocket->set_option (boost::asio::socket_base::receive_buffer_size (I2P_UDP_MAX_MTU));
+		m_LocalSocket->set_option (boost::asio::socket_base::receive_buffer_size (I2P_UDP_SOCKET_BUFFER_SIZE));
+		m_LocalSocket->set_option (boost::asio::socket_base::send_buffer_size (I2P_UDP_SOCKET_BUFFER_SIZE));
 		m_LocalSocket->set_option (boost::asio::socket_base::reuse_address (true));
 		m_LocalSocket->non_blocking (true);
 
@@ -431,11 +609,15 @@ namespace client
 
 		if (m_KeepAliveInterval)
 			ScheduleKeepAliveTimer ();
+
+		m_StatsTimer.reset (new boost::asio::steady_timer (m_LocalDest->GetService ()));
+		ScheduleStatsTimer ();
 	}
 
 	void I2PUDPClientTunnel::Stop ()
 	{
 		if (m_KeepAliveTimer) m_KeepAliveTimer->cancel ();
+		if (m_StatsTimer) m_StatsTimer->cancel ();
 
 		auto dgram = m_LocalDest->GetDatagramDestination ();
 		if (dgram)
@@ -507,9 +689,15 @@ namespace client
 				// else fall through and send new first packet, previous one wasn't acked in time
 			}
 		}
-		if (!m_UnackedDatagrams.empty () && m_NextSendPacketNum > m_UnackedDatagrams.front ().first + I2P_UDP_MAX_NUM_UNACKED_DATAGRAMS)
+		ExpireUnackedDatagrams (i2p::util::GetMillisecondsSinceEpoch ());
+		bool isWindowFull = IsWindowFull ();
+		if (isWindowFull && i2p::util::GetMillisecondsSinceEpoch () < m_LastWindowProbeTime + GetWindowProbeInterval ())
 		{
 			// window is full, drop packet
+			m_NumWindowDrops++;
+			if (m_NumWindowDrops == 1 || !(m_NumWindowDrops % 100))
+				LogPrint (eLogWarning, "UDP Client: Window full (front=", m_UnackedDatagrams.front ().first,
+					" next=", m_NextSendPacketNum, "), dropped ", m_NumWindowDrops, " packets");
 			RecvFromLocal ();
 			return;
 		}
@@ -529,16 +717,17 @@ namespace client
 		}
 		// send off to remote i2p destination
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		if (isWindowFull) m_LastWindowProbeTime = ts;
 		LogPrint (eLogDebug, "UDP Client: Send ", transferred, " to ", Identity.ToBase32 (), ":", RemotePort);
 		auto session = GetDatagramSession ();
 		uint64_t repliableDatagramInterval = I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL;
 		if (m_RTT && m_RTT >= I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL && m_RTT < I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL*10) repliableDatagramInterval = m_RTT/10; // 10 - 100 ms
-		if (ts > m_LastRepliableDatagramTime + repliableDatagramInterval)
+		if (isWindowFull || ts > m_LastRepliableDatagramTime + repliableDatagramInterval)
 		{
 			if (m_DatagramVersion == i2p::datagram::eDatagramV3)
 			{
 				uint8_t flags = 0;
-				if (!m_RTT || !m_AckTimerSeqn || (!m_UnackedDatagrams.empty () &&
+				if (isWindowFull || !m_RTT || !m_AckTimerSeqn || (!m_UnackedDatagrams.empty () &&
 					ts > m_UnackedDatagrams.back ().second + repliableDatagramInterval)) // last ack request
 				{
 					flags |= UDP_SESSION_FLAG_ACK_REQUESTED;
@@ -577,6 +766,7 @@ namespace client
 		if (numPackets)
 			LogPrint (eLogDebug, "UDP Client: Sent ", numPackets, " more packets to ", Identity.ToBase32 ());
 		m_NextSendPacketNum += numPackets + 1;
+		UpdateSendRate (numPackets + 1, ts);
 		m_Destination->FlushSendQueue (session);
 
 		// mark convo as active
@@ -627,6 +817,7 @@ namespace client
 	{
 		if (isIdentity && from.GetIdentHash() == Identity)
 		{
+			m_LastReceivedTime = i2p::util::GetMillisecondsSinceEpoch ();
 			if (options)
 			{
 				uint32_t seqn = 0;
@@ -658,6 +849,7 @@ namespace client
 
 	void I2PUDPClientTunnel::HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
 	{
+		m_LastReceivedTime = i2p::util::GetMillisecondsSinceEpoch ();
 		std::shared_ptr<UDPConvo> convo;
 		{
 			std::lock_guard<std::mutex> lock (m_SessionsMutex);
@@ -709,6 +901,32 @@ namespace client
 			if (i2p::util::GetMillisecondsSinceEpoch () > m_LastRepliableDatagramTime + m_KeepAliveInterval*1000)
 				HandleRecvFromLocal (boost::system::error_code(), 0); // send empty packet like it was received from local
 			ScheduleKeepAliveTimer ();
+		}
+	}
+
+	void I2PUDPClientTunnel::ScheduleStatsTimer ()
+	{
+		if (m_StatsTimer)
+		{
+			m_StatsTimer->expires_after (std::chrono::seconds (10));
+			m_StatsTimer->async_wait (std::bind (&I2PUDPClientTunnel::HandleStatsTimer,
+				this, std::placeholders::_1));
+		}
+	}
+
+	void I2PUDPClientTunnel::HandleStatsTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			auto session = GetDatagramSession ();
+			LogPrint (eLogWarning, "UDP Client: stats rtt=", m_RTT, "/", m_RTTVar, "/", m_MinRTT, "ms rto=", GetRTO (),
+				"ms rate=", m_SendRate, "/s window=", GetMaxNumUnackedDatagrams (),
+				" unacked=", m_UnackedDatagrams.size (),
+				" nextSeqn=", m_NextSendPacketNum, " winDrops=", m_NumWindowDrops,
+				" ackTimeouts=", m_NumAckTimeouts,
+				" pathDrops=", session ? session->GetNumPathDrops () : 0,
+				" noPathDrops=", session ? session->GetNumDroppedNoPath () : 0);
+			ScheduleStatsTimer ();
 		}
 	}
 }

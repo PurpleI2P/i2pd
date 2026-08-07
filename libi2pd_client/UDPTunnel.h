@@ -32,11 +32,23 @@ namespace client
 	const uint64_t I2P_UDP_SESSION_TIMEOUT = 1000 * 60 * 2;
 	const uint64_t I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL = 100; // in milliseconds
 	const uint64_t I2P_UDP_MAX_UNACKED_DATAGRAM_TIME = 8000; // in milliseconds
+	const uint64_t I2P_UDP_MIN_ACK_TIMEOUT = 500; // in milliseconds
+	const uint64_t I2P_UDP_MIN_WINDOW_PROBE_INTERVAL = 50; // in milliseconds
 	const uint64_t I2P_UDP_FIRST_PACKET_RESEND_INTERVAL = 1000; // in milliseconds
-	const size_t I2P_UDP_MAX_NUM_UNACKED_DATAGRAMS = 500;
+	const size_t I2P_UDP_MIN_MAX_NUM_UNACKED_DATAGRAMS = 500;
+	const size_t I2P_UDP_MAX_NUM_UNACKED_DATAGRAMS = 8192;
+	const size_t I2P_UDP_WINDOW_GAIN = 2; // how many bandwidth-delay products window is allowed to reach
+	const uint64_t I2P_UDP_MIN_RTT_EXPIRATION_TIMEOUT = 15000; // in milliseconds
+	const uint64_t I2P_UDP_SEND_RATE_INTERVAL = 200; // in milliseconds
+	const uint64_t I2P_UDP_SEND_RATE_EXPIRATION_TIMEOUT = 5000; // in milliseconds
+	const uint32_t I2P_UDP_MAX_NUM_ACK_TIMEOUTS = 3; // in a row, before routing path gets reset
+	// asking the peer to drop its return path costs us every ack until it rebuilds one, so it's a last resort
+	const uint64_t I2P_UDP_PEER_PATH_RESET_TIMEOUT = 4*I2P_UDP_MAX_UNACKED_DATAGRAM_TIME; // silence, in milliseconds
 
 	/** max size for i2p udp */
 	const size_t I2P_UDP_MAX_MTU = 64*1024;
+	/** local socket buffers, not datagram size */
+	const size_t I2P_UDP_SOCKET_BUFFER_SIZE = 4*1024*1024;
 
 	struct UDPConnection
 	{
@@ -47,16 +59,25 @@ namespace client
 		bool isIdentity = false;
 		uint32_t m_NextSendPacketNum = 1, m_LastReceivedPacketNum = 0;
 		std::list<std::pair<uint32_t, uint64_t> > m_UnackedDatagrams; // list of sent but not acked repliable datagrams(seqn, timestamp) in ascending order
-		uint64_t m_RTT = 0; // milliseconds
+		uint64_t m_RTT = 0, m_RTTVar = 0; // milliseconds, smoothed
+		uint64_t m_MinRTT = 0, m_MinRTTCandidate = 0, m_MinRTTUpdateTime = 0; // m_MinRTT is path delay, without queueing
+		uint64_t m_LastReceivedTime = 0; // milliseconds, anything from the peer
+		uint64_t m_SendRateUpdateTime = 0, m_SendRateMaxTime = 0; // milliseconds
+		uint32_t m_NumSentSinceRateUpdate = 0, m_SendRate = 0; // datagrams per second, best of the last few seconds
+		size_t m_MaxWindow = I2P_UDP_MIN_MAX_NUM_UNACKED_DATAGRAMS;
 
 		boost::asio::steady_timer m_AckTimer;
 		uint32_t m_AckTimerSeqn = 0;
 		bool m_IsSendingAllowed = true;
 		bool m_IsFirstPacket = true;
+		uint32_t m_NumAckTimeoutsInRow = 0;
+		uint64_t m_LastWindowProbeTime = 0; // milliseconds
+		uint32_t m_NumWindowDrops = 0, m_NumAckTimeouts = 0;
 
 		UDPConnection (boost::asio::io_context& service, std::shared_ptr<i2p::datagram::DatagramDestination> destination):
 			m_Destination (destination), m_LastRepliableDatagramTime (0), m_AckTimer (service) {};
 		void SetIdentity (const i2p::data::IdentHash& ident) { Identity = ident; isIdentity = true; };
+		void SetMaxWindow (size_t w) { m_MaxWindow = w; };
 
 		virtual ~UDPConnection () { Stop (); };
 		virtual void Start () {};
@@ -64,6 +85,13 @@ namespace client
 
 		void Acked (uint32_t seqn);
 		void ScheduleAckTimer (uint32_t seqn);
+		void UpdateRTT (uint64_t rtt, uint64_t ts);
+		void UpdateSendRate (uint32_t numDatagrams, uint64_t ts);
+		uint64_t GetRTO () const;
+		uint64_t GetWindowProbeInterval () const;
+		size_t GetMaxNumUnackedDatagrams () const;
+		bool IsWindowFull () const;
+		void ExpireUnackedDatagrams (uint64_t ts);
 
 		std::shared_ptr<i2p::datagram::DatagramSession> GetDatagramSession ();
 	};
@@ -132,6 +160,7 @@ namespace client
 			std::shared_ptr<ClientDestination> GetLocalDestination () const { return m_LocalDest; }
 
 			void SetUniqueLocal (bool isUniqueLocal = true) { m_IsUniqueLocal = isUniqueLocal; }
+			void SetMaxWindow (size_t w) { m_MaxWindow = w; }
 
 		private:
 
@@ -140,6 +169,9 @@ namespace client
 			void HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			UDPSessionPtr ObtainUDPSession (const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort);
 			uint32_t GetSessionIndex (uint16_t fromPort, uint16_t toPort) const { return ((uint32_t)fromPort << 16) + toPort; }
+
+			void ScheduleStatsTimer ();
+			void HandleStatsTimer (const boost::system::error_code& ecode);
 
 		private:
 
@@ -153,6 +185,9 @@ namespace client
 			UDPSessionPtr m_LastSession;
 			uint16_t m_inPort;
 			bool m_Gzip;
+			uint32_t m_NumRawNoSession = 0;
+			size_t m_MaxWindow = I2P_UDP_MIN_MAX_NUM_UNACKED_DATAGRAMS;
+			std::unique_ptr<boost::asio::steady_timer> m_StatsTimer;
 
 		public:
 
@@ -199,6 +234,9 @@ namespace client
 			void ScheduleKeepAliveTimer ();
 			void HandleKeepAliveTimer (const boost::system::error_code& ecode);
 
+			void ScheduleStatsTimer ();
+			void HandleStatsTimer (const boost::system::error_code& ecode);
+
 		private:
 
 			const std::string m_Name;
@@ -218,6 +256,7 @@ namespace client
 			std::shared_ptr<UDPConvo> m_LastSession;
 			uint32_t m_KeepAliveInterval = 0;
 			std::unique_ptr<boost::asio::steady_timer> m_KeepAliveTimer;
+			std::unique_ptr<boost::asio::steady_timer> m_StatsTimer;
 
 		public:
 

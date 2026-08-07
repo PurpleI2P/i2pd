@@ -49,7 +49,11 @@ namespace transport
 	const int SSU2_ROUTERINFO_RESEND_INTERVAL = 20*60*1000; // in milliseconds
 	const int SSU2_ROUTERINFO_RESEND_INTERVAL_VARIANCE = 30*60*1000; // in milliseconds
 	const size_t SSU2_MIN_WINDOW_SIZE = 16; // in packets
-	const size_t SSU2_MAX_WINDOW_SIZE = 256; // in packets
+	const size_t SSU2_MIN_MAX_WINDOW_SIZE = 256; // in packets
+	const size_t SSU2_MAX_WINDOW_SIZE = 2048; // in packets
+	const size_t SSU2_WINDOW_GAIN = 2; // how many bandwidth-delay products window is allowed to reach
+	const uint64_t SSU2_MIN_RTT_EXPIRATION_TIMEOUT = 15000; // in milliseconds
+	const uint64_t SSU2_DELIVERY_RATE_INTERVAL = 200; // in milliseconds
 	const size_t SSU2_MIN_RTO = 100; // in milliseconds
 	const size_t SSU2_INITIAL_RTO = 540; // in milliseconds
 	const size_t SSU2_MAX_RTO = 2500; // in milliseconds
@@ -349,6 +353,7 @@ namespace transport
 			void HandleRouterInfo (const uint8_t * buf, size_t len);
 			void HandleAck (const uint8_t * buf, size_t len);
 			void HandleAckRange (uint32_t firstPacketNum, uint32_t lastPacketNum, uint64_t ts);
+			void UpdateMaxWindowSize (uint64_t ts);
 			virtual void HandleAddress (const uint8_t * buf, size_t len);
 			size_t CreateEndpoint (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep);
 			std::shared_ptr<const i2p::data::RouterInfo::Address> FindLocalAddress () const;
@@ -403,10 +408,12 @@ namespace transport
 			std::list<std::shared_ptr<I2NPMessage> > m_IntermediateQueue; // from transports
 			mutable std::mutex m_IntermediateQueueMutex;
 			bool m_IsDataReceived, m_IsInvalidMessage;
-			double m_RTT;
+			double m_RTT, m_MinRTT, m_MinRTTCandidate; // m_MinRTT is path propagation delay, without queueing
 			int m_MsgLocalExpirationTimeout;
 			int m_MsgLocalSemiExpirationTimeout;
-			size_t m_WindowSize, m_RTO;
+			size_t m_WindowSize, m_MaxWindowSize, m_RTO;
+			uint64_t m_MinRTTUpdateTime, m_DeliveryRateUpdateTime; // in milliseconds
+			size_t m_NumAckedPackets, m_DeliveryRate; // acked packets per second
 			uint32_t m_RelayTag; // between Bob and Charlie
 			OnEstablished m_OnEstablished; // callback from Established
 			boost::asio::steady_timer m_ConnectTimer;

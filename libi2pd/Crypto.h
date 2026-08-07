@@ -243,6 +243,10 @@ namespace crypto
 			EVP_CIPHER_CTX * m_Ctx;	
 	};
 	
+// random
+
+	uint32_t RandUint32 ();
+
 // HKDF
 
 	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, std::string_view info, uint8_t * out, size_t outLen = 64); // salt - 32, out - 32 or 64, info <= 32

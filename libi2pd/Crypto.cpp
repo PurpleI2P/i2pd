@@ -776,29 +776,59 @@ namespace crypto
 		ChaCha20 (m_Ctx, msg, msgLen, key, nonce, out);
 	}
 
+	uint32_t RandUint32 ()
+	{
+		// RAND_bytes for four bytes at a time costs more than the drawn randomness itself
+		static thread_local uint8_t buf[256];
+		static thread_local size_t offset = sizeof (buf);
+		if (offset + 4 > sizeof (buf))
+		{
+			RAND_bytes (buf, sizeof (buf));
+			offset = 0;
+		}
+		uint32_t v;
+		memcpy (&v, buf + offset, 4);
+		offset += 4;
+		return v;
+	}
+
+	static void HMACSHA256 (const uint8_t * key, size_t keyLen, const uint8_t * buf, size_t len, uint8_t * out)
+	{
+		// a context per call costs an algorithm fetch in openssl 3, and this runs per garlic message
+		static thread_local std::unique_ptr<HMAC_CTX, void (*)(HMAC_CTX *)> ctx (HMAC_CTX_new (), HMAC_CTX_free);
+		unsigned int outLen;
+		HMAC_Init_ex (ctx.get (), key, keyLen, EVP_sha256 (), nullptr);
+		if (len) HMAC_Update (ctx.get (), buf, len);
+		HMAC_Final (ctx.get (), out, &outLen);
+	}
+
 	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, std::string_view info,
 		uint8_t * out, size_t outLen)
 	{
-		EVP_PKEY_CTX * pctx = EVP_PKEY_CTX_new_id (EVP_PKEY_HKDF, nullptr);
-		EVP_PKEY_derive_init (pctx);
-		EVP_PKEY_CTX_set_hkdf_md (pctx, EVP_sha256());
-		if (key && keyLen)
+		uint8_t prk[32];
+		HMACSHA256 (salt, 32, key, keyLen, prk); // extract
+		uint8_t t[32], buf[32 + 64 + 1];
+		size_t offset = 0;
+		for (uint8_t counter = 1; offset < outLen; counter++)
 		{
-			EVP_PKEY_CTX_set1_hkdf_salt (pctx, salt, 32);
-			EVP_PKEY_CTX_set1_hkdf_key (pctx, key, keyLen);
+			size_t len = 0;
+			if (counter > 1)
+			{
+				memcpy (buf, t, 32);
+				len = 32;
+			}
+			if (!info.empty ())
+			{
+				memcpy (buf + len, info.data (), info.length ());
+				len += info.length ();
+			}
+			buf[len] = counter; len++;
+			HMACSHA256 (prk, 32, buf, len, t); // expand
+			size_t l = outLen - offset;
+			if (l > 32) l = 32;
+			memcpy (out + offset, t, l);
+			offset += l;
 		}
-		else
-		{
-			// zerolen
-			EVP_PKEY_CTX_hkdf_mode (pctx, EVP_PKEY_HKDEF_MODE_EXPAND_ONLY);
-			uint8_t tempKey[32]; unsigned int len;
-			HMAC(EVP_sha256(), salt, 32, nullptr, 0, tempKey, &len);
-			EVP_PKEY_CTX_set1_hkdf_key (pctx, tempKey, len);
-		}
-		if (info.length () > 0)
-			EVP_PKEY_CTX_add1_hkdf_info (pctx, (const uint8_t *)info.data (), info.length ());
-		EVP_PKEY_derive (pctx, out, &outLen);
-		EVP_PKEY_CTX_free (pctx);
 	}
 
 // Noise

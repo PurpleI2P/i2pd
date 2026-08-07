@@ -52,7 +52,7 @@ namespace i2p
 	void I2NPMessage::FillI2NPMessageHeader (I2NPMessageType msgType, uint32_t replyMsgID, bool checksum)
 	{
 		SetTypeID (msgType);
-		if (!replyMsgID) RAND_bytes ((uint8_t *)&replyMsgID, 4);
+		if (!replyMsgID) replyMsgID = i2p::crypto::RandUint32 ();
 		SetMsgID (replyMsgID);
 		SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + I2NP_MESSAGE_EXPIRATION_TIMEOUT);
 		UpdateSize ();
@@ -61,9 +61,7 @@ namespace i2p
 
 	void I2NPMessage::RenewI2NPMessageHeader ()
 	{
-		uint32_t msgID;
-		RAND_bytes ((uint8_t *)&msgID, 4);
-		SetMsgID (msgID);
+		SetMsgID (i2p::crypto::RandUint32 ());
 		SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + I2NP_MESSAGE_EXPIRATION_TIMEOUT);
 	}
 
