@@ -1706,7 +1706,7 @@ namespace transport
 			SendQueue ();
 		else if (m_SendQueue.size () > NTCP2_MAX_OUTGOING_QUEUE_SIZE)
 		{
-			// drop the oldest, a slow peer must not cost us the session
+			// drop the oldest instead of terminating the session
 			while (m_SendQueue.size () > NTCP2_MAX_OUTGOING_QUEUE_SIZE)
 			{
 				if (m_SendQueue.front ()) m_SendQueue.front ()->Drop ();
