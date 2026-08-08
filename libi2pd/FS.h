@@ -139,6 +139,8 @@ namespace fs {
 	 */
 	bool Remove(const std::string & path);
 
+	bool Rename (std::string_view from, std::string_view to);
+
 	/**
 	 * @brief Check existence of file
 	 * @param path Absolute path to file

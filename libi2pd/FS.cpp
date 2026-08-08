@@ -281,6 +281,20 @@ namespace fs {
 		return fs_lib::remove(path);
 	}
 
+	bool Rename (std::string_view from, std::string_view to)
+	{
+		try
+		{
+			fs_lib::rename (from, to);
+		}
+		catch (std::exception& ex)
+		{
+			LogPrint (eLogError, "FS: Can't rename from ", from, " to ", to, " : ", ex.what());
+			return false;
+		}
+		return true;
+	}
+
 	bool CreateAndReserveFile (const std::string& path, size_t reserve)
 	{
 		if (fs_lib::exists(path)) return false;
