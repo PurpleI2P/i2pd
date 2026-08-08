@@ -557,6 +557,8 @@ namespace torrents
 
 	void PeerConnection::ReceiveHandshake ()
 	{
+		LogPrint (eLogDebug, "Torrents: Incoming connection from ", m_Stream->GetRemoteIdentity () ?
+			(m_Stream->GetRemoteIdentity ()->GetIdentHash ().ToBase32 () + ".b32.i2p") : "");
 		StreamReceive ();
 	}
 
@@ -779,19 +781,17 @@ namespace torrents
 			if (m_NumRequests < MAX_NUM_REQUESTS && m_Torrent && !m_Torrent->IsComplete ())
 			{
 				Piece& piece = m_Torrent->GetPiece (index);
-				if (!piece.IsComplete ())
+				if (!piece.IsComplete () && !piece.IsRequested ())
 				{
+					// new piece that was not requested yet
 					SendInterestedMsg ();
-					if (!piece.IsRequested ())
+					if (!m_IsChoked)
 					{
-						// new piece that was not requested yet
 						auto [offset, len] = piece.GetNextBlockToRequest ();
 						if (len > 0)
 							SendRequestMsg (index, offset, len);
 					}
 				}
-				else
-					SendNotinterestedMsg ();
 			}
 		}
 	}
@@ -833,7 +833,7 @@ namespace torrents
 		}
 		if (isInterested)
 			SendInterestedMsg ();
-		else
+		else if (m_Torrent->IsComplete ())
 			SendNotinterestedMsg ();
 	}
 
@@ -1051,8 +1051,11 @@ namespace torrents
 			SendRequestMsg (index, offset, len);
 			m_NumRequests++;
 		}
-		else
+		else if (m_LastRequestedPieceIndex >= 0)
+		{
 			m_LastRequestedPieceIndex = -1; // no request
+			SendNotinterestedMsg ();
+		}
 		return len > 0;
 	}
 
