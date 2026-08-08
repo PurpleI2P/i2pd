@@ -47,6 +47,7 @@ namespace torrents
 	constexpr int PEER_KEEP_SEND_INTERVAL = 95; // in seconds
 	constexpr int PEER_KEEP_ALIVE_CHECK_INTERVAL = 15; // in seconds
 	constexpr size_t MAX_NUM_REQUESTS = 8;
+	constexpr size_t MAX_NUM_PIECES = 4;
 	constexpr int PIECE_INACTIVITY_TIMEOUT = 60; // in seconds
 	constexpr int TORRENTS_STATUS_UPDATE_INTERVAL = 25; // in seconds
 
@@ -240,9 +241,8 @@ namespace torrents
 			boost::dynamic_bitset<> m_RemoteBitfield;
 			bool m_IsHandshakeSent, m_IsEstablished, m_IsChoked;
 			uint64_t m_LastReceiveTime, m_LastSendTime; // monotonic seconds
-			size_t m_NumRequests; // outgoing
+			size_t m_NumRequests, m_NumPieces; // outgoing
 			std::list<RequestedBlock> m_IncomingRequestsQueue;
-			bool m_IsSendingPieceMsg;
 			int m_LastRequestedPieceIndex;
 	};
 

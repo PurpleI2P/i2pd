@@ -500,7 +500,7 @@ namespace torrents
 	PeerConnection::PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream):
 		i2p::client::I2PServiceHandler (owner), m_Stream (stream), m_ReceiveBufferOffset (0),
 		m_IsHandshakeSent (false), m_IsEstablished (false), m_IsChoked (true),
-		m_LastReceiveTime (0), m_LastSendTime (0), m_NumRequests (0), m_IsSendingPieceMsg (false),
+		m_LastReceiveTime (0), m_LastSendTime (0), m_NumRequests (0), m_NumPieces (0),
 		 m_LastRequestedPieceIndex (-1)
 	{
 	}
@@ -833,8 +833,6 @@ namespace torrents
 		}
 		if (isInterested)
 			SendInterestedMsg ();
-		else if (m_Torrent->IsComplete ())
-			SendNotinterestedMsg ();
 	}
 
 	void PeerConnection::SendBitfieldMsg (const uint8_t * bitfield, size_t bitfieldLen)
@@ -910,14 +908,14 @@ namespace torrents
 		htobe32buf (sendBuffer.data () + 9, offset);
 		memcpy (sendBuffer.data () + 13, data, len);
 		LogPrint (eLogDebug, "Torrents: Sending piece index ", index, " offset ", offset, " length ", len);
-		m_IsSendingPieceMsg = true;
+		m_NumPieces++;
 		m_Stream->AsyncSend (sendBuffer.data (), sendBuffer.size (),
 			[s = shared_from_this ()](const boost::system::error_code& ecode, size_t bytes_transferred)
 			{
-				s->m_IsSendingPieceMsg = false;
+				if (s->m_NumPieces > 0) s->m_NumPieces--;
 				if (!ecode)
 				{
-					if (!s->m_IncomingRequestsQueue.empty ())
+					while (!s->m_IncomingRequestsQueue.empty () && s->m_NumPieces < MAX_NUM_PIECES)
 					{
 						s->SendRequestedBlock (s->m_IncomingRequestsQueue.front ());
 						s->m_IncomingRequestsQueue.pop_front ();
@@ -951,7 +949,7 @@ namespace torrents
 			Piece& piece = m_Torrent->GetPiece (index);
 			if (piece.HasBlock (offset))
 			{
-				if (m_IsSendingPieceMsg)
+				if (m_NumPieces >= MAX_NUM_PIECES)
 					 m_IncomingRequestsQueue.emplace_back (index, offset, length);
 				else if (!SendRequestedBlock ({index, offset, length})) // block was not sent
 				{
@@ -966,7 +964,7 @@ namespace torrents
 							boost::asio::post (s->GetTorrentsTunnel ()->GetService (),
 								[requestedBlock = RequestedBlock{index, offset, length}, s]()
 								{
-									if (!s->m_IsSendingPieceMsg)
+									if (s->m_NumPieces < MAX_NUM_PIECES)
 										s->SendRequestedBlock (requestedBlock);
 									else
 										s->m_IncomingRequestsQueue.emplace_back (std::move (requestedBlock));
