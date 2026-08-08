@@ -84,9 +84,12 @@ namespace datagram
 			DatagramVersion GetVersion () const { return m_Version; }
 			void SetVersion (DatagramVersion version) { m_Version = version; }
 
-			void DropSharedRoutingPath () { if (m_RoutingSession) m_RoutingSession->SetSharedRoutingPath (nullptr); }
+			void DropSharedRoutingPath () { if (m_RoutingSession) { m_RoutingSession->SetSharedRoutingPath (nullptr); m_NumPathDrops++; } }
 			// request LeaseSet update from floodfill in case our copy contains dead leases
 			void RequestUpdatedLeaseSet ();
+
+			uint32_t GetNumPathDrops () const { return m_NumPathDrops; }
+			uint32_t GetNumDroppedNoPath () const { return m_NumDroppedNoPath; }
 
 		struct Info
 		{
@@ -123,6 +126,7 @@ namespace datagram
 			uint64_t m_LastUse, m_LastFlush; // milliseconds
 			bool m_RequestingLS;
 			DatagramVersion m_Version;
+			uint32_t m_NumPathDrops = 0, m_NumDroppedNoPath = 0;
 	};
 
 	typedef std::shared_ptr<DatagramSession> DatagramSession_ptr;

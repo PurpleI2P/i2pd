@@ -785,6 +785,12 @@ namespace datagram
 				routingPath->outboundTunnel->SendTunnelDataMsgs(send);
 			}
 		}
+		else
+		{
+			m_NumDroppedNoPath += m_SendQueue.size ();
+			LogPrint (eLogWarning, "Datagram: No routing path, dropped ", m_SendQueue.size (), " messages, ",
+				m_NumDroppedNoPath, " total");
+		}
 		m_SendQueue.clear();
 	}
 }
