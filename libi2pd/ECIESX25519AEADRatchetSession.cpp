@@ -1123,7 +1123,7 @@ namespace garlic
 
 		htobe32buf (m->GetPayload (), len);
 		m->len += len + 4;
-		m->FillI2NPMessageHeader (eI2NPGarlic);
+		m->FillI2NPMessageHeader (eI2NPGarlic, GetOwner ()->GetRng ()());
 		return m;
 	}
 

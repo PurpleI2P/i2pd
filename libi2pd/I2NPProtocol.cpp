@@ -49,22 +49,14 @@ namespace i2p
 		return NewI2NPMessage ();
 	}
 
-	void I2NPMessage::FillI2NPMessageHeader (I2NPMessageType msgType, uint32_t replyMsgID, bool checksum)
+	void I2NPMessage::FillI2NPMessageHeader (I2NPMessageType msgType, uint32_t msgID, bool checksum)
 	{
 		SetTypeID (msgType);
-		if (!replyMsgID) RAND_bytes ((uint8_t *)&replyMsgID, 4);
-		SetMsgID (replyMsgID);
+		if (!msgID) RAND_bytes ((uint8_t *)&msgID, 4);
+		SetMsgID (msgID);
 		SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + I2NP_MESSAGE_EXPIRATION_TIMEOUT);
 		UpdateSize ();
 		if (checksum) UpdateChks ();
-	}
-
-	void I2NPMessage::RenewI2NPMessageHeader ()
-	{
-		uint32_t msgID;
-		RAND_bytes ((uint8_t *)&msgID, 4);
-		SetMsgID (msgID);
-		SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + I2NP_MESSAGE_EXPIRATION_TIMEOUT);
 	}
 
 	bool I2NPMessage::IsExpired (uint64_t ts) const

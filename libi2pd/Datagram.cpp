@@ -474,7 +474,7 @@ namespace datagram
 			htobe16buf (buf + 6, toPort); // destination port
 			buf[9] = protocolType; // raw or datagram protocol
 			msg->len += size + 4;
-			msg->FillI2NPMessageHeader (eI2NPData, 0, checksum);
+			msg->FillI2NPMessageHeader (eI2NPData, m_Owner->GetRng ()(), checksum);
 		}
 		else
 			msg = nullptr;

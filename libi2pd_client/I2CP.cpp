@@ -252,7 +252,7 @@ namespace client
 		htobe32buf (buf, len);
 		memcpy (buf + 4, payload, len);
 		msg->len += len + 4;
-		msg->FillI2NPMessageHeader (eI2NPData);
+		msg->FillI2NPMessageHeader (eI2NPData, GetRng ()());
 		auto remote = FindLeaseSet (ident);
 		if (remote)
 		{
@@ -393,7 +393,7 @@ namespace client
 		htobe32buf (buf, len);
 		memcpy (buf + 4, payload, len);
 		msg->len += len + 4;
-		msg->FillI2NPMessageHeader (eI2NPData);
+		msg->FillI2NPMessageHeader (eI2NPData, GetRng ()());
 		// wrap in gralic
 		auto garlic = remoteSession->WrapSingleMessage (msg);
 		// send

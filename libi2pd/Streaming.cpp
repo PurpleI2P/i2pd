@@ -2513,7 +2513,7 @@ namespace stream
 			htobe16buf (buf + 6, toPort); // destination port
 			buf[9] = i2p::client::PROTOCOL_TYPE_STREAMING; // streaming protocol
 			msg->len += size;
-			msg->FillI2NPMessageHeader (eI2NPData, 0, checksum);
+			msg->FillI2NPMessageHeader (eI2NPData, m_Owner->GetRng ()(), checksum);
 		}
 		else
 			msg = nullptr;
