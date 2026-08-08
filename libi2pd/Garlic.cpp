@@ -1067,7 +1067,7 @@ namespace garlic
 	uint64_t GarlicDestination::AddECIESx25519SessionNextTag (ReceiveRatchetTagSetPtr tagset)
 	{
 		auto index = tagset->GetNextIndex ();
-		uint64_t tag = tagset->GetNextSessionTag ();
+		uint64_t tag = tagset->GetNextSessionTag (m_HKDFContext);
 		if (tag)
 			m_ECIESx25519Tags.emplace (tag, ECIESX25519AEADRatchetIndexTagset{index, tagset});
 		return tag;

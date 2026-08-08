@@ -779,26 +779,42 @@ namespace crypto
 	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, std::string_view info,
 		uint8_t * out, size_t outLen)
 	{
-		EVP_PKEY_CTX * pctx = EVP_PKEY_CTX_new_id (EVP_PKEY_HKDF, nullptr);
-		EVP_PKEY_derive_init (pctx);
-		EVP_PKEY_CTX_set_hkdf_md (pctx, EVP_sha256());
+		HKDFContext ctx;
+		ctx (salt, key, keyLen, info, out, outLen);
+	}
+
+	HKDFContext::HKDFContext ()
+	{
+		m_Ctx = EVP_PKEY_CTX_new_id (EVP_PKEY_HKDF, nullptr);
+	}
+
+	HKDFContext::~HKDFContext ()
+	{
+		if (m_Ctx)
+			EVP_PKEY_CTX_free (m_Ctx);
+	}
+
+	void HKDFContext::operator ()(const uint8_t * salt, const uint8_t * key, size_t keyLen,
+		std::string_view info, uint8_t * out, size_t outLen)
+	{
+		EVP_PKEY_derive_init (m_Ctx);
+		EVP_PKEY_CTX_set_hkdf_md (m_Ctx, EVP_sha256());
 		if (key && keyLen)
 		{
-			EVP_PKEY_CTX_set1_hkdf_salt (pctx, salt, 32);
-			EVP_PKEY_CTX_set1_hkdf_key (pctx, key, keyLen);
+			EVP_PKEY_CTX_set1_hkdf_salt (m_Ctx, salt, 32);
+			EVP_PKEY_CTX_set1_hkdf_key (m_Ctx, key, keyLen);
 		}
 		else
 		{
 			// zerolen
-			EVP_PKEY_CTX_hkdf_mode (pctx, EVP_PKEY_HKDEF_MODE_EXPAND_ONLY);
+			EVP_PKEY_CTX_hkdf_mode (m_Ctx, EVP_PKEY_HKDEF_MODE_EXPAND_ONLY);
 			uint8_t tempKey[32]; unsigned int len;
 			HMAC(EVP_sha256(), salt, 32, nullptr, 0, tempKey, &len);
-			EVP_PKEY_CTX_set1_hkdf_key (pctx, tempKey, len);
+			EVP_PKEY_CTX_set1_hkdf_key (m_Ctx, tempKey, len);
 		}
 		if (info.length () > 0)
-			EVP_PKEY_CTX_add1_hkdf_info (pctx, (const uint8_t *)info.data (), info.length ());
-		EVP_PKEY_derive (pctx, out, &outLen);
-		EVP_PKEY_CTX_free (pctx);
+			EVP_PKEY_CTX_add1_hkdf_info (m_Ctx, (const uint8_t *)info.data (), info.length ());
+		EVP_PKEY_derive (m_Ctx, out, &outLen);
 	}
 
 // Noise

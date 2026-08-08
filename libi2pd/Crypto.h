@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2025, The PurpleI2P Project
+* Copyright (c) 2013-2026, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -46,7 +46,7 @@ namespace crypto
 	EVP_PKEY * CreateDSA (BIGNUM * pubKey = nullptr, BIGNUM * privKey = nullptr);
 #else
 	DSA * CreateDSA ();
-#endif	
+#endif
 
 	// RSA
 	const BIGNUM * GetRSAE ();
@@ -89,21 +89,21 @@ namespace crypto
 
 	// AES
 	typedef i2p::data::Tag<32> AESKey;
-	
+
 	class ECBEncryption
 	{
 		public:
 
 			ECBEncryption ();
 			~ECBEncryption ();
-			
+
 			void SetKey (const uint8_t * key) { m_Key = key; };
 			void Encrypt(const uint8_t * in, uint8_t * out);
 
 		private:
 
 			AESKey m_Key;
-			EVP_CIPHER_CTX * m_Ctx;	
+			EVP_CIPHER_CTX * m_Ctx;
 	};
 
 	class ECBDecryption
@@ -112,14 +112,14 @@ namespace crypto
 
 			ECBDecryption ();
 			~ECBDecryption ();
-			
+
 			void SetKey (const uint8_t * key) { m_Key = key; };
 			void Decrypt (const uint8_t * in, uint8_t * out);
-			
+
 		private:
-			
+
 			AESKey m_Key;
-			EVP_CIPHER_CTX * m_Ctx;	
+			EVP_CIPHER_CTX * m_Ctx;
 	};
 
 	class CBCEncryption
@@ -129,13 +129,13 @@ namespace crypto
 			CBCEncryption ();
 			~CBCEncryption ();
 
-			void SetKey (const uint8_t * key) { m_Key = key; }; // 32 bytes		
+			void SetKey (const uint8_t * key) { m_Key = key; }; // 32 bytes
 			void Encrypt (const uint8_t * in, size_t len, const uint8_t * iv, uint8_t * out);
-			
+
 		private:
 
 			AESKey m_Key;
-			EVP_CIPHER_CTX * m_Ctx;	
+			EVP_CIPHER_CTX * m_Ctx;
 	};
 
 	class CBCDecryption
@@ -144,14 +144,14 @@ namespace crypto
 
 			CBCDecryption ();
 			~CBCDecryption ();
-			
+
 			void SetKey (const uint8_t * key) { m_Key = key; }; // 32 bytes
 			void Decrypt (const uint8_t * in, size_t len, const uint8_t * iv, uint8_t * out);
 
 		private:
 
 			AESKey m_Key;
-			EVP_CIPHER_CTX * m_Ctx;	
+			EVP_CIPHER_CTX * m_Ctx;
 	};
 
 	class TunnelEncryption // with double IV encryption
@@ -203,11 +203,11 @@ namespace crypto
 				const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len); // msgLen is len without tag
 
 			void Encrypt (const std::vector<std::pair<uint8_t *, size_t> >& bufs, const uint8_t * key, const uint8_t * nonce, uint8_t * mac); // encrypt multiple buffers with zero ad
-			
+
 		private:
 
-			EVP_CIPHER_CTX * m_Ctx;	
-	};	
+			EVP_CIPHER_CTX * m_Ctx;
+	};
 
 	class AEADChaCha20Poly1305Decryptor
 	{
@@ -218,34 +218,48 @@ namespace crypto
 
 			bool Decrypt (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen,
 				const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len); // msgLen is len without tag
-			
+
 		private:
 
-			EVP_CIPHER_CTX * m_Ctx;	
-	};	
-	
+			EVP_CIPHER_CTX * m_Ctx;
+	};
+
 	bool AEADChaCha20Poly1305 (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen,
 		const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len, bool encrypt); // msgLen is len without tag
-	
+
 // ChaCha20
 	void ChaCha20 (const uint8_t * msg, size_t msgLen, const uint8_t * key, const uint8_t * nonce, uint8_t * out);
 
-	class ChaCha20Context
+	class ChaCha20Context final
 	{
 		public:
 
 			ChaCha20Context ();
 			~ChaCha20Context ();
 			void operator ()(const uint8_t * msg, size_t msgLen, const uint8_t * key, const uint8_t * nonce, uint8_t * out);
-			
+
 		private:
 
-			EVP_CIPHER_CTX * m_Ctx;	
+			EVP_CIPHER_CTX * m_Ctx;
 	};
-	
+
 // HKDF
 
 	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, std::string_view info, uint8_t * out, size_t outLen = 64); // salt - 32, out - 32 or 64, info <= 32
+
+	class HKDFContext final
+	{
+		public:
+
+			HKDFContext ();
+			~HKDFContext ();
+
+			void operator ()(const uint8_t * salt, const uint8_t * key, size_t keyLen, std::string_view info, uint8_t * out, size_t outLen = 64); // salt - 32, out - 32 or 64, info <= 32
+
+		private:
+
+			EVP_PKEY_CTX * m_Ctx;
+	};
 
 // Noise
 
@@ -255,7 +269,7 @@ namespace crypto
 		uint64_t m_N;
 
 		void Init (const uint8_t * ck, const uint8_t * hh, const uint8_t * pub);
-		
+
 		void MixHash (const uint8_t * buf, size_t len);
 		void MixHash (const std::vector<std::pair<uint8_t *, size_t> >& bufs);
 		void MixKey (const uint8_t * sharedSecret);
@@ -268,7 +282,7 @@ namespace crypto
 	void InitNoiseXKState (NoiseSymmetricState& state, const uint8_t * pub); // Noise_XK (NTCP2)
 	void InitNoiseXKState1 (NoiseSymmetricState& state, const uint8_t * pub); // Noise_XK (SSU2)
 	void InitNoiseIKState (NoiseSymmetricState& state, const uint8_t * pub); // Noise_IK (ratchets)
-	
+
 // init and terminate
 	void InitCrypto (bool precomputation);
 	void TerminateCrypto ();

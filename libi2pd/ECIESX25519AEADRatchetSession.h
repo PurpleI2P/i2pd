@@ -54,7 +54,7 @@ namespace garlic
 
 			void DHInitialize (const uint8_t * rootKey, const uint8_t * k);
 			void NextSessionTagRatchet ();
-			uint64_t GetNextSessionTag ();
+			uint64_t GetNextSessionTag (i2p::crypto::HKDFContext& hkdfCtx);
 			const uint8_t * GetNextRootKey () const { return m_NextRootKey; };
 			int GetNextIndex () const { return m_NextIndex; };
 			void GetSymmKey (int index, uint8_t * key);

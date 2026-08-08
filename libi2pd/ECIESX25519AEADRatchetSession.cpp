@@ -44,7 +44,7 @@ namespace garlic
 		m_NextIndex = 0;
 	}
 
-	uint64_t RatchetTagSet::GetNextSessionTag ()
+	uint64_t RatchetTagSet::GetNextSessionTag (i2p::crypto::HKDFContext& hkdfCtx)
 	{
 		m_NextIndex++;
 		if (m_NextIndex >= 65535)
@@ -52,7 +52,7 @@ namespace garlic
 			LogPrint (eLogError, "Garlic: Tagset ", GetTagSetID (), " is empty");
 			return 0;
 		}
-		i2p::crypto::HKDF (m_SessionTagKeyData, m_SessTagConstant, 32, "SessionTagKeyGen", m_SessionTagKeyData); // [sessTag_ck, tag] = HKDF(sessTag_chainkey, SESSTAG_CONSTANT, "SessionTagKeyGen", 64)
+		hkdfCtx (m_SessionTagKeyData, m_SessTagConstant, 32, "SessionTagKeyGen", m_SessionTagKeyData); // [sessTag_ck, tag] = HKDF(sessTag_chainkey, SESSTAG_CONSTANT, "SessionTagKeyGen", 64)
 		return m_SessionTagKeyData.GetLL ()[4]; // tag = keydata[32:39]
 	}
 
@@ -648,7 +648,7 @@ namespace garlic
 		// we are Bob
 		m_NSRSendTagset = std::make_shared<RatchetTagSet>();
 		InitNewSessionTagset (m_NSRSendTagset);
-		uint64_t tag = m_NSRSendTagset->GetNextSessionTag ();
+		uint64_t tag = m_NSRSendTagset->GetNextSessionTag (GetOwner ()->GetHKDFContext ());
 
 		size_t offset = 0;
 		memcpy (out + offset, &tag, 8);
@@ -733,7 +733,7 @@ namespace garlic
 	bool ECIESX25519AEADRatchetSession::NextNewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
 	{
 		// we are Bob and sent NSR already
-		uint64_t tag = m_NSRSendTagset->GetNextSessionTag (); // next tag
+		uint64_t tag = m_NSRSendTagset->GetNextSessionTag (GetOwner ()->GetHKDFContext ()); // next tag
 		memcpy (out, &tag, 8);
 		memcpy (out + 8, m_NSREncodedKey, 32);
 		// recalculate h with new tag
@@ -908,7 +908,7 @@ namespace garlic
 		uint8_t nonce[12];
 		auto index = m_SendTagset->GetNextIndex ();
 		CreateNonce (index, nonce); // tag's index
-		uint64_t tag = m_SendTagset->GetNextSessionTag ();
+		uint64_t tag = m_SendTagset->GetNextSessionTag (GetOwner ()->GetHKDFContext ());
 		if (!tag)
 		{
 			LogPrint (eLogError, "Garlic: Can't create new ECIES-X25519-AEAD-Ratchet tag for send tagset");

@@ -257,6 +257,7 @@ namespace garlic
 			int GetNumTags () const { return m_NumTags; };
 			void SetNumRatchetInboundTags (int numTags) { m_NumRatchetInboundTags = numTags; };
 			int GetNumRatchetInboundTags () const { return m_NumRatchetInboundTags; };
+			i2p::crypto::HKDFContext& GetHKDFContext () { return m_HKDFContext; }
 			std::shared_ptr<GarlicRoutingSession> GetRoutingSession (std::shared_ptr<const i2p::data::RoutingDestination> destination,
 				bool attachLeaseSet, bool requestNewIfNotFound = true);
 			void CleanupExpiredTags ();
@@ -333,6 +334,7 @@ namespace garlic
 			// encryption
 			i2p::crypto::AEADChaCha20Poly1305Encryptor m_Encryptor;
 			i2p::crypto::AEADChaCha20Poly1305Decryptor m_Decryptor;
+			i2p::crypto::HKDFContext m_HKDFContext;
 
 		public:
 
