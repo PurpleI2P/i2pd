@@ -469,13 +469,6 @@ namespace torrents
 		return { 0, 0, 0 };
 	}
 
-	void Torrent::ClearAllRequests ()
-	{
-		for (auto& it: m_Pieces)
-			if (!it.IsComplete ())
-				it.ClearAllRequests ();
-	}
-
 	void Torrent::UpdateStatus (uint64_t ts)
 	{
 		//bool complete = true;
@@ -691,8 +684,7 @@ namespace torrents
 					HandlePieceMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
 				break;
 				case eMessageTypeChoke:
-					m_IsChoked = true;
-					if (m_Torrent) m_Torrent->ClearAllRequests ();
+					HandleChokeMsg ();
 				break;
 				case eMessageTypeUnchoke:
 					m_IsChoked = false;
@@ -1017,6 +1009,15 @@ namespace torrents
 		WriteToStream (buf, UNCHOKE_MSG_LENGTH);
 	}
 
+	void PeerConnection::HandleChokeMsg ()
+	{
+		m_IsChoked = true;
+		m_NumRequests = 0;
+		if (m_Torrent && m_LastRequestedPieceIndex >= 0)
+			m_Torrent->GetPiece (m_LastRequestedPieceIndex).ClearAllRequests ();
+		m_LastRequestedPieceIndex = -1;
+	}
+
 	bool PeerConnection::RequestNextBlock ()
 	{
 		if (!m_Torrent) return false;
@@ -1027,6 +1028,8 @@ namespace torrents
 			SendRequestMsg (index, offset, len);
 			m_NumRequests++;
 		}
+		else
+			m_LastRequestedPieceIndex = -1; // no request
 		return len > 0;
 	}
 

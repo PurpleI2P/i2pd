@@ -143,7 +143,6 @@ namespace torrents
 			void ApplyBitfield (const std::vector<uint8_t>& bitfield);
 			const std::unordered_set<i2p::data::IdentHash>&  GetPeers () const { return m_Peers; }
 			std::tuple<uint32_t, uint32_t, uint32_t> GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn); // return (index, offset, len)
-			void ClearAllRequests ();
 			void UpdateStatus (uint64_t ts);
 
 			uint64_t GetNextTrackerRequestTime () const { return m_NextTrackerRequestTime; }
@@ -222,6 +221,7 @@ namespace torrents
 			void SendRequestMsg (uint32_t index, uint32_t offset, uint32_t len);
 			void SendInterestedMsg ();
 			void SendUnchokeMsg ();
+			void HandleChokeMsg ();
 
 			bool RequestNextBlock ();
 			void RequestNextBlocks ();
