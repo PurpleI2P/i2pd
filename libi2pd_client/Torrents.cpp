@@ -779,13 +779,19 @@ namespace torrents
 			if (m_NumRequests < MAX_NUM_REQUESTS && m_Torrent && !m_Torrent->IsComplete ())
 			{
 				Piece& piece = m_Torrent->GetPiece (index);
-				if (!piece.IsComplete () && !piece.IsRequested ())
+				if (!piece.IsComplete ())
 				{
-					// new piece that was not requested yet
-					auto [offset, len] = piece.GetNextBlockToRequest ();
-					if (len > 0)
-						SendRequestMsg (index, offset, len);
+					SendInterestedMsg ();
+					if (!piece.IsRequested ())
+					{
+						// new piece that was not requested yet
+						auto [offset, len] = piece.GetNextBlockToRequest ();
+						if (len > 0)
+							SendRequestMsg (index, offset, len);
+					}
 				}
+				else
+					SendNotinterestedMsg ();
 			}
 		}
 	}
@@ -805,6 +811,7 @@ namespace torrents
 	void PeerConnection::HandleBitfieldMsg (const uint8_t * buf, size_t len)
 	{
 		if (!m_Torrent) return;
+		bool isInterested = false;
 		size_t numPieces = m_Torrent->GetNumPieces ();
 		m_RemoteBitfield.resize (numPieces);
 		size_t idx = 0;
@@ -815,12 +822,19 @@ namespace torrents
 			{
 				if (idx >= numPieces) break;
 				if (buf[i] & bit)
+				{
 					m_RemoteBitfield.set (idx);
+					if (!isInterested && !m_Torrent->GetPiece (idx).IsComplete ())
+						isInterested = true;
+				}
 				bit >>= 1;
 				idx++;
 			}
 		}
-		SendInterestedMsg ();
+		if (isInterested)
+			SendInterestedMsg ();
+		else
+			SendNotinterestedMsg ();
 	}
 
 	void PeerConnection::SendBitfieldMsg (const uint8_t * bitfield, size_t bitfieldLen)
@@ -895,7 +909,7 @@ namespace torrents
 		htobe32buf (sendBuffer.data () + 5, index);
 		htobe32buf (sendBuffer.data () + 9, offset);
 		memcpy (sendBuffer.data () + 13, data, len);
-		LogPrint (eLogDebug, "Torrents: Sending piece of ", sendBuffer.size (), " bytes");
+		LogPrint (eLogDebug, "Torrents: Sending piece index ", index, " offset ", offset, " length ", len);
 		m_IsSendingPieceMsg = true;
 		m_Stream->AsyncSend (sendBuffer.data (), sendBuffer.size (),
 			[s = shared_from_this ()](const boost::system::error_code& ecode, size_t bytes_transferred)
@@ -933,6 +947,7 @@ namespace torrents
 		}
 		if (index < m_Torrent->GetNumPieces ())
 		{
+			LogPrint (eLogDebug, "Torrents: Received request index ", index, " offset ", offset, " length ", length);
 			Piece& piece = m_Torrent->GetPiece (index);
 			if (piece.HasBlock (offset))
 			{
@@ -951,7 +966,7 @@ namespace torrents
 							boost::asio::post (s->GetTorrentsTunnel ()->GetService (),
 								[requestedBlock = RequestedBlock{index, offset, length}, s]()
 								{
-									if (s->m_IncomingRequestsQueue.empty ())
+									if (!s->m_IsSendingPieceMsg)
 										s->SendRequestedBlock (requestedBlock);
 									else
 										s->m_IncomingRequestsQueue.emplace_back (std::move (requestedBlock));
@@ -999,6 +1014,14 @@ namespace torrents
 		htobe32buf (buf, 1);
 		buf[4] = eMessageTypeInterested;
 		WriteToStream (buf, INTERESTED_MSG_LENGTH);
+	}
+
+	void PeerConnection::SendNotinterestedMsg ()
+	{
+		uint8_t buf[NOTINTERESTED_MSG_LENGTH];
+		htobe32buf (buf, 1);
+		buf[4] = eMessageTypeNotInterested;
+		WriteToStream (buf, NOTINTERESTED_MSG_LENGTH);
 	}
 
 	void PeerConnection::SendUnchokeMsg ()

@@ -52,6 +52,7 @@ namespace torrents
 
 	constexpr size_t HANDSHAKE_MSG_LENGTH = 68;
 	constexpr size_t INTERESTED_MSG_LENGTH = 5;
+	constexpr size_t NOTINTERESTED_MSG_LENGTH = 5;
 	constexpr size_t UNCHOKE_MSG_LENGTH = 5;
 	constexpr size_t REQUEST_MSG_PAYLOAD_LENGTH = 12;
 	constexpr size_t HAVE_MSG_PAYLOAD_LENGTH = 4;
@@ -174,7 +175,7 @@ namespace torrents
 		struct RequestedBlock
 		{
 			uint32_t index, offset, length;
-			RequestedBlock (uint32_t i, uint32_t o, uint32_t l): index(i), offset(0), length (l) {}
+			RequestedBlock (uint32_t i, uint32_t o, uint32_t l): index(i), offset(o), length (l) {}
 			RequestedBlock(const RequestedBlock& ) = default;
 			RequestedBlock(RequestedBlock&& ) = default;
 		};
@@ -220,6 +221,7 @@ namespace torrents
 			void HandleRequestMsg (const uint8_t * buf, size_t len);
 			void SendRequestMsg (uint32_t index, uint32_t offset, uint32_t len);
 			void SendInterestedMsg ();
+			void SendNotinterestedMsg ();
 			void SendUnchokeMsg ();
 			void HandleChokeMsg ();
 
