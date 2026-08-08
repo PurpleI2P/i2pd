@@ -259,6 +259,16 @@ namespace torrents
 				it = BlockStatus::Missing;
 	}
 
+	void Piece::InvalidateAllBlocks ()
+	{
+		m_Blocks = nullptr;
+		m_Blocks = std::make_unique<std::vector<BlockStatus> >(GetNumBlocks (m_Size), BlockStatus::Missing);
+		if (m_Data)
+		{
+			delete[] m_Data; m_Data = nullptr;
+		}
+	}
+
 	void Piece::Reset ()
 	{
 		if (m_Blocks)
@@ -435,11 +445,19 @@ namespace torrents
 	{
 		if (conn)
 		{
+			// continue with current piece
+			int lastIndex = conn->GetLastRequestedPieceIndex ();
+			if (lastIndex >= 0)
+			{
+				auto [offset, len] = m_Pieces[(size_t)lastIndex].GetNextBlockToRequest ();
+				if (len > 0)
+					return { (uint32_t)lastIndex, offset, len };
+			}
+			// try another piece if not current piece or no more blocks in current piece
 			uint32_t ind = 0;
 			for (auto& it: m_Pieces)
 			{
-				if (!it.IsComplete () && conn->IsPieceAvailable (ind) &&
-					(!it.IsRequested () || (int)ind == conn->GetLastRequestedPieceIndex ()))
+				if (!it.IsComplete () && conn->IsPieceAvailable (ind) && !it.IsRequested ())
 				{
 					auto [offset, len] = it.GetNextBlockToRequest ();
 					if (len > 0)
@@ -556,7 +574,11 @@ namespace torrents
 			if (ts > m_LastReceiveTime + PEER_KEEP_ALIVE_TIMEOUT)
 			{
 				LogPrint (eLogInfo, "Torrent: Peer timeout expired");
-				Terminate ();
+				boost::asio::post (GetTorrentsTunnel ()->GetService (), [s = shared_from_this ()]()
+				{
+					// make sure it's not called from IterateHandlers
+					s->Terminate ();
+				});
 			}
 			else if (ts > m_LastSendTime + PEER_KEEP_SEND_INTERVAL)
 			{
@@ -844,21 +866,29 @@ namespace torrents
 		{
 			Piece& piece = m_Torrent->GetPiece (index);
 			piece.BlockReceived (buf + 8, len, offset);
-			if (piece.IsComplete () && piece.VerifyHash ())
+			if (piece.IsComplete ())
 			{
-				auto path = GetTorrentsTunnel ()->GetTorrentFilePath (m_Torrent->GetName () + ".part");
-				auto resumePath = GetTorrentsTunnel ()->GetTorrentFilePath (m_Torrent->GetName () + ".resume");
-				auto offset = index*m_Torrent->GetPieceLength ();
-				boost::asio::post (GetTorrentsTunnel ()->GetDiskIOService (),
-					[&piece, path, resumePath, offset, torrent = m_Torrent]() // piece belongs to torrent
-					{
-						piece.Dump (path, offset);
-						torrent->SaveTorrentResumeFile (resumePath);
-					});
-				// send have
-				auto conns = GetTorrentsTunnel ()->GetTorrentConnections (m_Torrent);
-				for (auto it: conns)
-					it->SendHaveMsg (index);
+				if (piece.VerifyHash ())
+				{
+					auto path = GetTorrentsTunnel ()->GetTorrentFilePath (m_Torrent->GetName () + ".part");
+					auto resumePath = GetTorrentsTunnel ()->GetTorrentFilePath (m_Torrent->GetName () + ".resume");
+					auto offset = index*m_Torrent->GetPieceLength ();
+					boost::asio::post (GetTorrentsTunnel ()->GetDiskIOService (),
+						[&piece, path, resumePath, offset, torrent = m_Torrent]() // piece belongs to torrent
+						{
+							piece.Dump (path, offset);
+							torrent->SaveTorrentResumeFile (resumePath);
+						});
+					// send have
+					auto conns = GetTorrentsTunnel ()->GetTorrentConnections (m_Torrent);
+					for (auto it: conns)
+						it->SendHaveMsg (index);
+				}
+				else
+				{
+					LogPrint (eLogWarning, "Torrents: Received piece hash mismatch");
+					piece.InvalidateAllBlocks ();
+				}
 			}
 		}
 		if (m_NumRequests > 0) m_NumRequests--;

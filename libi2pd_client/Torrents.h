@@ -101,6 +101,7 @@ namespace torrents
 			bool HasBlock (size_t offset) const;
 			std::pair<size_t, size_t> GetNextBlockToRequest (); // return (offset, len) of next buffer, len = 0 if no next buffer
 			void ClearAllRequests ();
+			void InvalidateAllBlocks ();
 			void Reset ();
 
 		private:
