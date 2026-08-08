@@ -69,6 +69,7 @@ namespace client
 	const char I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL[] = "enableuniquelocal";
 	const char I2P_SERVER_TUNNEL_SSL[] = "ssl";
 	const char UDP_CLIENT_TUNNEL_DATAGRAM_VERSION[] = "datagramversion";
+	const char UDP_TUNNEL_MAX_WINDOW[] = "maxwindow";
 	const char TORRENTS_TUNNEL_KEYS[] = "keys";
 	const char TORRENTS_TUNNEL_SIGNATURE_TYPE[] = "signaturetype";
 	const char TORRENTS_TUNNEL_TORRENTS_DIR[] = "torrentsdir";
