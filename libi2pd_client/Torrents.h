@@ -47,7 +47,7 @@ namespace torrents
 	constexpr int PEER_KEEP_SEND_INTERVAL = 95; // in seconds
 	constexpr int PEER_KEEP_ALIVE_CHECK_INTERVAL = 15; // in seconds
 	constexpr size_t MAX_NUM_REQUESTS = 8;
-	constexpr size_t MAX_NUM_PIECES = 4;
+	constexpr size_t MAX_NUM_PIECES = 6;
 	constexpr int PIECE_INACTIVITY_TIMEOUT = 60; // in seconds
 	constexpr int TORRENTS_STATUS_UPDATE_INTERVAL = 25; // in seconds
 
@@ -134,6 +134,7 @@ namespace torrents
 
 			const std::string& GetAnnounce () const { return m_Announce; }
 			const std::string& GetName () const { return m_Name; }
+			const std::list<std::pair<std::string, size_t> >& GetFiles () const { return m_Files; }
 			size_t GetLength () const { return m_Length; }
 			size_t GetPieceLength () const { return m_PieceLength; }
 			int GetInterval () const { return m_Interval; }
@@ -157,6 +158,7 @@ namespace torrents
 			size_t ParsePieces (std::string_view buf);
 			size_t ParseInfo (std::string_view buf);
 			size_t ParsePeers (std::string_view buf);
+			size_t ParseFiles (std::string_view buf);
 
 		private:
 
@@ -168,6 +170,7 @@ namespace torrents
 			std::vector<Piece> m_Pieces;
 			std::unordered_set<i2p::data::IdentHash> m_Peers;
 			bool m_IsComplete;
+			std::list<std::pair<std::string, size_t> > m_Files; // list of (path, length)
 	};
 
 	class TorrentsTunnel;

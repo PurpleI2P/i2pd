@@ -297,6 +297,8 @@ namespace torrents
 				}
 				else if (key == "info")
 					return ParseInfo (buf);
+				else if (key == "files")
+					return ParseFiles (buf);
 				return 0;
 			});
 	}
@@ -350,6 +352,33 @@ namespace torrents
 		// calculate info hash
 		SHA1 ((const uint8_t *)buf.data (), len, m_InfoHash.data ());
 		return len;
+	}
+
+	size_t Torrent::ParseFiles (std::string_view buf)
+	{
+		return ParseList (buf, [this](std::string_view file)->size_t
+			{
+				std::string filePath; size_t fileLength = 0;
+				auto len = ParseDictionary (file, [this, &filePath, &fileLength](std::string_view key, std::string_view value)->size_t
+					{
+						if (key == "path")
+						{
+							auto [path, l] = ExtractByteString (value);
+							if (l) filePath = path;
+							return l;
+						}
+						else if (key == "length")
+						{
+							auto [length, l] = ExtractInteger (value);
+							if (l)  fileLength = length;
+							return l;
+						}
+						return 0;
+					});
+				if (len && fileLength && !filePath.empty ())
+					m_Files.emplace_back (filePath, fileLength);
+				return len;
+			});
 	}
 
 	std::string Torrent::GetHexStringInfoHash () const
@@ -1156,6 +1185,11 @@ namespace torrents
 				s.read(buf, len);
 				auto torrent = std::make_shared<Torrent>(std::string_view{buf, len});
 				delete[] buf;
+				if (!torrent->GetFiles ().empty ())
+				{
+					LogPrint (eLogError, "Torrents: Multi-file torrent ", path);
+					return;
+				}
 				m_Torrents.emplace (torrent->GetInfoHash (), torrent);
 				auto filePath = GetTorrentFilePath (torrent->GetName ());
 				if (i2p::fs::Exists (filePath))
