@@ -838,6 +838,8 @@ namespace torrents
 		}
 		if (isInterested)
 			SendInterestedMsg ();
+		else if (m_RemoteBitfield.all ()) // remote is seeding
+			Terminate (); // we don't need this connection
 	}
 
 	void PeerConnection::SendBitfieldMsg (const uint8_t * bitfield, size_t bitfieldLen)
@@ -1257,7 +1259,7 @@ namespace torrents
 		params.emplace ("uploaded", "0"); // TODO
 		params.emplace ("downloaded", "0"); // TODO
 		params.emplace ("left", "1"); // TODO
-		params.emplace ("numwant", "25"); // max num of peers, 0 if seeding
+		params.emplace ("numwant", torrent->IsComplete () ? "0" : "25"); // max num of peers, 0 if seeding
 		reqURL.create_query (params);
 
 		auto req = std::make_shared<boost::beast::http::request<boost::beast::http::string_body> >(boost::beast::http::verb::get, reqURL.to_string (true), 11); // HTTP 1.1
@@ -1398,9 +1400,12 @@ namespace torrents
 		{
 			for (auto it: m_Torrents)
 			{
-				auto numPeers = ConnectToPeers (it.second);
-				if (numPeers)
-					LogPrint (eLogDebug, "Torrents: Reconnecting to ", numPeers, " peers");
+				if (!it.second->IsComplete ())
+				{
+					auto numPeers = ConnectToPeers (it.second);
+					if (numPeers)
+						LogPrint (eLogDebug, "Torrents: Reconnecting to ", numPeers, " peers");
+				}
 			}
 			ScheduleReconnectCheck ();
 		}
