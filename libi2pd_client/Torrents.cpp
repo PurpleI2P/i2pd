@@ -524,6 +524,12 @@ namespace torrents
 	void PeerConnection::Terminate ()
 	{
 		if (Kill()) return;
+		if (m_Torrent && m_LastRequestedPieceIndex >= 0) // pending requests by us
+		{
+			auto& piece = m_Torrent->GetPiece (m_LastRequestedPieceIndex);
+			if (piece.IsRequested ())
+				piece.Reset (); // piece can be requested by other connections
+		}
 		if (m_Stream)
 		{
 			m_Stream->Close ();
