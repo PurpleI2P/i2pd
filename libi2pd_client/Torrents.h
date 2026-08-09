@@ -94,6 +94,8 @@ namespace torrents
 			void SetIsSending (bool isSending);
 			uint64_t GetLastActivityTimestamp () const { return m_LastActivityTimestamp; }
 			bool IsRequested () const { return m_IsRequested; }
+			size_t GetNumPeers () const { return m_NumPeers; }
+			void SetNumPeers (size_t numPeers) { m_NumPeers = numPeers; }
 
 			void BlockReceived (const uint8_t * block, size_t len, size_t offset);
 			void Dump (const std::string& fullPath, size_t offset);
@@ -118,6 +120,7 @@ namespace torrents
 			std::unique_ptr<std::vector<BlockStatus> > m_Blocks;
 			bool m_IsSending, m_IsRequested;
 			uint64_t m_LastActivityTimestamp; // monotonic seconds
+			size_t m_NumPeers; // where this piece is available
 	};
 
 	class Torrent final
@@ -152,6 +155,9 @@ namespace torrents
 			void SetNextTrackerRequestTime (uint64_t ts) { m_NextTrackerRequestTime = ts; }
 
 			void SaveTorrentResumeFile (const std::string& fullPath);
+
+			void StartCountingPeers ();
+			void ApplyPeerRemoteBitfield (const boost::dynamic_bitset<>& peerRemoteBitfield);
 
 		private:
 
@@ -199,6 +205,7 @@ namespace torrents
 			std::shared_ptr<i2p::stream::Stream> GetStream () const { return m_Stream; }
 			std::shared_ptr<Torrent> GetTorrent () const { return m_Torrent; }
 			int GetLastRequestedPieceIndex () const { return m_LastRequestedPieceIndex; }
+			const boost::dynamic_bitset<>& GetRemoteBitfield () const  { return m_RemoteBitfield;} ;
 
 		private:
 
@@ -304,6 +311,7 @@ namespace torrents
 			std::unordered_set<i2p::data::IdentHash> GetNonConnectedPeers (std::shared_ptr<Torrent> torrent);
 			void ConnectToPeer (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& peer);
 			size_t ConnectToPeers (std::shared_ptr<Torrent> torrent);
+			void UpdatePeersPerPiece (std::shared_ptr<Torrent> torrent);
 
 		private:
 

@@ -14,6 +14,7 @@
 #include <sstream>
 #include <algorithm>
 #include <functional>
+#include <set>
 #include <boost/algorithm/string.hpp>
 #include "Log.h"
 #include "FS.h"
@@ -131,7 +132,7 @@ namespace torrents
 
 	Piece::Piece (size_t size, const uint8_t * hash):
 		m_Size (size), m_Data (nullptr), m_IsSending (false), m_IsRequested (false),
-		m_LastActivityTimestamp (0)
+		m_LastActivityTimestamp (0), m_NumPeers (0)
 	{
 		memcpy (m_Hash, hash, SHA_DIGEST_LENGTH);
 		m_Blocks = std::make_unique<std::vector<BlockStatus> >(GetNumBlocks (size), BlockStatus::Missing);
@@ -487,16 +488,25 @@ namespace torrents
 					return { (uint32_t)lastIndex, offset, len };
 			}
 			// try another piece if not current piece or no more blocks in current piece
+			std::set<std::pair<uint32_t, size_t>, std::function<bool(const std::pair<uint32_t, size_t>&, const std::pair<uint32_t, size_t>&)> >
+				sortedByNumPeers ([](const std::pair<uint32_t, size_t>& p1, const std::pair<uint32_t, size_t>& p2)->bool
+				{
+					if (p1.second != p2.second) return p1.second < p2.second;
+					return p1.first < p2.first;
+				});
+			// sort eligible pieces by num peers
 			uint32_t ind = 0;
 			for (auto& it: m_Pieces)
 			{
 				if (!it.IsComplete () && conn->IsPieceAvailable (ind) && !it.IsRequested ())
-				{
-					auto [offset, len] = it.GetNextBlockToRequest ();
-					if (len > 0)
-						return { ind, offset, len };
-				}
+					sortedByNumPeers.emplace (ind, it.GetNumPeers ());
 				ind++;
+			}
+			for (const auto& it: sortedByNumPeers)
+			{
+				auto [offset, len] = m_Pieces[it.first].GetNextBlockToRequest ();
+				if (len > 0)
+					return { it.first, offset, len };
 			}
 		}
 		return { 0, 0, 0 };
@@ -529,6 +539,24 @@ namespace torrents
 		std::ofstream f(fullPath, std::ofstream::binary);
 		if (f.is_open ())
 			f.write ((const char *)bitfield.data (), bitfield.size ());
+	}
+
+	void Torrent::StartCountingPeers ()
+	{
+		for (auto& it: m_Pieces)
+			it.SetNumPeers (0);
+	}
+
+	void Torrent::ApplyPeerRemoteBitfield (const boost::dynamic_bitset<>& peerRemoteBitfield)
+	{
+		size_t ind = peerRemoteBitfield.find_first();
+		while (ind != boost::dynamic_bitset<>::npos)
+		{
+			auto& piece = m_Pieces[ind];
+			if (!piece.IsComplete ())
+				piece.SetNumPeers (piece.GetNumPeers () + 1);
+			ind = peerRemoteBitfield.find_next(ind);
+		}
 	}
 
 	PeerConnection::PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream):
@@ -1465,8 +1493,13 @@ namespace torrents
 		{
 			auto ts = i2p::util::GetMonotonicSeconds ();
 			for (auto it: m_Torrents)
-				if (!it.second->IsComplete () && it.second->UpdateStatus (ts))
-					CompleteTorrent (it.second);
+				if (!it.second->IsComplete ())
+				{
+					if (it.second->UpdateStatus (ts))
+						CompleteTorrent (it.second);
+					else
+						UpdatePeersPerPiece (it.second);
+				}
 			ScheduleStatusUpdate ();
 		}
 	}
@@ -1524,6 +1557,21 @@ namespace torrents
 			}
 		}
 		return ret;
+	}
+
+	void TorrentsTunnel::UpdatePeersPerPiece (std::shared_ptr<Torrent> torrent)
+	{
+		if (!torrent) return;
+		torrent->StartCountingPeers ();
+		IterateHandlers ([torrent](std::shared_ptr<i2p::client::I2PServiceHandler> handler)
+			{
+				if (handler)
+				{
+					auto conn = std::static_pointer_cast<PeerConnection>(handler);
+					if (conn->GetTorrent () == torrent)
+						torrent->ApplyPeerRemoteBitfield (conn->GetRemoteBitfield ());
+				}
+			});
 	}
 }
 }
