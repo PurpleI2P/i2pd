@@ -305,10 +305,13 @@ namespace torrents
 	size_t Torrent::ParsePieces (std::string_view buf)
 	{
 		auto [hashes, len] = ExtractByteString (buf);
-		while (!hashes.empty ())
+		size_t totalLen = 0;
+		while (!hashes.empty () && totalLen < m_Length)
 		{
-			m_Pieces.emplace_back (m_PieceLength, (const uint8_t *)hashes.substr (0, SHA_DIGEST_LENGTH).data ());
+			auto l = (totalLen + m_PieceLength <= m_Length) ? m_PieceLength : m_Length - totalLen;
+			m_Pieces.emplace_back (l, (const uint8_t *)hashes.substr (0, SHA_DIGEST_LENGTH).data ());
 			hashes = hashes.substr (SHA_DIGEST_LENGTH);
+			totalLen += l;
 		}
 		return len;
 	}
@@ -419,9 +422,9 @@ namespace torrents
 		return { ret, empty };
 	}
 
-	void Torrent::ApplyBitfield (const std::vector<uint8_t>& bitfield)
+	bool Torrent::ApplyBitfield (const std::vector<uint8_t>& bitfield)
 	{
-		m_IsComplete = true;
+		bool complete = true;
 		size_t numPieces = m_Pieces.size ();
 		size_t idx = 0;
 		for (size_t i = 0; i < bitfield.size (); i++)
@@ -433,12 +436,13 @@ namespace torrents
 				if (bitfield[i] & bit)
 					m_Pieces[idx].Complete ();
 				else
-					m_IsComplete = false;
+					complete = false;
 				bit >>= 1;
 				idx++;
 			}
 			if (idx >= numPieces) break;
 		}
+		return complete;
 	}
 
 	std::tuple<uint32_t, uint32_t, uint32_t> Torrent::GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn)
@@ -469,15 +473,16 @@ namespace torrents
 		return { 0, 0, 0 };
 	}
 
-	void Torrent::UpdateStatus (uint64_t ts)
+	bool Torrent::UpdateStatus (uint64_t ts)
 	{
-		//bool complete = true;
+		bool complete = true;
 		for (auto& it: m_Pieces)
 		{
-		//	if (!it.IsComplete ()) complete = false;
-			if (ts > it.GetLastActivityTimestamp () + PIECE_INACTIVITY_TIMEOUT) // piece was incactive recently
+			if (!it.IsComplete ()) complete = false;
+			if (ts > it.GetLastActivityTimestamp () + PIECE_INACTIVITY_TIMEOUT) // piece was inactive recently
 				it.Reset ();
 		}
+		return complete;
 	}
 
 	void Torrent::SetComplete ()
@@ -1163,7 +1168,8 @@ namespace torrents
 								rs.seekg(0, std::ios::beg);
 								std::vector<uint8_t> bitfield(l);
 								rs.read((char *)bitfield.data (), l);
-								torrent->ApplyBitfield (bitfield);
+								if (torrent->ApplyBitfield (bitfield))
+									CompleteTorrent (torrent);
 							}
 						}
 					}
@@ -1176,6 +1182,24 @@ namespace torrents
 		}
 		else
 			LogPrint (eLogError, "Torrents: Can't open file ", path);
+	}
+
+	void TorrentsTunnel::CompleteTorrent (std::shared_ptr<Torrent> torrent)
+	{
+		boost::asio::post (GetDiskIOService (), [torrent,
+			filePath = GetTorrentFilePath (torrent->GetName ()),
+			partFilePath = GetTorrentFilePath (torrent->GetName () + ".part"),
+			resumeFilePath = GetTorrentFilePath (torrent->GetName () + ".resume")]()
+		{
+			if (i2p::fs::Rename (partFilePath, filePath))
+			{
+				torrent->SetComplete ();
+				i2p::fs::Remove (resumeFilePath);
+				LogPrint (eLogInfo, "Torrents: Download complete ", filePath);
+			}
+			else
+				LogPrint (eLogError, "Torrents: Can't rename ", partFilePath);
+		});
 	}
 
 	std::shared_ptr<Torrent> TorrentsTunnel::FindTorrent (const Torrent::InfoHash& infoHash) const
@@ -1396,7 +1420,8 @@ namespace torrents
 		{
 			auto ts = i2p::util::GetMonotonicSeconds ();
 			for (auto it: m_Torrents)
-				it.second->UpdateStatus (ts);
+				if (!it.second->IsComplete () && it.second->UpdateStatus (ts))
+					CompleteTorrent (it.second);
 			ScheduleStatusUpdate ();
 		}
 	}

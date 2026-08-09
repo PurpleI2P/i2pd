@@ -142,10 +142,10 @@ namespace torrents
 			size_t GetNumPieces () const { return m_Pieces.size (); }
 			Piece& GetPiece (int index) { return m_Pieces[index]; }
 			std::pair<std::vector<uint8_t>, bool> CreateBitfield () const; // (bitfield, empty)
-			void ApplyBitfield (const std::vector<uint8_t>& bitfield);
+			bool ApplyBitfield (const std::vector<uint8_t>& bitfield); // return true if complete
 			const std::unordered_set<i2p::data::IdentHash>&  GetPeers () const { return m_Peers; }
 			std::tuple<uint32_t, uint32_t, uint32_t> GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn); // return (index, offset, len)
-			void UpdateStatus (uint64_t ts);
+			bool UpdateStatus (uint64_t ts); // return true if complete
 
 			uint64_t GetNextTrackerRequestTime () const { return m_NextTrackerRequestTime; }
 			void SetNextTrackerRequestTime (uint64_t ts) { m_NextTrackerRequestTime = ts; }
@@ -280,6 +280,7 @@ namespace torrents
 
 			void Accept ();
 			void ReadTorrentFile (const std::string& path);
+			void CompleteTorrent (std::shared_ptr<Torrent> torrent);
 			void RequestTracker (std::shared_ptr<Torrent> torrent);
 			void TrackerRequestSent (const boost::beast::error_code& ecode, size_t bytes_transferred,
 				std::shared_ptr<i2p::client::BoostAsyncStream> httpStream, std::shared_ptr<Torrent> torrent,
