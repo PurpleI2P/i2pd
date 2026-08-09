@@ -134,7 +134,7 @@ namespace ukrainian // language namespace
 		{"Start graceful shutdown", "Запустити плавну зупинку"},
 		{"Force shutdown", "Примусова зупинка"},
 		{"Reload external CSS styles", "Перезавантажити зовнішні стилі CSS"},
-		{"<b>Note:</b> any action done here are not persistent and not changes your config files.", "<b>Примітка:</b> будь-яка зроблена тут дія не є постійною та не змінює ваші конфігураційні файли."},
+		{"<b>Note:</b> any action performed here is not persistent and does not change your config files.", "<b>Примітка:</b> будь-яка зроблена тут дія не є постійною та не змінює ваші конфігураційні файли."},
 		{"Logging level", "Рівень логування"},
 		{"Transit tunnels limit", "Обмеження транзитних тунелів"},
 		{"Change", "Змінити"},

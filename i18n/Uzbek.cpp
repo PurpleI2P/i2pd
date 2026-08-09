@@ -134,7 +134,7 @@ namespace uzbek // language namespace
 		{"Start graceful shutdown", "Yumshoq to'xtashni boshlash"},
 		{"Force shutdown", "Majburiy to'xtatish"},
 		{"Reload external CSS styles", "Tashqi CSS uslublarini qayta yuklang"},
-		{"<b>Note:</b> any action done here are not persistent and not changes your config files.", "<b>Eslatma:</b> shu yerda qilingan har qanday harakat doimiy emas va konfiguratsiya fayllarini o'zgartirmaydi."},
+		{"<b>Note:</b> any action performed here is not persistent and does not change your config files.", "<b>Eslatma:</b> shu yerda qilingan har qanday harakat doimiy emas va konfiguratsiya fayllarini o'zgartirmaydi."},
 		{"Logging level", "Jurnal darajasi"},
 		{"Transit tunnels limit", "Tranzit tunellarning chegarasi"},
 		{"Change", "O'zgartirish"},

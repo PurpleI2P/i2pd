@@ -849,7 +849,7 @@ namespace http {
 		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_RELOAD_CSS << "&token=" << token << "\">" << tr("Reload external CSS styles") << "</a>\r\n";
 		s << "</div>";
 
-		s << "<br>\r\n<small>" << tr("<b>Note:</b> any action done here are not persistent and not changes your config files.") << "</small>\r\n<br>\r\n";
+		s << "<br>\r\n<small>" << tr("<b>Note:</b> any action performed here is not persistent and does not change your config files.") << "</small>\r\n<br>\r\n";
 
 		auto loglevel = i2p::log::Logger().GetLogLevel();
 		s << "<b>" << tr("Logging level") << "</b><br>\r\n";
