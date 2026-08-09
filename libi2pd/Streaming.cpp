@@ -1178,7 +1178,7 @@ namespace stream
 		int64_t passedTime = m_PacketACKInterval * INITIAL_WINDOW_SIZE; // in microseconds // while m_LastACKSendTime == 0
 		if (m_LastACKSendTime)
 			passedTime = (ts - m_LastACKSendTime)*1000; // in microseconds
-		numPackets = (passedTime + m_PacketACKIntervalRem) / m_PacketACKInterval;
+		numPackets = (passedTime + (int64_t)m_PacketACKIntervalRem) / (int64_t)m_PacketACKInterval;
 		int64_t delta = numPackets * (int64_t)m_PacketACKInterval - passedTime;
 		if (delta < (int64_t)m_PacketACKIntervalRem)
 			m_PacketACKIntervalRem -= delta;
