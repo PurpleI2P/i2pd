@@ -40,6 +40,13 @@ namespace config {
 
 	void Init()
 	{
+		// register options once, they never change; drop stored values because
+		// store() keeps the ones set by a previous Init
+		m_Options.clear();
+		static bool optionsRegistered = false;
+		if (optionsRegistered) return;
+		optionsRegistered = true;
+
 		options_description general("General options");
 		general.add_options()
 			("help",                                                          "Show this message")
