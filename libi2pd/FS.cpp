@@ -274,6 +274,14 @@ namespace fs {
 #endif
 	}
 
+	std::string CreatePath (const std::vector<std::string_view>& subdirs)
+	{
+		fs_lib::path ret;
+		for (const auto& it: subdirs)
+			ret /= it;
+		return ret.string ();
+	}
+
 	bool Remove(const std::string & path)
 	{
 		if (!fs_lib::exists(path))
@@ -297,15 +305,32 @@ namespace fs {
 
 	bool CreateAndReserveFile (const std::string& path, size_t reserve)
 	{
-		if (fs_lib::exists(path)) return false;
-		std::ofstream f(path, std::ios::binary);
-		if (!f) return false;
-		f.close();
-		if (reserve > 0)
+		fs_lib::path filePath (path);
+		if (fs_lib::exists (filePath)) return false;
+		auto subdirs = filePath.parent_path ();
+		if (!subdirs.empty ())
 		{
+			// try to create all subdirs
 			try
 			{
-				fs_lib::resize_file(path, reserve);
+				fs_lib::create_directories (subdirs);
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint (eLogError, "FS: Can't create subdirs ", subdirs, " : ", ex.what());
+				return false;
+			}
+		}
+		// create file
+		std::ofstream f(path, std::ios::binary);
+		if (!f) return false;
+		f.close ();
+		if (reserve > 0)
+		{
+			// resize
+			try
+			{
+				fs_lib::resize_file (filePath, reserve);
 			}
 			catch (std::exception& ex)
 			{
