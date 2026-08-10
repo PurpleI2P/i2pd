@@ -50,6 +50,7 @@ namespace torrents
 	constexpr size_t MAX_NUM_PIECES = 6;
 	constexpr int PIECE_INACTIVITY_TIMEOUT = 60; // in seconds
 	constexpr int TORRENTS_STATUS_UPDATE_INTERVAL = 25; // in seconds
+	constexpr int HANDSHAKE_RECEIVE_TIMEOUT = 20; // in seconds
 
 	constexpr size_t HANDSHAKE_MSG_LENGTH = 68;
 	constexpr size_t INTERESTED_MSG_LENGTH = 5;
@@ -210,6 +211,7 @@ namespace torrents
 		private:
 
 			void Terminate ();
+			void ScheduleHandshakeReceiveTimer ();
 			TorrentsTunnel * GetTorrentsTunnel () const;
 
 			void WriteToStream (const uint8_t * buf, size_t len);
@@ -254,6 +256,7 @@ namespace torrents
 			size_t m_NumRequests, m_NumPieces; // outgoing
 			std::list<RequestedBlock> m_IncomingRequestsQueue;
 			int m_LastRequestedPieceIndex;
+			std::unique_ptr<boost::asio::steady_timer> m_HandshakeReceiveTimer;
 	};
 
 	class TorrentsTunnel final: public i2p::client::I2PService
@@ -319,7 +322,6 @@ namespace torrents
 			std::string m_Name, m_TorrentsDir, m_PeerID; // 20 characters
 			std::vector<std::string> m_Trackers;
 			std::map<Torrent::InfoHash, std::shared_ptr<Torrent> > m_Torrents;
-			std::mt19937 m_Rng;
 			boost::asio::steady_timer m_TrackerRequestsCheckTimer, m_KeepAliveCheckTimer,
 				m_ReconnectCheckTimer, m_TorrentsStatusUpdateTimer;
 			DiskIOService m_DiskIOService;

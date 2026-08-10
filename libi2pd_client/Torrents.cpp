@@ -604,7 +604,31 @@ namespace torrents
 			m_Stream->Close ();
 			m_Stream = nullptr;
 		}
+		if (m_HandshakeReceiveTimer)
+		{
+			m_HandshakeReceiveTimer->cancel ();
+			m_HandshakeReceiveTimer = nullptr;
+		}
 		Done(shared_from_this ());
+	}
+
+	void PeerConnection::ScheduleHandshakeReceiveTimer ()
+	{
+		if (m_HandshakeReceiveTimer)
+			m_HandshakeReceiveTimer->cancel ();
+		else
+			m_HandshakeReceiveTimer = std::make_unique<boost::asio::steady_timer>(GetTorrentsTunnel ()->GetService ());
+		m_HandshakeReceiveTimer->expires_after (std::chrono::seconds(HANDSHAKE_RECEIVE_TIMEOUT));
+		m_HandshakeReceiveTimer->async_wait ([s = shared_from_this ()](const boost::system::error_code& ecode)
+			{
+				if (ecode != boost::asio::error::operation_aborted)
+				{
+					LogPrint (eLogInfo, "Torrents: Handshake was not received after ", HANDSHAKE_RECEIVE_TIMEOUT,  " seconds");
+					s->Terminate ();
+				}
+				else
+					s->m_HandshakeReceiveTimer = nullptr;
+			});
 	}
 
 	TorrentsTunnel * PeerConnection::GetTorrentsTunnel () const
@@ -632,6 +656,7 @@ namespace torrents
 	void PeerConnection::Connect ()
 	{
 		SendHandshakeMsg ();
+		ScheduleHandshakeReceiveTimer ();
 		StreamReceive ();
 	}
 
@@ -639,6 +664,7 @@ namespace torrents
 	{
 		LogPrint (eLogDebug, "Torrents: Incoming connection from ", m_Stream->GetRemoteIdentity () ?
 			(m_Stream->GetRemoteIdentity ()->GetIdentHash ().ToBase32 () + ".b32.i2p") : "");
+		ScheduleHandshakeReceiveTimer ();
 		StreamReceive ();
 	}
 
@@ -803,6 +829,11 @@ namespace torrents
 	{
 		LogPrint (eLogDebug, "Torrents: Handshake received");
 		if (m_ReceiveBufferOffset < HANDSHAKE_MSG_LENGTH) return 0;
+		if (m_HandshakeReceiveTimer)
+		{
+			m_HandshakeReceiveTimer->cancel ();
+			m_HandshakeReceiveTimer = nullptr;
+		}
 		if (m_ReceiveBuffer[0] != 19 || std::string_view ((const char *)(m_ReceiveBuffer + 1), 19) != "BitTorrent protocol")
 		{
 			LogPrint (eLogError, "Torrents: Unexpected handshake protocol string");
@@ -1151,9 +1182,9 @@ namespace torrents
 	TorrentsTunnel::TorrentsTunnel (std::string_view name, std::shared_ptr<i2p::client::ClientDestination> localDestination,
 		std::string_view torrentsDir, std::string_view trackers):
 		i2p::client::I2PService (localDestination), m_Name (name), m_TorrentsDir (torrentsDir),
-		m_PeerID ("-I2PD-"), m_Rng(i2p::util::GetMonotonicMicroseconds ()%1000000LL),
-		m_TrackerRequestsCheckTimer (GetService ()), m_KeepAliveCheckTimer (GetService ()),
-		m_ReconnectCheckTimer (GetService ()), m_TorrentsStatusUpdateTimer (GetService ())
+		m_PeerID ("-I2PD-"), m_TrackerRequestsCheckTimer (GetService ()),
+		m_KeepAliveCheckTimer (GetService ()), m_ReconnectCheckTimer (GetService ()),
+		m_TorrentsStatusUpdateTimer (GetService ())
 	{
 		if (localDestination)
 			m_PeerID += localDestination->GetIdentHash ().ToBase64 ();
@@ -1282,7 +1313,8 @@ namespace torrents
 			if (i2p::fs::Rename (partFilePath, filePath))
 			{
 				torrent->SetComplete ();
-				i2p::fs::Remove (resumeFilePath);
+				if (!i2p::fs::Remove (resumeFilePath))
+					LogPrint (eLogError, "Torrents: Can't delete resume file ", resumeFilePath);
 				LogPrint (eLogInfo, "Torrents: Download complete ", filePath);
 			}
 			else
@@ -1452,7 +1484,8 @@ namespace torrents
 			for (auto it: m_Torrents)
 				if (ts > it.second->GetNextTrackerRequestTime ())
 				{
-					it.second->SetNextTrackerRequestTime (ts + it.second->GetInterval () + m_Rng () % TRACKER_REQUESTS_INTERVAL_VARIANCE);
+					auto nextInterval = it.second->GetInterval () + GetLocalDestination ()->GetRng()() % TRACKER_REQUESTS_INTERVAL_VARIANCE;
+					it.second->SetNextTrackerRequestTime (ts + nextInterval);
 					RequestTracker (it.second);
 				}
 			ScheduleTrackerRequestsCheck ();
