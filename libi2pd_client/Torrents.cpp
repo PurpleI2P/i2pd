@@ -128,6 +128,18 @@ namespace torrents
 		return ret;
 	}
 
+	static std::pair<std::vector<std::string_view>, size_t> ParseStringList (std::string_view buf)
+	{
+		std::vector<std::string_view> strings;
+		size_t len = ParseList (buf, [&strings](std::string_view str)->size_t
+			{
+				auto [s, l] = ExtractByteString (str);
+				if (l) strings.push_back (s);
+				return l;
+			});
+		return { strings, len };
+	}
+
 //------------------------------------
 
 	Piece::Piece (size_t size, const uint8_t * hash):
@@ -298,8 +310,6 @@ namespace torrents
 				}
 				else if (key == "info")
 					return ParseInfo (buf);
-				else if (key == "files")
-					return ParseFiles (buf);
 				return 0;
 			});
 	}
@@ -347,6 +357,8 @@ namespace torrents
 						m_Pieces.reserve (m_Length/m_PieceLength + 1);
 					return ParsePieces (buf);
 				}
+				else if (key == "files")
+					return ParseFiles (buf);
 				return 0;
 			});
 		if (!len) return 0;
@@ -364,8 +376,8 @@ namespace torrents
 					{
 						if (key == "path")
 						{
-							auto [path, l] = ExtractByteString (value);
-							if (l) filePath = path;
+							auto [subdirs, l] = ParseStringList (value);
+							if (l) filePath = i2p::fs::CreatePath (subdirs);
 							return l;
 						}
 						else if (key == "length")
@@ -1215,6 +1227,12 @@ namespace torrents
 				delete[] buf;
 				if (!torrent->GetFiles ().empty ())
 				{
+					for (auto [filePath, fileLength]: torrent->GetFiles ())
+					{
+						auto partFilePath = GetTorrentFilePath (torrent->GetName (), filePath + ".part");
+						if (!i2p::fs::Exists (partFilePath))
+							i2p::fs::CreateAndReserveFile (partFilePath, fileLength);
+					}
 					LogPrint (eLogError, "Torrents: Multi-file torrent ", path);
 					return;
 				}
@@ -1408,6 +1426,14 @@ namespace torrents
 		std::stringstream s("");
 		s << m_TorrentsDir;
 		i2p::fs::_ExpandPath(s, filename);
+		return s.str ();
+	}
+
+	std::string TorrentsTunnel::GetTorrentFilePath (const std::string& subdir, const std::string& filename) const
+	{
+		std::stringstream s("");
+		s << m_TorrentsDir;
+		i2p::fs::_ExpandPath(s, subdir, filename);
 		return s.str ();
 	}
 

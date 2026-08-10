@@ -281,6 +281,7 @@ namespace torrents
 
 			const std::string& GetPeerID () const { return m_PeerID; }
 			std::string GetTorrentFilePath (const std::string& filename) const;
+			std::string GetTorrentFilePath (const std::string& subdir, const std::string& filename) const;
 			std::shared_ptr<Torrent> FindTorrent (const Torrent::InfoHash& infoHash) const;
 			std::list<std::shared_ptr<PeerConnection> > GetTorrentConnections (std::shared_ptr<Torrent> torrent);
 
