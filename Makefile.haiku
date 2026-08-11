@@ -3,10 +3,10 @@ CXX = g++-x86
 else
 CXX = g++
 endif
-CXXFLAGS := -Wall -std=c++20
+CXXFLAGS := -Wall -std=c++23
 INCFLAGS = -I/system/develop/headers
 DEFINES = -D_DEFAULT_SOURCE -D_GNU_SOURCE
-LDLIBS = -lbe -lbsd -lnetwork -lz -lssl -lcrypto -lboost_program_options -lpthread
+LDLIBS = -lbe -lbsd -lnetwork -lz -lssl -lcrypto -lboost_program_options -lboost_json -lpthread
 
 ifeq ($(USE_UPNP),yes)
 	DEFINES += -DUSE_UPNP
