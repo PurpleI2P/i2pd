@@ -406,6 +406,15 @@ namespace torrents
 		return infoHash;
 	}
 
+	size_t Torrent::GetLeft () const
+	{
+		if (IsComplete ()) return 0;
+		size_t completed = 0;
+		for (const auto& it: m_Pieces)
+			if (it.IsComplete ()) completed += it.GetSize ();
+		return m_Length > completed ? m_Length - completed : 0;
+	}
+
 	void Torrent::ParseTrackerResponse (std::string_view buf)
 	{
 		ParseDictionary (buf, [this](std::string_view key, std::string_view buf)->size_t
@@ -1312,7 +1321,7 @@ namespace torrents
 
 	void TorrentsTunnel::CompleteTorrent (std::shared_ptr<Torrent> torrent)
 	{
-		boost::asio::post (GetDiskIOService (), [torrent,
+		boost::asio::post (GetDiskIOService (), [this, torrent,
 			filePath = GetTorrentFilePath (torrent->GetName ()),
 			partFilePath = GetTorrentFilePath (torrent->GetName () + ".part"),
 			resumeFilePath = GetTorrentFilePath (torrent->GetName () + ".resume")]()
@@ -1320,6 +1329,7 @@ namespace torrents
 			if (i2p::fs::Rename (partFilePath, filePath))
 			{
 				torrent->SetComplete ();
+				RequestTracker  (torrent, "completed");
 				if (!i2p::fs::Remove (resumeFilePath))
 					LogPrint (eLogError, "Torrents: Can't delete resume file ", resumeFilePath);
 				LogPrint (eLogInfo, "Torrents: Download complete ", filePath);
@@ -1357,7 +1367,7 @@ namespace torrents
 			LogPrint (eLogError, "Torrents: Local destination not set");
 	}
 
-	void TorrentsTunnel::RequestTracker (std::shared_ptr<Torrent> torrent)
+	void TorrentsTunnel::RequestTracker (std::shared_ptr<Torrent> torrent, std::string_view event)
 	{
 		if (!torrent) return;
 		i2p::http::URL reqURL;
@@ -1383,8 +1393,10 @@ namespace torrents
 		params.emplace ("compact", "1");
 		params.emplace ("uploaded", "0"); // TODO
 		params.emplace ("downloaded", "0"); // TODO
-		params.emplace ("left", "1"); // TODO
+		params.emplace ("left", std::to_string (torrent->GetLeft ()));
 		params.emplace ("numwant", torrent->IsComplete () ? "0" : "25"); // max num of peers, 0 if seeding
+		if (!event.empty ())
+			params.emplace ("event", event);
 		reqURL.create_query (params);
 
 		auto req = std::make_shared<boost::beast::http::request<boost::beast::http::string_body> >(boost::beast::http::verb::get, reqURL.to_string (true), 11); // HTTP 1.1

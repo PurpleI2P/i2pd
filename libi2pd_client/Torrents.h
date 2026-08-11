@@ -151,6 +151,7 @@ namespace torrents
 			size_t GetPieceLength () const { return m_PieceLength; }
 			int GetInterval () const { return m_Interval; }
 			const InfoHash& GetInfoHash () const { return m_InfoHash; }
+			size_t GetLeft () const;
 			std::string GetHexStringInfoHash () const; // in url format
 			size_t GetNumPieces () const { return m_Pieces.size (); }
 			Piece& GetPiece (int index) { return m_Pieces[index]; }
@@ -303,7 +304,7 @@ namespace torrents
 			void Accept ();
 			void ReadTorrentFile (const std::string& path);
 			void CompleteTorrent (std::shared_ptr<Torrent> torrent);
-			void RequestTracker (std::shared_ptr<Torrent> torrent);
+			void RequestTracker (std::shared_ptr<Torrent> torrent, std::string_view event = "");
 			void TrackerRequestSent (const boost::beast::error_code& ecode, size_t bytes_transferred,
 				std::shared_ptr<i2p::client::BoostAsyncStream> httpStream, std::shared_ptr<Torrent> torrent,
 				std::shared_ptr<boost::beast::http::request<boost::beast::http::string_body> > req);
