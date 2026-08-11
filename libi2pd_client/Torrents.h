@@ -73,6 +73,14 @@ namespace torrents
 		eMessageTypeHaveNone = 15
 	};
 
+	struct PieceFileFragment // fragment to save to/load from file
+	{
+		std::string fullFilePath;
+		size_t fileOffset = 0;
+		size_t fragmentOffset = 0; // from start of piece
+		size_t fragmentSize = 0;
+	};
+
 	class PeerConnection;
 	class Piece final
 	{
@@ -99,8 +107,8 @@ namespace torrents
 			void SetNumPeers (size_t numPeers) { m_NumPeers = numPeers; }
 
 			void BlockReceived (const uint8_t * block, size_t len, size_t offset);
-			void Dump (const std::string& fullPath, size_t offset);
-			bool Load (const std::string& fullPath, size_t offset);
+			void Dump (PieceFileFragment&& fragment);
+			bool Load (PieceFileFragment&& fragment);
 			const uint8_t * GetData () const { return m_Data; }
 			size_t GetSize () const { return m_Size; }
 			bool HasBlock (size_t offset) const;

@@ -205,32 +205,32 @@ namespace torrents
 		}
 	}
 
-	void Piece::Dump (const std::string& fullPath, size_t offset)
+	void Piece::Dump (PieceFileFragment&& fragment)
 	{
 		m_IsSending = true;
-		if (m_Data)
+		if (m_Data && fragment.fragmentOffset + fragment.fragmentSize <= m_Size)
 		{
-			std::fstream f(fullPath, std::ios::binary | std::ios::in | std::ios::out );
+			std::fstream f(fragment.fullFilePath, std::ios::binary | std::ios::in | std::ios::out );
 			if (f)
 			{
-				f.seekp (offset, std::ios::beg);
-				f.write ((const char *)m_Data, m_Size);
-				LogPrint (eLogDebug, "Torrents: Saved bytes ", offset, " - ", offset + m_Size - 1, " to ", fullPath);
+				f.seekp (fragment.fileOffset, std::ios::beg);
+				f.write ((const char *)m_Data + fragment.fragmentOffset, fragment.fragmentSize);
+				LogPrint (eLogDebug, "Torrents: Saved bytes ", fragment.fileOffset, " - ", fragment.fileOffset + fragment.fragmentSize - 1, " to ", fragment.fullFilePath);
 			}
 		}
 		m_IsSending = false;
 	}
 
-	bool Piece::Load (const std::string& fullPath, size_t offset)
+	bool Piece::Load (PieceFileFragment&& fragment)
 	{
-		if (m_Data) return true;
-		std::ifstream f(fullPath, std::ifstream::binary);
+		if (fragment.fragmentOffset + fragment.fragmentSize > m_Size) return false;
+		std::ifstream f(fragment.fullFilePath, std::ifstream::binary);
 		if (f)
 		{
-			m_Data = new uint8_t[m_Size];
-			f.seekg (offset, std::ios::beg);
-			f.read ((char *)m_Data, m_Size);
-			LogPrint (eLogDebug, "Torrents: Loaded bytes ", offset, " - ", offset + m_Size - 1, " from ", fullPath);
+			if (!m_Data) m_Data = new uint8_t[m_Size];
+			f.seekg (fragment.fileOffset, std::ios::beg);
+			f.read ((char *)m_Data + fragment.fragmentOffset, fragment.fragmentSize);
+			LogPrint (eLogDebug, "Torrents: Loaded bytes ", fragment.fileOffset, " - ", fragment.fileOffset + fragment.fragmentSize - 1, " from ", fragment.fullFilePath);
 		}
 		else
 			return false;
@@ -987,13 +987,13 @@ namespace torrents
 			{
 				if (piece.VerifyHash ())
 				{
-					auto path = GetTorrentsTunnel ()->GetTorrentFilePath (m_Torrent->GetName () + ".part");
+					PieceFileFragment fragment{ GetTorrentsTunnel ()->GetTorrentFilePath (m_Torrent->GetName () + ".part"),
+						index*m_Torrent->GetPieceLength (), 0, piece.GetSize () };
 					auto resumePath = GetTorrentsTunnel ()->GetTorrentFilePath (m_Torrent->GetName () + ".resume");
-					auto offset = index*m_Torrent->GetPieceLength ();
 					boost::asio::post (GetTorrentsTunnel ()->GetDiskIOService (),
-						[&piece, path, resumePath, offset, torrent = m_Torrent]() // piece belongs to torrent
+						[&piece, fragment = std::move (fragment), resumePath, torrent = m_Torrent]() mutable // piece belongs to torrent
 						{
-							piece.Dump (path, offset);
+							piece.Dump (std::move (fragment));
 							torrent->SaveTorrentResumeFile (resumePath);
 						});
 					// send have
@@ -1067,21 +1067,28 @@ namespace torrents
 				else if (!SendRequestedBlock ({index, offset, length})) // block was not sent
 				{
 					// try to load from file
-					auto path = GetTorrentsTunnel ()->GetTorrentFilePath (m_Torrent->GetName () + (m_Torrent->IsComplete () ? "" : ".part"));
+					PieceFileFragment fragment{ GetTorrentsTunnel ()->GetTorrentFilePath (
+						m_Torrent->GetName () + (m_Torrent->IsComplete () ? "" : ".part")),
+						index*m_Torrent->GetPieceLength (), 0, piece.GetSize () };
+					RequestedBlock requestBlock{index, offset, length};
 					boost::asio::post (GetTorrentsTunnel ()->GetDiskIOService (),
-					[&piece, path, index, offset, length, torrent = m_Torrent, s = shared_from_this ()]() // piece belongs to torrent
+					[&piece, fragment = std::move (fragment), requestBlock = std::move(requestBlock),
+						torrent = m_Torrent, s = shared_from_this ()]() mutable// piece belongs to torrent
 					{
 						piece.SetIsSending (true);
-						if (piece.Load (path, index*torrent->GetPieceLength ()))
+						if (piece.Load (std::move (fragment)))
 						{
-							boost::asio::post (s->GetTorrentsTunnel ()->GetService (),
-								[requestedBlock = RequestedBlock{index, offset, length}, s]()
-								{
-									if (s->m_NumPieces < MAX_NUM_PIECES)
-										s->SendRequestedBlock (requestedBlock);
-									else
-										s->m_IncomingRequestsQueue.emplace_back (std::move (requestedBlock));
-								});
+							if (piece.VerifyHash ())
+								boost::asio::post (s->GetTorrentsTunnel ()->GetService (),
+									[requestedBlock = std::move (requestBlock), s]()
+									{
+										if (s->m_NumPieces < MAX_NUM_PIECES)
+											s->SendRequestedBlock (requestedBlock);
+										else
+											s->m_IncomingRequestsQueue.emplace_back (std::move (requestedBlock));
+									});
+							else
+								LogPrint (eLogError, "Torrent: Corrupted piece ", requestBlock.index, " from ", fragment.fullFilePath);
 						}
 						piece.SetIsSending (false);
 					});
