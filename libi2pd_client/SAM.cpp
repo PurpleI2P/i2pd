@@ -939,34 +939,34 @@ namespace client
 	void SAMSocket::ProcessPing (std::string_view text)
 	{
 		LogPrint (eLogDebug, "SAM: Ping ", text);
-		SendReplyWithMessage (SAM_PONG, std::string (text));
+		SendReplyWithMessage (SAM_PONG, std::string (text), false);
 	}
 
-	void SAMSocket::SendReplyWithMessage (const char * reply, const std::string & msg)
+	void SAMSocket::SendReplyWithMessage (const char * reply, const std::string & msg, bool close)
 	{
 #ifdef _MSC_VER
 		size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, reply, msg.c_str());
 #else
 		size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, reply, msg.c_str());
 #endif
-		SendMessageReply ({m_Buffer, len}, true);
+		SendMessageReply ({m_Buffer, len}, close);
 	}
 
 	void SAMSocket::SendSessionI2PError(const std::string & msg)
 	{
 		LogPrint (eLogError, "SAM: Session I2P error: ", msg);
-		SendReplyWithMessage (SAM_SESSION_STATUS_I2P_ERROR, msg);
+		SendReplyWithMessage (SAM_SESSION_STATUS_I2P_ERROR, msg, true);
 	}
 
 	void SAMSocket::SendStreamI2PError(const std::string & msg)
 	{
 		LogPrint (eLogError, "SAM: Stream I2P error: ", msg);
-		SendReplyWithMessage (SAM_STREAM_STATUS_I2P_ERROR, msg);
+		SendReplyWithMessage (SAM_STREAM_STATUS_I2P_ERROR, msg, true);
 	}
 
 	void SAMSocket::SendStreamCantReachPeer(const std::string & msg)
 	{
-		SendReplyWithMessage (SAM_STREAM_STATUS_CANT_REACH_PEER, msg);
+		SendReplyWithMessage (SAM_STREAM_STATUS_CANT_REACH_PEER, msg, true);
 	}
 
 	void SAMSocket::HandleNamingLookupLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet, std::string name)
