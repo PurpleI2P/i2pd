@@ -10,6 +10,7 @@
 
 #ifndef _WIN32
 
+#include <errno.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <thread>
@@ -27,43 +28,61 @@
 #include "Transports.h"
 #include "util.h"
 
+const int GRACEFUL_SHUTDOWN_INTERVAL = 10*60; // in seconds
+
+// a handler may only touch volatile sig_atomic_t, everything else is done by the daemon loop
+static volatile sig_atomic_t g_PendingSignals[NSIG] = {};
+
 void handle_signal(int sig)
 {
-	switch (sig)
+	int savedErrno = errno;
+	if (sig > 0 && sig < NSIG)
+		g_PendingSignals[sig] = 1;
+	errno = savedErrno;
+}
+
+static void HandlePendingSignals()
+{
+	for (int sig = 1; sig < NSIG; sig++)
 	{
-		case SIGHUP:
-			LogPrint(eLogInfo, "Daemon: Got SIGHUP, reopening tunnel configuration...");
-			i2p::client::context.ReloadConfig();
-		break;
-		case SIGUSR1:
-			LogPrint(eLogInfo, "Daemon: Got SIGUSR1, reopening logs...");
-			i2p::log::Logger().Reopen ();
-		break;
-		case SIGINT:
-			if (i2p::context.AcceptsTunnels () && !Daemon.gracefulShutdownInterval)
-			{
-				i2p::context.SetAcceptsTunnels (false);
-				Daemon.gracefulShutdownInterval = 10*60; // 10 minutes
-				LogPrint(eLogInfo, "Graceful shutdown after ", Daemon.gracefulShutdownInterval, " seconds");
-			}
-			else
-				Daemon.running = 0;
-		break;
-		case SIGABRT:
-		case SIGTERM:
-			Daemon.running = 0; // Exit loop
-		break;
-		case SIGPIPE:
-			LogPrint(eLogInfo, "SIGPIPE received");
-		break;
-		case SIGTSTP:
-			LogPrint(eLogInfo, "Daemon: Got SIGTSTP, disconnecting from network...");
-			i2p::transport::transports.SetOnline(false);
-		break;
-		case SIGCONT:
-			LogPrint(eLogInfo, "Daemon: Got SIGCONT, restoring connection to network...");
-			i2p::transport::transports.SetOnline(true);
-		break;
+		if (!g_PendingSignals[sig]) continue;
+		g_PendingSignals[sig] = 0;
+		switch (sig)
+		{
+			case SIGHUP:
+				LogPrint(eLogInfo, "Daemon: Got SIGHUP, reopening tunnel configuration...");
+				i2p::client::context.ReloadConfig();
+			break;
+			case SIGUSR1:
+				LogPrint(eLogInfo, "Daemon: Got SIGUSR1, reopening logs...");
+				i2p::log::Logger().Reopen ();
+			break;
+			case SIGINT:
+				if (i2p::context.AcceptsTunnels () && !Daemon.gracefulShutdownInterval)
+				{
+					i2p::context.SetAcceptsTunnels (false);
+					Daemon.gracefulShutdownInterval = GRACEFUL_SHUTDOWN_INTERVAL;
+					LogPrint(eLogInfo, "Graceful shutdown after ", Daemon.gracefulShutdownInterval, " seconds");
+				}
+				else
+					Daemon.running = 0;
+			break;
+			case SIGABRT:
+			case SIGTERM:
+				Daemon.running = 0; // Exit loop
+			break;
+			case SIGPIPE:
+				LogPrint(eLogInfo, "SIGPIPE received");
+			break;
+			case SIGTSTP:
+				LogPrint(eLogInfo, "Daemon: Got SIGTSTP, disconnecting from network...");
+				i2p::transport::transports.SetOnline(false);
+			break;
+			case SIGCONT:
+				LogPrint(eLogInfo, "Daemon: Got SIGCONT, restoring connection to network...");
+				i2p::transport::transports.SetOnline(true);
+			break;
+		}
 	}
 }
 
@@ -225,6 +244,7 @@ namespace i2p
 			while (running)
 			{
 				std::this_thread::sleep_for (std::chrono::seconds(1));
+				HandlePendingSignals();
 				if (gracefulShutdownInterval)
 				{
 					gracefulShutdownInterval--; // - 1 second
