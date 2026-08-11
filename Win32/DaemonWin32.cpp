@@ -101,7 +101,11 @@ namespace util
 
 	int DaemonWin32::GetGracefulShutdownInterval () const
 	{
+#ifdef WIN32_APP
 		return i2p::win32::GetGracefulShutdownRemainingTime ();
+#else
+		return Daemon_Singleton::GetGracefulShutdownInterval ();
+#endif
 	}	
 }
 }
