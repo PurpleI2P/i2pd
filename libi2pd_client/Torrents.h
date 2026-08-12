@@ -76,9 +76,14 @@ namespace torrents
 	struct PieceFileFragment // fragment to save to/load from file
 	{
 		std::string fullFilePath;
-		size_t fileOffset = 0;
-		size_t fragmentOffset = 0; // from start of piece
-		size_t fragmentSize = 0;
+		size_t fileOffset;
+		size_t fragmentOffset; // from start of piece
+		size_t fragmentSize;
+
+		PieceFileFragment (const std::string& fullFilePath1, size_t fileOffset1, size_t fragmentOffset1, size_t fragmentSize1):
+			fullFilePath (fullFilePath1), fileOffset (fileOffset1), fragmentOffset (fragmentOffset1), fragmentSize (fragmentSize1) {};
+		PieceFileFragment (PieceFileFragment&& ) = default;
+		PieceFileFragment (const PieceFileFragment& ) = default;
 	};
 
 	class PeerConnection;
