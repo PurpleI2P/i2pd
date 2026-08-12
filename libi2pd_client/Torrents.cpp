@@ -298,7 +298,7 @@ namespace torrents
 
 	Torrent::Torrent (std::string_view buf):
 		m_Length (0), m_PieceLength (0), m_Interval (MIN_TRACKER_REQUESTS_INTERVAL),
-		m_NextTrackerRequestTime (0), m_IsComplete (false)
+		m_NextTrackerRequestTime (0), m_IsComplete (false),  m_Uploaded (0)
 	{
 		ParseDictionary (buf, [this](std::string_view key, std::string_view buf)->size_t
 			{
@@ -735,6 +735,14 @@ namespace torrents
 		StreamReceive ();
 	}
 
+	void PeerConnection::Close ()
+	{
+		boost::asio::post (GetTorrentsTunnel ()->GetService (), [s = shared_from_this ()]()
+		{
+			s->Terminate ();
+		});
+	}
+
 	void PeerConnection::CheckKeepAlive (uint64_t ts)
 	{
 		if (m_IsEstablished)
@@ -742,11 +750,7 @@ namespace torrents
 			if (ts > m_LastReceiveTime + PEER_KEEP_ALIVE_TIMEOUT)
 			{
 				LogPrint (eLogInfo, "Torrent: Peer timeout expired");
-				boost::asio::post (GetTorrentsTunnel ()->GetService (), [s = shared_from_this ()]()
-				{
-					// make sure it's not called from IterateHandlers
-					s->Terminate ();
-				});
+				Close (); // Terminate shouldn't be called from IterateHandler directly
 			}
 			else if (ts > m_LastSendTime + PEER_KEEP_SEND_INTERVAL)
 			{
@@ -1106,6 +1110,7 @@ namespace torrents
 					s->Terminate ();
 			});
 		m_LastSendTime = i2p::util::GetMonotonicSeconds ();
+		m_Torrent->AddUploaded (len);
 	}
 
 	void PeerConnection::HandleRequestMsg (const uint8_t * buf, size_t len)
@@ -1437,6 +1442,11 @@ namespace torrents
 				if (!i2p::fs::Remove (resumeFilePath))
 					LogPrint (eLogError, "Torrents: Can't delete resume file ", resumeFilePath);
 				LogPrint (eLogInfo, "Torrents: Download complete ", torrent->GetFullPath ());
+				// close connections with seeds
+				auto conns = GetTorrentConnections (torrent);
+				for (auto it: conns)
+					if (it->GetRemoteBitfield ().all ()) // seed
+						it->Close ();
 			}
 		});
 	}
@@ -1493,7 +1503,7 @@ namespace torrents
 		params.emplace ("ip", GetLocalDestination ()->GetIdentity ()->ToBase64 () + ".i2p");
 		params.emplace ("port", std::to_string (TORRENT_PORT)); // 6881
 		params.emplace ("compact", "1");
-		params.emplace ("uploaded", "0"); // TODO
+		params.emplace ("uploaded", std::to_string (torrent->GetUploaded ()));
 		params.emplace ("downloaded", std::to_string (torrent->GetLength () - torrent->GetLeft ()));
 		params.emplace ("left", std::to_string (torrent->GetLeft ()));
 		params.emplace ("numwant", torrent->IsComplete () ? "0" : "25"); // max num of peers, 0 if seeding

@@ -172,6 +172,8 @@ namespace torrents
 
 			uint64_t GetNextTrackerRequestTime () const { return m_NextTrackerRequestTime; }
 			void SetNextTrackerRequestTime (uint64_t ts) { m_NextTrackerRequestTime = ts; }
+			size_t GetUploaded () const { return m_Uploaded; }
+			void AddUploaded (size_t add) { m_Uploaded += add; }
 
 			void SaveTorrentResumeFile (const std::string& fullPath);
 
@@ -196,6 +198,7 @@ namespace torrents
 			std::unordered_set<i2p::data::IdentHash> m_Peers;
 			bool m_IsComplete;
 			std::list<std::pair<std::string, size_t> > m_Files; // list of (path, length)
+			size_t m_Uploaded;
 	};
 
 	class TorrentsTunnel;
@@ -217,6 +220,7 @@ namespace torrents
 			~PeerConnection ();
 
 			void Connect ();
+			void Close ();
 			void ReceiveHandshake ();
 			void CheckKeepAlive (uint64_t ts);
 
