@@ -127,6 +127,9 @@ namespace client
 			void ReadTunnels (const std::string& tunConf, int& numClientTunnels, int& numServerTunnels);
 			void ReadHttpProxy ();
 			void ReadSocksProxy ();
+			// take the proxy out under the lock, so it can be stopped without holding it
+			std::shared_ptr<I2PService> DetachHttpProxy ();
+			std::shared_ptr<I2PService> DetachSocksProxy ();
 			template<typename Section, typename Type>
 			std::string GetI2CPOption (const Section& section, const std::string& name, const Type& value) const;
 			template<typename Section>
@@ -153,6 +156,7 @@ namespace client
 
 			AddressBook m_AddressBook;
 
+			mutable std::mutex m_ProxyMutex;
 			std::shared_ptr<I2PService> m_HttpProxy, m_SocksProxy;
 			std::map<boost::asio::ip::tcp::endpoint, std::shared_ptr<I2PService> > m_ClientTunnels; // local endpoint -> tunnel
 			std::map<std::pair<i2p::data::IdentHash, int>, std::shared_ptr<I2PServerTunnel> > m_ServerTunnels; // <destination,port> -> tunnel
@@ -181,8 +185,16 @@ namespace client
 			const decltype(m_ClientForwards)& GetClientForwards () const { return m_ClientForwards; }
 			const decltype(m_ServerForwards)& GetServerForwards () const { return m_ServerForwards; }
 			const decltype(m_TorrentsTunnels)& GetTorrentsTunnels () const { return m_TorrentsTunnels; }
-			std::shared_ptr<const I2PService> GetHttpProxy () const { return m_HttpProxy; }
-			std::shared_ptr<const I2PService> GetSocksProxy () const { return m_SocksProxy; }
+			std::shared_ptr<const I2PService> GetHttpProxy () const
+			{
+				std::lock_guard<std::mutex> l(m_ProxyMutex);
+				return m_HttpProxy;
+			}
+			std::shared_ptr<const I2PService> GetSocksProxy () const
+			{
+				std::lock_guard<std::mutex> l(m_ProxyMutex);
+				return m_SocksProxy;
+			}
 	};
 
 	extern ClientContext context;
