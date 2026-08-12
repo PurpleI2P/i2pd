@@ -144,9 +144,12 @@ namespace torrents
 			bool IsComplete () const { return m_IsComplete; }
 			void SetComplete ();
 
-			const std::string& GetAnnounce () const { return m_Announce; }
-			const std::string& GetName () const { return m_Name; }
+			std::string_view GetAnnounce () const { return m_Announce; }
+			std::string_view GetName () const { return m_Name; }
+			const std::string& GetFullPath () const { return m_FullPath; }
+			void SetFullPath (std::string_view fullPath) { m_FullPath = fullPath; }
 			const std::list<std::pair<std::string, size_t> >& GetFiles () const { return m_Files; }
+			std::list<std::pair<std::string, size_t> >& GetFiles () { return m_Files; }
 			size_t GetLength () const { return m_Length; }
 			size_t GetPieceLength () const { return m_PieceLength; }
 			int GetInterval () const { return m_Interval; }
@@ -159,6 +162,7 @@ namespace torrents
 			bool ApplyBitfield (const std::vector<uint8_t>& bitfield); // return true if complete
 			const std::unordered_set<i2p::data::IdentHash>&  GetPeers () const { return m_Peers; }
 			std::tuple<uint32_t, uint32_t, uint32_t> GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn); // return (index, offset, len)
+			std::vector<PieceFileFragment> GetPieceFileFragments (int index) const;
 			bool UpdateStatus (uint64_t ts); // return true if complete
 
 			uint64_t GetNextTrackerRequestTime () const { return m_NextTrackerRequestTime; }
@@ -178,7 +182,7 @@ namespace torrents
 
 		private:
 
-			std::string m_Name, m_Announce;
+			std::string m_Name, m_FullPath, m_Announce;
 			size_t m_Length, m_PieceLength;
 			int m_Interval; // in miiliseconds
 			uint64_t m_NextTrackerRequestTime; // monotonic millicesonds
@@ -292,14 +296,15 @@ namespace torrents
 			auto& GetDiskIOService () { return m_DiskIOService.GetService (); };
 
 			const std::string& GetPeerID () const { return m_PeerID; }
-			std::string GetTorrentFilePath (const std::string& filename) const;
-			std::string GetTorrentFilePath (const std::string& subdir, const std::string& filename) const;
 			std::shared_ptr<Torrent> FindTorrent (const Torrent::InfoHash& infoHash) const;
 			std::list<std::shared_ptr<PeerConnection> > GetTorrentConnections (std::shared_ptr<Torrent> torrent);
 
 			const char* GetName() const override { return m_Name.c_str (); }
 
 		private:
+
+			std::string GetTorrentFilePath (std::string_view filename) const;
+			std::string GetTorrentFilePath (std::string_view subdir, std::string_view filename) const;
 
 			void Accept ();
 			void ReadTorrentFile (const std::string& path);
