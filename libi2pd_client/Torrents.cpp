@@ -436,6 +436,12 @@ namespace torrents
 				}
 				else if (key == "peers")
 					return ParsePeers (buf);
+				else if (key == "Failure Reason")
+				{
+					auto [reason, l] = ExtractByteString (buf);
+					LogPrint (eLogError, "Torrents: Tracker error: ", reason);
+					return l;
+				}
 				return 0;
 			});
 	}
@@ -704,6 +710,7 @@ namespace torrents
 
 	void PeerConnection::WriteToStream (const uint8_t * buf, size_t len)
 	{
+		if (!m_Stream) return;
 		LogPrint (eLogDebug, "Torrents: Sending ", len, " bytes");
 		m_Stream->AsyncSend (buf, len,
 			[s = shared_from_this ()](const boost::system::error_code& ecode, size_t bytes_transferred)
@@ -1074,6 +1081,7 @@ namespace torrents
 
 	void PeerConnection::SendPieceMsg (uint32_t index, uint32_t offset, const uint8_t * data, size_t len)
 	{
+		if (!m_Stream) return;
 		std::vector<uint8_t> sendBuffer(len + 8 + 5);
 		htobe32buf (sendBuffer.data (), len + 8 + 1); // length
 		sendBuffer[4] = eMessageTypePiece; // msg ID
@@ -1476,11 +1484,11 @@ namespace torrents
 		std::map<std::string, std::string> params;
 		params.emplace ("info_hash", torrent->GetHexStringInfoHash ());
 		params.emplace ("peer_id", m_PeerID);
-		params.emplace ("ip", GetLocalDestination ()->GetIdentity ()->ToBase64 ());
+		params.emplace ("ip", GetLocalDestination ()->GetIdentity ()->ToBase64 () + ".i2p");
 		params.emplace ("port", std::to_string (TORRENT_PORT)); // 6881
 		params.emplace ("compact", "1");
 		params.emplace ("uploaded", "0"); // TODO
-		params.emplace ("downloaded", "0"); // TODO
+		params.emplace ("downloaded", std::to_string (torrent->GetLength () - torrent->GetLeft ()));
 		params.emplace ("left", std::to_string (torrent->GetLeft ()));
 		params.emplace ("numwant", torrent->IsComplete () ? "0" : "25"); // max num of peers, 0 if seeding
 		if (!event.empty ())
