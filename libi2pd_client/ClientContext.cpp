@@ -125,20 +125,36 @@ namespace client
 		}
 	}
 
+	std::shared_ptr<I2PService> ClientContext::DetachHttpProxy ()
+	{
+		std::lock_guard<std::mutex> l(m_ProxyMutex);
+		auto proxy = m_HttpProxy;
+		m_HttpProxy = nullptr;
+		return proxy;
+	}
+
+	std::shared_ptr<I2PService> ClientContext::DetachSocksProxy ()
+	{
+		std::lock_guard<std::mutex> l(m_ProxyMutex);
+		auto proxy = m_SocksProxy;
+		m_SocksProxy = nullptr;
+		return proxy;
+	}
+
 	void ClientContext::Stop ()
 	{
-		if (m_HttpProxy)
+		auto httpProxy = DetachHttpProxy ();
+		if (httpProxy)
 		{
 			LogPrint(eLogInfo, "Clients: Stopping HTTP Proxy");
-			m_HttpProxy->Stop();
-			m_HttpProxy = nullptr;
+			httpProxy->Stop();
 		}
 
-		if (m_SocksProxy)
+		auto socksProxy = DetachSocksProxy ();
+		if (socksProxy)
 		{
 			LogPrint(eLogInfo, "Clients: Stopping SOCKS Proxy");
-			m_SocksProxy->Stop();
-			m_SocksProxy = nullptr;
+			socksProxy->Stop();
 		}
 
 		for (auto& it: m_ClientTunnels)
@@ -228,19 +244,13 @@ namespace client
 		CreateNewSharedLocalDestination ();
 
 		// recreate HTTP proxy
-		if (m_HttpProxy)
-		{
-			m_HttpProxy->Stop ();
-			m_HttpProxy = nullptr;
-		}
+		auto httpProxy = DetachHttpProxy ();
+		if (httpProxy) httpProxy->Stop ();
 		ReadHttpProxy ();
 
 		// recreate SOCKS proxy
-		if (m_SocksProxy)
-		{
-			m_SocksProxy->Stop ();
-			m_SocksProxy = nullptr;
-		}
+		auto socksProxy = DetachSocksProxy ();
+		if (socksProxy) socksProxy->Stop ();
 		ReadSocksProxy ();
 
 		// handle tunnels
@@ -1051,16 +1061,19 @@ namespace client
 			}
 			try
 			{
-				m_HttpProxy = std::make_shared<i2p::proxy::HTTPProxy>("HTTP Proxy", httpProxyAddr, httpProxyPort,
+				// publish only after it is started, so readers never see a half-built proxy
+				auto proxy = std::make_shared<i2p::proxy::HTTPProxy>("HTTP Proxy", httpProxyAddr, httpProxyPort,
 					httpOutProxyURL, httpAddresshelper, httpSendUserAgent, localDestination);
 				uint64_t closeIdleTime; i2p::config::GetOption("httpproxy.i2cp.closeIdleTime", closeIdleTime);
 				if (closeIdleTime)
 				{
-					m_HttpProxy->SetCloseIdleTime(closeIdleTime);
+					proxy->SetCloseIdleTime(closeIdleTime);
 					bool newDestOnResume; i2p::config::GetOption("httpproxy.i2cp.newDestOnResume", newDestOnResume);
-					m_HttpProxy->SetNewDestOnResume(newDestOnResume);
+					proxy->SetNewDestOnResume(newDestOnResume);
 				}
-				m_HttpProxy->Start();
+				proxy->Start();
+				std::lock_guard<std::mutex> l(m_ProxyMutex);
+				m_HttpProxy = proxy;
 			}
 			catch (std::exception& e)
 			{
@@ -1087,10 +1100,15 @@ namespace client
 			i2p::data::SigningKeyType sigType; i2p::config::GetOption("socksproxy.signaturetype",    sigType);
 			if (sigType > i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519) sigType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519;
 			LogPrint(eLogInfo, "Clients: Starting SOCKS Proxy at ", socksProxyAddr, ":", socksProxyPort);
+			std::shared_ptr<I2PService> httpProxy;
+			{
+				std::lock_guard<std::mutex> l(m_ProxyMutex);
+				httpProxy = m_HttpProxy;
+			}
 			if (socksProxyKeys == "shareddest")
 				localDestination = m_SharedLocalDestination;
-			else if (httpProxyKeys == socksProxyKeys && m_HttpProxy)
-				localDestination = m_HttpProxy->GetLocalDestination ();
+			else if (httpProxyKeys == socksProxyKeys && httpProxy)
+				localDestination = httpProxy->GetLocalDestination ();
 			else if (socksProxyKeys.length () > 0)
 			{
 				i2p::data::PrivateKeys keys;
@@ -1106,16 +1124,18 @@ namespace client
 			}
 			try
 			{
-				m_SocksProxy = std::make_shared<i2p::proxy::SOCKSProxy>("SOCKS", socksProxyAddr, socksProxyPort,
+				auto proxy = std::make_shared<i2p::proxy::SOCKSProxy>("SOCKS", socksProxyAddr, socksProxyPort,
 					socksOutProxy, socksOutProxyAddr, socksOutProxyPort, localDestination);
 				uint64_t closeIdleTime; i2p::config::GetOption("socksproxy.i2cp.closeIdleTime", closeIdleTime);
 				if (closeIdleTime)
 				{
-					m_SocksProxy->SetCloseIdleTime(closeIdleTime);
+					proxy->SetCloseIdleTime(closeIdleTime);
 					bool newDestOnResume; i2p::config::GetOption("socksproxy.i2cp.newDestOnResume", newDestOnResume);
-					m_SocksProxy->SetNewDestOnResume(newDestOnResume);
+					proxy->SetNewDestOnResume(newDestOnResume);
 				}
-				m_SocksProxy->Start();
+				proxy->Start();
+				std::lock_guard<std::mutex> l(m_ProxyMutex);
+				m_SocksProxy = proxy;
 			}
 			catch (std::exception& e)
 			{
