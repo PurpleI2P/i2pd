@@ -113,7 +113,7 @@ namespace torrents
 		size_t ret = 0;
 		switch (buf[0])
 		{
-			case 'i': // interger
+			case 'i': // integer
 				return ExtractInteger (buf).second;
 			break;
 			case 'l': // list

@@ -195,7 +195,7 @@ namespace client
 			it++;
 		}
 		m_UnackedDatagrams.erase (m_UnackedDatagrams.begin (), it);
-		m_IsSendingAllowed = true; // if we recieve ack after path change, now can send new datagrams
+		m_IsSendingAllowed = true; // if we receive ack after path change, now can send new datagrams
 		if (!m_UnackedDatagrams.empty ())
 		{
 			// keep armed while anything is unacked, otherwise a full window can't be unblocked

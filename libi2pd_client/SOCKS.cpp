@@ -670,7 +670,7 @@ namespace proxy
 				std::string_view addr = m_address.dns.GetString();
 				if (m_cmd == CMD_RESOLVE)
 				{
-					// resolve to 255.x.x.x adddress
+					// resolve to 255.x.x.x address
 					LogPrint(eLogInfo, "SOCKS: Resolve ", addr);
 					boost::asio::post (GetOwner ()->GetService (), [this, addr](void)
 						{

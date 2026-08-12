@@ -70,7 +70,7 @@ namespace crypto
 			{
 				memcpy(m_CachedPub, pub_key, pub_key_len);
 				m_IsPubCached = true;
-				LogPrint(eLogDebug, "MLKEM [libressl] cache the pub succes");
+				LogPrint(eLogDebug, "MLKEM [libressl] cache the pub success");
 			} else
 			{
 				 LogPrint(eLogError, "MLKEM: can't cache private key [libressl]");
@@ -190,7 +190,7 @@ namespace crypto
 			OPENSSL_cleanse(out_ss, out_ss_len);
 			OPENSSL_free(out_ct);
 			OPENSSL_free(out_ss);
-			LogPrint(eLogDebug, "MLKEM [libressl] succesfully encaps");
+			LogPrint(eLogDebug, "MLKEM [libressl] successfully encaps");
 		}
 		else
 			LogPrint(eLogError, "MLKEM [libressl]: encapsulation failed");
@@ -222,7 +222,7 @@ namespace crypto
 				OPENSSL_cleanse(out_shared_secret, out_shared_secret_len);
 
 				OPENSSL_free(out_shared_secret);
-				LogPrint(eLogDebug, "MLKEM [libressl] succesfully decrypt");
+				LogPrint(eLogDebug, "MLKEM [libressl] successfully decrypt");
 			}
 			else
 			{
