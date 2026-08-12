@@ -67,7 +67,7 @@ namespace client
 				len = 0;
 				if (!m_SSL)
 				{
-					// check if something avaiable
+					// check if something available
 					boost::system::error_code ec;
 					len = m_Socket->available (ec);
 					if (!ec && len > 0)

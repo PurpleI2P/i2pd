@@ -517,7 +517,7 @@ namespace proxy
 					}
 					else
 					{
-						// invaild address
+						// invalid address
 						HostNotFound(dest_host);
 						return true;
 					}

@@ -239,7 +239,7 @@ namespace garlic
 			std::shared_ptr<i2p::crypto::X25519Keys> m_EphemeralKeys;
 #if OPENSSL_PQ
 			std::unique_ptr<i2p::crypto::MLKEMKeys> m_PQKeys;
-			std::unique_ptr<std::array<uint8_t, 64> > m_NSRCK; // before cipher text encryptio
+			std::unique_ptr<std::array<uint8_t, 64> > m_NSRCK; // before cipher text encryption
 #endif
 			SessionState m_State = eSessionStateNew;
 			uint64_t m_SessionCreatedTimestamp = 0, m_LastActivityTimestamp = 0, // incoming (in seconds)
