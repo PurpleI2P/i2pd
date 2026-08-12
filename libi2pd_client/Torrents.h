@@ -55,6 +55,7 @@ namespace torrents
 	constexpr size_t HANDSHAKE_MSG_LENGTH = 68;
 	constexpr size_t INTERESTED_MSG_LENGTH = 5;
 	constexpr size_t NOTINTERESTED_MSG_LENGTH = 5;
+	constexpr size_t CHOKE_MSG_LENGTH = 5;
 	constexpr size_t UNCHOKE_MSG_LENGTH = 5;
 	constexpr size_t REQUEST_MSG_PAYLOAD_LENGTH = 12;
 	constexpr size_t HAVE_MSG_PAYLOAD_LENGTH = 4;
@@ -258,6 +259,7 @@ namespace torrents
 			void SendInterestedMsg ();
 			void SendNotinterestedMsg ();
 			void SendUnchokeMsg ();
+			void SendChokeMsg ();
 			void HandleChokeMsg ();
 
 			bool RequestNextBlock ();
@@ -273,7 +275,7 @@ namespace torrents
 			std::shared_ptr<Torrent> m_Torrent;
 			std::string m_RemotePeerID;
 			boost::dynamic_bitset<> m_RemoteBitfield;
-			bool m_IsHandshakeSent, m_IsEstablished, m_IsChoked;
+			bool m_IsHandshakeSent, m_IsEstablished, m_IsChoked, m_IsRemoteChoked;
 			uint64_t m_LastReceiveTime, m_LastSendTime; // monotonic seconds
 			size_t m_NumRequests, m_NumPieces; // outgoing
 			std::list<RequestedBlock> m_IncomingRequestsQueue;

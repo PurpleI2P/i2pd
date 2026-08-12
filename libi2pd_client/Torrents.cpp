@@ -639,7 +639,7 @@ namespace torrents
 
 	PeerConnection::PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream):
 		i2p::client::I2PServiceHandler (owner), m_Stream (stream), m_ReceiveBufferOffset (0),
-		m_IsHandshakeSent (false), m_IsEstablished (false), m_IsChoked (true),
+		m_IsHandshakeSent (false), m_IsEstablished (false), m_IsChoked (true), m_IsRemoteChoked (true),
 		m_LastReceiveTime (0), m_LastSendTime (0), m_NumRequests (0), m_NumPieces (0),
 		 m_LastRequestedPieceIndex (-1)
 	{
@@ -870,7 +870,11 @@ namespace torrents
 					RequestNextBlocks ();
 				break;
 				case eMessageTypeInterested:
-					SendUnchokeMsg ();
+					if (m_IsRemoteChoked)
+					{
+						m_IsRemoteChoked = false;
+						SendUnchokeMsg ();
+					}
 				break;
 				case eMessageTypeNotInterested:
 					LogPrint (eLogInfo, "Torrents: Not interested message is not implemented");
@@ -1105,6 +1109,12 @@ namespace torrents
 						s->SendRequestedBlock (s->m_IncomingRequestsQueue.front ());
 						s->m_IncomingRequestsQueue.pop_front ();
 					}
+					if (s->m_IsRemoteChoked && s->m_IncomingRequestsQueue.size () < 2*MAX_NUM_PIECES)
+					{
+						LogPrint (eLogDebug, "Torrents: Unchoke");
+						s->m_IsRemoteChoked = false;
+						s->SendUnchokeMsg ();
+					}
 				}
 				else
 					s->Terminate ();
@@ -1136,7 +1146,15 @@ namespace torrents
 			if (piece.HasBlock (offset))
 			{
 				if (m_NumPieces >= MAX_NUM_PIECES)
+				{
 					 m_IncomingRequestsQueue.emplace_back (index, offset, length);
+					 if (!m_IsRemoteChoked && m_IncomingRequestsQueue.size () > 5*MAX_NUM_PIECES)
+					 {
+						LogPrint (eLogDebug, "Torrents: Choke");
+						m_IsRemoteChoked = true;
+						SendChokeMsg ();
+					 }
+				}
 				else if (!SendRequestedBlock ({index, offset, length})) // block was not sent
 				{
 					// try to load from file
@@ -1225,6 +1243,14 @@ namespace torrents
 		htobe32buf (buf, 1);
 		buf[4] = eMessageTypeNotInterested;
 		WriteToStream (buf, NOTINTERESTED_MSG_LENGTH);
+	}
+
+	void PeerConnection::SendChokeMsg ()
+	{
+		uint8_t buf[CHOKE_MSG_LENGTH];
+		htobe32buf (buf, 1);
+		buf[4] = eMessageTypeChoke;
+		WriteToStream (buf, CHOKE_MSG_LENGTH);
 	}
 
 	void PeerConnection::SendUnchokeMsg ()
