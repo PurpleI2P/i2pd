@@ -1139,21 +1139,24 @@ namespace torrents
 					boost::asio::post (GetTorrentsTunnel ()->GetDiskIOService (),
 					[requestBlock = std::move(requestBlock), torrent = m_Torrent, s = shared_from_this ()]() mutable
 					{
-						auto fragments = torrent->GetPieceFileFragments (requestBlock.index);
-						Piece& piece = torrent->GetPiece (requestBlock.index);
-						piece.SetIsSending (true);
 						bool loaded = true;
-						for (auto& it: fragments)
+						Piece& piece = torrent->GetPiece (requestBlock.index);
+						if (!piece.GetData ()) // don't try to load if already loaded
 						{
-							if (!piece.Load (std::move (it)))
+							auto fragments = torrent->GetPieceFileFragments (requestBlock.index);
+							piece.SetIsSending (true);
+							for (auto& it: fragments)
+							{
+								if (!piece.Load (std::move (it)))
+									loaded = false;
+							}
+							if (loaded && !piece.VerifyHash ())
+							{
+								LogPrint (eLogError, "Torrent: Corrupted piece ", requestBlock.index);
 								loaded = false;
+							}
+							piece.SetIsSending (false);
 						}
-						if (!piece.VerifyHash ())
-						{
-							LogPrint (eLogError, "Torrent: Corrupted piece ", requestBlock.index);
-							loaded = false;
-						}
-						piece.SetIsSending (false);
 						if (loaded)
 							boost::asio::post (s->GetTorrentsTunnel ()->GetService (),
 								[requestedBlock = std::move (requestBlock), s]()
@@ -1164,7 +1167,10 @@ namespace torrents
 										s->m_IncomingRequestsQueue.emplace_back (std::move (requestedBlock));
 								});
 						else
+						{
 							LogPrint (eLogError, "Torrent: Failed to load piece ", requestBlock.index);
+							piece.Reset ();
+						}
 					});
 				}
 			}
