@@ -213,6 +213,7 @@ namespace garlic
 			void CreateNewRouter ();
 			void NewRouterInfo ();
 			void UpdateRouterInfo ();
+			void UpdateCaps (uint8_t caps);
 			void NewNTCP2Keys ();
 			void NewSSU2Keys ();
 			void UpdateNTCP2Keys ();

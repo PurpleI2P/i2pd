@@ -294,6 +294,12 @@ namespace i2p
 		m_LastUpdateTime = i2p::util::GetSecondsSinceEpoch ();
 	}
 
+	void RouterContext::UpdateCaps (uint8_t caps)
+	{
+		std::lock_guard<std::mutex> l(m_RouterInfoMutex);
+		m_RouterInfo.UpdateCaps (caps);
+	}
+
 	void RouterContext::NewNTCP2Keys ()
 	{
 		m_NTCP2StaticKeys.reset (new i2p::crypto::X25519Keys ());
@@ -357,11 +363,11 @@ namespace i2p
 					SetUnreachable (true, false); // ipv4
 				break;
 				case eRouterStatusMesh:
-					m_RouterInfo.UpdateCaps (m_RouterInfo.GetCaps () | i2p::data::RouterInfo::eReachable);
+					UpdateCaps (m_RouterInfo.GetCaps () | i2p::data::RouterInfo::eReachable);
 				break;
 				case eRouterStatusProxy:
 				case eRouterStatusStan:
-					m_RouterInfo.UpdateCaps ((m_RouterInfo.GetCaps () | i2p::data::RouterInfo::eUnreachable) & ~i2p::data::RouterInfo::eReachable);
+					UpdateCaps ((m_RouterInfo.GetCaps () | i2p::data::RouterInfo::eUnreachable) & ~i2p::data::RouterInfo::eReachable);
 				break;
 				default:
 					;
@@ -727,7 +733,7 @@ namespace i2p
 			// no break here, extra + high means 'X'
 			case high : caps |= i2p::data::RouterInfo::eHighBandwidth; break;
 		}
-		m_RouterInfo.UpdateCaps (caps);
+		UpdateCaps (caps);
 		UpdateRouterInfo ();
 		m_BandwidthLimit = limit;
 	}
@@ -769,7 +775,7 @@ namespace i2p
 			caps |= i2p::data::RouterInfo::eUnreachable;
 			if (v6 || !SupportsV6 ())
 				caps &= ~i2p::data::RouterInfo::eFloodfill;	// can't be floodfill
-			m_RouterInfo.UpdateCaps (caps);
+			UpdateCaps (caps);
 		}
 		uint16_t port = 0;
 		// delete previous introducers
@@ -810,7 +816,7 @@ namespace i2p
 			caps |= i2p::data::RouterInfo::eReachable;
 			if (m_IsFloodfill)
 				caps |= i2p::data::RouterInfo::eFloodfill;
-			m_RouterInfo.UpdateCaps (caps);
+			UpdateCaps (caps);
 		}
 		uint16_t port = 0;
 		// delete previous introducers
@@ -1613,7 +1619,12 @@ namespace i2p
 			else if (congestionLevel > CONGESTION_LEVEL_MEDIUM)
 				c = i2p::data::RouterInfo::eMediumCongestion;
 		}
-		if (m_RouterInfo.UpdateCongestion (c))
+		bool updated = false;
+		{
+			std::lock_guard<std::mutex> l(m_RouterInfoMutex);
+			updated = m_RouterInfo.UpdateCongestion (c);
+		}
+		if (updated)
 			UpdateRouterInfo ();
 	}
 
