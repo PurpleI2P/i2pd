@@ -482,6 +482,7 @@ namespace client
 
 	std::shared_ptr<const Address> AddressBook::FindAddress (std::string_view address)
 	{
+		std::lock_guard<std::mutex> l(m_AddressBookMutex);
 		auto it = m_Addresses.find (address);
 		if (it != m_Addresses.end ())
 			return it->second;
@@ -513,6 +514,7 @@ namespace client
 
 	void AddressBook::InsertAddress (const std::string& address, const std::string& jump)
 	{
+		std::lock_guard<std::mutex> l(m_AddressBookMutex);
 		auto pos = jump.find(".b32.i2p");
 		if (pos != std::string::npos)
 		{
@@ -909,7 +911,10 @@ namespace client
 			// TODO: verify from
 			i2p::data::IdentHash hash(buf + 8);
 			if (!hash.IsZero ())
+			{
+				std::lock_guard<std::mutex> l(m_AddressBookMutex);
 				m_Addresses[address] = std::make_shared<Address>(hash);
+			}
 			else
 				LogPrint (eLogInfo, "AddressBook: Lookup response: ", address, " not found");
 		}
