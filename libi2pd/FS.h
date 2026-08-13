@@ -148,8 +148,6 @@ namespace fs {
 	 */
 	bool Exists(const std::string & path);
 
-	bool CreateAndReserveFile (const std::string& path, size_t reserve = 0);
-
 	uint32_t GetLastUpdateTime (const std::string & path); // seconds since epoch
 
 	bool CreateDirectory (const std::string& path);

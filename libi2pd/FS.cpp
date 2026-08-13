@@ -303,44 +303,6 @@ namespace fs {
 		return true;
 	}
 
-	bool CreateAndReserveFile (const std::string& path, size_t reserve)
-	{
-		fs_lib::path filePath (path);
-		if (fs_lib::exists (filePath)) return false;
-		auto subdirs = filePath.parent_path ();
-		if (!subdirs.empty ())
-		{
-			// try to create all subdirs
-			try
-			{
-				fs_lib::create_directories (subdirs);
-			}
-			catch (std::exception& ex)
-			{
-				LogPrint (eLogError, "FS: Can't create subdirs ", subdirs, " : ", ex.what());
-				return false;
-			}
-		}
-		// create file
-		std::ofstream f(path, std::ios::binary);
-		if (!f) return false;
-		f.close ();
-		if (reserve > 0)
-		{
-			// resize
-			try
-			{
-				fs_lib::resize_file (filePath, reserve);
-			}
-			catch (std::exception& ex)
-			{
-				LogPrint (eLogError, "FS: Can't resize file ", path, " to ", reserve, " : ", ex.what());
-				return false;
-			}
-		}
-		return true;
-	}
-
 	bool CreateDirectory (const std::string& path)
 	{
 		if (fs_lib::exists(path) && fs_lib::is_directory (fs_lib::status (path)))
