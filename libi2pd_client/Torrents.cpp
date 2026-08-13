@@ -17,7 +17,6 @@
 #include <set>
 #include <boost/algorithm/string.hpp>
 #include "Log.h"
-#include "FS.h"
 #include "I2PEndian.h"
 #include "ClientContext.h"
 #include "Timestamp.h"
@@ -564,7 +563,7 @@ namespace torrents
 		m_IsComplete = true;
 	}
 
-	void Torrent::SaveTorrentResumeFile (const std::string& fullPath)
+	void Torrent::SaveTorrentResumeFile (const std::filesystem::path& fullPath)
 	{
 		auto [bitfield, empty] = CreateBitfield ();
 		if (empty) return;
@@ -595,8 +594,11 @@ namespace torrents
 	{
 		if (index < 0 || index >= (int)m_Pieces.size ()) return {};
 		if (m_Files.empty ())
-			return { { IsComplete () ? m_FullPath : (m_FullPath + ".part"),
-				index*m_PieceLength, 0, m_Pieces[index].GetSize () } };
+		{
+			auto fullPath = m_FullPath;
+			if (!IsComplete ()) fullPath += ".part";
+			return { { fullPath, index*m_PieceLength, 0, m_Pieces[index].GetSize () } };
+		}
 		else
 		{
 			std::vector<PieceFileFragment> ret;
@@ -615,16 +617,18 @@ namespace torrents
 				size_t size = m_Pieces[index].GetSize (), fragmentOffset = 0;
 				while (size > 0)
 				{
+					auto filePath = it->first;
+					if (!IsComplete ()) filePath += ".part";
 					if (offset + size <= it->second)
 					{
 						// last fragment
-						ret.emplace_back (IsComplete () ? it->first : (it->first + ".part"), offset, fragmentOffset, size);
+						ret.emplace_back (filePath, offset, fragmentOffset, size);
 						size = 0;
 					}
 					else
 					{
 						size_t l = it->second - offset;
-						ret.emplace_back (IsComplete () ? it->first : (it->first + ".part"), offset, fragmentOffset, l);
+						ret.emplace_back (filePath, offset, fragmentOffset, l);
 						size -= l; fragmentOffset += l;
 						offset = 0; it++;
 						if (it == m_Files.end ()) break;
@@ -1069,7 +1073,8 @@ namespace torrents
 							Piece& piece = torrent->GetPiece (index);
 							for (auto& it: fragments)
 								piece.Dump (std::move (it));
-							torrent->SaveTorrentResumeFile (torrent->GetFullPath () + ".resume");
+							auto resumeFilePath = torrent->GetFullPath (); resumeFilePath += ".resume";
+							torrent->SaveTorrentResumeFile (resumeFilePath);
 						});
 					// send have
 					auto conns = GetTorrentsTunnel ()->GetTorrentConnections (m_Torrent);
@@ -1299,8 +1304,8 @@ namespace torrents
 
 	TorrentsTunnel::TorrentsTunnel (std::string_view name, std::shared_ptr<i2p::client::ClientDestination> localDestination,
 		std::string_view torrentsDir, std::string_view trackers):
-		i2p::client::I2PService (localDestination), m_Name (name), m_TorrentsDir (torrentsDir),
-		m_PeerID ("-I2PD-"), m_TrackerRequestsCheckTimer (GetService ()),
+		i2p::client::I2PService (localDestination), m_Name (name), m_PeerID ("-I2PD-"),
+		m_TorrentsDir (torrentsDir), m_TrackerRequestsCheckTimer (GetService ()),
 		m_KeepAliveCheckTimer (GetService ()), m_ReconnectCheckTimer (GetService ()),
 		m_TorrentsStatusUpdateTimer (GetService ())
 	{
@@ -1350,7 +1355,7 @@ namespace torrents
 		m_Torrents.clear ();
 		for (auto it: m_Torrents)
 		{
-			auto fullPath = it.second->GetFullPath () + ".resume";
+			auto fullPath = it.second->GetFullPath (); fullPath += ".resume";
 			boost::asio::post (m_DiskIOService.GetService (),  [torrent = it.second, fullPath]()
 				{
 					torrent->SaveTorrentResumeFile (fullPath);
@@ -1374,17 +1379,17 @@ namespace torrents
 				s.read(buf, len);
 				auto torrent = std::make_shared<Torrent>(std::string_view{buf, len});
 				delete[] buf;
-				torrent->SetFullPath (GetTorrentFilePath (torrent->GetName ()));
+				torrent->SetFullPath (m_TorrentsDir / std::filesystem::path (torrent->GetName ()));
 				m_Torrents.emplace (torrent->GetInfoHash (), torrent);
 				if (torrent->GetFiles ().empty ())
 				{
-					if (i2p::fs::Exists (torrent->GetFullPath ()))
+					if (std::filesystem::exists (torrent->GetFullPath ()))
 						torrent->SetComplete ();
 					else
 					{
-						auto partFilePath = torrent->GetFullPath () + ".part";
-						if (!i2p::fs::Exists (partFilePath))
-							i2p::fs::CreateAndReserveFile (partFilePath, torrent->GetLength ());
+						auto partFilePath = torrent->GetFullPath (); partFilePath += ".part";
+						if (!std::filesystem::exists (partFilePath))
+							CreateAndReserveFile (partFilePath, torrent->GetLength ());
 					}
 				}
 				else
@@ -1392,19 +1397,19 @@ namespace torrents
 					bool completed = true;
 					for (auto& [filePath, fileLength]: torrent->GetFiles ())
 					{
-						filePath = GetTorrentFilePath (torrent->GetName (), filePath);
-						if (!i2p::fs::Exists (filePath))
+						filePath = std::filesystem::path (torrent->GetName ())/filePath;
+						if (!std::filesystem::exists (filePath))
 						{
-							auto partFilePath = filePath + ".part";
-							if (!i2p::fs::Exists (partFilePath))
-								i2p::fs::CreateAndReserveFile (partFilePath, fileLength);
+							auto partFilePath = filePath; partFilePath += ".part";
+							if (!std::filesystem::exists (partFilePath))
+								CreateAndReserveFile (partFilePath, fileLength);
 							completed = false;
 						}
 					}
 					if (completed) torrent->SetComplete ();
 				}
-				auto resumeFilePath = torrent->GetFullPath () + ".resume";
-				if (i2p::fs::Exists (resumeFilePath ))
+				auto resumeFilePath = torrent->GetFullPath (); resumeFilePath += ".resume";
+				if (std::filesystem::exists (resumeFilePath ))
 				{
 					if (!torrent->IsComplete ())
 					{
@@ -1424,7 +1429,7 @@ namespace torrents
 						}
 					}
 					else
-						i2p::fs::Remove (resumeFilePath);
+						std::filesystem::remove (resumeFilePath);
 				}
 			}
 			else
@@ -1434,6 +1439,43 @@ namespace torrents
 			LogPrint (eLogError, "Torrents: Can't open file ", path);
 	}
 
+	bool TorrentsTunnel::CreateAndReserveFile (const std::filesystem::path& filePath, size_t reserve)
+	{
+		if (std::filesystem::exists (filePath)) return false;
+		auto subdirs = filePath.parent_path ();
+		if (!subdirs.empty ())
+		{
+			// try to create all subdirs
+			try
+			{
+				std::filesystem::create_directories (subdirs);
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint (eLogError, "FS: Can't create subdirs ", subdirs, " : ", ex.what());
+				return false;
+			}
+		}
+		// create file
+		std::ofstream f(filePath, std::ios::binary);
+		if (!f) return false;
+		f.close ();
+		if (reserve > 0)
+		{
+			// resize
+			try
+			{
+				std::filesystem::resize_file (filePath, reserve);
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint (eLogError, "FS: Can't resize file ", filePath, " to ", reserve, " : ", ex.what());
+				return false;
+			}
+		}
+		return true;
+	}
+
 	void TorrentsTunnel::CompleteTorrent (std::shared_ptr<Torrent> torrent)
 	{
 		boost::asio::post (GetDiskIOService (), [this, torrent]()
@@ -1441,8 +1483,10 @@ namespace torrents
 			bool completed = false;
 			if (torrent->GetFiles ().empty ())
 			{
-				auto partFilePath = torrent->GetFullPath () + ".part";
-				if (i2p::fs::Rename (partFilePath, torrent->GetFullPath ()))
+				auto partFilePath = torrent->GetFullPath ();  partFilePath += ".part";
+				std::error_code ec;
+				std::filesystem::rename (partFilePath, torrent->GetFullPath (), ec);
+				if (!ec)
 					completed = true;
 				else
 					LogPrint (eLogError, "Torrents: Can't rename ", partFilePath);
@@ -1452,8 +1496,10 @@ namespace torrents
 				completed = true;
 				for (const auto& [filePath, fileSize]: torrent->GetFiles ())
 				{
-					auto partFilePath = filePath + ".part";
-					if (!i2p::fs::Rename (partFilePath, filePath))
+					auto partFilePath = filePath; partFilePath += ".part";
+					std::error_code ec;
+					std::filesystem::rename (partFilePath, filePath, ec);
+					if (ec)
 					{
 						completed = false;
 						LogPrint (eLogError, "Torrents: Can't rename ", partFilePath);
@@ -1464,8 +1510,8 @@ namespace torrents
 			{
 				torrent->SetComplete ();
 				RequestTracker (torrent, "completed");
-				auto resumeFilePath = torrent->GetFullPath () + ".resume";
-				if (!i2p::fs::Remove (resumeFilePath))
+				auto resumeFilePath = torrent->GetFullPath (); resumeFilePath += ".resume";
+				if (!std::filesystem::remove (resumeFilePath))
 					LogPrint (eLogError, "Torrents: Can't delete resume file ", resumeFilePath);
 				LogPrint (eLogInfo, "Torrents: Download complete ", torrent->GetFullPath ());
 				// close connections with seeds
@@ -1608,22 +1654,6 @@ namespace torrents
 				ConnectToPeer (torrent, it);
 		}
 		return peersToConnect.size ();
-	}
-
-	std::string TorrentsTunnel::GetTorrentFilePath (std::string_view filename) const
-	{
-		std::stringstream s("");
-		s << m_TorrentsDir;
-		i2p::fs::_ExpandPath(s, filename);
-		return s.str ();
-	}
-
-	std::string TorrentsTunnel::GetTorrentFilePath (std::string_view subdir, std::string_view filename) const
-	{
-		std::stringstream s("");
-		s << m_TorrentsDir;
-		i2p::fs::_ExpandPath(s, subdir, filename);
-		return s.str ();
 	}
 
 	void TorrentsTunnel::ScheduleTrackerRequestsCheck ()

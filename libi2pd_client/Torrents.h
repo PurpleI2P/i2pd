@@ -23,6 +23,7 @@
 #include <string_view>
 #include <random>
 #include <tuple>
+#include <filesystem>
 #include "util.h"
 #include "Streaming.h"
 #include "HTTP.h"
@@ -76,12 +77,12 @@ namespace torrents
 
 	struct PieceFileFragment // fragment to save to/load from file
 	{
-		std::string fullFilePath;
+		std::filesystem::path fullFilePath;
 		size_t fileOffset;
 		size_t fragmentOffset; // from start of piece
 		size_t fragmentSize;
 
-		PieceFileFragment (const std::string& fullFilePath1, size_t fileOffset1, size_t fragmentOffset1, size_t fragmentSize1):
+		PieceFileFragment (const std::filesystem::path& fullFilePath1, size_t fileOffset1, size_t fragmentOffset1, size_t fragmentSize1):
 			fullFilePath (fullFilePath1), fileOffset (fileOffset1), fragmentOffset (fragmentOffset1), fragmentSize (fragmentSize1) {};
 		PieceFileFragment (PieceFileFragment&& ) = default;
 		PieceFileFragment (const PieceFileFragment& ) = default;
@@ -152,10 +153,10 @@ namespace torrents
 
 			std::string_view GetAnnounce () const { return m_Announce; }
 			std::string_view GetName () const { return m_Name; }
-			const std::string& GetFullPath () const { return m_FullPath; }
-			void SetFullPath (std::string_view fullPath) { m_FullPath = fullPath; }
-			const std::list<std::pair<std::string, size_t> >& GetFiles () const { return m_Files; }
-			std::list<std::pair<std::string, size_t> >& GetFiles () { return m_Files; }
+			const std::filesystem::path& GetFullPath () const { return m_FullPath; }
+			void SetFullPath (const std::filesystem::path& fullPath) { m_FullPath = fullPath; }
+			const std::list<std::pair<std::filesystem::path, size_t> >& GetFiles () const { return m_Files; }
+			std::list<std::pair<std::filesystem::path, size_t> >& GetFiles () { return m_Files; }
 			size_t GetLength () const { return m_Length; }
 			size_t GetPieceLength () const { return m_PieceLength; }
 			int GetInterval () const { return m_Interval; }
@@ -176,7 +177,7 @@ namespace torrents
 			size_t GetUploaded () const { return m_Uploaded; }
 			void AddUploaded (size_t add) { m_Uploaded += add; }
 
-			void SaveTorrentResumeFile (const std::string& fullPath);
+			void SaveTorrentResumeFile (const std::filesystem::path& fullPath);
 
 			void StartCountingPeers ();
 			void ApplyPeerRemoteBitfield (const boost::dynamic_bitset<>& peerRemoteBitfield);
@@ -190,7 +191,8 @@ namespace torrents
 
 		private:
 
-			std::string m_Name, m_FullPath, m_Announce;
+			std::string m_Name, m_Announce;
+			std::filesystem::path m_FullPath;
 			size_t m_Length, m_PieceLength;
 			int m_Interval; // in miiliseconds
 			uint64_t m_NextTrackerRequestTime; // monotonic millicesonds
@@ -198,7 +200,7 @@ namespace torrents
 			std::vector<Piece> m_Pieces;
 			std::unordered_set<i2p::data::IdentHash> m_Peers;
 			bool m_IsComplete;
-			std::list<std::pair<std::string, size_t> > m_Files; // list of (path, length)
+			std::list<std::pair<std::filesystem::path, size_t> > m_Files; // list of (path, length)
 			size_t m_Uploaded;
 	};
 
@@ -314,11 +316,10 @@ namespace torrents
 
 		private:
 
-			std::string GetTorrentFilePath (std::string_view filename) const;
-			std::string GetTorrentFilePath (std::string_view subdir, std::string_view filename) const;
 
 			void Accept ();
 			void ReadTorrentFile (const std::string& path);
+			bool CreateAndReserveFile (const std::filesystem::path& filePath, size_t reserve);
 			void CompleteTorrent (std::shared_ptr<Torrent> torrent);
 			void RequestTracker (std::shared_ptr<Torrent> torrent, std::string_view event = "");
 			void TrackerRequestSent (const boost::beast::error_code& ecode, size_t bytes_transferred,
@@ -344,7 +345,8 @@ namespace torrents
 
 		private:
 
-			std::string m_Name, m_TorrentsDir, m_PeerID; // 20 characters
+			std::string m_Name, m_PeerID; // 20 characters
+			std::filesystem::path m_TorrentsDir;
 			std::vector<std::string> m_Trackers;
 			std::map<Torrent::InfoHash, std::shared_ptr<Torrent> > m_Torrents;
 			boost::asio::steady_timer m_TrackerRequestsCheckTimer, m_KeepAliveCheckTimer,
