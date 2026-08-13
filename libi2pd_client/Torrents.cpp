@@ -1371,7 +1371,7 @@ namespace torrents
 				s.read(buf, len);
 				auto torrent = std::make_shared<Torrent>(std::string_view{buf, len});
 				delete[] buf;
-				torrent->SetFullPath (m_TorrentsDir / std::filesystem::path (torrent->GetName ()));
+				torrent->SetFullPath (m_TorrentsDir/std::filesystem::path (torrent->GetName ()));
 				m_Torrents.emplace (torrent->GetInfoHash (), torrent);
 				if (torrent->GetFiles ().empty ())
 				{
@@ -1389,7 +1389,7 @@ namespace torrents
 					bool completed = true;
 					for (auto& [filePath, fileLength]: torrent->GetFiles ())
 					{
-						filePath = std::filesystem::path (torrent->GetName ())/filePath;
+						filePath = torrent->GetFullPath ()/filePath;
 						if (!std::filesystem::exists (filePath))
 						{
 							auto partFilePath = filePath; partFilePath += ".part";
@@ -1444,7 +1444,7 @@ namespace torrents
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "FS: Can't create subdirs ", subdirs, " : ", ex.what());
+				LogPrint (eLogError, "Torrents: Can't create subdirs ", subdirs, " : ", ex.what());
 				return false;
 			}
 		}
@@ -1461,7 +1461,7 @@ namespace torrents
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "FS: Can't resize file ", filePath, " to ", reserve, " : ", ex.what());
+				LogPrint (eLogError, "Torrents: Can't resize file ", filePath, " to ", reserve, " : ", ex.what());
 				return false;
 			}
 		}
