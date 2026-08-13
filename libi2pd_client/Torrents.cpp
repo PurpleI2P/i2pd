@@ -1322,22 +1322,14 @@ namespace torrents
 		m_DiskIOService.Start ();
 		Accept ();
 
-		if (!m_TorrentsDir.empty() && i2p::fs::Exists (m_TorrentsDir))
+		if (!m_TorrentsDir.empty() && std::filesystem::exists (m_TorrentsDir) &&
+			std::filesystem::is_directory (m_TorrentsDir))
 		{
-			std::vector<std::string> files;
-			if (i2p::fs::ReadDir (m_TorrentsDir, files))
-			{
-				for (auto& it: files)
-				{
-#if __cplusplus >= 202002L // C++20
-					if (!it.ends_with (".torrent")) continue;
-#else
-					if (it.size () < 8 || it.substr(it.size() - 8) != ".torrent") continue; // skip files which not ends with ".torrent"
-#endif
-					ReadTorrentFile (it);
-				}
-			}
-		}
+			for (const auto& it: std::filesystem::directory_iterator (m_TorrentsDir))
+				if (std::filesystem::is_regular_file (it.status()) && it.path ().extension () == "torrent")
+					ReadTorrentFile (it.path ());
+        }
+
 		ScheduleTrackerRequestsCheck ();
 		ScheduleKeepAliveCheck ();
 		ScheduleStatusUpdate ();
@@ -1365,9 +1357,9 @@ namespace torrents
 		i2p::client::I2PService::Stop ();
 	}
 
-	void TorrentsTunnel::ReadTorrentFile (const std::string& path)
+	void TorrentsTunnel::ReadTorrentFile (const std::filesystem::path& torrentFilePath)
 	{
-		std::ifstream s(path, std::ifstream::binary);
+		std::ifstream s(torrentFilePath, std::ifstream::binary);
 		if (s)
 		{
 			s.seekg (0,std::ios::end);
@@ -1433,10 +1425,10 @@ namespace torrents
 				}
 			}
 			else
-				LogPrint (eLogError, "Torrents: Empty file ", path);
+				LogPrint (eLogError, "Torrents: Empty file ", torrentFilePath);
 		}
 		else
-			LogPrint (eLogError, "Torrents: Can't open file ", path);
+			LogPrint (eLogError, "Torrents: Can't open file ", torrentFilePath);
 	}
 
 	bool TorrentsTunnel::CreateAndReserveFile (const std::filesystem::path& filePath, size_t reserve)

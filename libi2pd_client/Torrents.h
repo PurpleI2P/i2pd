@@ -318,7 +318,7 @@ namespace torrents
 
 
 			void Accept ();
-			void ReadTorrentFile (const std::string& path);
+			void ReadTorrentFile (const std::filesystem::path& torrentFilePath);
 			bool CreateAndReserveFile (const std::filesystem::path& filePath, size_t reserve);
 			void CompleteTorrent (std::shared_ptr<Torrent> torrent);
 			void RequestTracker (std::shared_ptr<Torrent> torrent, std::string_view event = "");
