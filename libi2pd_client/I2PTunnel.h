@@ -13,6 +13,7 @@
 #include <string>
 #include <string_view>
 #include <set>
+#include <vector>
 #include <tuple>
 #include <memory>
 #include <sstream>
@@ -176,8 +177,10 @@ namespace client
 
 		private:
 
-			std::string m_Name, m_Destination;
-			std::shared_ptr<const Address> m_Address;
+			std::string m_Name;
+			std::vector<std::string> m_Destinations;
+			std::vector<std::shared_ptr<const Address> > m_Addresses; // resolved lazily, same order
+			size_t m_NextAddress;
 			uint16_t m_DestinationPort;
 			uint32_t m_KeepAliveInterval;
 			std::unique_ptr<boost::asio::steady_timer> m_KeepAliveTimer;
