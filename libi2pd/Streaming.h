@@ -284,6 +284,8 @@ namespace stream
 				m_IsClientChoked2, m_IsTimeOutResend, m_IsImmediateAckRequested,
 				m_IsRemoteLeaseChangeInProgress, m_IsBufferEmpty, m_IsJavaClient, m_DontSign;
 			StreamingDestination& m_LocalDestination;
+			// own reference to the pool: the destination can be gone by the time we are destroyed
+			std::shared_ptr<i2p::util::MemoryPool<Packet> > m_PacketsPool;
 			std::shared_ptr<const i2p::data::IdentityEx> m_RemoteIdentity;
 			std::shared_ptr<const i2p::crypto::Verifier> m_TransientVerifier; // in case of offline key
 			std::shared_ptr<const i2p::data::LeaseSet> m_RemoteLeaseSet;
@@ -347,8 +349,10 @@ namespace stream
 			void HandleDataMessagePayload (const uint8_t * buf, size_t len, i2p::garlic::ECIESX25519AEADRatchetSession * from);
 			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len, uint16_t toPort, bool checksum = true, bool gzip = false);
 
-			Packet * NewPacket () { return m_PacketsPool.Acquire(); }
-			void DeletePacket (Packet * p) { return m_PacketsPool.Release(p); }
+			Packet * NewPacket () { return m_PacketsPool->Acquire(); }
+			void DeletePacket (Packet * p) { return m_PacketsPool->Release(p); }
+			// streams keep the pool alive: pending handlers may outlive this destination
+			std::shared_ptr<i2p::util::MemoryPool<Packet> > GetPacketsPool () const { return m_PacketsPool; }
 			uint32_t GetRandom ();
 
 		private:
@@ -361,7 +365,7 @@ namespace stream
 
 		private:
 
-            i2p::util::MemoryPool<Packet> m_PacketsPool;
+            std::shared_ptr<i2p::util::MemoryPool<Packet> > m_PacketsPool;
 			i2p::util::MemoryPool<I2NPMessageBuffer<I2NP_MAX_SHORT_MESSAGE_SIZE> > m_I2NPMsgsPool;
 
 			std::shared_ptr<i2p::client::ClientDestination> m_Owner;

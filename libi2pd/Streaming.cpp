@@ -112,7 +112,7 @@ namespace stream
 		m_IsWinDropped (true), m_IsChoking2 (false), m_IsChoking3 (false), m_IsClientChoked (false), m_IsClientChoked2 (false),
 		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_IsRemoteLeaseChangeInProgress (false),
 		m_IsBufferEmpty (false), m_IsJavaClient (false), m_DontSign (local.GetOwner ()->IsStreamingDontSign ()),
-		m_LocalDestination (local), m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service),
+		m_LocalDestination (local), m_PacketsPool (local.GetPacketsPool ()), m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service),
 		m_SendTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service), m_NumSentBytes (0),
 		m_NumReceivedBytes (0), m_Port (port), m_RTT (INITIAL_RTT), m_MinRTT (INITIAL_RTT),
 		m_SlowRTT (INITIAL_RTT), m_FastRTT (INITIAL_RTT), m_WindowSize (INITIAL_WINDOW_SIZE),
@@ -146,7 +146,7 @@ namespace stream
 		m_IsWinDropped (true), m_IsChoking2 (false), m_IsChoking3 (false), m_IsClientChoked (false), m_IsClientChoked2 (false),
 		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_IsRemoteLeaseChangeInProgress (false),
 		m_IsBufferEmpty (false), m_IsJavaClient (false), m_DontSign (local.GetOwner ()->IsStreamingDontSign ()),
-		m_LocalDestination (local),m_ReceiveTimer (m_Service), m_SendTimer (m_Service),
+		m_LocalDestination (local), m_PacketsPool (local.GetPacketsPool ()), m_ReceiveTimer (m_Service), m_SendTimer (m_Service),
 		m_ResendTimer (m_Service), m_AckSendTimer (m_Service),m_NumSentBytes (0), m_NumReceivedBytes (0),
 		m_Port (0), m_RTT (INITIAL_RTT), m_MinRTT (INITIAL_RTT), m_SlowRTT (INITIAL_RTT), m_FastRTT (INITIAL_RTT),
 		m_WindowSize (INITIAL_WINDOW_SIZE), m_MaxWindowSize (local.GetOwner ()->GetStreamingMaxWindowSize ()),
@@ -204,17 +204,17 @@ namespace stream
 		{
 			auto packet = m_ReceiveQueue.front ();
 			m_ReceiveQueue.pop ();
-			m_LocalDestination.DeletePacket (packet);
+			m_PacketsPool->Release (packet);
 		}
 
 		m_NACKedPackets.clear ();
 
 		for (auto it: m_SentPackets)
-			m_LocalDestination.DeletePacket (it);
+			m_PacketsPool->Release (it);
 		m_SentPackets.clear ();
 
 		for (auto it: m_SavedPackets)
-			m_LocalDestination.DeletePacket (it);
+			m_PacketsPool->Release (it);
 		m_SavedPackets.clear ();
 	}
 
@@ -2134,6 +2134,7 @@ namespace stream
 	}
 
 	StreamingDestination::StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort, bool gzip):
+		m_PacketsPool (std::make_shared<i2p::util::MemoryPool<Packet> >()),
 		m_Owner (owner), m_LocalPort (localPort), m_Gzip (gzip),
 		m_PendingIncomingTimer (m_Owner->GetService ()),
 		m_LastCleanupTime (i2p::util::GetSecondsSinceEpoch ())
@@ -2358,7 +2359,7 @@ namespace stream
 		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		if (m_Streams.empty () || ts > m_LastCleanupTime + STREAMING_DESTINATION_POOLS_CLEANUP_INTERVAL)
 		{
-			m_PacketsPool.CleanUp ();
+			m_PacketsPool->CleanUp ();
 			m_I2NPMsgsPool.CleanUp ();
 			if (!m_NumIncomingConnectionsPerSecond.empty ())
 			{
