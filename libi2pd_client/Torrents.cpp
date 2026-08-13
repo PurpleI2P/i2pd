@@ -372,7 +372,7 @@ namespace torrents
 		return ParseList (buf, [this](std::string_view file)->size_t
 			{
 				std::string filePath; size_t fileLength = 0;
-				auto len = ParseDictionary (file, [this, &filePath, &fileLength](std::string_view key, std::string_view value)->size_t
+				auto len = ParseDictionary (file, [&filePath, &fileLength](std::string_view key, std::string_view value)->size_t
 					{
 						if (key == "path")
 						{
@@ -1326,7 +1326,7 @@ namespace torrents
 			std::filesystem::is_directory (m_TorrentsDir))
 		{
 			for (const auto& it: std::filesystem::directory_iterator (m_TorrentsDir))
-				if (std::filesystem::is_regular_file (it.status()) && it.path ().extension () == "torrent")
+				if (std::filesystem::is_regular_file (it.status()) && it.path ().extension () == ".torrent")
 					ReadTorrentFile (it.path ());
         }
 
