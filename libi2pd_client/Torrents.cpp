@@ -186,14 +186,13 @@ namespace torrents
 
 	void Piece::BlockReceived (const uint8_t * block, size_t len, size_t offset)
 	{
-		if (offset + len > m_Size || !m_Blocks) return;
-		if (!m_Data) m_Data = new uint8_t[m_Size];
-		memcpy (m_Data + offset, block, len);
-		size_t startBlock = offset/REQUEST_BLOCK_SIZE;
-		auto numBlocks = GetNumBlocks (len);
-		if (numBlocks > 0)
+		if (!len || offset + len > m_Size || !m_Blocks) return;
+		size_t blockIndex = offset/REQUEST_BLOCK_SIZE;
+		if ((*m_Blocks)[blockIndex] == BlockStatus::Requested)
 		{
-			std::fill_n (m_Blocks->begin () + startBlock, numBlocks, BlockStatus::Available);
+			if (!m_Data) m_Data = new uint8_t[m_Size];
+			memcpy (m_Data + offset, block, len);
+			(*m_Blocks)[blockIndex] = BlockStatus::Available;
 			if (std::find_if (m_Blocks->begin (), m_Blocks->end (),
 				[](BlockStatus status) { return status != BlockStatus::Available; }) == m_Blocks->end ())
 			{
@@ -202,6 +201,8 @@ namespace torrents
 				Complete ();
 			}
 		}
+		else
+			LogPrint (eLogWarning, "Torrents: Duplicated, late or unsolicited piece block ", blockIndex);
 	}
 
 	void Piece::Dump (PieceFileFragment&& fragment)
