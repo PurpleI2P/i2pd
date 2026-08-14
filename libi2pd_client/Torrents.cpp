@@ -596,6 +596,17 @@ namespace torrents
 		}
 	}
 
+	bool Torrent::HasIncompletePieces (const boost::dynamic_bitset<>& peerRemoteBitfield) const
+	{
+		size_t ind = peerRemoteBitfield.find_first();
+		while (ind != boost::dynamic_bitset<>::npos)
+		{
+			if (!m_Pieces[ind].IsComplete ()) return true;
+			ind = peerRemoteBitfield.find_next(ind);
+		}
+		return false;
+	}
+
 	std::vector<PieceFileFragment> Torrent::GetPieceFileFragments (int index) const
 	{
 		if (index < 0 || index >= (int)m_Pieces.size ()) return {};
@@ -650,8 +661,8 @@ namespace torrents
 	PeerConnection::PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream):
 		i2p::client::I2PServiceHandler (owner), m_Stream (stream), m_ReceiveBufferOffset (0),
 		m_IsHandshakeSent (false), m_IsEstablished (false), m_IsChoked (true), m_IsRemoteChoked (true),
-		m_LastReceiveTime (0), m_LastSendTime (0), m_NumRequests (0), m_NumPieces (0),
-		 m_LastRequestedPieceIndex (-1)
+		m_IsInterested (false), m_IsRemoteInterested (false), m_LastReceiveTime (0), m_LastSendTime (0),
+		m_NumRequests (0), m_NumPieces (0), m_LastRequestedPieceIndex (-1)
 	{
 	}
 
@@ -765,7 +776,19 @@ namespace torrents
 			else if (ts > m_LastSendTime + PEER_KEEP_SEND_INTERVAL)
 			{
 				m_NumRequests = 0; // if we need to send keep-alive, all pending requests are invalid now
-				if (m_Torrent->IsComplete () || !RequestNextBlocks ()) // try to request if we still have blocks to request
+				bool requested = false;
+				if (!m_Torrent->IsComplete () && m_Torrent->HasIncompletePieces (m_RemoteBitfield))
+				{
+					 // try to request if we still have blocks to request
+					if (!m_IsChoked)
+						requested = RequestNextBlocks ();
+					else if (!m_IsInterested)
+					{
+						m_IsInterested = true;
+						SendInterestedMsg ();
+					}
+				}
+				if (!requested)
 				{
 					// send keep-alive
 					uint32_t len = 0;
@@ -884,6 +907,7 @@ namespace torrents
 					RequestNextBlocks ();
 				break;
 				case eMessageTypeInterested:
+					m_IsRemoteInterested = true;
 					if (m_IsRemoteChoked)
 					{
 						m_IsRemoteChoked = false;
@@ -891,11 +915,7 @@ namespace torrents
 					}
 				break;
 				case eMessageTypeNotInterested:
-					if (!m_IsRemoteChoked)
-					{
-						m_IsRemoteChoked = true;
-						SendChokeMsg ();
-					}
+					m_IsRemoteInterested = false;
 				break;
 				case eMessageTypeHave:
 					HandleHaveMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
@@ -988,9 +1008,12 @@ namespace torrents
 				if (!piece.IsComplete ())
 				{
 					// new piece
-					if (m_IsChoked)
+					if (!m_IsInterested)
+					{
+						m_IsInterested = true;
 						SendInterestedMsg ();
-					else if (m_LastRequestedPieceIndex < 0)
+					}
+					if (m_LastRequestedPieceIndex < 0 && !m_IsChoked)
 						RequestNextBlocks ();
 				}
 			}
@@ -1012,7 +1035,7 @@ namespace torrents
 	void PeerConnection::HandleBitfieldMsg (const uint8_t * buf, size_t len)
 	{
 		if (!m_Torrent) return;
-		bool isInterested = false;
+		m_IsInterested = false;
 		size_t numPieces = m_Torrent->GetNumPieces ();
 		m_RemoteBitfield.resize (numPieces);
 		size_t idx = 0;
@@ -1025,14 +1048,14 @@ namespace torrents
 				if (buf[i] & bit)
 				{
 					m_RemoteBitfield.set (idx);
-					if (!isInterested && !m_Torrent->GetPiece (idx).IsComplete ())
-						isInterested = true;
+					if (!m_IsInterested && !m_Torrent->GetPiece (idx).IsComplete ())
+						m_IsInterested = true;
 				}
 				bit >>= 1;
 				idx++;
 			}
 		}
-		if (isInterested)
+		if (m_IsInterested)
 			SendInterestedMsg ();
 		else if (m_RemoteBitfield.all ()) // remote is seeding
 			Terminate (); // we don't need this connection
@@ -1304,7 +1327,11 @@ namespace torrents
 			else if (m_LastRequestedPieceIndex >= 0)
 			{
 				m_LastRequestedPieceIndex = -1; // no request
-				SendNotinterestedMsg ();
+				if (m_IsInterested)
+				{
+					m_IsInterested = false;
+					SendNotinterestedMsg ();
+				}
 			}
 		}
 		return len > 0;

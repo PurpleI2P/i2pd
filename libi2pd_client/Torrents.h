@@ -181,6 +181,7 @@ namespace torrents
 
 			void StartCountingPeers ();
 			void ApplyPeerRemoteBitfield (const boost::dynamic_bitset<>& peerRemoteBitfield);
+			bool HasIncompletePieces (const boost::dynamic_bitset<>& peerRemoteBitfield) const; // if remote bitfie;d has incomplete pieces
 
 		private:
 
@@ -278,7 +279,8 @@ namespace torrents
 			std::shared_ptr<Torrent> m_Torrent;
 			std::string m_RemotePeerID;
 			boost::dynamic_bitset<> m_RemoteBitfield;
-			bool m_IsHandshakeSent, m_IsEstablished, m_IsChoked, m_IsRemoteChoked;
+			bool m_IsHandshakeSent, m_IsEstablished, m_IsChoked, m_IsRemoteChoked,
+				m_IsInterested, m_IsRemoteInterested;
 			uint64_t m_LastReceiveTime, m_LastSendTime; // monotonic seconds
 			size_t m_NumRequests, m_NumPieces; // outgoing
 			std::list<RequestedBlock> m_IncomingRequestsQueue;
