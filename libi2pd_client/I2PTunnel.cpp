@@ -704,10 +704,21 @@ namespace client
 		Done(shared_from_this());
 	}
 
+	// destination is a comma separated list, so one tunnel can serve several servers
+	static std::vector<std::string> SplitDestinations (const std::string& destination)
+	{
+		std::vector<std::string> destinations;
+		boost::split (destinations, destination, boost::is_any_of (","), boost::token_compress_on);
+		for (auto& it: destinations) boost::trim (it);
+		std::erase (destinations, "");
+		return destinations;
+	}
+
 	I2PClientTunnel::I2PClientTunnel (const std::string& name, const std::string& destination,
 		const std::string& address, uint16_t port, std::shared_ptr<ClientDestination> localDestination, uint16_t destinationPort):
-		TCPIPAcceptor (address, port, localDestination), m_Name (name), m_Destination (destination),
-		m_DestinationPort (destinationPort), m_KeepAliveInterval (0)
+		TCPIPAcceptor (address, port, localDestination), m_Name (name),
+		m_Destinations (SplitDestinations (destination)), m_Addresses (m_Destinations.size ()),
+		m_NextAddress (0), m_DestinationPort (destinationPort), m_KeepAliveInterval (0)
 	{
 	}
 
@@ -722,7 +733,7 @@ namespace client
 	void I2PClientTunnel::Stop ()
 	{
 		TCPIPAcceptor::Stop();
-		m_Address = nullptr;
+		for (auto& it: m_Addresses) it = nullptr;
 		if (m_KeepAliveTimer) m_KeepAliveTimer->cancel ();
 	}
 
@@ -736,13 +747,21 @@ namespace client
 	/* HACK: maybe we should create a caching IdentHash provider in AddressBook */
 	std::shared_ptr<const Address> I2PClientTunnel::GetAddress ()
 	{
-		if (!m_Address)
+		// round-robin over the destinations, skipping those we can't resolve,
+		// so one dead server doesn't block the tunnel
+		for (size_t tried = 0; tried < m_Destinations.size (); tried++)
 		{
-			m_Address = i2p::client::context.GetAddressBook ().GetAddress (m_Destination);
-			if (!m_Address)
-				LogPrint (eLogWarning, "I2PTunnel: Remote destination ", m_Destination, " not found");
+			auto i = m_NextAddress;
+			m_NextAddress = (m_NextAddress + 1) % m_Destinations.size ();
+			if (!m_Addresses[i])
+			{
+				m_Addresses[i] = i2p::client::context.GetAddressBook ().GetAddress (m_Destinations[i]);
+				if (!m_Addresses[i])
+					LogPrint (eLogWarning, "I2PTunnel: Remote destination ", m_Destinations[i], " not found");
+			}
+			if (m_Addresses[i]) return m_Addresses[i];
 		}
-		return m_Address;
+		return nullptr;
 	}
 
 	std::shared_ptr<I2PServiceHandler> I2PClientTunnel::CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket)
@@ -768,12 +787,14 @@ namespace client
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
-			if (m_Address && m_Address->IsValid ())
+			// ping every resolved destination, otherwise the spare ones go cold
+			for (const auto& address: m_Addresses)
 			{
-				if (m_Address->IsIdentHash ())
-					GetLocalDestination ()->SendPing (m_Address->identHash);
+				if (!address || !address->IsValid ()) continue;
+				if (address->IsIdentHash ())
+					GetLocalDestination ()->SendPing (address->identHash);
 				else
-					GetLocalDestination ()->SendPing (m_Address->blindedPublicKey);
+					GetLocalDestination ()->SendPing (address->blindedPublicKey);
 			}
 			ScheduleKeepAliveTimer ();
 		}
