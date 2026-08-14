@@ -81,6 +81,7 @@ namespace client
 	const char SAM_PARAM_CRYPTO_TYPE[] = "CRYPTO_TYPE";
 	const char SAM_PARAM_SIZE[] = "SIZE";
 	const char SAM_PARAM_HOST[] = "HOST";
+	const char SAM_PARAM_LISTEN_PORT[] = "LISTEN_PORT";
 	const char SAM_PARAM_PORT[] = "PORT";
 	const char SAM_PARAM_FROM_PORT[] = "FROM_PORT";
 	const char SAM_PARAM_TO_PORT[] = "TO_PORT";
