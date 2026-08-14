@@ -266,7 +266,7 @@ namespace torrents
 
 			bool RequestNextBlock ();
 			void RequestNextBlock (uint32_t index, uint32_t offset, uint32_t len);
-			void RequestNextBlocks ();
+			bool RequestNextBlocks ();
 
 			bool SendRequestedBlock (const RequestedBlock& requestedBlock);
 

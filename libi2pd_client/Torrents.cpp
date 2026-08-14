@@ -202,7 +202,12 @@ namespace torrents
 			}
 		}
 		else
-			LogPrint (eLogWarning, "Torrents: Duplicated, late or unsolicited piece block ", blockIndex);
+		{
+			if ((*m_Blocks)[blockIndex] == BlockStatus::Available)
+				LogPrint (eLogWarning, "Torrents: Duplicated piece block ", blockIndex);
+			else
+				LogPrint (eLogWarning, "Torrents: Late or unsolicited piece block ", blockIndex);
+		}
 	}
 
 	void Piece::Dump (PieceFileFragment&& fragment)
@@ -759,10 +764,14 @@ namespace torrents
 			}
 			else if (ts > m_LastSendTime + PEER_KEEP_SEND_INTERVAL)
 			{
-				// send keep-alive
-				uint32_t len = 0;
-				WriteToStream ((const uint8_t *)&len, 4);
-				m_LastSendTime = ts;
+				m_NumRequests = 0; // if we need to send keep-alive, all pending requests are invalid now
+				if (m_Torrent->IsComplete () || !RequestNextBlocks ()) // try to request if we still have blocks to request
+				{
+					// send keep-alive
+					uint32_t len = 0;
+					WriteToStream ((const uint8_t *)&len, 4);
+					m_LastSendTime = ts;
+				}
 			}
 		}
 	}
@@ -1307,13 +1316,18 @@ namespace torrents
 		m_NumRequests++;
 	}
 
-	void PeerConnection::RequestNextBlocks ()
+	bool PeerConnection::RequestNextBlocks ()
 	{
-		if (m_IsChoked || !m_Torrent || m_Torrent->IsComplete ()) return;
+		if (m_IsChoked || !m_Torrent || m_Torrent->IsComplete ()) return false;
+		bool sent = false;
 		while (m_NumRequests < MAX_NUM_REQUESTS)
 		{
-			if (!RequestNextBlock ()) break;
+			if (RequestNextBlock ())
+				sent = true;
+			else
+				break;
 		}
+		return sent;
 	}
 
 	TorrentsTunnel::TorrentsTunnel (std::string_view name, std::shared_ptr<i2p::client::ClientDestination> localDestination,
