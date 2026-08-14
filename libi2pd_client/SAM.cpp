@@ -463,13 +463,13 @@ namespace client
 					if (res.ec != std::errc()) port = 0;
 				}
 				if (type == SAMSessionType::eSAMSessionTypeDatagram)
-					dest->SetReceiver (std::bind (&SAMSocket::HandleI2PDatagramReceive, shared_from_this (),
+					dest->SetReceiver (std::bind (&SAMSocket::HandleI2PDatagramReceive, shared_from_this (), m_ID,
 						std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
 					    std::placeholders::_4, std::placeholders::_5, std::placeholders::_6),
 						port
 					);
 				else // raw
-					dest->SetRawReceiver (std::bind (&SAMSocket::HandleI2PRawDatagramReceive, shared_from_this (),
+					dest->SetRawReceiver (std::bind (&SAMSocket::HandleI2PRawDatagramReceive, shared_from_this (), m_ID,
 						std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
 						port
 					);
@@ -951,12 +951,12 @@ namespace client
 					subsession->UDPEndpoint = forward;
 					auto dest = masterSession->GetLocalDestination ()->CreateDatagramDestination (true, datagramVersion);
 					if (type == SAMSessionType::eSAMSessionTypeDatagram)
-						dest->SetReceiver (std::bind (&SAMSocket::HandleI2PDatagramReceive, shared_from_this (),
+						dest->SetReceiver (std::bind (&SAMSocket::HandleI2PDatagramReceive, shared_from_this (), std::string (id),
 							std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
 							std::placeholders::_4, std::placeholders::_5, std::placeholders::_6),
 							listenPort);
 					else
-						dest->SetRawReceiver (std::bind (&SAMSocket::HandleI2PRawDatagramReceive, shared_from_this (),
+						dest->SetRawReceiver (std::bind (&SAMSocket::HandleI2PRawDatagramReceive, shared_from_this (), std::string (id),
 							std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
 							std::placeholders::_4),
 							listenPort);
@@ -1325,11 +1325,11 @@ namespace client
 			LogPrint (eLogWarning, "SAM: I2P forward acceptor has been reset");
 	}
 
-	void SAMSocket::HandleI2PDatagramReceive (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort,
-		const uint8_t * buf, size_t len, const i2p::util::Mapping * options)
+	void SAMSocket::HandleI2PDatagramReceive (std::string sessionID, const i2p::data::IdentityEx& from,
+		uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len, const i2p::util::Mapping * options)
 	{
 		LogPrint (eLogDebug, "SAM: Datagram received ", len);
-		auto session = m_Owner.FindSession(m_ID);
+		auto session = m_Owner.FindSession(sessionID);
 		if(session)
 		{
 			auto base64 = (session->DatagramVersion == i2p::datagram::eDatagramV3) ? from.GetIdentHash ().ToBase64 () : from.ToBase64 ();
@@ -1377,10 +1377,11 @@ namespace client
 		}
 	}
 
-	void SAMSocket::HandleI2PRawDatagramReceive (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
+	void SAMSocket::HandleI2PRawDatagramReceive (std::string sessionID, uint16_t fromPort, uint16_t toPort,
+		const uint8_t * buf, size_t len)
 	{
 		LogPrint (eLogDebug, "SAM: Raw datagram received ", len);
-		auto session = m_Owner.FindSession(m_ID);
+		auto session = m_Owner.FindSession(sessionID);
 		if(session)
 		{
 			auto ep = session->UDPEndpoint;
