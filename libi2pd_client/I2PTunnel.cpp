@@ -6,6 +6,7 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#include <algorithm>
 #include <cassert>
 #include <boost/algorithm/string.hpp>
 #include "Base.h"
@@ -710,7 +711,7 @@ namespace client
 		std::vector<std::string> destinations;
 		boost::split (destinations, destination, boost::is_any_of (","), boost::token_compress_on);
 		for (auto& it: destinations) boost::trim (it);
-		std::erase (destinations, "");
+		destinations.erase (std::remove (destinations.begin (), destinations.end (), ""), destinations.end ());
 		return destinations;
 	}
 
