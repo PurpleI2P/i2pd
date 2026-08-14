@@ -891,7 +891,11 @@ namespace torrents
 					}
 				break;
 				case eMessageTypeNotInterested:
-					LogPrint (eLogInfo, "Torrents: Not interested message is not implemented");
+					if (!m_IsRemoteChoked)
+					{
+						m_IsRemoteChoked = true;
+						SendChokeMsg ();
+					}
 				break;
 				case eMessageTypeHave:
 					HandleHaveMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
@@ -981,16 +985,13 @@ namespace torrents
 			if (m_NumRequests < MAX_NUM_REQUESTS && m_Torrent && !m_Torrent->IsComplete ())
 			{
 				Piece& piece = m_Torrent->GetPiece (index);
-				if (!piece.IsComplete () && !piece.IsRequested ())
+				if (!piece.IsComplete ())
 				{
-					// new piece that was not requested yet
-					SendInterestedMsg ();
-					if (!m_IsChoked)
-					{
-						auto [offset, len] = piece.GetNextBlockToRequest ();
-						if (len > 0)
-							SendRequestMsg (index, offset, len);
-					}
+					// new piece
+					if (m_IsChoked)
+						SendInterestedMsg ();
+					else if (m_LastRequestedPieceIndex < 0)
+						RequestNextBlocks ();
 				}
 			}
 		}
