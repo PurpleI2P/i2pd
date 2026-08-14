@@ -168,7 +168,7 @@ namespace torrents
 			std::pair<std::vector<uint8_t>, bool> CreateBitfield () const; // (bitfield, empty)
 			bool ApplyBitfield (const std::vector<uint8_t>& bitfield); // return true if complete
 			const std::unordered_set<i2p::data::IdentHash>&  GetPeers () const { return m_Peers; }
-			std::tuple<uint32_t, uint32_t, uint32_t> GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn); // return (index, offset, len)
+			std::tuple<uint32_t, uint32_t, uint32_t> GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn, bool skipRequested = true); // return (index, offset, len)
 			std::vector<PieceFileFragment> GetPieceFileFragments (int index) const;
 			bool UpdateStatus (uint64_t ts); // return true if complete
 
@@ -265,6 +265,7 @@ namespace torrents
 			void HandleChokeMsg ();
 
 			bool RequestNextBlock ();
+			void RequestNextBlock (uint32_t index, uint32_t offset, uint32_t len);
 			void RequestNextBlocks ();
 
 			bool SendRequestedBlock (const RequestedBlock& requestedBlock);

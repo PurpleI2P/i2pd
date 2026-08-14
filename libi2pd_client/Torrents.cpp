@@ -507,7 +507,7 @@ namespace torrents
 		return complete;
 	}
 
-	std::tuple<uint32_t, uint32_t, uint32_t> Torrent::GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn)
+	std::tuple<uint32_t, uint32_t, uint32_t> Torrent::GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn, bool skipRequested)
 	{
 		if (conn)
 		{
@@ -530,7 +530,7 @@ namespace torrents
 			uint32_t ind = 0;
 			for (auto& it: m_Pieces)
 			{
-				if (!it.IsComplete () && conn->IsPieceAvailable (ind) && !it.IsRequested ())
+				if (!it.IsComplete () && conn->IsPieceAvailable (ind) && (!skipRequested || !it.IsRequested ()))
 					sortedByNumPeers.emplace (ind, it.GetNumPeers ());
 				ind++;
 			}
@@ -1279,19 +1279,32 @@ namespace torrents
 	bool PeerConnection::RequestNextBlock ()
 	{
 		if (!m_Torrent) return false;
-		auto [index, offset, len] = m_Torrent->GetNextBlockToRequest (shared_from_this ());
+		auto [index, offset, len] = m_Torrent->GetNextBlockToRequest (shared_from_this (), true); // skip already requested pieces
 		if (len > 0)
+			RequestNextBlock (index, offset, len);
+		else
 		{
-			m_LastRequestedPieceIndex = index;
-			SendRequestMsg (index, offset, len);
-			m_NumRequests++;
-		}
-		else if (m_LastRequestedPieceIndex >= 0)
-		{
-			m_LastRequestedPieceIndex = -1; // no request
-			SendNotinterestedMsg ();
+			// try to get block from requested by another connection piece
+			auto [index1, offset1, len1] = m_Torrent->GetNextBlockToRequest (shared_from_this (), false);
+			if (len1 > 0)
+			{
+				len = len1;
+				RequestNextBlock (index1, offset1, len1);
+			}
+			else if (m_LastRequestedPieceIndex >= 0)
+			{
+				m_LastRequestedPieceIndex = -1; // no request
+				SendNotinterestedMsg ();
+			}
 		}
 		return len > 0;
+	}
+
+	void PeerConnection::RequestNextBlock (uint32_t index, uint32_t offset, uint32_t len)
+	{
+		m_LastRequestedPieceIndex = index;
+		SendRequestMsg (index, offset, len);
+		m_NumRequests++;
 	}
 
 	void PeerConnection::RequestNextBlocks ()
