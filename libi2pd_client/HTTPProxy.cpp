@@ -6,6 +6,7 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#include <algorithm>
 #include <cstring>
 #include <cassert>
 #include <string>
@@ -14,6 +15,7 @@
 #include <memory>
 #include <set>
 #include <boost/asio.hpp>
+#include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <mutex>
 
@@ -792,8 +794,20 @@ namespace proxy
 	HTTPProxy::HTTPProxy(const std::string& name, const std::string& address, uint16_t port,
 	    const std::string & outproxy, bool addresshelper, bool senduseragent, std::shared_ptr<i2p::client::ClientDestination> localDestination):
 		TCPIPAcceptor (address, port, localDestination ? localDestination : i2p::client::context.GetSharedLocalDestination ()),
-		m_Name (name), m_OutproxyUrl (outproxy), m_Addresshelper (addresshelper), m_SendUserAgent (senduseragent)
+		m_Name (name), m_NextOutproxy (0), m_Addresshelper (addresshelper), m_SendUserAgent (senduseragent)
 	{
+		// outproxy is a comma separated list, the same way a client tunnel takes several destinations
+		boost::split (m_OutproxyUrls, outproxy, boost::is_any_of (","), boost::token_compress_on);
+		for (auto& it: m_OutproxyUrls) boost::trim (it);
+		m_OutproxyUrls.erase (std::remove (m_OutproxyUrls.begin (), m_OutproxyUrls.end (), ""), m_OutproxyUrls.end ());
+	}
+
+	std::string HTTPProxy::GetOutproxyURL ()
+	{
+		if (m_OutproxyUrls.empty ()) return "";
+		auto url = m_OutproxyUrls[m_NextOutproxy];
+		m_NextOutproxy = (m_NextOutproxy + 1) % m_OutproxyUrls.size ();
+		return url;
 	}
 
 	std::shared_ptr<i2p::client::I2PServiceHandler> HTTPProxy::CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket)

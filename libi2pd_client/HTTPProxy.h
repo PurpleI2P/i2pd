@@ -23,7 +23,8 @@ namespace proxy
 				HTTPProxy(name, address, port, "", true, false, localDestination) {} ;
 			~HTTPProxy() {};
 
-			std::string GetOutproxyURL() const { return m_OutproxyUrl; }
+			// picks the next outproxy, so several of them are used in turn
+			std::string GetOutproxyURL();
 			bool GetHelperSupport() const { return m_Addresshelper; }
 			bool GetSendUserAgent () const { return m_SendUserAgent; }
 
@@ -36,7 +37,8 @@ namespace proxy
 		private:
 
 			std::string m_Name;
-			std::string m_OutproxyUrl;
+			std::vector<std::string> m_OutproxyUrls;
+			size_t m_NextOutproxy;
 			bool m_Addresshelper, m_SendUserAgent;
 	};
 } // http
