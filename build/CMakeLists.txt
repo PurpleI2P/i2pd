@@ -221,10 +221,6 @@ if(NOT "${_SANITIZE_FLAGS}" STREQUAL "")
   #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${_X}")
 endif()
 
-if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 10.0 AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 8.0) # gcc 8-9
-    list(APPEND CMAKE_REQUIRED_LIBRARIES "stdc++fs")
-endif()
-
 # Use std::atomic instead of GCC builtins on macOS PowerPC:
 # For more information refer to: https://github.com/PurpleI2P/i2pd/issues/1726#issuecomment-1306335111
 # This has been fixed in Boost 1.81, nevertheless we retain the setting for the sake of compatibility.
@@ -316,21 +312,23 @@ endif()
 
 # C++ standard to use, based on compiler and version of boost
 if(NOT MSVC)
-# check for c++20 & c++17 support
+# check for c++23, c++20, c++17 support
   include(CheckCXXCompilerFlag)
 
   if(Boost_VERSION VERSION_GREATER_EQUAL "1.81") # min boost version for c++20
+    CHECK_CXX_COMPILER_FLAG("-std=c++23" CXX23_SUPPORTED)
     CHECK_CXX_COMPILER_FLAG("-std=c++20" CXX20_SUPPORTED)
   endif()
   CHECK_CXX_COMPILER_FLAG("-std=c++17" CXX17_SUPPORTED)
 
-
-  if(CXX20_SUPPORTED)
+  if(CXX23_SUPPORTED)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++23")
+  elseif(CXX20_SUPPORTED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
   elseif(CXX17_SUPPORTED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
   else()
-    message(SEND_ERROR "C++20 nor C++17 standard not seems to be supported by compiler. Too old version?")
+    message(SEND_ERROR "C++23 nor C++20 nor C++17 standard not seems to be supported by compiler. Too old version?")
   endif()
 endif()
 
