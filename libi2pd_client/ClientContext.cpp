@@ -123,6 +123,10 @@ namespace client
 			m_CleanupUDPTimer.reset (new boost::asio::steady_timer(m_SharedLocalDestination->GetService ()));
 			ScheduleCleanupUDP();
 		}
+
+		// start torrents RPC server
+		for (auto& it: m_TorrentsRPCServers)
+			it.second->Start ();
 	}
 
 	std::shared_ptr<I2PService> ClientContext::DetachHttpProxy ()
@@ -170,6 +174,10 @@ namespace client
 			it.second->Stop ();
 		}
 		m_ServerTunnels.clear ();
+
+		// start torrents RPC server
+		for (auto& it: m_TorrentsRPCServers)
+			it.second->Stop ();
 
 		for (auto& it: m_TorrentsTunnels)
 		{
@@ -1012,7 +1020,20 @@ namespace client
 					auto torrentsTunnel = std::make_shared<i2p::torrents::TorrentsTunnel> (name, localDestination, torrentsDir, trackers);
 					auto [iit, inserted] = m_TorrentsTunnels.emplace (localDestination->GetIdentHash (), torrentsTunnel);
 					if (inserted)
+					{
 						torrentsTunnel->Start ();
+						// try to create optional RPC server
+						uint16_t port = section.second.get<uint16_t> (TORRENTS_TUNNEL_RPC_PORT, 0);
+						if (port)
+						{
+							auto server = CreateTorrentsRPCServer (port);
+							if (server)
+							{
+								auto path = section.second.get<std::string> (TORRENTS_TUNNEL_RPC_PATH, "");
+								server->AddTunnel (path, torrentsTunnel);
+							}
+						}
+					}
 					else
 						LogPrint (eLogError, "Clients: Failed to create torrents tunnel ", name, ". Duplicate keys ", keys);
 				}
@@ -1211,6 +1232,28 @@ namespace client
 				it++;
 			}
 		}
+	}
+
+	std::shared_ptr<i2p::torrents::TorrentsRPCServer> ClientContext::CreateTorrentsRPCServer (uint16_t port)
+	{
+		std::shared_ptr<i2p::torrents::TorrentsRPCServer> server;
+		try
+		{
+			server = std::make_shared<i2p::torrents::TorrentsRPCServer>(port);
+		}
+		catch(std::exception& ex)
+		{
+			LogPrint (eLogError, "Clients: Can't create torrents RPC server of port: ", port, " :", ex.what());
+		}
+		if (server)
+			return m_TorrentsRPCServers.try_emplace (port, server).first->second;
+		else
+		{
+			auto it = m_TorrentsRPCServers.find (port);
+			if (it != m_TorrentsRPCServers.end ())
+				return it->second;
+		}
+		return nullptr;
 	}
 }
 }

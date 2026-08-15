@@ -1,0 +1,120 @@
+/*
+* Copyright (c) 2026, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
+#include <boost/version.hpp>
+//#if BOOST_VERSION >= 108300 // boost::json since 1.75, we allow since 1.83 and gcc 13
+//#include <boost/json.hpp>
+//#endif
+#include "Log.h"
+#include "Torrents.h"
+#include "TorrentsRPC.h"
+
+namespace i2p
+{
+namespace torrents
+{
+	TorrentsRPCSession::TorrentsRPCSession (TorrentsRPCServer& server, boost::asio::ip::tcp::socket&& s):
+		m_Server (server), m_Socket (std::move (s))
+	{
+	}
+
+	void TorrentsRPCSession::ReceiveRequest ()
+	{
+		boost::beast::http::async_read (m_Socket, m_ReceiveBuffer, m_Request,
+			boost::beast::bind_front_handler (&TorrentsRPCSession::HandleRequest, shared_from_this()));
+	}
+
+	void TorrentsRPCSession::HandleRequest (const boost::system::error_code& ecode, size_t bytes_transferred)
+	{
+		if (!ecode)
+		{
+			if (m_Request.method() == boost::beast::http::verb::post)
+			{
+				auto path = m_Request.target ();
+				auto tunnel = m_Server.GetTunnel ( {path.data (), path.size ()}); // boost::beast::string_view to std::string_view
+				if (tunnel)
+				{
+					// TODO:
+				}
+				else
+					SendResponse (boost::beast::http::status::not_found);
+			}
+			else
+				SendResponse (boost::beast::http::status::method_not_allowed);
+		}
+	}
+
+	void TorrentsRPCSession::SendResponse (boost::beast::http::status result, std::string_view data)
+	{
+		m_Response.version (11); // HTTP/1.1
+		m_Response.result (result);
+		m_Response.set (boost::beast::http::field::server, "i2pd torents RPC");
+		m_Response.set(boost::beast::http::field::content_type, (result == boost::beast::http::status::ok) ? "application/json" : "text/plain");
+		m_Response.body () = data;
+		m_Response.prepare_payload ();
+		boost::beast::http::async_write (m_Socket, m_Response,
+			[s = shared_from_this ()](const boost::system::error_code& ecode, size_t bytes_transferred)
+			{
+				if (ecode)
+					LogPrint (eLogWarning, "TorrentsRPC: Failed to send response: ", ecode.message ());
+			});
+	}
+
+	TorrentsRPCServer::TorrentsRPCServer (uint16_t port):
+		RunnableServiceWithWork ("TRPC"),  m_Acceptor (GetService (),
+			boost::asio::ip::tcp::endpoint (boost::asio::ip::make_address ("127.0.0.1"), port))
+	{
+	}
+
+	void TorrentsRPCServer::Start ()
+	{
+		if (!IsRunning ())
+		{
+			StartIOService ();
+			Accept ();
+		}
+	}
+
+	void TorrentsRPCServer::Stop ()
+	{
+		if (IsRunning ())
+		{
+			m_Acceptor.cancel ();
+			StopIOService ();
+		}
+	}
+
+	void TorrentsRPCServer::AddTunnel (std::string_view path, std::shared_ptr<TorrentsTunnel> tunnel)
+	{
+		m_Tunnels.emplace (path, tunnel);
+	}
+
+	std::shared_ptr<TorrentsTunnel> TorrentsRPCServer::GetTunnel (std::string_view path) const
+	{
+		auto it = m_Tunnels.find (path);
+		if (it != m_Tunnels.end ())
+			return it->second.lock ();
+		return nullptr;
+	}
+
+	void TorrentsRPCServer::Accept ()
+	{
+		m_Acceptor.async_accept (boost::asio::make_strand (GetService ()),
+			[this](const boost::system::error_code& ecode, boost::asio::ip::tcp::socket socket)
+			{
+				if (!ecode)
+				{
+					LogPrint (eLogDebug, "TorrentsRPC: Accepted incoming request");
+					auto session = std::make_shared<TorrentsRPCSession>(*this, std::move(socket));
+					session->ReceiveRequest ();
+					Accept ();
+				}
+			});
+	}
+}
+}

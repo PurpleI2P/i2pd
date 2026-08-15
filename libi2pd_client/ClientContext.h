@@ -24,6 +24,7 @@
 #include "I2CP.h"
 #include "AddressBook.h"
 #include "Torrents.h"
+#include "TorrentsRPC.h"
 #include "I18N_langs.h"
 
 namespace i2p
@@ -74,6 +75,8 @@ namespace client
 	const char TORRENTS_TUNNEL_SIGNATURE_TYPE[] = "signaturetype";
 	const char TORRENTS_TUNNEL_TORRENTS_DIR[] = "torrentsdir";
 	const char TORRENTS_TUNNEL_TRACKERS[] = "trackers";
+	const char TORRENTS_TUNNEL_RPC_PORT[] = "rpcport";
+	const char TORRENTS_TUNNEL_RPC_PATH[] = "rpcpath";
 
 	class ClientContext
 	{
@@ -148,6 +151,8 @@ namespace client
 			void CreateNewSharedLocalDestination ();
 			void AddLocalDestination (std::shared_ptr<ClientDestination> localDestination);
 
+			std::shared_ptr<i2p::torrents::TorrentsRPCServer> CreateTorrentsRPCServer (uint16_t port);
+
 		private:
 
 			std::mutex m_DestinationsMutex;
@@ -166,6 +171,7 @@ namespace client
 			std::map<std::pair<i2p::data::IdentHash, int>, std::shared_ptr<I2PUDPServerTunnel> > m_ServerForwards; // <destination,port> -> udp tunnel
 
 			std::unordered_map<i2p::data::IdentHash, std::shared_ptr<i2p::torrents::TorrentsTunnel> > m_TorrentsTunnels; // local destination -> torrents tunnel
+			std::unordered_map<uint16_t, std::shared_ptr<i2p::torrents::TorrentsRPCServer> > m_TorrentsRPCServers;
 
 			SAMBridge * m_SamBridge;
 			BOBCommandChannel * m_BOBCommandChannel;
