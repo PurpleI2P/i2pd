@@ -22,14 +22,14 @@ ifeq ($(shell uname -m), x86_64)
 endif
 
 ifeq ($(USE_STATIC),yes)
-	LDLIBS = -lz ${SSLROOT}/lib/libcrypto.a ${SSLROOT}/lib/libssl.a ${BOOSTROOT}/lib/libboost_program_options.a
+	LDLIBS = -lz ${SSLROOT}/lib/libcrypto.a ${SSLROOT}/lib/libssl.a ${BOOSTROOT}/lib/libboost_program_options.a ${BOOSTROOT}/lib/libboost_json.a
 ifeq ($(USE_UPNP),yes)
 	LDLIBS += ${UPNPROOT}/lib/libminiupnpc.a
 endif
 	LDLIBS +=  -lpthread -ldl
 else
 	LDFLAGS += -L${SSLROOT}/lib -L${BOOSTROOT}/lib
-	LDLIBS = -lz -lssl -lcrypto -lboost_program_options -lpthread
+	LDLIBS = -lz -lssl -lcrypto -lboost_program_options -lboost_json -lpthread
 ifeq ($(USE_UPNP),yes)
 	LDFLAGS += -L${UPNPROOT}/lib
 	LDLIBS += -lminiupnpc
