@@ -73,6 +73,8 @@ local.properties
 
 # Build results
 
+/build
+
 [Dd]ebug/
 [Rr]elease/
 x64/
@@ -255,9 +257,6 @@ docs/generated
 
 # gdb files
 .gdb_history
-
-# cmake makefile
-build/Makefile
 
 # debian stuff
 debian/i2pd.1.gz

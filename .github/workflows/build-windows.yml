@@ -6,8 +6,8 @@ on:
     - '*'
     paths:
     - .github/workflows/build-windows.yml
-    - build/CMakeLists.txt
-    - build/cmake_modules/**
+    - CMakeLists.txt
+    - cmake/**
     - daemon/**
     - i18n/**
     - libi2pd/**
@@ -97,8 +97,9 @@ jobs:
 
     - name: Build application
       run: |
+        mkdir build
         cd build
-        cmake -DWITH_GIT_VERSION=ON -DWITH_STATIC=ON -DWITH_UPNP=ON -DCMAKE_BUILD_TYPE=Release .
+        cmake -DWITH_GIT_VERSION=ON -DWITH_STATIC=ON -DWITH_UPNP=ON -DCMAKE_BUILD_TYPE=Release ..
         cmake --build . -- -j3
 
     - name: Upload artifacts

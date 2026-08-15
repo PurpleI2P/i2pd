@@ -6,8 +6,8 @@ on:
     - '*'
     paths:
     - .github/workflows/build.yml
-    - build/CMakeLists.txt
-    - build/cmake_modules/**
+    - CMakeLists.txt
+    - cmake/**
     - daemon/**
     - i18n/**
     - libi2pd/**
@@ -62,6 +62,7 @@ jobs:
 
     - name: build application
       run: |
+        mkdir build
         cd build
-        cmake -DWITH_GIT_VERSION=ON -DWITH_UPNP=${{ matrix.with_upnp }} .
+        cmake -DWITH_GIT_VERSION=ON -DWITH_UPNP=${{ matrix.with_upnp }} ..
         make -j3
