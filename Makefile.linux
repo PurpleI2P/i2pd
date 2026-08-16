@@ -9,10 +9,11 @@ LDFLAGS ?= ${LD_DEBUG}
 ## -std=c++11. If you want to remove this variable please do so in a way that allows setting
 ## custom FDLAGS to work at build-time.
 
-# detect proper flag for c++20 support by compilers
+# detect proper flag for c++20/с++23 support by compilers
 CXXVER := $(shell $(CXX) -dumpversion)
-ifeq ($(shell expr match $(CXX) 'clang'),5)
+ifneq ($(findstring clang,$(CXX)),)
 	NEEDED_CXXFLAGS += -std=c++20
+	LDLIBS = -lboost_json
 else ifeq ($(shell expr match ${CXXVER} "10"),2) # gcc 10
 # for Debian 11
 	NEEDED_CXXFLAGS += -std=c++17
