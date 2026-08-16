@@ -2,7 +2,7 @@ Source: i2pd
 Section: net
 Priority: optional
 Maintainer: r4sas <r4sas@i2pmail.org>
-Build-Depends: debhelper (>= 12~), libboost-program-options-dev (>= 1.46), libboost-json-dev (>= 1.75) | libboost-json1.81-dev, libminiupnpc-dev, libssl-dev, zlib1g-dev
+Build-Depends: debhelper (>= 12~), libboost-program-options-dev (>= 1.46), libboost-json-dev (>= 1.75), libminiupnpc-dev, libssl-dev, zlib1g-dev
 Standards-Version: 4.3.0
 Homepage: http://i2pd.website/
 Vcs-Git: git://github.com/PurpleI2P/i2pd.git
