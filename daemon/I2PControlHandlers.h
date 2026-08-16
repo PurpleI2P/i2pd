@@ -29,6 +29,7 @@ namespace client
 			void RouterInfoHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
 			void NetworkSettingHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
 			void ClientServicesInfoHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
+			void LocalDestinationInfoHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
 
 		protected:
 
