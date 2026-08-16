@@ -878,7 +878,7 @@ namespace client
 			auto masterSession = std::static_pointer_cast<SAMMasterSession>(session);
 			auto params = ExtractParams (buf);
 			std::string_view id = params[SAM_PARAM_ID];
-			if (masterSession->subsessions.count (id) > 1)
+			if (masterSession->subsessions.count (id) > 0)
 			{
 				// session exists
 				SendMessageReply (SAM_SESSION_CREATE_DUPLICATED_ID, false);
