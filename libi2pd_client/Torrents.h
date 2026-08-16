@@ -292,7 +292,7 @@ namespace torrents
 	{
 		private:
 
-			class DiskIOService: public i2p::util::RunnableServiceWithWork
+			class DiskIOService: private i2p::util::RunnableServiceWithWork
 			{
 				public:
 
@@ -313,6 +313,7 @@ namespace torrents
 
 			const std::string& GetPeerID () const { return m_PeerID; }
 			std::shared_ptr<Torrent> FindTorrent (const Torrent::InfoHash& infoHash) const;
+			bool AddTorrent (std::shared_ptr<Torrent> torrent);
 			std::list<std::shared_ptr<PeerConnection> > GetTorrentConnections (std::shared_ptr<Torrent> torrent);
 
 			const char* GetName() const override { return m_Name.c_str (); }

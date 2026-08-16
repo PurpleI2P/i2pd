@@ -1579,6 +1579,12 @@ namespace torrents
 		return nullptr;
 	}
 
+	bool TorrentsTunnel::AddTorrent (std::shared_ptr<Torrent> torrent)
+	{
+		if (!torrent) return false;
+		return m_Torrents.emplace (torrent->GetInfoHash (), torrent).second;
+	}
+
 	void TorrentsTunnel::Accept ()
 	{
 		auto localDestination = GetLocalDestination ();

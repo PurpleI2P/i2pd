@@ -7,9 +7,10 @@
 */
 
 #include <boost/version.hpp>
-//#if BOOST_VERSION >= 108300 // boost::json since 1.75, we allow since 1.83 and gcc 13
-//#include <boost/json.hpp>
-//#endif
+#if BOOST_VERSION >= 107800 // boost::json since 1.75, we allow since 1.78
+#include <boost/json.hpp>
+#define JSON_SUPPORTED
+#endif
 #include "Log.h"
 #include "Torrents.h"
 #include "TorrentsRPC.h"
@@ -39,7 +40,16 @@ namespace torrents
 				auto tunnel = m_Server.GetTunnel ( {path.data (), path.size ()}); // boost::beast::string_view to std::string_view
 				if (tunnel)
 				{
-					// TODO:
+					if (m_Request[boost::beast::http::field::content_type] == "application/json")
+					{
+#ifdef JSON_SUPPORTED
+						HandleJSONRequest (m_Request.body (), tunnel);
+#else
+						SendResponse (boost::beast::http::status::not_implemented, std::string ("Your boost version ") + BOOST_LIB_VERSION + " is too old");
+#endif
+					}
+					else
+						SendResponse (boost::beast::http::status::no_content);
 				}
 				else
 					SendResponse (boost::beast::http::status::not_found);
@@ -63,6 +73,32 @@ namespace torrents
 				if (ecode)
 					LogPrint (eLogWarning, "TorrentsRPC: Failed to send response: ", ecode.message ());
 			});
+	}
+
+	void TorrentsRPCSession::HandleJSONRequest (std::string_view request, std::shared_ptr<TorrentsTunnel> tunnel)
+	{
+#ifdef JSON_SUPPORTED
+		try
+		{
+			auto jsonRequest = boost::json::parse (request).as_object ();
+			auto method = jsonRequest.at ("method").as_string ();
+			if (method == "torrent-add")
+			{
+				auto arguments = jsonRequest.at ("arguments").as_object ();
+				auto b64torrent = arguments.at ("metainfo").as_string ();
+				std::string torrentString;
+				torrentString.resize (boost::beast::detail::base64::decoded_size (b64torrent.size ()));
+				boost::beast::detail::base64::decode (torrentString.data (), b64torrent.data (), b64torrent.size ());
+				auto torrent = std::make_shared<Torrent> (torrentString);
+				tunnel->AddTorrent (torrent);
+			}
+		}
+		catch (const std::exception& ex)
+		{
+			LogPrint (eLogInfo, "TorrentsRPC: Failed to parse JSON: ", ex.what ());
+			SendResponse (boost::beast::http::status::bad_request);
+		}
+#endif
 	}
 
 	TorrentsRPCServer::TorrentsRPCServer (uint16_t port):

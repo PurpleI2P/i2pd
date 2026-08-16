@@ -23,6 +23,7 @@ namespace i2p
 namespace torrents
 {
 	class TorrentsRPCServer;
+	class TorrentsTunnel;
 	class TorrentsRPCSession: public std::enable_shared_from_this<TorrentsRPCSession>
 	{
 		public:
@@ -36,6 +37,8 @@ namespace torrents
 			void HandleRequest (const boost::system::error_code& ecode, size_t bytes_transferred);
 			void SendResponse (boost::beast::http::status result, std::string_view data = "");
 
+			void HandleJSONRequest (std::string_view request, std::shared_ptr<TorrentsTunnel> tunnel);
+
 		private:
 
 			TorrentsRPCServer& m_Server;
@@ -45,7 +48,6 @@ namespace torrents
 			boost::beast::http::response<boost::beast::http::string_body> m_Response;
 	};
 
-	class TorrentsTunnel;
 	class TorrentsRPCServer final: private i2p::util::RunnableServiceWithWork
 	{
 		public:
