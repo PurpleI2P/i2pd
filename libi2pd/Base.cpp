@@ -201,17 +201,6 @@ namespace data
 		return outCount;
 	}
 
-	std::string ToBase64Standard (std::string_view in)
-	{
-		auto str = ByteStreamToBase64 ((const uint8_t *)in.data (), in.length ());
-		// replace '-' by '+' and '~' by '/'
-		for (auto& ch: str)
-			if (ch == '-')
-				ch = '+';
-			else if (ch == '~')
-				ch = '/';
-		return str;
-	}
 
 	/*
 	*
