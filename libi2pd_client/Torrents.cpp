@@ -1590,7 +1590,7 @@ namespace torrents
 		return nullptr;
 	}
 
-	bool TorrentsTunnel::AddTorrent (std::string_view torrentFileContent)
+	std::pair<std::shared_ptr<Torrent>, bool> TorrentsTunnel::AddTorrent (std::string_view torrentFileContent)
 	{
 		auto torrent = std::make_shared<Torrent> (torrentFileContent);
 		if (m_Torrents.find (torrent->GetInfoHash ()) == m_Torrents.end ())
@@ -1602,13 +1602,13 @@ namespace torrents
 				if (f)
 					f.write (torrentFileContent.data (), torrentFileContent.size ());
 				else
-					return false;
+					return { torrent, false };
 			}
 			InitTorrentFiles (torrent);
 			m_Torrents.emplace (torrent->GetInfoHash (), torrent);
-			return true;
+			return  { torrent, true };
 		}
-		return false;
+		return { torrent, false };
 	}
 
 	void TorrentsTunnel::Accept ()

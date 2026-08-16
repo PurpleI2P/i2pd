@@ -11,6 +11,7 @@
 #include <boost/json.hpp>
 #define JSON_SUPPORTED
 #endif
+#include <boost/algorithm/hex.hpp>
 #include "Log.h"
 #include "Torrents.h"
 #include "TorrentsRPC.h"
@@ -19,6 +20,84 @@ namespace i2p
 {
 namespace torrents
 {
+#ifdef JSON_SUPPORTED
+
+	class JSONRPCHandler
+	{
+		public:
+
+			JSONRPCHandler (std::shared_ptr<TorrentsTunnel> tunnel): m_Tunnel (tunnel) {};
+
+			std::string HandleRequest (std::string_view request);
+
+		private:
+
+			std::string SuccessResponse (boost::json::object&& arguments);
+
+			std::string HandleTorrrentAdd (boost::json::object&& jsonRequest);
+
+		private:
+
+			std::shared_ptr<TorrentsTunnel> m_Tunnel;
+	};
+
+	std::string JSONRPCHandler::SuccessResponse (boost::json::object&& arguments)
+	{
+		boost::json::object response;
+		response["result"] = "success";
+		response["arguments"] = arguments;
+		return boost::json::serialize(response);
+	}
+
+	std::string JSONRPCHandler::HandleRequest (std::string_view request)
+	{
+		try
+		{
+			auto jsonRequest = boost::json::parse (request).as_object ();
+			auto method = jsonRequest.at ("method").as_string ();
+			if (method == "torrent-add")
+				return HandleTorrrentAdd (std::move (jsonRequest));
+		}
+		catch (const std::exception& ex)
+		{
+			LogPrint (eLogInfo, "TorrentsRPC: Failed to parse JSON: ", ex.what ());
+		}
+		return "";
+	}
+
+	std::string JSONRPCHandler::HandleTorrrentAdd (boost::json::object&& jsonRequest)
+	{
+		auto arguments = jsonRequest.at ("arguments").as_object ();
+		auto b64torrent = arguments.at ("metainfo").as_string ();
+		std::string torrentFileContent;
+		torrentFileContent.resize (boost::beast::detail::base64::decoded_size (b64torrent.size ()));
+		boost::beast::detail::base64::decode (torrentFileContent.data (), b64torrent.data (), b64torrent.size ());
+		auto [torrent, added] = m_Tunnel->AddTorrent (torrentFileContent);
+
+		boost::json::object response, torrentInfo;
+		std::string hexHash;
+		if (torrent)
+		{
+			boost::algorithm::hex (torrent->GetInfoHash ().begin(), torrent->GetInfoHash ().end(), std::back_inserter(hexHash));
+			torrentInfo["id"] = 1; // TODO:
+			torrentInfo["hashString"] = hexHash;
+			torrentInfo["name"] = torrent->GetName ();
+		}
+		if (added)
+		{
+			response["torrent-added"] = torrentInfo;
+			LogPrint (eLogDebug, "TorrentsRPC: torrent added ", torrentInfo["name"].as_string ());
+		}
+		else
+		{
+			response["torrent-duplicate"] = torrentInfo;
+			LogPrint (eLogDebug, "TorrentsRPC: duplicate torrent ", torrentInfo["name"].as_string ());
+		}
+		return SuccessResponse (std::move (response));
+	}
+
+#endif
+
 	TorrentsRPCSession::TorrentsRPCSession (TorrentsRPCServer& server, boost::asio::ip::tcp::socket&& s):
 		m_Server (server), m_Socket (std::move (s))
 	{
@@ -40,10 +119,14 @@ namespace torrents
 				auto tunnel = m_Server.GetTunnel ( {path.data (), path.size ()}); // boost::beast::string_view to std::string_view
 				if (tunnel)
 				{
-					if (m_Request[boost::beast::http::field::content_type] == "application/json")
+					if (m_Request[boost::beast::http::field::content_type] == "application/json" ||
+						m_Request[boost::beast::http::field::content_type] == "application/x-www-form-urlencoded")
 					{
 #ifdef JSON_SUPPORTED
-						HandleJSONRequest (m_Request.body (), tunnel);
+						JSONRPCHandler jsonHandler (tunnel);
+						auto response = jsonHandler.HandleRequest (m_Request.body ());
+						if (!response.empty ())
+							SendResponse (boost::beast::http::status::ok, response);
 #else
 						SendResponse (boost::beast::http::status::not_implemented, std::string ("Your boost version ") + BOOST_LIB_VERSION + " is too old");
 #endif
@@ -75,31 +158,6 @@ namespace torrents
 			});
 	}
 
-	void TorrentsRPCSession::HandleJSONRequest (std::string_view request, std::shared_ptr<TorrentsTunnel> tunnel)
-	{
-#ifdef JSON_SUPPORTED
-		try
-		{
-			auto jsonRequest = boost::json::parse (request).as_object ();
-			auto method = jsonRequest.at ("method").as_string ();
-			if (method == "torrent-add")
-			{
-				auto arguments = jsonRequest.at ("arguments").as_object ();
-				auto b64torrent = arguments.at ("metainfo").as_string ();
-				std::string torrentFileContent;
-				torrentFileContent.resize (boost::beast::detail::base64::decoded_size (b64torrent.size ()));
-				boost::beast::detail::base64::decode (torrentFileContent.data (), b64torrent.data (), b64torrent.size ());
-				tunnel->AddTorrent (torrentFileContent);
-			}
-		}
-		catch (const std::exception& ex)
-		{
-			LogPrint (eLogInfo, "TorrentsRPC: Failed to parse JSON: ", ex.what ());
-			SendResponse (boost::beast::http::status::bad_request);
-		}
-#endif
-	}
-
 	TorrentsRPCServer::TorrentsRPCServer (uint16_t port):
 		RunnableServiceWithWork ("TRPC"),  m_Acceptor (GetService (),
 			boost::asio::ip::tcp::endpoint (boost::asio::ip::make_address ("127.0.0.1"), port))
@@ -126,7 +184,7 @@ namespace torrents
 
 	void TorrentsRPCServer::AddTunnel (std::string_view path, std::shared_ptr<TorrentsTunnel> tunnel)
 	{
-		m_Tunnels.emplace (path, tunnel);
+		m_Tunnels.emplace (std::string ("/") + std::string (path) + "/rpc/", tunnel);
 	}
 
 	std::shared_ptr<TorrentsTunnel> TorrentsRPCServer::GetTunnel (std::string_view path) const
