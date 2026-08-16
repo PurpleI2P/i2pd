@@ -12,10 +12,10 @@
 
 #ifdef __OpenBSD__
 #	include<unistd.h>
+#	include<filesystem>
 #endif
 
 #include "Daemon.h"
-
 #include "Config.h"
 #include "Log.h"
 #include "FS.h"
@@ -140,15 +140,31 @@ namespace util
 		};
 		auto unveil_path = [](std::string path, std::string rules = "r")
 		{
+			// https://stackoverflow.com/questions/83439/remove-spaces-from-stdstring-in-c
+			path.erase(remove_if(path.begin(), path.end(), isspace), path.end());
 			if(path=="")
 			{
 				LogPrint(eLogDebug, "empty path for unveil");
 				return;
 			}
+			if ( (!std::filesystem::exists(path) && !std::filesystem::is_directory(path)) ) 
+			{
+				{
+					std::ofstream f{path}; 
+					if(!f)
+					{
+						LogPrint(eLogError, "can't create an empty file " + path);
+						throw std::runtime_error("Can't create a file and it's not directory");
+					}
+				}
+			}
 			if ( unveil(path.c_str(), rules.c_str()) == -1 )
 			{
 				LogPrint(eLogError, "Can't unveil " + path + " with rules " + rules);
-				throw std::runtime_error("can't unveil");
+				bool ignore_unveil;
+				i2p::config::GetOption("openbsd.unveil_ignore", ignore_unveil);
+				if(!ignore_unveil)
+					throw std::runtime_error("can't unveil");
 			}
 			LogPrint(eLogInfo, "unveil " + path + " with rules " + rules);
 		};
