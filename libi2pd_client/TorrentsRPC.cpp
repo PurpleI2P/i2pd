@@ -86,11 +86,10 @@ namespace torrents
 			{
 				auto arguments = jsonRequest.at ("arguments").as_object ();
 				auto b64torrent = arguments.at ("metainfo").as_string ();
-				std::string torrentString;
-				torrentString.resize (boost::beast::detail::base64::decoded_size (b64torrent.size ()));
-				boost::beast::detail::base64::decode (torrentString.data (), b64torrent.data (), b64torrent.size ());
-				auto torrent = std::make_shared<Torrent> (torrentString);
-				tunnel->AddTorrent (torrent);
+				std::string torrentFileContent;
+				torrentFileContent.resize (boost::beast::detail::base64::decoded_size (b64torrent.size ()));
+				boost::beast::detail::base64::decode (torrentFileContent.data (), b64torrent.data (), b64torrent.size ());
+				tunnel->AddTorrent (torrentFileContent);
 			}
 		}
 		catch (const std::exception& ex)

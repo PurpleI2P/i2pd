@@ -313,7 +313,7 @@ namespace torrents
 
 			const std::string& GetPeerID () const { return m_PeerID; }
 			std::shared_ptr<Torrent> FindTorrent (const Torrent::InfoHash& infoHash) const;
-			bool AddTorrent (std::shared_ptr<Torrent> torrent);
+			bool AddTorrent (std::string_view torrentFileContent);
 			std::list<std::shared_ptr<PeerConnection> > GetTorrentConnections (std::shared_ptr<Torrent> torrent);
 
 			const char* GetName() const override { return m_Name.c_str (); }
@@ -323,6 +323,7 @@ namespace torrents
 
 			void Accept ();
 			void ReadTorrentFile (const std::filesystem::path& torrentFilePath);
+			void InitTorrentFiles (std::shared_ptr<Torrent> torrent);
 			bool CreateAndReserveFile (const std::filesystem::path& filePath, size_t reserve);
 			void CompleteTorrent (std::shared_ptr<Torrent> torrent);
 			void RequestTracker (std::shared_ptr<Torrent> torrent, std::string_view event = "");

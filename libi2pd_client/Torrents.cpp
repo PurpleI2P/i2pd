@@ -1415,7 +1415,8 @@ namespace torrents
 
 	void TorrentsTunnel::ReadTorrentFile (const std::filesystem::path& torrentFilePath)
 	{
-		std::ifstream s(torrentFilePath, std::ifstream::binary);
+		std::shared_ptr<Torrent> torrent;
+ 		std::ifstream s(torrentFilePath, std::ifstream::binary);
 		if (s)
 		{
 			s.seekg (0,std::ios::end);
@@ -1425,66 +1426,76 @@ namespace torrents
 				s.seekg(0, std::ios::beg);
 				char * buf = new char[len];
 				s.read(buf, len);
-				auto torrent = std::make_shared<Torrent>(std::string_view{buf, len});
+				torrent = std::make_shared<Torrent>(std::string_view{buf, len});
 				delete[] buf;
-				torrent->SetFullPath (m_TorrentsDir/std::filesystem::path (torrent->GetName ()));
-				m_Torrents.emplace (torrent->GetInfoHash (), torrent);
-				if (torrent->GetFiles ().empty ())
-				{
-					if (std::filesystem::exists (torrent->GetFullPath ()))
-						torrent->SetComplete ();
-					else
-					{
-						auto partFilePath = torrent->GetFullPath (); partFilePath += ".part";
-						if (!std::filesystem::exists (partFilePath))
-							CreateAndReserveFile (partFilePath, torrent->GetLength ());
-					}
-				}
-				else
-				{
-					bool completed = true;
-					for (auto& [filePath, fileLength]: torrent->GetFiles ())
-					{
-						filePath = torrent->GetFullPath ()/filePath;
-						if (!std::filesystem::exists (filePath))
-						{
-							auto partFilePath = filePath; partFilePath += ".part";
-							if (!std::filesystem::exists (partFilePath))
-								CreateAndReserveFile (partFilePath, fileLength);
-							completed = false;
-						}
-					}
-					if (completed) torrent->SetComplete ();
-				}
-				auto resumeFilePath = torrent->GetFullPath (); resumeFilePath += ".resume";
-				if (std::filesystem::exists (resumeFilePath ))
-				{
-					if (!torrent->IsComplete ())
-					{
-						std::ifstream rs(resumeFilePath, std::ifstream::binary);
-						if (rs)
-						{
-							rs.seekg (0,std::ios::end);
-							size_t l = rs.tellg ();
-							if (l > 0)
-							{
-								rs.seekg(0, std::ios::beg);
-								std::vector<uint8_t> bitfield(l);
-								rs.read((char *)bitfield.data (), l);
-								if (torrent->ApplyBitfield (bitfield))
-									CompleteTorrent (torrent);
-							}
-						}
-					}
-					else
-						std::filesystem::remove (resumeFilePath);
-				}
 			}
 			else
 				LogPrint (eLogError, "Torrents: Empty file ", torrentFilePath);
 		}
 		else
 			LogPrint (eLogError, "Torrents: Can't open file ", torrentFilePath);
+
+		if (torrent)
+		{
+			torrent->SetFullPath (m_TorrentsDir/std::filesystem::path (torrent->GetName ()));
+			InitTorrentFiles (torrent);
+			m_Torrents.emplace (torrent->GetInfoHash (), torrent);
+		}
+	}
+
+	void TorrentsTunnel::InitTorrentFiles (std::shared_ptr<Torrent> torrent)
+	{
+		if (!torrent) return;
+		if (torrent->GetFiles ().empty ())
+		{
+			if (std::filesystem::exists (torrent->GetFullPath ()))
+				torrent->SetComplete ();
+			else
+			{
+				auto partFilePath = torrent->GetFullPath (); partFilePath += ".part";
+				if (!std::filesystem::exists (partFilePath))
+					CreateAndReserveFile (partFilePath, torrent->GetLength ());
+			}
+		}
+		else
+		{
+			bool completed = true;
+			for (auto& [filePath, fileLength]: torrent->GetFiles ())
+			{
+				filePath = torrent->GetFullPath ()/filePath;
+				if (!std::filesystem::exists (filePath))
+				{
+					auto partFilePath = filePath; partFilePath += ".part";
+					if (!std::filesystem::exists (partFilePath))
+						CreateAndReserveFile (partFilePath, fileLength);
+					completed = false;
+				}
+			}
+			if (completed) torrent->SetComplete ();
+		}
+		auto resumeFilePath = torrent->GetFullPath (); resumeFilePath += ".resume";
+		if (std::filesystem::exists (resumeFilePath ))
+		{
+			if (!torrent->IsComplete ())
+			{
+				std::ifstream rs(resumeFilePath, std::ifstream::binary);
+				if (rs)
+				{
+					rs.seekg (0,std::ios::end);
+					size_t l = rs.tellg ();
+					if (l > 0)
+					{
+						rs.seekg(0, std::ios::beg);
+						std::vector<uint8_t> bitfield(l);
+						rs.read((char *)bitfield.data (), l);
+						if (torrent->ApplyBitfield (bitfield))
+							CompleteTorrent (torrent);
+					}
+				}
+			}
+			else
+				std::filesystem::remove (resumeFilePath);
+		}
 	}
 
 	bool TorrentsTunnel::CreateAndReserveFile (const std::filesystem::path& filePath, size_t reserve)
@@ -1579,10 +1590,25 @@ namespace torrents
 		return nullptr;
 	}
 
-	bool TorrentsTunnel::AddTorrent (std::shared_ptr<Torrent> torrent)
+	bool TorrentsTunnel::AddTorrent (std::string_view torrentFileContent)
 	{
-		if (!torrent) return false;
-		return m_Torrents.emplace (torrent->GetInfoHash (), torrent).second;
+		auto torrent = std::make_shared<Torrent> (torrentFileContent);
+		if (m_Torrents.find (torrent->GetInfoHash ()) == m_Torrents.end ())
+		{
+			torrent->SetFullPath (m_TorrentsDir/std::filesystem::path (torrent->GetName ()));
+			{
+				auto torrentFilePath = torrent->GetFullPath ();  torrentFilePath += ".torrent";
+				std::ofstream f(torrentFilePath, std::ofstream::binary);
+				if (f)
+					f.write (torrentFileContent.data (), torrentFileContent.size ());
+				else
+					return false;
+			}
+			InitTorrentFiles (torrent);
+			m_Torrents.emplace (torrent->GetInfoHash (), torrent);
+			return true;
+		}
+		return false;
 	}
 
 	void TorrentsTunnel::Accept ()
