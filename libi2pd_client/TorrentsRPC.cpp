@@ -22,6 +22,13 @@ namespace torrents
 {
 #ifdef JSON_SUPPORTED
 
+	enum JSONRPCErrorCode
+	{
+		eMethodNotFound = -32601,
+		eInvalidParam = -32602,
+		eParseError = -32700
+	};
+
 	class JSONRPCHandler
 	{
 		public:
@@ -33,6 +40,7 @@ namespace torrents
 		private:
 
 			std::string SuccessResponse (boost::json::object&& arguments);
+			std::string ErrorResponse (JSONRPCErrorCode errorCode, int64_t id, std::string_view message);
 
 			std::string HandleTorrrentAdd (boost::json::object&& jsonRequest);
 
@@ -49,6 +57,18 @@ namespace torrents
 		return boost::json::serialize(response);
 	}
 
+	std::string JSONRPCHandler::ErrorResponse (JSONRPCErrorCode errorCode, int64_t id, std::string_view message)
+	{
+		boost::json::object response;
+		response["jsonrpc"] = "2.0";
+		if (id) response["id"] = id;
+		boost::json::object error;
+		error["code"] = errorCode;
+		error["message"] = message;
+		response["error"] = error;
+		return boost::json::serialize(response);
+	}
+
 	std::string JSONRPCHandler::HandleRequest (std::string_view request)
 	{
 		try
@@ -57,10 +77,17 @@ namespace torrents
 			auto method = jsonRequest.at ("method").as_string ();
 			if (method == "torrent-add")
 				return HandleTorrrentAdd (std::move (jsonRequest));
+			else
+			{
+				LogPrint (eLogInfo, "TorrentsRPC: Method not found ", method);
+				int64_t tag = jsonRequest.at ("tag").as_int64 ();
+				return ErrorResponse (eMethodNotFound, tag, "Method not found");
+			}
 		}
 		catch (const std::exception& ex)
 		{
 			LogPrint (eLogInfo, "TorrentsRPC: Failed to parse JSON: ", ex.what ());
+			return ErrorResponse (eParseError, 0, "Parse error");
 		}
 		return "";
 	}
@@ -184,7 +211,11 @@ namespace torrents
 
 	void TorrentsRPCServer::AddTunnel (std::string_view path, std::shared_ptr<TorrentsTunnel> tunnel)
 	{
-		m_Tunnels.emplace (std::string ("/") + std::string (path) + "/rpc/", tunnel);
+		std::string rpcPath ("/");
+		if (!path.empty ())
+			rpcPath += std::string (path) + "/";
+		rpcPath += "rpc/";
+		m_Tunnels.emplace (rpcPath, tunnel);
 	}
 
 	std::shared_ptr<TorrentsTunnel> TorrentsRPCServer::GetTunnel (std::string_view path) const
