@@ -1275,7 +1275,7 @@ namespace http {
 		auto provided = req.GetHeader ("Authorization");
 		if (provided.length () > 0)
 		{
-			std::string expected = "Basic " + i2p::data::ToBase64Standard (user + ":" + pass);
+			std::string expected = i2p::http::CreateBasicAuthorizationString (user, pass);
 			if (expected == provided) return true;
 		}
 

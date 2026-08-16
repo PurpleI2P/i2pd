@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <ctime>
 #include <charconv>
+#include <boost/beast/core/detail/base64.hpp>
 #include "util.h"
 #include "Base.h"
 #include "HTTP.h"
@@ -625,7 +626,10 @@ namespace http
 	std::string CreateBasicAuthorizationString (const std::string& user, const std::string& pass)
 	{
 		if (user.empty () && pass.empty ()) return "";
-		return "Basic " + i2p::data::ToBase64Standard (user + ":" + pass);
+		auto credentials = user + ":" + pass;
+		std::string encoded (boost::beast::detail::base64::encoded_size (credentials.length ()), 0);
+		encoded.resize (boost::beast::detail::base64::encode (encoded.data (), credentials.data (), credentials.length ()));
+		return "Basic " + encoded;
 	}
 
 } // http

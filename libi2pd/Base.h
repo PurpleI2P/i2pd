@@ -45,7 +45,6 @@ namespace data
 		return 4 * d.quot;
 	}	
 
-	std::string ToBase64Standard (std::string_view in); // using standard table, for Proxy-Authorization
 	
 } // data
 } // i2p
