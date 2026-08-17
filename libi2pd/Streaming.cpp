@@ -2162,7 +2162,7 @@ namespace stream
 		m_PendingIncomingTimer.cancel ();
 		m_PendingIncomingStreams.clear ();
 		{
-			std::unique_lock<std::mutex> l(m_StreamsMutex);
+			std::lock_guard<std::mutex> l(m_StreamsMutex);
 			for (auto it: m_Streams)
 				it.second->Terminate (false); // we delete here
 			m_Streams.clear ();
@@ -2326,7 +2326,7 @@ namespace stream
 	std::shared_ptr<Stream> StreamingDestination::CreateNewOutgoingStream (std::shared_ptr<const i2p::data::LeaseSet> remote, int port)
 	{
 		auto s = std::make_shared<Stream> (m_Owner->GetService (), *this, remote, port);
-		std::unique_lock<std::mutex> l(m_StreamsMutex);
+		std::lock_guard<std::mutex> l(m_StreamsMutex);
 		m_Streams.emplace (s->GetRecvStreamID (), s);
 		return s;
 	}
@@ -2340,7 +2340,7 @@ namespace stream
 	std::shared_ptr<Stream> StreamingDestination::CreateNewIncomingStream (uint32_t receiveStreamID)
 	{
 		auto s = std::make_shared<Stream> (m_Owner->GetService (), *this);
-		std::unique_lock<std::mutex> l(m_StreamsMutex);
+		std::lock_guard<std::mutex> l(m_StreamsMutex);
 		m_Streams.emplace (s->GetRecvStreamID (), s);
 		m_IncomingStreams.emplace (receiveStreamID, s);
 		return s;
@@ -2350,7 +2350,7 @@ namespace stream
 	{
 		if (stream)
 		{
-			std::unique_lock<std::mutex> l(m_StreamsMutex);
+			std::lock_guard<std::mutex> l(m_StreamsMutex);
 			m_Streams.erase (stream->GetRecvStreamID ());
 			if (stream->IsIncoming ())
 				m_IncomingStreams.erase (stream->GetSendStreamID ());
