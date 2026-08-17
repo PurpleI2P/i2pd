@@ -2375,6 +2375,15 @@ namespace stream
 		}
 	}
 
+	std::vector<std::shared_ptr<const Stream> > StreamingDestination::GetStreamsList ()
+	{
+		std::vector<std::shared_ptr<const Stream> > streams;
+		std::lock_guard<std::mutex> l(m_StreamsMutex);
+		for (const auto& it: m_Streams)
+			streams.push_back (it.second);
+		return streams;
+	}
+
 	bool StreamingDestination::DeleteStream (uint32_t recvStreamID)
 	{
 		auto it = m_Streams.find (recvStreamID);
