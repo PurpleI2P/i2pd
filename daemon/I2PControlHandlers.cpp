@@ -308,13 +308,15 @@ namespace client
 
 	void I2PControlHandlers::ClientServicesInfoHandler (const boost::property_tree::ptree& params, std::ostringstream& results)
 	{
+		bool first = true;
 		for (auto it = params.begin (); it != params.end (); it++)
 		{
 			LogPrint (eLogDebug, "I2PControl: ClientServicesInfo request: ", it->first);
 			auto it1 = m_ClientServicesInfoHandlers.find (it->first);
 			if (it1 != m_ClientServicesInfoHandlers.end ())
 			{
-				if (it != params.begin ()) results << ",";
+				if (!first) results << ",";
+				else first = false;
 				(this->*(it1->second))(results);
 			}
 			else
