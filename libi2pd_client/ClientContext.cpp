@@ -1026,7 +1026,8 @@ namespace client
 						uint16_t port = section.second.get<uint16_t> (TORRENTS_TUNNEL_RPC_PORT, 0);
 						if (port)
 						{
-							auto server = CreateTorrentsRPCServer (port);
+							auto address = section.second.get<std::string> (TORRENTS_TUNNEL_RPC_ADDRESS, "127.0.0.1");
+							auto server = CreateTorrentsRPCServer (address, port);
 							if (server)
 							{
 								auto path = section.second.get<std::string> (TORRENTS_TUNNEL_RPC_PATH, "");
@@ -1234,12 +1235,13 @@ namespace client
 		}
 	}
 
-	std::shared_ptr<i2p::torrents::TorrentsRPCServer> ClientContext::CreateTorrentsRPCServer (uint16_t port)
+	std::shared_ptr<i2p::torrents::TorrentsRPCServer> ClientContext::CreateTorrentsRPCServer (
+		std::string_view address, uint16_t port)
 	{
 		std::shared_ptr<i2p::torrents::TorrentsRPCServer> server;
 		try
 		{
-			server = std::make_shared<i2p::torrents::TorrentsRPCServer>(port);
+			server = std::make_shared<i2p::torrents::TorrentsRPCServer>(address, port);
 		}
 		catch(std::exception& ex)
 		{

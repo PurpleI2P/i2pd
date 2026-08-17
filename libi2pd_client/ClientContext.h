@@ -77,6 +77,7 @@ namespace client
 	const char TORRENTS_TUNNEL_TRACKERS[] = "trackers";
 	const char TORRENTS_TUNNEL_RPC_PORT[] = "rpcport";
 	const char TORRENTS_TUNNEL_RPC_PATH[] = "rpcpath";
+	const char TORRENTS_TUNNEL_RPC_ADDRESS[] = "rpcaddress";
 
 	class ClientContext
 	{
@@ -151,7 +152,7 @@ namespace client
 			void CreateNewSharedLocalDestination ();
 			void AddLocalDestination (std::shared_ptr<ClientDestination> localDestination);
 
-			std::shared_ptr<i2p::torrents::TorrentsRPCServer> CreateTorrentsRPCServer (uint16_t port);
+			std::shared_ptr<i2p::torrents::TorrentsRPCServer> CreateTorrentsRPCServer (std::string_view address, uint16_t port);
 
 		private:
 

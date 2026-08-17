@@ -50,7 +50,7 @@ namespace torrents
 	{
 		public:
 
-			TorrentsRPCServer (uint16_t port);
+			TorrentsRPCServer (std::string_view address, uint16_t port);
 
 			auto& GetService () { return GetIOService (); }
 			void Start ();

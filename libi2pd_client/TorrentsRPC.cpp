@@ -185,9 +185,9 @@ namespace torrents
 			});
 	}
 
-	TorrentsRPCServer::TorrentsRPCServer (uint16_t port):
+	TorrentsRPCServer::TorrentsRPCServer (std::string_view address, uint16_t port):
 		RunnableServiceWithWork ("TRPC"),  m_Acceptor (GetService (),
-			boost::asio::ip::tcp::endpoint (boost::asio::ip::make_address ("127.0.0.1"), port))
+			boost::asio::ip::tcp::endpoint (boost::asio::ip::make_address (address), port))
 	{
 	}
 
