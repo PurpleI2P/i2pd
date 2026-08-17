@@ -24,6 +24,7 @@
 #include <random>
 #include <tuple>
 #include <filesystem>
+#include <mutex>
 #include "util.h"
 #include "Streaming.h"
 #include "HTTP.h"
@@ -313,7 +314,9 @@ namespace torrents
 
 			const std::string& GetPeerID () const { return m_PeerID; }
 			std::shared_ptr<Torrent> FindTorrent (const Torrent::InfoHash& infoHash) const;
-			std::pair<std::shared_ptr<Torrent>, bool> AddTorrent (std::string_view torrentFileContent);
+			std::shared_ptr<Torrent> FindTorrentByID (int id) const;
+			std::vector<int> GetTorrentIDs () const;
+			std::pair<std::shared_ptr<Torrent>, int> AddTorrent (std::string_view torrentFileContent); // (tunnel, id)
 			std::list<std::shared_ptr<PeerConnection> > GetTorrentConnections (std::shared_ptr<Torrent> torrent);
 
 			const char* GetName() const override { return m_Name.c_str (); }
@@ -324,6 +327,7 @@ namespace torrents
 			void Accept ();
 			void ReadTorrentFile (const std::filesystem::path& torrentFilePath);
 			void InitTorrentFiles (std::shared_ptr<Torrent> torrent);
+			int InsertTorrent (std::shared_ptr<Torrent> torrent); // returns id > 0 if success and 0 if failed
 			bool CreateAndReserveFile (const std::filesystem::path& filePath, size_t reserve);
 			void CompleteTorrent (std::shared_ptr<Torrent> torrent);
 			void RequestTracker (std::shared_ptr<Torrent> torrent, std::string_view event = "");
@@ -354,6 +358,8 @@ namespace torrents
 			std::filesystem::path m_TorrentsDir;
 			std::vector<std::string> m_Trackers;
 			std::map<Torrent::InfoHash, std::shared_ptr<Torrent> > m_Torrents;
+			std::map<int, std::weak_ptr<Torrent> > m_TorrentsByID;
+			mutable std::mutex m_TorrentsMutex;
 			boost::asio::steady_timer m_TrackerRequestsCheckTimer, m_KeepAliveCheckTimer,
 				m_ReconnectCheckTimer, m_TorrentsStatusUpdateTimer;
 			DiskIOService m_DiskIOService;

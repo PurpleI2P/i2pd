@@ -1439,7 +1439,7 @@ namespace torrents
 		{
 			torrent->SetFullPath (m_TorrentsDir/std::filesystem::path (torrent->GetName ()));
 			InitTorrentFiles (torrent);
-			m_Torrents.emplace (torrent->GetInfoHash (), torrent);
+			InsertTorrent (torrent);
 		}
 	}
 
@@ -1584,13 +1584,32 @@ namespace torrents
 
 	std::shared_ptr<Torrent> TorrentsTunnel::FindTorrent (const Torrent::InfoHash& infoHash) const
 	{
+		std::lock_guard<std::mutex> l(m_TorrentsMutex);
 		auto it = m_Torrents.find (infoHash);
 		if (it != m_Torrents.end ())
 			return it->second;
 		return nullptr;
 	}
 
-	std::pair<std::shared_ptr<Torrent>, bool> TorrentsTunnel::AddTorrent (std::string_view torrentFileContent)
+	std::shared_ptr<Torrent> TorrentsTunnel::FindTorrentByID (int id) const
+	{
+		std::lock_guard<std::mutex> l(m_TorrentsMutex);
+		auto it = m_TorrentsByID.find (id);
+		if (it != m_TorrentsByID.end ())
+			return it->second.lock ();
+		return nullptr;
+	}
+
+	std::vector<int> TorrentsTunnel::GetTorrentIDs () const
+	{
+		std::vector<int> ids;
+		std::lock_guard<std::mutex> l(m_TorrentsMutex);
+		for (const auto& it: m_TorrentsByID)
+			if (!it.second.expired ()) ids.push_back (it.first);
+		return ids;
+	}
+
+	std::pair<std::shared_ptr<Torrent>, int> TorrentsTunnel::AddTorrent (std::string_view torrentFileContent)
 	{
 		auto torrent = std::make_shared<Torrent> (torrentFileContent);
 		if (m_Torrents.find (torrent->GetInfoHash ()) == m_Torrents.end ())
@@ -1602,13 +1621,27 @@ namespace torrents
 				if (f)
 					f.write (torrentFileContent.data (), torrentFileContent.size ());
 				else
-					return { torrent, false };
+					return { torrent, 0 };
 			}
 			InitTorrentFiles (torrent);
-			m_Torrents.emplace (torrent->GetInfoHash (), torrent);
-			return  { torrent, true };
+			return { torrent, InsertTorrent (torrent) };
 		}
-		return { torrent, false };
+		return { torrent, 0 };
+	}
+
+	int TorrentsTunnel::InsertTorrent (std::shared_ptr<Torrent> torrent)
+	{
+		if (!torrent) return 0;
+		std::lock_guard<std::mutex> l(m_TorrentsMutex);
+		if (m_Torrents.emplace (torrent->GetInfoHash (), torrent).second)
+		{
+			int id = 1;
+			if (!m_TorrentsByID.empty ())
+				id = m_TorrentsByID.rbegin ()->first + 1;
+			m_TorrentsByID.emplace (id, torrent);
+			return id;
+ 		}
+		return 0;
 	}
 
 	void TorrentsTunnel::Accept ()

@@ -12,6 +12,7 @@
 #define JSON_SUPPORTED
 #endif
 #include <boost/algorithm/hex.hpp>
+#include <vector>
 #include "Log.h"
 #include "Torrents.h"
 #include "TorrentsRPC.h"
@@ -39,21 +40,23 @@ namespace torrents
 
 		private:
 
-			std::string SuccessResponse (boost::json::object&& arguments);
+			std::string SuccessResponse (int64_t id, boost::json::object&& arguments);
 			std::string ErrorResponse (JSONRPCErrorCode errorCode, int64_t id, std::string_view message);
 
 			std::string HandleTorrrentAdd (boost::json::object&& jsonRequest);
+			std::string HandleTorrrentGet (boost::json::object&& jsonRequest);
 
 		private:
 
 			std::shared_ptr<TorrentsTunnel> m_Tunnel;
 	};
 
-	std::string JSONRPCHandler::SuccessResponse (boost::json::object&& arguments)
+	std::string JSONRPCHandler::SuccessResponse (int64_t id, boost::json::object&& arguments)
 	{
 		boost::json::object response;
 		response["result"] = "success";
 		response["arguments"] = arguments;
+		if (id) response["id"] = id;
 		return boost::json::serialize(response);
 	}
 
@@ -77,11 +80,12 @@ namespace torrents
 			auto method = jsonRequest.at ("method").as_string ();
 			if (method == "torrent-add")
 				return HandleTorrrentAdd (std::move (jsonRequest));
+			else if (method == "torrent-get")
+				return HandleTorrrentGet (std::move (jsonRequest));
 			else
 			{
 				LogPrint (eLogInfo, "TorrentsRPC: Method not found ", method);
-				int64_t tag = jsonRequest.at ("tag").as_int64 ();
-				return ErrorResponse (eMethodNotFound, tag, "Method not found");
+				return ErrorResponse (eMethodNotFound, jsonRequest.at ("tag").as_int64 (), "Method not found");
 			}
 		}
 		catch (const std::exception& ex)
@@ -99,18 +103,18 @@ namespace torrents
 		std::string torrentFileContent;
 		torrentFileContent.resize (boost::beast::detail::base64::decoded_size (b64torrent.size ()));
 		boost::beast::detail::base64::decode (torrentFileContent.data (), b64torrent.data (), b64torrent.size ());
-		auto [torrent, added] = m_Tunnel->AddTorrent (torrentFileContent);
+		auto [torrent, id] = m_Tunnel->AddTorrent (torrentFileContent);
 
 		boost::json::object response, torrentInfo;
-		std::string hexHash;
 		if (torrent)
 		{
+			std::string hexHash;
 			boost::algorithm::hex (torrent->GetInfoHash ().begin(), torrent->GetInfoHash ().end(), std::back_inserter(hexHash));
-			torrentInfo["id"] = 1; // TODO:
+			torrentInfo["id"] = id;
 			torrentInfo["hashString"] = hexHash;
 			torrentInfo["name"] = torrent->GetName ();
 		}
-		if (added)
+		if (id)
 		{
 			response["torrent-added"] = torrentInfo;
 			LogPrint (eLogDebug, "TorrentsRPC: torrent added ", torrentInfo["name"].as_string ());
@@ -120,7 +124,46 @@ namespace torrents
 			response["torrent-duplicate"] = torrentInfo;
 			LogPrint (eLogDebug, "TorrentsRPC: duplicate torrent ", torrentInfo["name"].as_string ());
 		}
-		return SuccessResponse (std::move (response));
+		return SuccessResponse (jsonRequest.at ("tag").as_int64 (), std::move (response));
+	}
+
+	std::string JSONRPCHandler::HandleTorrrentGet (boost::json::object&& jsonRequest)
+	{
+		auto arguments = jsonRequest.at ("arguments").as_object ();
+		std::vector<int> torrentIds;
+		if (arguments.contains ("ids"))
+		{
+			auto ids = arguments.at ("ids");
+			if (ids.is_array ())
+				for (const auto& it: ids.as_array ())
+					torrentIds.push_back (it.as_int64 ());
+			else
+				torrentIds.push_back (ids.as_int64 ());
+		}
+		else
+			torrentIds = m_Tunnel->GetTorrentIDs ();
+
+		boost::json::object response;
+		boost::json::array torrents;
+		for (auto id: torrentIds)
+		{
+			auto torrent = m_Tunnel->FindTorrentByID (id);
+			if (torrent)
+			{
+				boost::json::object t;
+				t["id"] = id;
+				t["name"] = torrent->GetName ();
+				t["pieceCount"] = torrent->GetNumPieces ();
+				t["pieceSize"] = torrent->GetNumPieces ();
+				t["totalSize"] = torrent->GetLength ();
+				std::string hexHash;
+				boost::algorithm::hex (torrent->GetInfoHash ().begin(), torrent->GetInfoHash ().end(), std::back_inserter(hexHash));
+				t["hashString"] = hexHash;
+				torrents.push_back (t);
+			}
+		}
+		response["torrents"] = torrents;
+		return SuccessResponse (jsonRequest.at ("tag").as_int64 (), std::move (response));
 	}
 
 #endif
@@ -174,7 +217,7 @@ namespace torrents
 		m_Response.version (11); // HTTP/1.1
 		m_Response.result (result);
 		m_Response.set (boost::beast::http::field::server, "i2pd torents RPC");
-		m_Response.set(boost::beast::http::field::content_type, (result == boost::beast::http::status::ok) ? "application/json" : "text/plain");
+		m_Response.set(boost::beast::http::field::content_type, (result == boost::beast::http::status::ok) ? "application/json; charset=UTF-8" : "text/plain");
 		m_Response.body () = data;
 		m_Response.prepare_payload ();
 		boost::beast::http::async_write (m_Socket, m_Response,
