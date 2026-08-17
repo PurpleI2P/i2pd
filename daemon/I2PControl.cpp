@@ -465,6 +465,7 @@ namespace client
 		X509_NAME_add_entry_by_txt (name, "C",  MBSTRING_ASC, (unsigned char *)"A1", -1, -1, 0); // country (Anonymous proxy)
 		X509_NAME_add_entry_by_txt (name, "O",  MBSTRING_ASC, (unsigned char *)I2P_CONTROL_CERTIFICATE_ORGANIZATION, -1, -1, 0); // organization
 		X509_NAME_add_entry_by_txt (name, "CN", MBSTRING_ASC, (unsigned char *)I2P_CONTROL_CERTIFICATE_COMMON_NAME, -1, -1, 0); // common name
+		X509_set_subject_name (x509, name);
 		X509_set_issuer_name (x509, name); // set issuer to ourselves
 		X509_sign (x509, pkey, EVP_sha1 ()); // sign, last param must be NULL for EdDSA
 		X509_NAME_free (name);
