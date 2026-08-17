@@ -696,6 +696,14 @@ namespace client
 									if (keys != "transient")
 										destinations[keys] = localDestination;
 								}
+								else
+								{
+									// destination is already running, the pool takes new parameters
+									// on the fly, no need to recreate anything
+									localDestination->Reconfigure (options);
+									if (keys != "transient")
+										destinations[keys] = localDestination;
+								}
 							}
 						}
 					}
