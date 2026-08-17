@@ -163,7 +163,16 @@ namespace torrents
 			{
 				boost::json::object t;
 				t["id"] = id;
+				t["error"] = 0; // no error
 				t["name"] = torrent->GetName ();
+				t["status"] = torrent->GetStatus ();
+				t["is_finished"] = torrent->IsComplete ();
+				t["size_when_done"] = torrent->GetLength ();
+				t["left_until_done"] = torrent->GetLeft ();
+				t["eta"] = 1; // TODO
+				t["rate_download"] = 1000; // B/s TODO:
+				t["rate_upload"] = 0; // B/s TODO:
+				t["upload_ratio"] = 1; // TODO:
 				if (torrentsRequested)
 				{
 					t["piece_count"] = torrent->GetNumPieces ();

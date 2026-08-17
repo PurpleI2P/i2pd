@@ -140,6 +140,17 @@ namespace torrents
 			size_t m_NumPeers; // where this piece is available
 	};
 
+	enum TorrentStatus
+	{
+		eTorrentStatusStopped = 0,
+		eTorrentStatusQueuedToVerifyLocalData = 1,
+		eTorrentStatusVerifyingLocalData = 2,
+		eTorrentStatusQueuedToDownload = 3,
+		eTorrentStatusDownloading = 4,
+		eTorrentStatusQueuedToSeed = 5,
+		eTorrentStatusSeeding = 6
+	};
+
 	class Torrent final
 	{
 		public:
@@ -151,6 +162,7 @@ namespace torrents
 
 			bool IsComplete () const { return m_IsComplete; }
 			void SetComplete ();
+			TorrentStatus GetStatus () const { return m_IsComplete ? eTorrentStatusSeeding : eTorrentStatusDownloading; };
 
 			std::string_view GetAnnounce () const { return m_Announce; }
 			std::string_view GetName () const { return m_Name; }
