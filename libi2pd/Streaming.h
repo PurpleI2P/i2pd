@@ -394,11 +394,14 @@ namespace stream
 			const decltype(m_Streams)& GetStreams () const { return m_Streams; };
 
 			// copy for other threads, unlike GetStreams which hands out the map itself
-			void GetStreamsList (std::vector<std::shared_ptr<const Stream> >& streams)
+			std::vector<std::shared_ptr<const Stream> > GetStreamsList ()
 			{
 				std::unique_lock<std::mutex> l(m_StreamsMutex);
+				std::vector<std::shared_ptr<const Stream> > streams;
+				streams.reserve (m_Streams.size ());
 				for (const auto& it: m_Streams)
 					streams.push_back (it.second);
+				return streams;
 			}
 	};
 
