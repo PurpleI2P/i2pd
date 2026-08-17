@@ -355,6 +355,11 @@ namespace client
 
 	void LeaseSetDestination::HandleI2NPMessage (const uint8_t * buf, size_t len)
 	{
+		if (len < I2NP_HEADER_SIZE)
+		{
+			LogPrint (eLogWarning, "Destination: I2NP message is too short ", len);
+			return;
+		}
 		I2NPMessageType typeID = (I2NPMessageType)(buf[I2NP_HEADER_TYPEID_OFFSET]);
 		uint32_t msgID = bufbe32toh (buf + I2NP_HEADER_MSGID_OFFSET);
 		LeaseSetDestination::HandleCloveI2NPMessage (typeID, buf + I2NP_HEADER_SIZE,
@@ -1205,6 +1210,11 @@ namespace client
 	void ClientDestination::HandleDataMessage (const uint8_t * buf, size_t len,
 		i2p::garlic::ECIESX25519AEADRatchetSession * from)
 	{
+		if (len < 14) // 4-byte length prefix, then fromPort/toPort/protocol read at offsets up to 9 past it
+		{
+			LogPrint (eLogWarning, "Destination: Data message is too short ", len);
+			return;
+		}
 		uint32_t length = bufbe32toh (buf);
 		if(length > len - 4)
 		{

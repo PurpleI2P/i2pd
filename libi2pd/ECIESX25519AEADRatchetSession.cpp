@@ -465,7 +465,17 @@ namespace garlic
 
 	void ECIESX25519AEADRatchetSession::HandleNextKey (const uint8_t * buf, size_t len, const std::shared_ptr<ReceiveRatchetTagSet>& receiveTagset)
 	{
+		if (len < 3)
+		{
+			LogPrint (eLogWarning, "Garlic: Next key block is too short ", len);
+			return;
+		}
 		uint8_t flag = buf[0]; buf++; // flag
+		if ((flag & ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG) && len < 35)
+		{
+			LogPrint (eLogWarning, "Garlic: Next key block with key is too short ", len);
+			return;
+		}
 		if (flag & ECIESX25519_NEXT_KEY_REVERSE_KEY_FLAG)
 		{
 			if (!m_SendForwardKey || !m_NextSendRatchet) return;

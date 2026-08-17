@@ -1865,9 +1865,12 @@ namespace transport
 					m_IsDataReceived = true;
 				break;
 				case eSSU2BlkPeerTest:
-					LogPrint (eLogDebug, "SSU2: PeerTest msg=", (int)buf[offset], " code=", (int)buf[offset+1]);
+					if (size >= 2)
+						LogPrint (eLogDebug, "SSU2: PeerTest msg=", (int)buf[offset], " code=", (int)buf[offset+1]);
+					else
+						LogPrint (eLogWarning, "SSU2: PeerTest block is too short ", size);
 					HandlePeerTest (buf + offset, size);
-					if (buf[offset] < 5)
+					if (size >= 1 && buf[offset] < 5)
 						m_IsDataReceived = true;
 				break;
 				case eSSU2BlkNextNonce:
@@ -1899,14 +1902,22 @@ namespace transport
 				break;
 				case eSSU2BlkRelayTag:
 					LogPrint (eLogDebug, "SSU2: RelayTag");
-					m_RelayTag = bufbe32toh (buf + offset);
+					if (size >= 4)
+						m_RelayTag = bufbe32toh (buf + offset);
+					else
+						LogPrint (eLogWarning, "SSU2: RelayTag block is too short ", size);
 				break;
 				case eSSU2BlkNewToken:
 				{
 					LogPrint (eLogDebug, "SSU2: New token");
-					uint64_t token;
-					memcpy (&token, buf + offset + 4, 8);
-					m_Server.UpdateOutgoingToken (m_RemoteEndpoint, token, bufbe32toh (buf + offset));
+					if (size >= 12)
+					{
+						uint64_t token;
+						memcpy (&token, buf + offset + 4, 8);
+						m_Server.UpdateOutgoingToken (m_RemoteEndpoint, token, bufbe32toh (buf + offset));
+					}
+					else
+						LogPrint (eLogWarning, "SSU2: NewToken block is too short ", size);
 					break;
 				}
 				case eSSU2BlkPathChallenge:
@@ -1916,7 +1927,7 @@ namespace transport
 				case eSSU2BlkPathResponse:
 				{
 					LogPrint (eLogDebug, "SSU2: Path response");
-					if (m_PathChallenge)
+					if (size >= 8 && m_PathChallenge)
 					{
 						if (buf64toh (buf + offset) == m_PathChallenge->first)
 						{
@@ -1940,6 +1951,7 @@ namespace transport
 
 	void SSU2Session::HandleDateTime (const uint8_t * buf, size_t len)
 	{
+		if (len < 4) return;
 		int64_t offset = (int64_t)i2p::util::GetSecondsSinceEpoch () - (int64_t)bufbe32toh (buf);
 		switch (m_State)
 		{
@@ -2503,6 +2515,7 @@ namespace transport
 		{
 			case 1: // Bob from Alice
 			{
+				if (len < 13) return;
 				auto session = m_Server.GetRandomPeerTestSession ((buf[12] == 6) ? i2p::data::RouterInfo::eSSU2V4 : i2p::data::RouterInfo::eSSU2V6,
 					GetRemoteIdentity ()->GetIdentHash ());
 				if (session) // session with Charlie
@@ -2552,7 +2565,7 @@ namespace transport
 			case 2: // Charlie from Bob
 			{
 				// sign with Charlie's key
-				if (len < offset + 9) return;
+				if (len < offset + 10) return;
 				uint8_t asz = buf[offset + 9];
 				size_t l = asz + 10 + i2p::context.GetIdentity ()->GetSignatureLen ();
 				if (len < offset + l) return;
@@ -2666,7 +2679,7 @@ namespace transport
 						if (GetRouterStatus () == eRouterStatusUnknown)
 							SetTestingState (true);
 						auto r = i2p::data::netdb.FindRouter (buf + 3); // find Charlie
-						if (r && len >= offset + 9)
+						if (r && len >= offset + 10)
 						{
 							uint8_t asz = buf[offset + 9];
 							if (len < offset + asz + 10 + r->GetIdentity ()->GetSignatureLen ())
