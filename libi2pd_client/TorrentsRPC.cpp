@@ -41,6 +41,7 @@ namespace torrents
 		private:
 
 			std::string SuccessResponse (int64_t id, boost::json::object&& arguments);
+			std::string ResultResponse (int64_t id, boost::json::object&& result);
 			std::string ErrorResponse (JSONRPCErrorCode errorCode, int64_t id, std::string_view message);
 
 			std::string HandleTorrrentAdd (boost::json::object&& jsonRequest);
@@ -56,6 +57,15 @@ namespace torrents
 		boost::json::object response;
 		response["result"] = "success";
 		response["arguments"] = arguments;
+		if (id) response["id"] = id;
+		return boost::json::serialize(response);
+	}
+
+	std::string JSONRPCHandler::ResultResponse (int64_t id, boost::json::object&& result)
+	{
+		boost::json::object response;
+		response["jsonrpc"] = "2.0";
+		response["result"] = result;
 		if (id) response["id"] = id;
 		return boost::json::serialize(response);
 	}
@@ -131,7 +141,8 @@ namespace torrents
 	{
 		auto arguments = jsonRequest.at ("arguments").as_object ();
 		std::vector<int> torrentIds;
-		if (arguments.contains ("ids"))
+		bool torrentsRequested = arguments.contains ("ids");
+		if (torrentsRequested)
 		{
 			auto ids = arguments.at ("ids");
 			if (ids.is_array ())
@@ -153,17 +164,20 @@ namespace torrents
 				boost::json::object t;
 				t["id"] = id;
 				t["name"] = torrent->GetName ();
-				t["pieceCount"] = torrent->GetNumPieces ();
-				t["pieceSize"] = torrent->GetNumPieces ();
-				t["totalSize"] = torrent->GetLength ();
-				std::string hexHash;
-				boost::algorithm::hex (torrent->GetInfoHash ().begin(), torrent->GetInfoHash ().end(), std::back_inserter(hexHash));
-				t["hashString"] = hexHash;
+				if (torrentsRequested)
+				{
+					t["piece_count"] = torrent->GetNumPieces ();
+					t["piece_size"] = torrent->GetNumPieces ();
+					t["total_size"] = torrent->GetLength ();
+					std::string hexHash;
+					boost::algorithm::hex (torrent->GetInfoHash ().begin(), torrent->GetInfoHash ().end(), std::back_inserter(hexHash));
+					t["hash_string"] = hexHash;
+				}
 				torrents.push_back (t);
 			}
 		}
 		response["torrents"] = torrents;
-		return SuccessResponse (jsonRequest.at ("tag").as_int64 (), std::move (response));
+		return ResultResponse (jsonRequest.at ("tag").as_int64 (), std::move (response));
 	}
 
 #endif
