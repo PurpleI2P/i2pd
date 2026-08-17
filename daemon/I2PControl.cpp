@@ -90,6 +90,7 @@ namespace client
 		m_MethodHandlers["RouterManager"]      = &I2PControlService::RouterManagerHandler;
 		m_MethodHandlers["NetworkSetting"]     = &I2PControlHandlers::NetworkSettingHandler;
 		m_MethodHandlers["ClientServicesInfo"] = &I2PControlHandlers::ClientServicesInfoHandler;
+		m_MethodHandlers["LocalDestinationInfo"] = &I2PControlHandlers::LocalDestinationInfoHandler;
 
 		// I2PControl
 		m_I2PControlHandlers["i2pcontrol.password"] = &I2PControlService::PasswordHandler;

@@ -1447,13 +1447,12 @@ namespace client
 	{
 		std::vector<std::shared_ptr<const i2p::stream::Stream> > ret;
 		if (m_StreamingDestination)
-		{
-			for (auto& it: m_StreamingDestination->GetStreams ())
-				ret.push_back (it.second);
-		}
+			ret = m_StreamingDestination->GetStreamsList ();
 		for (auto& it: m_StreamingDestinationsByPorts)
-			for (auto& it1: it.second->GetStreams ())
-				ret.push_back (it1.second);
+		{
+			auto streams = it.second->GetStreamsList ();
+			ret.insert (ret.end (), streams.begin (), streams.end ());
+		}
 		return ret;
 	}
 

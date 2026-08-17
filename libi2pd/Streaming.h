@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <set>
 #include <queue>
+#include <vector>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -391,6 +392,9 @@ namespace stream
 
 			// for HTTP only
 			const decltype(m_Streams)& GetStreams () const { return m_Streams; };
+
+			// copy for other threads, unlike GetStreams which hands out the map itself
+			std::vector<std::shared_ptr<const Stream> > GetStreamsList ();
 	};
 
 //-------------------------------------------------

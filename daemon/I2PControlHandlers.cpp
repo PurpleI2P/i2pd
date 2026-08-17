@@ -100,6 +100,53 @@ namespace client
 		ss << "\"" << name << "\":" << buf.str();
 	}
 
+// LocalDestinationInfo
+
+	void I2PControlHandlers::LocalDestinationInfoHandler (const boost::property_tree::ptree& params, std::ostringstream& results)
+	{
+		auto& addressBook = i2p::client::context.GetAddressBook ();
+		auto addr = addressBook.GetAddress (params.get<std::string> ("destination", ""));
+		auto dest = addr && addr->IsIdentHash () ?
+			i2p::client::context.FindLocalDestination (addr->identHash) : nullptr;
+		if (!dest)
+		{
+			InsertParam (results, "error", std::string ("destination not found"));
+			return;
+		}
+		InsertParam (results, "destination", addressBook.ToAddress (dest->GetIdentHash ()));
+
+		// arrays are written by hand: write_json makes an array only below the root
+		results << ",\"leasesets\":[";
+		bool first = true;
+		for (const auto& it: dest->GetLeaseSetsList ())
+		{
+			if (!it) continue;
+			boost::property_tree::ptree ls;
+			ls.put ("address", addressBook.ToAddress (it->GetIdentHash ()));
+			ls.put ("type", (int)it->GetStoreType ());
+			ls.put ("encType", (int)it->GetEncryptionType ());
+			if (!first) results << ",";
+			first = false;
+			boost::property_tree::write_json (results, ls, false);
+		}
+		results << "],\"streams\":[";
+		first = true;
+		for (const auto& it: dest->GetAllStreams ())
+		{
+			if (!it) continue;
+			auto identity = it->GetRemoteIdentity ();
+			boost::property_tree::ptree st;
+			st.put ("id", it->GetRecvStreamID ());
+			st.put ("destination", identity ? addressBook.ToAddress (identity->GetIdentHash ()) : "");
+			st.put ("sent", it->GetNumSentBytes ());
+			st.put ("received", it->GetNumReceivedBytes ());
+			if (!first) results << ",";
+			first = false;
+			boost::property_tree::write_json (results, st, false);
+		}
+		results << "]";
+	}
+
 // RouterInfo
 
 	void I2PControlHandlers::RouterInfoHandler (const boost::property_tree::ptree& params, std::ostringstream& results)

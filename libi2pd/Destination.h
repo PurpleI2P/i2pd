@@ -12,6 +12,7 @@
 #include <string.h>
 #include <thread>
 #include <mutex>
+#include <vector>
 #include <memory>
 #include <map>
 #include <unordered_map>
@@ -235,6 +236,16 @@ namespace client
 			// for HTTP only
 			int GetNumRemoteLeaseSets () const { return m_RemoteLeaseSets.size (); };
 			const decltype(m_RemoteLeaseSets)& GetLeaseSets () const { return m_RemoteLeaseSets; };
+			// copy for other threads, unlike GetLeaseSets which hands out the container itself
+			std::vector<std::shared_ptr<i2p::data::LeaseSet> > GetLeaseSetsList () const
+			{
+				std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
+				std::vector<std::shared_ptr<i2p::data::LeaseSet> > leaseSets;
+				leaseSets.reserve (m_RemoteLeaseSets.size ());
+				for (const auto& it: m_RemoteLeaseSets)
+					leaseSets.push_back (it.second);
+				return leaseSets;
+			}
 			bool IsEncryptedLeaseSet () const { return m_LeaseSetType == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2; };
 			bool IsPerClientAuth () const { return m_AuthType > 0; };
 	};
