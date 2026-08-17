@@ -177,7 +177,14 @@ namespace tunnel
 
 		m_CurrentTunnelDataMsg->offset = m_CurrentTunnelDataMsg->len - TUNNEL_DATA_MSG_SIZE - I2NP_HEADER_SIZE;
 		uint8_t * buf = m_CurrentTunnelDataMsg->GetPayload ();
-		RAND_bytes (buf + 4, 16); // original IV
+		if (m_Rng)
+		{
+			// original IV (16 bytes)
+			for (size_t offset = 4; offset < 20; offset += 4)
+				htobuf32 (buf + offset, (*m_Rng)());
+		}
+		else
+			RAND_bytes (buf + 4, 16); // original IV
 		memcpy (payload + size, buf + 4, 16); // copy IV for checksum
 		uint8_t hash[32];
 		SHA256(payload, size+16, hash);
