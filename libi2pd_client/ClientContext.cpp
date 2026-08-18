@@ -262,6 +262,10 @@ namespace client
 		ReadSocksProxy ();
 
 		// handle tunnels
+		// take the acceptors off first, a tunnel still in the config sets its own back
+		// while it is read, incoming streams wait in the queue meanwhile
+		for (auto& it: m_ServerTunnels)
+			it.second->DetachAcceptor ();
 		// reset isUpdated for each tunnel
 		VisitTunnels (false);
 		// reload tunnels
@@ -980,6 +984,8 @@ namespace client
 							ins.first->second->SetLocalDestination (serverTunnel->GetLocalDestination ());
 							ins.first->second->Start ();
 						}
+						else
+							ins.first->second->Accept (); // still in the config, take the acceptor back
 						ins.first->second->isUpdated = true;
 						LogPrint (eLogInfo, "Clients: I2P server tunnel for destination/port ", m_AddressBook.ToAddress(localDestination->GetIdentHash ()), "/", inPort, " already exists");
 					}

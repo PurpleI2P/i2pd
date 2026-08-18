@@ -213,13 +213,15 @@ namespace client
 
 			const char* GetName() const override { return m_Name.c_str (); }
 
+			void Accept ();
+			void DetachAcceptor (); // called before the tunnels are read again on reload
+
 		private:
 
 			bool Resolve (std::shared_ptr<i2p::stream::Stream> stream);
 			void HandleResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::results_type endpoints,
 				std::shared_ptr<i2p::stream::Stream> stream);
 
-			void Accept ();
 			void HandleAccept (std::shared_ptr<i2p::stream::Stream> stream);
 			void Connect (std::shared_ptr<i2p::stream::Stream> stream);
 			virtual std::shared_ptr<I2PTunnelConnection> CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);
@@ -227,6 +229,7 @@ namespace client
 		private:
 
 			bool m_IsUniqueLocal;
+			bool m_IsDefaultAcceptor; // this tunnel is the one accepting on the destination
 			std::string m_Name, m_Address;
 			uint16_t m_Port;
 			boost::asio::ip::tcp::endpoint m_Endpoint;

@@ -803,7 +803,7 @@ namespace client
 
 	I2PServerTunnel::I2PServerTunnel (const std::string& name, const std::string& address,
 		uint16_t port, std::shared_ptr<ClientDestination> localDestination, uint16_t inport, bool gzip):
-		I2PService (localDestination), m_IsUniqueLocal(true), m_Name (name), m_Address (address), m_Port (port), m_IsAccessList (false)
+		I2PService (localDestination), m_IsUniqueLocal(true), m_IsDefaultAcceptor (false), m_Name (name), m_Address (address), m_Port (port), m_IsAccessList (false)
 	{
 		m_PortDestination = localDestination->GetStreamingDestination (inport);
 		if (!m_PortDestination) // default destination
@@ -822,13 +822,22 @@ namespace client
 		Accept ();
 	}
 
-	void I2PServerTunnel::Stop ()
+	void I2PServerTunnel::DetachAcceptor ()
 	{
 		if (m_PortDestination)
 			m_PortDestination->ResetAcceptor ();
 		auto localDestination = GetLocalDestination ();
-		if (localDestination)
+		// the default acceptor may belong to another tunnel on the same destination
+		if (localDestination && m_IsDefaultAcceptor)
+		{
 			localDestination->StopAcceptingStreams ();
+			m_IsDefaultAcceptor = false;
+		}
+	}
+
+	void I2PServerTunnel::Stop ()
+	{
+		DetachAcceptor ();
 		if (m_Resolver)
 			m_Resolver->cancel ();
 
@@ -935,7 +944,10 @@ namespace client
 		if (localDestination)
 		{
 			if (!localDestination->IsAcceptingStreams ()) // set it as default if not set yet
+			{
 				localDestination->AcceptStreams (std::bind (&I2PServerTunnel::HandleAccept, this, std::placeholders::_1));
+				m_IsDefaultAcceptor = true;
+			}
 		}
 		else
 			LogPrint (eLogError, "I2PTunnel: Local destination not set for server tunnel");
