@@ -324,12 +324,10 @@ namespace util
 
 	bool Mapping::Contains (std::string_view param) const
 	{
-#if __cplusplus >= 202002L // C++20
-		return m_Options.contains (param);
-#else
+		// find rather than contains: the heterogeneous contains is missing in some
+		// standard libraries, while find takes the string_view through std::less<>
 		auto it = m_Options.find (param);
 		return it != m_Options.end ();
-#endif
 	}
 
 	void Mapping::CleanUp ()
