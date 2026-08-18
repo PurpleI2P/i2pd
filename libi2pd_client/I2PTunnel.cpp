@@ -822,12 +822,23 @@ namespace client
 		Accept ();
 	}
 
-	void I2PServerTunnel::Stop ()
+	void I2PServerTunnel::DetachAcceptor ()
 	{
 		if (m_PortDestination)
 			m_PortDestination->ResetAcceptor ();
 		auto localDestination = GetLocalDestination ();
 		if (localDestination)
+			localDestination->StopAcceptingStreams ();
+	}
+
+	void I2PServerTunnel::Stop ()
+	{
+		if (m_PortDestination)
+			m_PortDestination->ResetAcceptor ();
+		auto localDestination = GetLocalDestination ();
+		// another tunnel on the same destination may hold the acceptor by now,
+		// taking it away would leave that one deaf
+		if (localDestination && localDestination->GetRefCounter () <= 1)
 			localDestination->StopAcceptingStreams ();
 		if (m_Resolver)
 			m_Resolver->cancel ();
