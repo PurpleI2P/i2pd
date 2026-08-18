@@ -329,6 +329,7 @@ namespace torrents
 			std::shared_ptr<Torrent> FindTorrentByID (int id) const;
 			std::vector<int> GetTorrentIDs () const;
 			std::pair<std::shared_ptr<Torrent>, int> AddTorrent (std::string_view torrentFileContent); // (tunnel, id)
+			bool RemoveTorrent (int id, bool deleteFiles);
 			std::list<std::shared_ptr<PeerConnection> > GetTorrentConnections (std::shared_ptr<Torrent> torrent);
 
 			const char* GetName() const override { return m_Name.c_str (); }
@@ -340,6 +341,7 @@ namespace torrents
 			void ReadTorrentFile (const std::filesystem::path& torrentFilePath);
 			void InitTorrentFiles (std::shared_ptr<Torrent> torrent);
 			int InsertTorrent (std::shared_ptr<Torrent> torrent); // returns id > 0 if success and 0 if failed
+			void RemoveTorrent (std::shared_ptr<Torrent> torrent, bool deleteFiles);
 			bool CreateAndReserveFile (const std::filesystem::path& filePath, size_t reserve);
 			void CompleteTorrent (std::shared_ptr<Torrent> torrent);
 			void RequestTracker (std::shared_ptr<Torrent> torrent, std::string_view event = "");

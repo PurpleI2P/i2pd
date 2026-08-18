@@ -45,6 +45,7 @@ namespace torrents
 			std::string ErrorResponse (JSONRPCErrorCode errorCode, int64_t id, std::string_view message);
 
 			std::string HandleTorrrentAdd (boost::json::object&& jsonRequest);
+			std::string HandleTorrrentRemove (boost::json::object&& jsonRequest);
 			std::string HandleTorrrentGet (boost::json::object&& jsonRequest);
 
 		private:
@@ -90,6 +91,8 @@ namespace torrents
 			auto method = jsonRequest.at ("method").as_string ();
 			if (method == "torrent-add")
 				return HandleTorrrentAdd (std::move (jsonRequest));
+			else if (method == "torrent-remove")
+				return HandleTorrrentRemove (std::move (jsonRequest));
 			else if (method == "torrent-get")
 				return HandleTorrrentGet (std::move (jsonRequest));
 			else
@@ -134,6 +137,30 @@ namespace torrents
 			response["torrent-duplicate"] = torrentInfo;
 			LogPrint (eLogDebug, "TorrentsRPC: duplicate torrent ", torrentInfo["name"].as_string ());
 		}
+		return SuccessResponse (jsonRequest.at ("tag").as_int64 (), std::move (response));
+	}
+
+	std::string JSONRPCHandler::HandleTorrrentRemove (boost::json::object&& jsonRequest)
+	{
+		auto arguments = jsonRequest.at ("arguments").as_object ();
+		bool deleteFiles = false;
+		if (arguments.contains ("delete_local_data")) // for transmission >= 4.1
+			deleteFiles = arguments.at ("delete_local_data").as_bool ();
+		else if (arguments.contains ("delete-local-data")) // for transmission < 4.1
+			deleteFiles = arguments.at ("delete-local-data").as_bool ();
+		std::vector<int> torrentIds;
+		if (arguments.contains ("ids"))
+		{
+			auto ids = arguments.at ("ids");
+			if (ids.is_array ())
+				for (const auto& it: ids.as_array ())
+					torrentIds.push_back (it.as_int64 ());
+			else
+				torrentIds.push_back (ids.as_int64 ());
+		}
+		for (auto id: torrentIds)
+ 			m_Tunnel->RemoveTorrent (id, deleteFiles);
+		boost::json::object response; // always empty
 		return SuccessResponse (jsonRequest.at ("tag").as_int64 (), std::move (response));
 	}
 

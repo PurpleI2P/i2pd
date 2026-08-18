@@ -1474,7 +1474,7 @@ namespace torrents
 			if (completed) torrent->SetComplete ();
 		}
 		auto resumeFilePath = torrent->GetFullPath (); resumeFilePath += ".resume";
-		if (std::filesystem::exists (resumeFilePath ))
+		if (std::filesystem::exists (resumeFilePath))
 		{
 			if (!torrent->IsComplete ())
 			{
@@ -1642,6 +1642,64 @@ namespace torrents
 			return id;
  		}
 		return 0;
+	}
+
+	bool TorrentsTunnel::RemoveTorrent (int id, bool deleteFiles)
+	{
+		std::shared_ptr<Torrent> torrent;
+		{
+			std::lock_guard<std::mutex> l(m_TorrentsMutex);
+			auto it = m_TorrentsByID.find (id);
+			if (it == m_TorrentsByID.end ()) return false;
+			torrent = it->second.lock ();
+			m_TorrentsByID.erase (it);
+			if (!torrent) return false;
+			m_Torrents.erase (torrent->GetInfoHash ());
+		}
+		boost::asio::post (GetService (), [this, torrent, deleteFiles]()
+			{
+				RemoveTorrent (torrent, deleteFiles);
+			});
+		return true;
+	}
+
+	void TorrentsTunnel::RemoveTorrent (std::shared_ptr<Torrent> torrent, bool deleteFiles)
+	{
+		if (!torrent) return;
+		auto connections = GetTorrentConnections (torrent);
+		// close connections
+		for (auto it: connections)
+			it->Close ();
+		if (deleteFiles)
+			boost::asio::post (GetDiskIOService (), [torrent]()
+				{
+					auto fullPath = torrent->GetFullPath ();
+					auto torrentFilePath = fullPath; torrentFilePath += ".torrent";
+					std::error_code ec;
+					std::filesystem::remove (torrentFilePath, ec);
+					if (ec)
+						LogPrint (eLogError, "Torrents: Can't delete ", torrentFilePath);
+					auto resumeFilePath = fullPath; resumeFilePath += ".resume";
+					if (std::filesystem::exists (resumeFilePath))
+					{
+						std::filesystem::remove (resumeFilePath, ec);
+						if (ec)
+							LogPrint (eLogError, "Torrents: Can't delete ", resumeFilePath);
+					}
+					if (torrent->IsComplete () || !torrent->GetFiles ().empty ())
+					{
+						std::filesystem::remove_all (fullPath, ec);
+						if (ec)
+							LogPrint (eLogError, "Torrents: Can't delete ", fullPath);
+					}
+					else
+					{
+						auto partFilePath = fullPath; partFilePath += ".part";
+						std::filesystem::remove (partFilePath, ec);
+						if (ec)
+							LogPrint (eLogError, "Torrents: Can't delete ", partFilePath);
+					}
+				});
 	}
 
 	void TorrentsTunnel::Accept ()
