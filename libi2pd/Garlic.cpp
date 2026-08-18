@@ -575,6 +575,11 @@ namespace garlic
 	void GarlicDestination::HandleAESBlock (uint8_t * buf, size_t len, std::shared_ptr<AESDecryption> decryption,
 		std::shared_ptr<i2p::tunnel::InboundTunnel> from)
 	{
+		if (len < 2)
+		{
+			LogPrint (eLogError, "Garlic: AES block length ", len, " is too short");
+			return;
+		}
 		uint16_t tagCount = bufbe16toh (buf);
 		buf += 2; len -= 2;
 		if (tagCount > 0)
@@ -590,18 +595,30 @@ namespace garlic
 		}
 		buf += tagCount*32;
 		len -= tagCount*32;
+		if (len < 37) // 4 (payload size) + 32 (payload hash) + 1 (flag)
+		{
+			LogPrint (eLogError, "Garlic: AES block is too short for payload header, length ", len);
+			return;
+		}
 		uint32_t payloadSize = bufbe32toh (buf);
+		buf += 4; len -= 4;
+		uint8_t * payloadHash = buf;
+		buf += 32; len -= 32; // payload hash.
+		if (*buf) // session key?
+		{
+			if (len < 33) // 32 (new session key) + 1 (flag)
+			{
+				LogPrint (eLogError, "Garlic: AES block is too short for session key, length ", len);
+				return;
+			}
+			buf += 32; len -= 32; // new session key
+		}
+		buf++; len--; // flag
 		if (payloadSize > len)
 		{
 			LogPrint (eLogError, "Garlic: Unexpected payload size ", payloadSize);
 			return;
 		}
-		buf += 4;
-		uint8_t * payloadHash = buf;
-		buf += 32;// payload hash.
-		if (*buf) // session key?
-			buf += 32; // new session key
-		buf++; // flag
 
 		// payload
 		uint8_t digest[32];

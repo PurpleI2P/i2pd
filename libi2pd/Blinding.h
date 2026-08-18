@@ -32,7 +32,7 @@ namespace data
 			size_t GetPublicKeyLen () const { return m_PublicKey.size (); };
 			SigningKeyType GetSigType () const { return m_SigType; };
 			SigningKeyType GetBlindedSigType () const { return m_BlindedSigType; };
-			bool IsValid () const { return GetSigType (); }; // signature type 0 means invalid
+			bool IsValid () const; // signature type must be blindable
 
 			void GetSubcredential (const uint8_t * blinded, size_t len, uint8_t * subcredential) const; // 32 bytes
 			size_t GetBlindedKey (const char * date, uint8_t * blindedKey) const; // date is 8 chars "YYYYMMDD", return public key length

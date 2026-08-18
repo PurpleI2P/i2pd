@@ -661,12 +661,18 @@ namespace data
 
 	size_t LeaseSet2::ExtractClientAuthData (const uint8_t * buf, size_t len, const uint8_t * secret, const uint8_t * subcredential, uint8_t * authCookie) const
 	{
+		if (len < 1) return 0;
 		size_t offset = 0;
 		uint8_t flag = buf[offset]; offset++; // flag
 		if (flag & 0x01) // client auth
 		{
 			if (!(flag & 0x0E)) // DH, bit 1-3 all zeroes
 			{
+				if (offset + 34 > len) // ephemeralPublicKey(32) + numClients(2)
+				{
+					LogPrint (eLogError, "LeaseSet2: Buffer too short for DH auth data header");
+					return 0;
+				}
 				const uint8_t * ephemeralPublicKey = buf + offset; offset += 32; // ephemeralPublicKey
 				uint16_t numClients = bufbe16toh (buf + offset); offset += 2; // clients
 				const uint8_t * authClients = buf + offset; offset += numClients*40; // authClients
@@ -693,6 +699,11 @@ namespace data
 			}
 			else if (flag & 0x02) // PSK, bit 1 is set to 1
 			{
+				if (offset + 34 > len) // authSalt(32) + numClients(2)
+				{
+					LogPrint (eLogError, "LeaseSet2: Buffer too short for PSK auth data header");
+					return 0;
+				}
 				const uint8_t * authSalt = buf + offset; offset += 32; // authSalt
 				uint16_t numClients = bufbe16toh (buf + offset); offset += 2; // clients
 				const uint8_t * authClients = buf + offset; offset += numClients*40; // authClients
@@ -854,11 +865,21 @@ namespace data
 		size += 256;
 		// signing key (unused)
 		size += ident.GetSigningPublicKeyLen ();
+		if (size + 1 > sz)
+		{
+			LogPrint (eLogError, "LeaseSet: ", size, " exceeds buffer size ", sz);
+			return false;
+		}
 		uint8_t numLeases = ptr[size];
 		++size;
 		if (!numLeases || numLeases > MAX_NUM_LEASES)
 		{
 			LogPrint (eLogError, "LeaseSet: Incorrect number of leases", (int)numLeases);
+			return false;
+		}
+		if (size + numLeases*LEASE_SIZE > sz)
+		{
+			LogPrint (eLogError, "LeaseSet: ", size, " exceeds buffer size ", sz);
 			return false;
 		}
 		const uint8_t * leases = ptr + size;
@@ -871,6 +892,11 @@ namespace data
 			leases += 8; // end date
 			if(endDate > expires)
 				expires = endDate;
+		}
+		if ((size_t)(leases - ptr) + ident.GetSignatureLen () > sz)
+		{
+			LogPrint (eLogError, "LeaseSet: Signature exceeds buffer size ", sz);
+			return false;
 		}
 		return ident.Verify(ptr, leases - ptr, leases);
 	}
