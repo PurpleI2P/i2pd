@@ -229,6 +229,7 @@ namespace client
 		private:
 
 			bool m_IsUniqueLocal;
+			bool m_IsDefaultAcceptor; // this tunnel is the one accepting on the destination
 			std::string m_Name, m_Address;
 			uint16_t m_Port;
 			boost::asio::ip::tcp::endpoint m_Endpoint;
