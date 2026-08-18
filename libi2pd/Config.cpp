@@ -410,7 +410,6 @@ namespace config {
 			("openbsd.unveil_file", value<std::string>()->default_value(""), "OpenBSD file with unveil rules")
 			("openbsd.unveil_enabled", value<bool>()->default_value(true),     "use unveil rues")
 			("openbsd.pledge_enabled", value<bool>()->default_value(true),     "use pledge rules")
-			("openbsd.unveil_ignore", value<bool>()->default_value(false),     "ignore unveil errors")
 			;
 #endif
 
