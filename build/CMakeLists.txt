@@ -9,9 +9,6 @@ endif()
 # for debugging
 #set(CMAKE_VERBOSE_MAKEFILE on)
 
-# fix: error C2039: 'string_view': is not a member of 'std'
-# MSVC defaults to C++14
-set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -327,15 +324,21 @@ if(NOT MSVC)
   CHECK_CXX_COMPILER_FLAG("-std=c++17" CXX17_SUPPORTED)
 
   if(CXX23_SUPPORTED)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++23")
+    set(I2PD_CXX_STANDARD 23)
   elseif(CXX20_SUPPORTED)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
+    set(I2PD_CXX_STANDARD 20)
   elseif(CXX17_SUPPORTED)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+    set(I2PD_CXX_STANDARD 17)
   else()
     message(SEND_ERROR "C++23 nor C++20 nor C++17 standard not seems to be supported by compiler. Too old version?")
   endif()
+else()
+  # fix: error C2039: 'string_view': is not a member of 'std'
+  # MSVC defaults to C++14
+  set(I2PD_CXX_STANDARD 17)
 endif()
+
+set_target_properties(libi2pd libi2pdclient libi2pdlang PROPERTIES CXX_STANDARD ${I2PD_CXX_STANDARD})
 
 # load includes
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR})
@@ -348,6 +351,7 @@ message(STATUS "Compiler version   : ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "Compiler path      : ${CMAKE_CXX_COMPILER}")
 message(STATUS "Architecture       : ${ARCHITECTURE}")
 message(STATUS "Compiler flags     : ${CMAKE_CXX_FLAGS}")
+message(STATUS "C++ standard       : ${I2PD_CXX_STANDARD}")
 message(STATUS "Install prefix:    : ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "Options:")
 message(STATUS "  HARDENING        : ${WITH_HARDENING}")
@@ -391,6 +395,8 @@ if(WITH_BINARY)
   if(WITH_HARDENING AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set_target_properties("${PROJECT_NAME}" PROPERTIES LINK_FLAGS "-z relro -z now")
   endif()
+
+  set_target_properties("${PROJECT_NAME}" PROPERTIES CXX_STANDARD ${I2PD_CXX_STANDARD})
 
   # FindBoost pulls pthread for thread which is broken for static linking at least on Ubuntu 15.04
   list(GET Boost_LIBRARIES -1 LAST_Boost_LIBRARIES)
