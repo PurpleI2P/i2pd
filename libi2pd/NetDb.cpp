@@ -944,6 +944,11 @@ namespace data
 	void NetDb::HandleDatabaseLookupMsg (std::shared_ptr<const I2NPMessage> msg)
 	{
 		const uint8_t * buf = msg->GetPayload ();
+		if (msg->GetPayloadLength () < 65)
+		{
+			LogPrint (eLogWarning, "NetDb: DatabaseLookup message is too short ", msg->GetPayloadLength ());
+			return;
+		}
 		IdentHash ident (buf);
 		if (ident.IsZero ())
 		{

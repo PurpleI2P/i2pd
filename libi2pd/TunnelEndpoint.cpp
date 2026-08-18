@@ -95,6 +95,13 @@ namespace tunnel
 				uint16_t size = bufbe16toh (fragment);
 				fragment += 2;
 
+				if (fragment + size > decrypted + TUNNEL_DATA_ENCRYPTED_SIZE)
+				{
+					LogPrint (eLogError, "TunnelMessage: Fragment size ", size, " exceeds tunnel data message, message dropped");
+					m_CurrentMsgID = 0; m_CurrentMessage.data = nullptr;
+					return;
+				}
+
 				// handle fragment
 				if (isFollowOnFragment)
 				{

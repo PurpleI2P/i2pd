@@ -1007,6 +1007,11 @@ namespace garlic
 	void GarlicDestination::HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len,
 		ECIESX25519AEADRatchetSession * from)
 	{
+		if (!len)
+		{
+			LogPrint (eLogError, "Garlic: Clove is empty");
+			return;
+		}
 		const uint8_t * buf1 = buf;
 		uint8_t flag = buf[0]; buf++; // flag
 		GarlicDeliveryType deliveryType = (GarlicDeliveryType)((flag >> 5) & 0x03);
@@ -1014,12 +1019,22 @@ namespace garlic
 		{
 			case eGarlicDeliveryTypeDestination:
 				LogPrint (eLogDebug, "Garlic: Type destination");
+				if (len < 33) // flag + 32-byte destination hash
+				{
+					LogPrint (eLogError, "Garlic: Message is too short");
+					break;
+				}
 				buf += 32; // TODO: check destination
 				[[fallthrough]];
 				// no break here
 			case eGarlicDeliveryTypeLocal:
 			{
 				LogPrint (eLogDebug, "Garlic: Type local");
+				if ((size_t)(buf - buf1) + 9 > len) // typeid(1) + msgID(4) + expiration(4)
+				{
+					LogPrint (eLogError, "Garlic: Message is too short");
+					break;
+				}
 				I2NPMessageType typeID = (I2NPMessageType)(buf[0]); buf++; // typeid
 				uint32_t msgID = bufbe32toh (buf); buf += 4; // msgID
 				buf += 4; // expiration
