@@ -7,7 +7,7 @@
 */
 
 #include <boost/version.hpp>
-#if BOOST_VERSION >= 107800 // boost::json since 1.75, we allow since 1.78
+#if BOOST_VERSION >= 108100 // boost::json since 1.75, we allow it since 1.81 due to std::string_view compatibility
 #include <boost/json.hpp>
 #define JSON_SUPPORTED
 #endif
