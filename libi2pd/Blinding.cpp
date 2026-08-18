@@ -81,6 +81,18 @@ namespace data
 			LogPrint (eLogError, "Blinding: Unknown signature type ", (int)m_SigType, " in b33");
 	}
 
+	bool BlindedPublicKey::IsValid () const
+	{
+		switch (m_SigType)
+		{
+			case i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
+			case i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
+				return true;
+			default:
+				return false;
+		}
+	}
+
 	std::string BlindedPublicKey::ToB33 () const
 	{
 		if (m_PublicKey.size () > 32) return ""; // assume 25519
@@ -183,7 +195,7 @@ namespace data
 
 	i2p::data::IdentHash BlindedPublicKey::GetStoreHash (const char * date) const
 	{
-		i2p::data::IdentHash hash;
+		i2p::data::IdentHash hash{};
 		uint8_t blinded[i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH]; // 32 max
 		size_t publicKeyLength = 0;
 		if (date)

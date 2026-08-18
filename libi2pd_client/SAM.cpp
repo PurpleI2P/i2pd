@@ -779,7 +779,7 @@ namespace client
 		auto res = std::from_chars(sizeStr.data(), sizeStr.data() + sizeStr.size(), size);
 		if (res.ec != std::errc()) size = 0;
 		size_t offset = data - buf;
-		if (offset + size <= len)
+		if (offset <= len && size <= len - offset)
 		{
 			auto session = m_Owner.FindSession(m_ID);
 			if (session)

@@ -276,9 +276,21 @@ namespace client
 				auto it = m_MethodHandlers.find (method);
 				if (it != m_MethodHandlers.end ())
 				{
-					response << "{\"id\":" << id << ",\"result\":{";
-					(this->*(it->second))(pt.get_child ("params"), response);
-					response << "},\"jsonrpc\":\"2.0\"}\n";
+					auto params = pt.get_child ("params");
+					if (method != "Authenticate" &&
+						!m_Tokens.count (params.get<std::string> ("Token", "")))
+					{
+						LogPrint (eLogWarning, "I2PControl: Invalid or missing token for method ", method);
+						response << "{\"id\":null,\"error\":";
+						response << "{\"code\":-32602,\"message\":\"Invalid or missing token\"},";
+						response << "\"jsonrpc\":\"2.0\"}\n";
+					}
+					else
+					{
+						response << "{\"id\":" << id << ",\"result\":{";
+						(this->*(it->second))(params, response);
+						response << "},\"jsonrpc\":\"2.0\"}\n";
+					}
 				}
 				else
 				{

@@ -2283,7 +2283,8 @@ namespace transport
 			if (!r) LogPrint (eLogWarning, "SSU2: RelayRequest Alice's router info not found");
 
 			auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
-			packet->payloadSize = r ? CreateRouterInfoBlock (packet->payload, m_MaxPayloadSize - len - 32, r) : 0;
+			size_t riMaxLen = (len + 32 < m_MaxPayloadSize) ? m_MaxPayloadSize - len - 32 : 0;
+			packet->payloadSize = r ? CreateRouterInfoBlock (packet->payload, riMaxLen, r) : 0;
 			if (!packet->payloadSize && r)
 				session->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
 			packet->payloadSize += CreateRelayIntroBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize, buf + 1, len - 1);
@@ -2526,7 +2527,8 @@ namespace transport
 						// Alice's RouterInfo
 						auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ());
 						if (r && (r->IsUnreachable () || !i2p::data::netdb.PopulateRouterInfoBuffer (r))) r = nullptr;
-						packet->payloadSize = r ? CreateRouterInfoBlock (packet->payload, m_MaxPayloadSize - len - 32, r) : 0;
+						size_t riMaxLen = (len + 32 < m_MaxPayloadSize) ? m_MaxPayloadSize - len - 32 : 0;
+						packet->payloadSize = r ? CreateRouterInfoBlock (packet->payload, riMaxLen, r) : 0;
 						if (!packet->payloadSize && r)
 							session->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
 						if (packet->payloadSize + len + 48 > m_MaxPayloadSize)
@@ -2645,7 +2647,8 @@ namespace transport
 					// Charlie's RouterInfo
 					auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ());
 					if (r && (r->IsUnreachable () || !i2p::data::netdb.PopulateRouterInfoBuffer (r))) r = nullptr;
-					packet->payloadSize = r ? CreateRouterInfoBlock (packet->payload, m_MaxPayloadSize - len - 32, r) : 0;
+					size_t riMaxLen = (len + 32 < m_MaxPayloadSize) ? m_MaxPayloadSize - len - 32 : 0;
+					packet->payloadSize = r ? CreateRouterInfoBlock (packet->payload, riMaxLen, r) : 0;
 					if (!packet->payloadSize && r)
 						aliceSession->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
 					if (packet->payloadSize + len + 16 > m_MaxPayloadSize)
