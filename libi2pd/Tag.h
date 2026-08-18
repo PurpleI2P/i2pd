@@ -14,6 +14,9 @@
 #include <openssl/rand.h>
 #include <string>
 #include <string_view>
+#if __cplusplus >= 202002L // C++20
+#include <compare>
+#endif
 #include "Base.h"
 
 namespace i2p
@@ -35,6 +38,11 @@ namespace data
 			bool operator== (const Tag& other) const { return !memcmp (m_Buf, other.m_Buf, sz); }
 			bool operator!= (const Tag& other) const { return !(*this == other); }
 			bool operator< (const Tag& other) const { return memcmp (m_Buf, other.m_Buf, sz) < 0; }
+#if __cplusplus >= 202002L // C++20
+			// without it std::pair and std::tuple pick the built-in comparison of
+			// the pointer this converts to, and equal tags come out different
+			std::strong_ordering operator<=> (const Tag& other) const { return memcmp (m_Buf, other.m_Buf, sz) <=> 0; }
+#endif
 
 			uint8_t * operator()() { return m_Buf; }
 			const uint8_t * operator()() const { return m_Buf; }
