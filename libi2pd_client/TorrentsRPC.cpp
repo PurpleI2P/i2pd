@@ -43,6 +43,7 @@ namespace torrents
 			std::string SuccessResponse (int64_t id, boost::json::object&& arguments);
 			std::string ResultResponse (int64_t id, boost::json::object&& result);
 			std::string ErrorResponse (JSONRPCErrorCode errorCode, int64_t id, std::string_view message);
+			int64_t GetTag (boost::json::object& jsonRequest) const;
 
 			std::string HandleTorrrentAdd (boost::json::object&& jsonRequest);
 			std::string HandleTorrrentRemove (boost::json::object&& jsonRequest);
@@ -81,6 +82,13 @@ namespace torrents
 		error["message"] = message;
 		response["error"] = error;
 		return boost::json::serialize(response);
+	}
+
+	int64_t JSONRPCHandler::GetTag (boost::json::object& jsonRequest) const
+	{
+		if (jsonRequest.contains ("tag"))
+			return jsonRequest.at ("tag").as_int64 ();
+		return 0;
 	}
 
 	std::string JSONRPCHandler::HandleRequest (std::string_view request)
@@ -137,7 +145,7 @@ namespace torrents
 			response["torrent-duplicate"] = torrentInfo;
 			LogPrint (eLogDebug, "TorrentsRPC: duplicate torrent ", torrentInfo["name"].as_string ());
 		}
-		return SuccessResponse (jsonRequest.at ("tag").as_int64 (), std::move (response));
+		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}
 
 	std::string JSONRPCHandler::HandleTorrrentRemove (boost::json::object&& jsonRequest)
@@ -161,7 +169,7 @@ namespace torrents
 		for (auto id: torrentIds)
  			m_Tunnel->RemoveTorrent (id, deleteFiles);
 		boost::json::object response; // always empty
-		return SuccessResponse (jsonRequest.at ("tag").as_int64 (), std::move (response));
+		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}
 
 	std::string JSONRPCHandler::HandleTorrrentGet (boost::json::object&& jsonRequest)
@@ -213,7 +221,7 @@ namespace torrents
 			}
 		}
 		response["torrents"] = torrents;
-		return ResultResponse (jsonRequest.at ("tag").as_int64 (), std::move (response));
+		return ResultResponse (GetTag (jsonRequest), std::move (response));
 	}
 
 #endif
