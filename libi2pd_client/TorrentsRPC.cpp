@@ -46,6 +46,7 @@ namespace torrents
 			std::string ErrorResponse (JSONRPCErrorCode errorCode, int64_t id, std::string_view message);
 			int64_t GetTag (boost::json::object& jsonRequest) const;
 			std::string GetNewFieldName (std::string_view fieldName) const;
+			boost::json::value GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent);
 
 			std::string HandleTorrrentAdd (boost::json::object&& jsonRequest);
 			std::string HandleTorrrentRemove (boost::json::object&& jsonRequest);
@@ -187,7 +188,6 @@ namespace torrents
 		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}
 
-	static boost::json::value GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent);
 	std::string JSONRPCHandler::HandleTorrrentGet (boost::json::object&& jsonRequest)
 	{
 		auto arguments = jsonRequest.at ("arguments").as_object ();
@@ -214,11 +214,10 @@ namespace torrents
 			if (torrent)
 			{
 				boost::json::object t;
+				t["id"] = id;
 				for (const auto& field: fields)
 				{
-					if (field == "id")
-						t["id"] = id;
-					else
+					if (field != "id")
 					{
 						auto fieldValue = GetFieldValue (field.as_string (), torrent);
 						if (!fieldValue.is_null ())
@@ -232,7 +231,7 @@ namespace torrents
 		return ResultResponse (GetTag (jsonRequest), std::move (response));
 	}
 
-	static boost::json::value GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent)
+	boost::json::value JSONRPCHandler::GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent)
 	{
 		const static std::map<std::string_view, std::function<boost::json::value (std::shared_ptr<Torrent>)> > fields =
 		{
@@ -255,8 +254,17 @@ namespace torrents
 					return boost::json::value(hexHash);
 				}
 			},
+			{ "pieces", [](std::shared_ptr<Torrent> torrent)
+				{
+					auto [bitfield, empry] = torrent->CreateBitfield ();
+					std::string b64pieces;
+					b64pieces.resize (boost::beast::detail::base64::encoded_size (bitfield.size()));
+					boost::beast::detail::base64::encode (b64pieces.data (), bitfield.data(), bitfield.size());
+					return boost::json::value(b64pieces);
+				}
+			},
 			{ "error", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(0); } }, // no error
-			{ "eta", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(0); } }, // TODO:
+			{ "eta", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(600); } }, // TODO:
 			{ "uploadRatio", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(1); } } // TODO:
 		};
 		if (torrent)
