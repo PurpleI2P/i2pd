@@ -665,7 +665,7 @@ namespace torrents
 		m_IsInterested (false), m_IsRemoteInterested (false), m_LastReceiveTime (0), m_LastSendTime (0),
 		m_NumRequests (0), m_NumPieces (0), m_LastRequestedPieceIndex (-1),
 		m_DownloadRate (0), m_UploadRate (0), m_LastBlockDownloadTimestamp (0),
-		m_LastBlockUploadTimestamp (0), m_ReceivedSinceLastTimestamp (0)
+		m_LastBlockUploadTimestamp (0), m_ReceivedSinceLastTimestamp (0), m_SentSinceLastTimestamp (0)
 	{
 	}
 
@@ -1175,20 +1175,24 @@ namespace torrents
 						s->m_IsRemoteChoked = false;
 						s->SendUnchokeMsg ();
 					}
-					// update status
+					// update stats
 					auto ts = i2p::util::GetMonotonicMilliseconds ();
 					if (s->m_LastBlockUploadTimestamp)
 					{
+						s->m_SentSinceLastTimestamp += REQUEST_BLOCK_SIZE;
 						auto delta = ts - s->m_LastBlockUploadTimestamp;
-						if (delta)
+						if (delta >= BANDWIDTH_RATE_SAMPLING_INTERVAL)
 						{
 							if (s->m_UploadRate)
-								s->m_UploadRate = (s->m_UploadRate + REQUEST_BLOCK_SIZE*1000/delta)/2;
+								s->m_UploadRate = (s->m_UploadRate + s->m_SentSinceLastTimestamp*1000/delta)/2;
 							else
-								s->m_UploadRate = REQUEST_BLOCK_SIZE*1000/delta;
+								s->m_UploadRate = s->m_SentSinceLastTimestamp*1000/delta;
+							s->m_LastBlockUploadTimestamp = ts;
+							s->m_SentSinceLastTimestamp = 0;
 						}
 					}
-					s->m_LastBlockUploadTimestamp = ts;
+					else
+						s->m_LastBlockUploadTimestamp = ts;
 				}
 				else
 					s->Terminate ();

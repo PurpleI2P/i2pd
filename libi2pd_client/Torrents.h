@@ -313,7 +313,7 @@ namespace torrents
 			// stats
 			uint64_t m_DownloadRate, m_UploadRate; // B/sec
 			uint64_t m_LastBlockDownloadTimestamp, m_LastBlockUploadTimestamp; // monotonic milliseconds
-			size_t m_ReceivedSinceLastTimestamp; // bytes
+			size_t m_ReceivedSinceLastTimestamp, m_SentSinceLastTimestamp; // bytes
 	};
 
 	class TorrentsTunnel final: public i2p::client::I2PService
