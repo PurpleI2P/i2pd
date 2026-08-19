@@ -53,6 +53,7 @@ namespace torrents
 	constexpr int PIECE_INACTIVITY_TIMEOUT = 60; // in seconds
 	constexpr int TORRENTS_STATUS_UPDATE_INTERVAL = 25; // in seconds
 	constexpr int HANDSHAKE_RECEIVE_TIMEOUT = 20; // in seconds
+	constexpr int BANDWIDTH_RATE_SAMPLING_INTERVAL = 20; // in milliseconds
 
 	constexpr size_t HANDSHAKE_MSG_LENGTH = 68;
 	constexpr size_t INTERESTED_MSG_LENGTH = 5;
@@ -196,6 +197,12 @@ namespace torrents
 			void ApplyPeerRemoteBitfield (const boost::dynamic_bitset<>& peerRemoteBitfield);
 			bool HasIncompletePieces (const boost::dynamic_bitset<>& peerRemoteBitfield) const; // if remote bitfie;d has incomplete pieces
 
+			void ResetStats () { m_DownloadRate = 0; m_UploadRate = 0; }
+			uint64_t GetDownloadRate () const { return m_DownloadRate; }
+			void SetDownloadRate (uint64_t downloadRate) { m_DownloadRate = downloadRate; }
+			uint64_t GetUploadRate () const { return m_UploadRate; }
+			void SetUploadRate (uint64_t uploadRate) { m_UploadRate = uploadRate; }
+
 		private:
 
 			size_t ParsePieces (std::string_view buf);
@@ -216,6 +223,8 @@ namespace torrents
 			bool m_IsComplete;
 			std::list<std::pair<std::filesystem::path, size_t> > m_Files; // list of (path, length)
 			size_t m_Uploaded;
+			// stats
+			uint64_t m_DownloadRate, m_UploadRate; // B/sec
 	};
 
 	class TorrentsTunnel;
@@ -246,6 +255,9 @@ namespace torrents
 			std::shared_ptr<Torrent> GetTorrent () const { return m_Torrent; }
 			int GetLastRequestedPieceIndex () const { return m_LastRequestedPieceIndex; }
 			const boost::dynamic_bitset<>& GetRemoteBitfield () const  { return m_RemoteBitfield;} ;
+
+			uint64_t GetDownloadRate () const { return m_DownloadRate; }
+			uint64_t GetUploadRate () const { return m_UploadRate; }
 
 		private:
 
@@ -281,7 +293,6 @@ namespace torrents
 			bool RequestNextBlock ();
 			void RequestNextBlock (uint32_t index, uint32_t offset, uint32_t len);
 			bool RequestNextBlocks ();
-
 			bool SendRequestedBlock (const RequestedBlock& requestedBlock);
 
 		private:
@@ -299,6 +310,10 @@ namespace torrents
 			std::list<RequestedBlock> m_IncomingRequestsQueue;
 			int m_LastRequestedPieceIndex;
 			std::unique_ptr<boost::asio::steady_timer> m_HandshakeReceiveTimer;
+			// stats
+			uint64_t m_DownloadRate, m_UploadRate; // B/sec
+			uint64_t m_LastBlockDownloadTimestamp, m_LastBlockUploadTimestamp; // monotonic milliseconds
+			size_t m_ReceivedSinceLastTimestamp; // bytes
 	};
 
 	class TorrentsTunnel final: public i2p::client::I2PService
@@ -365,6 +380,7 @@ namespace torrents
 			void ConnectToPeer (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& peer);
 			size_t ConnectToPeers (std::shared_ptr<Torrent> torrent);
 			void UpdatePeersPerPiece (std::shared_ptr<Torrent> torrent);
+			void UpdateStats ();
 
 		private:
 

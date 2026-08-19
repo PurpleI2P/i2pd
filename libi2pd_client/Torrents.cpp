@@ -305,6 +305,7 @@ namespace torrents
 		m_Length (0), m_PieceLength (0), m_Interval (MIN_TRACKER_REQUESTS_INTERVAL),
 		m_NextTrackerRequestTime (0), m_IsComplete (false),  m_Uploaded (0)
 	{
+		ResetStats ();
 		ParseDictionary (buf, [this](std::string_view key, std::string_view buf)->size_t
 			{
 				if (key == "announce")
@@ -662,7 +663,9 @@ namespace torrents
 		i2p::client::I2PServiceHandler (owner), m_Stream (stream), m_ReceiveBufferOffset (0),
 		m_IsHandshakeSent (false), m_IsEstablished (false), m_IsChoked (true), m_IsRemoteChoked (true),
 		m_IsInterested (false), m_IsRemoteInterested (false), m_LastReceiveTime (0), m_LastSendTime (0),
-		m_NumRequests (0), m_NumPieces (0), m_LastRequestedPieceIndex (-1)
+		m_NumRequests (0), m_NumPieces (0), m_LastRequestedPieceIndex (-1),
+		m_DownloadRate (0), m_UploadRate (0), m_LastBlockDownloadTimestamp (0),
+		m_LastBlockUploadTimestamp (0), m_ReceivedSinceLastTimestamp (0)
 	{
 	}
 
@@ -1124,6 +1127,24 @@ namespace torrents
 		}
 		if (m_NumRequests > 0) m_NumRequests--;
 		RequestNextBlocks ();
+		// update stats
+		auto ts = i2p::util::GetMonotonicMilliseconds ();
+		if (m_LastBlockDownloadTimestamp)
+		{
+			m_ReceivedSinceLastTimestamp += REQUEST_BLOCK_SIZE;
+			auto delta = ts - m_LastBlockDownloadTimestamp;
+			if (delta >= BANDWIDTH_RATE_SAMPLING_INTERVAL)
+			{
+				if (m_DownloadRate)
+					m_DownloadRate = (m_DownloadRate + m_ReceivedSinceLastTimestamp*1000/delta)/2;
+				else
+					m_DownloadRate = m_ReceivedSinceLastTimestamp*1000/delta;
+				m_LastBlockDownloadTimestamp = ts;
+				m_ReceivedSinceLastTimestamp = 0;
+			}
+		}
+		else
+			m_LastBlockDownloadTimestamp = ts;
 	}
 
 	void PeerConnection::SendPieceMsg (uint32_t index, uint32_t offset, const uint8_t * data, size_t len)
@@ -1154,6 +1175,20 @@ namespace torrents
 						s->m_IsRemoteChoked = false;
 						s->SendUnchokeMsg ();
 					}
+					// update status
+					auto ts = i2p::util::GetMonotonicMilliseconds ();
+					if (s->m_LastBlockUploadTimestamp)
+					{
+						auto delta = ts - s->m_LastBlockUploadTimestamp;
+						if (delta)
+						{
+							if (s->m_UploadRate)
+								s->m_UploadRate = (s->m_UploadRate + REQUEST_BLOCK_SIZE*1000/delta)/2;
+							else
+								s->m_UploadRate = REQUEST_BLOCK_SIZE*1000/delta;
+						}
+					}
+					s->m_LastBlockUploadTimestamp = ts;
 				}
 				else
 					s->Terminate ();
@@ -1910,6 +1945,7 @@ namespace torrents
 		{
 			auto ts = i2p::util::GetMonotonicSeconds ();
 			for (auto it: m_Torrents)
+			{
 				if (!it.second->IsComplete ())
 				{
 					if (it.second->UpdateStatus (ts))
@@ -1917,6 +1953,8 @@ namespace torrents
 					else
 						UpdatePeersPerPiece (it.second);
 				}
+			}
+			UpdateStats ();
 			ScheduleStatusUpdate ();
 		}
 	}
@@ -1987,6 +2025,25 @@ namespace torrents
 					auto conn = std::static_pointer_cast<PeerConnection>(handler);
 					if (conn->GetTorrent () == torrent)
 						torrent->ApplyPeerRemoteBitfield (conn->GetRemoteBitfield ());
+				}
+			});
+	}
+
+	void TorrentsTunnel::UpdateStats ()
+	{
+		for (auto it: m_Torrents)
+			it.second->ResetStats ();
+		IterateHandlers ([](std::shared_ptr<i2p::client::I2PServiceHandler> handler) mutable
+			{
+				if (handler)
+				{
+					auto conn = std::static_pointer_cast<PeerConnection>(handler);
+					auto torrent = conn->GetTorrent ();
+					if (torrent)
+					{
+						torrent->SetDownloadRate (torrent->GetDownloadRate () + conn->GetDownloadRate ());
+						torrent->SetUploadRate (torrent->GetUploadRate () + conn->GetUploadRate ());
+					}
 				}
 			});
 	}

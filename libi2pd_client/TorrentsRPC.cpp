@@ -152,9 +152,7 @@ namespace torrents
 	{
 		auto arguments = jsonRequest.at ("arguments").as_object ();
 		bool deleteFiles = false;
-		if (arguments.contains ("delete_local_data")) // for transmission >= 4.1
-			deleteFiles = arguments.at ("delete_local_data").as_bool ();
-		else if (arguments.contains ("delete-local-data")) // for transmission < 4.1
+		if (arguments.contains ("delete-local-data"))
 			deleteFiles = arguments.at ("delete-local-data").as_bool ();
 		std::vector<int> torrentIds;
 		if (arguments.contains ("ids"))
@@ -204,9 +202,9 @@ namespace torrents
 				t["is_finished"] = torrent->IsComplete ();
 				t["size_when_done"] = torrent->GetLength ();
 				t["left_until_done"] = torrent->GetLeft ();
-				t["eta"] = 1; // TODO
-				t["rate_download"] = 1000; // B/s TODO:
-				t["rate_upload"] = 0; // B/s TODO:
+				t["eta"] = 600; // TODO
+				t["rate_download"] = torrent->GetDownloadRate ();
+				t["rate_upload"] = torrent->GetUploadRate ();
 				t["upload_ratio"] = 1; // TODO:
 				if (torrentsRequested)
 				{
