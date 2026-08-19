@@ -563,6 +563,19 @@ namespace util
 	bool Daemon_Singleton::stop()
 	{
 		LogPrint(eLogInfo, "Daemon: Shutting down");
+		// these two serve pages from their own threads, they must go before
+		// anything they read is taken apart
+		if (d.httpServer) {
+			LogPrint(eLogInfo, "Daemon: Stopping HTTP Server");
+			d.httpServer->Stop();
+			d.httpServer = nullptr;
+		}
+		if (d.m_I2PControlService)
+		{
+			LogPrint(eLogInfo, "Daemon: Stopping I2PControl");
+			d.m_I2PControlService->Stop ();
+			d.m_I2PControlService = nullptr;
+		}
 		LogPrint(eLogInfo, "Daemon: Stopping Client");
 		i2p::client::context.Stop();
 		LogPrint(eLogInfo, "Daemon: Stopping Router context");
@@ -586,17 +599,6 @@ namespace util
 		i2p::transport::transports.Stop();
 		LogPrint(eLogInfo, "Daemon: Stopping NetDB");
 		i2p::data::netdb.Stop();
-		if (d.httpServer) {
-			LogPrint(eLogInfo, "Daemon: Stopping HTTP Server");
-			d.httpServer->Stop();
-			d.httpServer = nullptr;
-		}
-		if (d.m_I2PControlService)
-		{
-			LogPrint(eLogInfo, "Daemon: Stopping I2PControl");
-			d.m_I2PControlService->Stop ();
-			d.m_I2PControlService = nullptr;
-		}
 		i2p::crypto::TerminateCrypto ();
 		i2p::log::Logger().Stop();
 
