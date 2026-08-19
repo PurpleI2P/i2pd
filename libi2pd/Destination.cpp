@@ -12,6 +12,7 @@
 #include <set>
 #include <vector>
 #include <charconv>
+#include <future>
 #include <boost/algorithm/string.hpp>
 #include "Crypto.h"
 #include "ECIESX25519AEADRatchetSession.h"
@@ -1680,7 +1681,20 @@ namespace client
 	{
 		if (IsRunning ())
 		{
-			ClientDestination::Stop ();
+			// the destination's own thread may still be handling packets of this
+			// very destination, so tear it down there rather than under the caller
+			if (GetIOService ().get_executor ().running_in_this_thread ())
+				ClientDestination::Stop ();
+			else
+			{
+				std::promise<void> done;
+				boost::asio::post (GetIOService (), [this, &done]()
+					{
+						ClientDestination::Stop ();
+						done.set_value ();
+					});
+				done.get_future ().wait ();
+			}
 			StopIOService ();
 		}
 	}
