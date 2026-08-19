@@ -781,6 +781,31 @@ namespace client
 			m_SubscriptionsUpdateTimer->cancel ();
 	}
 
+	void AddressBook::ResetTimers ()
+	{
+		// both timers run on the shared local destination's service, so they must be
+		// created anew when that destination is replaced
+		auto dest = i2p::client::context.GetSharedLocalDestination ();
+		if (m_SubscriptionsUpdateTimer)
+		{
+			m_SubscriptionsUpdateTimer->cancel ();
+			m_SubscriptionsUpdateTimer = nullptr;
+			if (dest)
+			{
+				m_SubscriptionsUpdateTimer = std::make_unique<boost::asio::steady_timer>(dest->GetService ());
+				m_SubscriptionsUpdateTimer->expires_after (std::chrono::minutes(INITIAL_SUBSCRIPTION_UPDATE_TIMEOUT));
+				m_SubscriptionsUpdateTimer->async_wait (std::bind (&AddressBook::HandleSubscriptionsUpdateTimer,
+					this, std::placeholders::_1));
+			}
+		}
+		if (m_AddressCacheUpdateTimer)
+		{
+			m_AddressCacheUpdateTimer->cancel ();
+			m_AddressCacheUpdateTimer = nullptr;
+			ScheduleCacheUpdate (); // creates it again on the current destination
+		}
+	}
+
 	void AddressBook::HandleSubscriptionsUpdateTimer (const boost::system::error_code& ecode)
 	{
 		if (ecode != boost::asio::error::operation_aborted)

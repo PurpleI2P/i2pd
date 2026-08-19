@@ -89,6 +89,7 @@ namespace client
 			AddressBook ();
 			~AddressBook ();
 			void Start ();
+			void ResetTimers (); // after the shared local destination is replaced
 			void StartResolvers ();
 			void Stop ();
 			std::shared_ptr<const Address> GetAddress (std::string_view address);

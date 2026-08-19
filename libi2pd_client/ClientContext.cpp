@@ -250,6 +250,7 @@ namespace client
 		// change shared local destination
 		m_SharedLocalDestination->Release ();
 		CreateNewSharedLocalDestination ();
+		m_AddressBook.ResetTimers (); // its timers are left on a destination about to go
 
 		// recreate HTTP proxy
 		auto httpProxy = DetachHttpProxy ();
