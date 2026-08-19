@@ -197,11 +197,15 @@ namespace torrents
 			void ApplyPeerRemoteBitfield (const boost::dynamic_bitset<>& peerRemoteBitfield);
 			bool HasIncompletePieces (const boost::dynamic_bitset<>& peerRemoteBitfield) const; // if remote bitfie;d has incomplete pieces
 
-			void ResetStats () { m_DownloadRate = 0; m_UploadRate = 0; }
+			void ResetStats () { m_DownloadRate = 0; m_UploadRate = 0;  m_NumDownloadingFromPeers = 0; m_NumUploadingToPeers = 0; }
 			uint64_t GetDownloadRate () const { return m_DownloadRate; }
 			void SetDownloadRate (uint64_t downloadRate) { m_DownloadRate = downloadRate; }
 			uint64_t GetUploadRate () const { return m_UploadRate; }
 			void SetUploadRate (uint64_t uploadRate) { m_UploadRate = uploadRate; }
+			int GetNumDownloadingFromPeers () const { return m_NumDownloadingFromPeers; }
+			void SetNumDownloadingFromPeers (int numDownloadingFromPeers) { m_NumDownloadingFromPeers = numDownloadingFromPeers; }
+			int GetNumUploadingToPeers () const { return m_NumUploadingToPeers; }
+			void SetNumUploadingToPeers (int numUploadingToPeers) { m_NumUploadingToPeers = numUploadingToPeers; }
 
 		private:
 
@@ -225,6 +229,7 @@ namespace torrents
 			size_t m_Uploaded;
 			// stats
 			uint64_t m_DownloadRate, m_UploadRate; // B/sec
+			int m_NumDownloadingFromPeers, m_NumUploadingToPeers; // by us
 	};
 
 	class TorrentsTunnel;
@@ -258,6 +263,8 @@ namespace torrents
 
 			uint64_t GetDownloadRate () const { return m_DownloadRate; }
 			uint64_t GetUploadRate () const { return m_UploadRate; }
+			bool IsDownloading () const { return m_NumRequests > 0; }
+			bool IsUploading () const { return m_NumPieces > 0; }
 
 		private:
 

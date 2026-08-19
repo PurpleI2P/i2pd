@@ -206,6 +206,8 @@ namespace torrents
 				t["rate_download"] = torrent->GetDownloadRate ();
 				t["rate_upload"] = torrent->GetUploadRate ();
 				t["upload_ratio"] = 1; // TODO:
+				t["peers_getting_from_us"] = torrent->GetNumUploadingToPeers ();
+				t["peers_sending_to_us"] = torrent->GetNumDownloadingFromPeers ();
 				if (torrentsRequested)
 				{
 					t["piece_count"] = torrent->GetNumPieces ();

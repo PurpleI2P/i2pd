@@ -2047,6 +2047,10 @@ namespace torrents
 					{
 						torrent->SetDownloadRate (torrent->GetDownloadRate () + conn->GetDownloadRate ());
 						torrent->SetUploadRate (torrent->GetUploadRate () + conn->GetUploadRate ());
+						if (conn->IsDownloading ())
+							torrent->SetNumDownloadingFromPeers (torrent->GetNumDownloadingFromPeers () + 1);
+						if (conn->IsUploading ())
+							torrent->SetNumUploadingToPeers (torrent->GetNumUploadingToPeers () + 1);
 					}
 				}
 			});
