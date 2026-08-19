@@ -13,6 +13,7 @@
 #endif
 #include <boost/algorithm/hex.hpp>
 #include <vector>
+#include <functional>
 #include "Log.h"
 #include "Torrents.h"
 #include "TorrentsRPC.h"
@@ -44,6 +45,7 @@ namespace torrents
 			std::string ResultResponse (int64_t id, boost::json::object&& result);
 			std::string ErrorResponse (JSONRPCErrorCode errorCode, int64_t id, std::string_view message);
 			int64_t GetTag (boost::json::object& jsonRequest) const;
+			std::string GetNewFieldName (std::string_view fieldName) const;
 
 			std::string HandleTorrrentAdd (boost::json::object&& jsonRequest);
 			std::string HandleTorrrentRemove (boost::json::object&& jsonRequest);
@@ -89,6 +91,21 @@ namespace torrents
 		if (jsonRequest.contains ("tag"))
 			return jsonRequest.at ("tag").as_int64 ();
 		return 0;
+	}
+
+	std::string JSONRPCHandler::GetNewFieldName (std::string_view fieldName) const
+	{
+		std::string newFieldName;
+		newFieldName.reserve (fieldName.length ());
+		for (auto it: fieldName)
+			if (std::isupper (it))
+			{
+				newFieldName.push_back ('_');
+				newFieldName.push_back (std::tolower (it));
+			}
+			else
+				newFieldName.push_back (it);
+		return newFieldName;
 	}
 
 	std::string JSONRPCHandler::HandleRequest (std::string_view request)
@@ -170,6 +187,7 @@ namespace torrents
 		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}
 
+	static boost::json::value GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent);
 	std::string JSONRPCHandler::HandleTorrrentGet (boost::json::object&& jsonRequest)
 	{
 		auto arguments = jsonRequest.at ("arguments").as_object ();
@@ -186,6 +204,7 @@ namespace torrents
 		}
 		else
 			torrentIds = m_Tunnel->GetTorrentIDs ();
+		auto fields = arguments.at ("fields").as_array ();
 
 		boost::json::object response;
 		boost::json::array torrents;
@@ -195,33 +214,58 @@ namespace torrents
 			if (torrent)
 			{
 				boost::json::object t;
-				t["id"] = id;
-				t["error"] = 0; // no error
-				t["name"] = torrent->GetName ();
-				t["status"] = torrent->GetStatus ();
-				t["is_finished"] = torrent->IsComplete ();
-				t["size_when_done"] = torrent->GetLength ();
-				t["left_until_done"] = torrent->GetLeft ();
-				t["eta"] = 600; // TODO
-				t["rate_download"] = torrent->GetDownloadRate ();
-				t["rate_upload"] = torrent->GetUploadRate ();
-				t["upload_ratio"] = 1; // TODO:
-				t["peers_getting_from_us"] = torrent->GetNumUploadingToPeers ();
-				t["peers_sending_to_us"] = torrent->GetNumDownloadingFromPeers ();
-				if (torrentsRequested)
+				for (const auto& field: fields)
 				{
-					t["piece_count"] = torrent->GetNumPieces ();
-					t["piece_size"] = torrent->GetNumPieces ();
-					t["total_size"] = torrent->GetLength ();
-					std::string hexHash;
-					boost::algorithm::hex (torrent->GetInfoHash ().begin(), torrent->GetInfoHash ().end(), std::back_inserter(hexHash));
-					t["hash_string"] = hexHash;
+					if (field == "id")
+						t["id"] = id;
+					else
+					{
+						auto fieldValue = GetFieldValue (field.as_string (), torrent);
+						if (!fieldValue.is_null ())
+							t[GetNewFieldName (field.as_string ())] = fieldValue;
+					}
 				}
 				torrents.push_back (t);
 			}
 		}
 		response["torrents"] = torrents;
 		return ResultResponse (GetTag (jsonRequest), std::move (response));
+	}
+
+	static boost::json::value GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent)
+	{
+		const static std::map<std::string_view, std::function<boost::json::value (std::shared_ptr<Torrent>)> > fields =
+		{
+			{ "name", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetName ()); } },
+			{ "status", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetStatus ()); } },
+			{ "isFinished", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->IsComplete ()); } },
+			{ "sizeWhenDone", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetLength ()); } },
+			{ "leftUntilDone", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetLeft ()); } },
+			{ "rateDownload", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetDownloadRate ()); } },
+			{ "rateUpload", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetUploadRate ()); } },
+			{ "peersGettingFromUs", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetNumUploadingToPeers ()); } },
+			{ "peersSendingToUs", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetNumDownloadingFromPeers ()); } },
+			{ "pieceCount", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetNumPieces ()); } },
+			{ "pieceSize", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetPieceLength ()); } },
+			{ "totalSize", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetLength ()); } },
+			{ "hashString", [](std::shared_ptr<Torrent> torrent)
+				{
+					std::string hexHash;
+					boost::algorithm::hex (torrent->GetInfoHash ().begin(), torrent->GetInfoHash ().end(), std::back_inserter(hexHash));
+					return boost::json::value(hexHash);
+				}
+			},
+			{ "error", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(0); } }, // no error
+			{ "eta", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(0); } }, // TODO:
+			{ "uploadRatio", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(1); } } // TODO:
+		};
+		if (torrent)
+		{
+			auto it = fields.find (field);
+			if (it != fields.end ())
+				return it->second (torrent);
+		}
+		return boost::json::value ();
 	}
 
 #endif
