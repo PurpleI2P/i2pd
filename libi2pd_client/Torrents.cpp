@@ -564,10 +564,10 @@ namespace torrents
 
 	void Torrent::SetComplete ()
 	{
+		m_IsComplete = true;
 		for (auto& it: m_Pieces)
 			if (!it.IsComplete ())
 				it.Complete ();
-		m_IsComplete = true;
 	}
 
 	void Torrent::SaveTorrentResumeFile (const std::filesystem::path& fullPath)
@@ -663,10 +663,9 @@ namespace torrents
 		i2p::client::I2PServiceHandler (owner), m_Stream (stream), m_ReceiveBufferOffset (0),
 		m_IsHandshakeSent (false), m_IsEstablished (false), m_IsChoked (true), m_IsRemoteChoked (true),
 		m_IsInterested (false), m_IsRemoteInterested (false), m_LastReceiveTime (0), m_LastSendTime (0),
-		m_NumRequests (0), m_NumPieces (0), m_LastRequestedPieceIndex (-1),
-		m_DownloadRate (0), m_UploadRate (0), m_LastBlockDownloadTimestamp (0),
-		m_LastBlockUploadTimestamp (0), m_ReceivedSinceLastTimestamp (0), m_SentSinceLastTimestamp (0)
+		m_NumRequests (0), m_NumPieces (0), m_LastRequestedPieceIndex (-1)
 	{
+		ResetStats ();
 	}
 
 	PeerConnection::PeerConnection (i2p::client::I2PService * owner,
@@ -700,6 +699,13 @@ namespace torrents
 			m_HandshakeReceiveTimer = nullptr;
 		}
 		Done(shared_from_this ());
+	}
+
+	void PeerConnection::ResetStats ()
+	{
+		m_DownloadRate = 0; m_UploadRate = 0;
+		m_LastBlockDownloadTimestamp = 0; m_LastBlockUploadTimestamp = 0;
+		m_ReceivedSinceLastTimestamp = 0; m_SentSinceLastTimestamp = 0;
 	}
 
 	void PeerConnection::ScheduleHandshakeReceiveTimer ()
@@ -1607,16 +1613,25 @@ namespace torrents
 			if (completed)
 			{
 				torrent->SetComplete ();
-				RequestTracker (torrent, "completed");
 				auto resumeFilePath = torrent->GetFullPath (); resumeFilePath += ".resume";
 				if (!std::filesystem::remove (resumeFilePath))
 					LogPrint (eLogError, "Torrents: Can't delete resume file ", resumeFilePath);
 				LogPrint (eLogInfo, "Torrents: Download complete ", torrent->GetFullPath ());
-				// close connections with seeds
-				auto conns = GetTorrentConnections (torrent);
-				for (auto it: conns)
-					if (it->GetRemoteBitfield ().all ()) // seed
-						it->Close ();
+
+				boost::asio::post (GetService (), [this, torrent]()
+					{
+						// inform tracker that we are done
+						RequestTracker (torrent, "completed");
+						// close connections with seeds and reset stats for remaining
+						auto conns = GetTorrentConnections (torrent);
+						for (auto it: conns)
+						{
+							if (it->GetRemoteBitfield ().all ()) // seed
+								it->Close ();
+							else
+								it->ResetStats ();
+						}
+					});
 			}
 		});
 	}

@@ -259,12 +259,14 @@ namespace torrents
 			std::shared_ptr<i2p::stream::Stream> GetStream () const { return m_Stream; }
 			std::shared_ptr<Torrent> GetTorrent () const { return m_Torrent; }
 			int GetLastRequestedPieceIndex () const { return m_LastRequestedPieceIndex; }
-			const boost::dynamic_bitset<>& GetRemoteBitfield () const  { return m_RemoteBitfield;} ;
+			const boost::dynamic_bitset<>& GetRemoteBitfield () const  { return m_RemoteBitfield; }
+			std::string_view GetRemotePeerID () const { return m_RemotePeerID; }
 
+			void ResetStats ();
 			uint64_t GetDownloadRate () const { return m_DownloadRate; }
 			uint64_t GetUploadRate () const { return m_UploadRate; }
 			bool IsDownloading () const { return m_NumRequests > 0; }
-			bool IsUploading () const { return m_NumPieces > 0 || (m_Stream && m_Stream->GetSendBufferSize () > 0); }
+			bool IsUploading () const { return m_NumPieces > 0 || (m_Stream && m_Stream->GetSendBufferSize () > 4); }
 
 		private:
 
