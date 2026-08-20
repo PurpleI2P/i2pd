@@ -247,8 +247,8 @@ namespace torrents
 
 			using PeerID = std::array<uint8_t, 20>;
 
-			PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream); // incoming
-			PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream,
+			PeerConnection (std::shared_ptr<i2p::client::I2PService> owner,  std::shared_ptr<i2p::stream::Stream> stream); // incoming
+			PeerConnection (std::shared_ptr<i2p::client::I2PService> owner,  std::shared_ptr<i2p::stream::Stream> stream,
 				std::shared_ptr<Torrent> torrent); // outgoing
 			~PeerConnection ();
 
@@ -280,7 +280,7 @@ namespace torrents
 
 			void Terminate ();
 			void ScheduleHandshakeReceiveTimer ();
-			TorrentsTunnel * GetTorrentsTunnel () const;
+			std::shared_ptr<TorrentsTunnel> GetTorrentsTunnel () const;
 
 			void WriteToStream (const uint8_t * buf, size_t len);
 			void StreamReceive ();

@@ -87,7 +87,7 @@ namespace client
 	{
 		public:
 
-			BOBI2PTunnelIncomingConnection (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
+			BOBI2PTunnelIncomingConnection (std::shared_ptr<I2PService> owner, std::shared_ptr<i2p::stream::Stream> stream,
 				const boost::asio::ip::tcp::endpoint& target, bool quiet):
 				I2PTunnelConnection (owner, stream, target), m_IsQuiet (quiet) {};
 
@@ -199,8 +199,8 @@ namespace client
 		private:
 
 			std::shared_ptr<ClientDestination> m_LocalDestination;
-			BOBI2POutboundTunnel * m_OutboundTunnel;
-			BOBI2PInboundTunnel * m_InboundTunnel;
+			std::shared_ptr<BOBI2POutboundTunnel> m_OutboundTunnel;
+			std::shared_ptr<BOBI2PInboundTunnel> m_InboundTunnel;
 
 			std::string m_Nickname;
 			std::string m_InHost, m_OutHost;

@@ -140,7 +140,7 @@ namespace client
 	void BOBI2PInboundTunnel::CreateConnection (std::shared_ptr<AddressReceiver> receiver, std::shared_ptr<const i2p::data::LeaseSet> leaseSet)
 	{
 		LogPrint (eLogDebug, "BOB: New inbound connection");
-		auto connection = std::make_shared<I2PTunnelConnection>(this, receiver->socket, leaseSet);
+		auto connection = std::make_shared<I2PTunnelConnection>(shared_from_this (), receiver->socket, leaseSet);
 		AddHandler (connection);
 		connection->I2PConnect (receiver->data, receiver->dataLen);
 	}
@@ -176,7 +176,7 @@ namespace client
 	{
 		if (stream)
 		{
-			auto conn = std::make_shared<BOBI2PTunnelIncomingConnection> (this, stream, m_Endpoint, m_IsQuiet);
+			auto conn = std::make_shared<BOBI2PTunnelIncomingConnection> (shared_from_this (), stream, m_Endpoint, m_IsQuiet);
 			AddHandler (conn);
 			conn->Connect ();
 		}
@@ -194,8 +194,6 @@ namespace client
 
 	BOBDestination::~BOBDestination ()
 	{
-		delete m_OutboundTunnel;
-		delete m_InboundTunnel;
 		i2p::client::context.DeleteLocalDestination (m_LocalDestination);
 	}
 
@@ -218,13 +216,11 @@ namespace client
 		if (m_OutboundTunnel)
 		{
 			m_OutboundTunnel->Stop ();
-			delete m_OutboundTunnel;
 			m_OutboundTunnel = nullptr;
 		}
 		if (m_InboundTunnel)
 		{
 			m_InboundTunnel->Stop ();
-			delete m_InboundTunnel;
 			m_InboundTunnel = nullptr;
 		}
 	}
@@ -246,7 +242,7 @@ namespace client
 				else
 					LogPrint (eLogError, "BOB: ", ec.message ());
 			}
-			m_InboundTunnel = new BOBI2PInboundTunnel (ep, m_LocalDestination);
+			m_InboundTunnel = std::make_shared<BOBI2PInboundTunnel> (ep, m_LocalDestination);
 		}
 	}
 
@@ -257,7 +253,7 @@ namespace client
 			// update outport and outhost (user can stop tunnel and change)
 			m_OutPort = port;
 			m_OutHost = outhost;
-			m_OutboundTunnel = new BOBI2POutboundTunnel (outhost, port, m_LocalDestination, quiet);
+			m_OutboundTunnel = std::make_shared<BOBI2POutboundTunnel> (outhost, port, m_LocalDestination, quiet);
 		}
 	}
 

@@ -44,11 +44,11 @@ namespace client
 	{
 		public:
 
-			I2PTunnelConnection (I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
+			I2PTunnelConnection (std::shared_ptr<I2PService> owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
 				std::shared_ptr<const i2p::data::LeaseSet> leaseSet, uint16_t port = 0); // to I2P
-			I2PTunnelConnection (I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
+			I2PTunnelConnection (std::shared_ptr<I2PService> owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
 				std::shared_ptr<i2p::stream::Stream> stream); // to I2P using simplified API
-			I2PTunnelConnection (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
+			I2PTunnelConnection (std::shared_ptr<I2PService> owner, std::shared_ptr<i2p::stream::Stream> stream,
 				const boost::asio::ip::tcp::endpoint& target,
 			    std::shared_ptr<boost::asio::ssl::context> sslCtx = nullptr); // from I2P
 			~I2PTunnelConnection ();
@@ -93,7 +93,7 @@ namespace client
 	{
 		public:
 
-			I2PClientTunnelConnectionHTTP (I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
+			I2PClientTunnelConnectionHTTP (std::shared_ptr<I2PService> owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
 				std::shared_ptr<i2p::stream::Stream> stream):
 				I2PTunnelConnection (owner, socket, stream), m_HeaderSent (false),
 				m_ConnectionSent (false), m_ProxyConnectionSent (false) {};
@@ -112,7 +112,7 @@ namespace client
 	{
 		public:
 
-			I2PServerTunnelConnectionHTTP (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
+			I2PServerTunnelConnectionHTTP (std::shared_ptr<I2PService> owner, std::shared_ptr<i2p::stream::Stream> stream,
 				const boost::asio::ip::tcp::endpoint& target, const std::string& host, const std::string& XI2P,
 			    std::shared_ptr<boost::asio::ssl::context> sslCtx = nullptr);
 
@@ -132,7 +132,7 @@ namespace client
 	{
 		public:
 
-			I2PTunnelConnectionIRC (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
+			I2PTunnelConnectionIRC (std::shared_ptr<I2PService> owner, std::shared_ptr<i2p::stream::Stream> stream,
 				const boost::asio::ip::tcp::endpoint& target, const std::string& m_WebircPass,
 			    std::shared_ptr<boost::asio::ssl::context> sslCtx = nullptr);
 

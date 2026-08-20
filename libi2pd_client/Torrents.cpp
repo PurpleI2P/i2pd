@@ -659,7 +659,7 @@ namespace torrents
 		}
 	}
 
-	PeerConnection::PeerConnection (i2p::client::I2PService * owner,  std::shared_ptr<i2p::stream::Stream> stream):
+	PeerConnection::PeerConnection (std::shared_ptr<i2p::client::I2PService> owner,  std::shared_ptr<i2p::stream::Stream> stream):
 		i2p::client::I2PServiceHandler (owner), m_Stream (stream), m_ReceiveBufferOffset (0),
 		m_IsHandshakeSent (false), m_IsEstablished (false), m_IsChoked (true), m_IsRemoteChoked (true),
 		m_IsInterested (false), m_IsRemoteInterested (false), m_LastReceiveTime (0), m_LastSendTime (0),
@@ -668,7 +668,7 @@ namespace torrents
 		ResetStats ();
 	}
 
-	PeerConnection::PeerConnection (i2p::client::I2PService * owner,
+	PeerConnection::PeerConnection (std::shared_ptr<i2p::client::I2PService> owner,
 		std::shared_ptr<i2p::stream::Stream> stream, std::shared_ptr<Torrent> torrent):
 		PeerConnection (owner, stream)
 	{
@@ -727,9 +727,9 @@ namespace torrents
 			});
 	}
 
-	TorrentsTunnel * PeerConnection::GetTorrentsTunnel () const
+	std::shared_ptr<TorrentsTunnel> PeerConnection::GetTorrentsTunnel () const
 	{
-		return static_cast<TorrentsTunnel *>(GetOwner ());
+		return std::static_pointer_cast<TorrentsTunnel>(GetOwner ());
 	}
 
 	bool PeerConnection::IsPieceAvailable (size_t ind) const
@@ -1766,7 +1766,7 @@ namespace torrents
 					{
 						if (stream)
 						{
-							auto conn = std::make_shared<PeerConnection> (this, stream);
+							auto conn = std::make_shared<PeerConnection> (shared_from_this (), stream);
 							AddHandler (conn);
 							conn->ReceiveHandshake ();
 						}
@@ -1860,7 +1860,7 @@ namespace torrents
 				if (stream)
 				{
 					LogPrint (eLogDebug, "Torrents: Connected to peer ", peer.ToBase32 () + ".b32.i2p");
-					auto connection = std::make_shared<PeerConnection>(this, stream, torrent);
+					auto connection = std::make_shared<PeerConnection>(shared_from_this (), stream, torrent);
 					AddHandler (connection);
 					connection->Connect ();
 				}
