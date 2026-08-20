@@ -1310,9 +1310,17 @@ namespace client
 						{
 							// get remote peer address
 							auto dest = stream->GetRemoteIdentity()->ToBase64 ();
-							memcpy (newSocket->m_StreamBuffer, dest.c_str (), dest.length ());
-							newSocket->m_StreamBuffer[dest.length ()] = '\n';
-							newSocket->HandleI2PReceive (boost::system::error_code (),dest.length () + 1); // we send identity like it has been received from stream
+							if (dest.length () + 1 > SAM_STREAM_BUFFER_SIZE)
+							{
+								LogPrint (eLogError, "SAM: Remote identity is too long ", dest.length ());
+								newSocket->TerminateClose ();
+							}
+							else
+							{
+								memcpy (newSocket->m_StreamBuffer, dest.c_str (), dest.length ());
+								newSocket->m_StreamBuffer[dest.length ()] = '\n';
+								newSocket->HandleI2PReceive (boost::system::error_code (),dest.length () + 1); // we send identity like it has been received from stream
+							}
 						}
 						else
 							newSocket->I2PReceive ();

@@ -36,6 +36,8 @@ namespace i2p
 {
 namespace data
 {
+	const uint64_t MAX_RESEED_CONTENT_LENGTH = 128*1024*1024; // 128 MB, sanity cap for SU3 content length
+	const uint32_t MAX_RESEED_FILE_SIZE = 64*1024*1024; // 64 MB, sanity cap for a single file inside the SU3 zip
 
 	Reseeder::Reseeder()
 	{
@@ -231,6 +233,11 @@ namespace data
 		uint64_t contentLength;
 		s.read ((char *)&contentLength, 8); // content length
 		contentLength = be64toh (contentLength);
+		if (contentLength > MAX_RESEED_CONTENT_LENGTH)
+		{
+			LogPrint (eLogError, "Reseed: SU3 content length too large: ", contentLength);
+			return 0;
+		}
 		s.seekg (1, std::ios::cur); // unused
 		uint8_t fileType;
 		s.read ((char *)&fileType, 1); // file type
@@ -386,6 +393,11 @@ namespace data
 				{
 					LogPrint (eLogWarning, "Reseed: Unexpected size 0. Skipped");
 					continue;
+				}
+				if (compressedSize > MAX_RESEED_FILE_SIZE || uncompressedSize > MAX_RESEED_FILE_SIZE)
+				{
+					LogPrint (eLogError, "Reseed: SU3 file size too large, compressed=", compressedSize, " uncompressed=", uncompressedSize);
+					return numFiles;
 				}
 
 				uint8_t * compressed = new uint8_t[compressedSize];

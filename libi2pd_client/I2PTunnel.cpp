@@ -628,13 +628,16 @@ namespace client
 			if (!pos) // start of line
 			{
 				pos = line.find (" ");
-				pos++;
-				pos = line.find (" ", pos);
-				pos++;
-				auto nextpos = line.find (" ", pos);
-				m_OutPacket << line.substr (0, pos);
-				m_OutPacket << context.GetAddressBook ().ToAddress (m_From->GetIdentHash ());
-				m_OutPacket << line.substr (nextpos) << '\n';
+				if (pos != std::string::npos) pos = line.find (" ", pos + 1);
+				auto nextpos = (pos != std::string::npos) ? line.find (" ", pos + 1) : std::string::npos;
+				if (pos == std::string::npos || nextpos == std::string::npos)
+					m_OutPacket << line << '\n'; // malformed USER line, pass through unmodified
+				else
+				{
+					m_OutPacket << line.substr (0, pos + 1);
+					m_OutPacket << context.GetAddressBook ().ToAddress (m_From->GetIdentHash ());
+					m_OutPacket << line.substr (nextpos) << '\n';
+				}
 			}
 			else
 				m_OutPacket << line << '\n';
