@@ -13,6 +13,7 @@
 #endif
 #include <boost/algorithm/hex.hpp>
 #include <vector>
+#include <array>
 #include <functional>
 #include "Log.h"
 #include "Torrents.h"
@@ -48,7 +49,7 @@ namespace torrents
 			std::string GetNewFieldName (std::string_view fieldName) const;
 			static boost::json::value GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent);
 			boost::json::array GetPeers (std::shared_ptr<Torrent> torrent);
-			static std::string_view RecognizeClientByPeerID (std::string_view peerID);
+			static std::string_view RecognizeClientByPeerID (const PeerConnection::PeerID& peerID);
 
 			std::string HandleTorrrentAdd (boost::json::object&& jsonRequest);
 			std::string HandleTorrrentRemove (boost::json::object&& jsonRequest);
@@ -293,30 +294,34 @@ namespace torrents
 			})).wait ();
 		for (const auto& it: conns)
 		{
-			boost::json::object peer;
-			auto stream = it->GetStream ();
-			peer["address"] = stream ? stream->GetRemoteIdentity ()->GetIdentHash ().ToBase64 ().substr (0,4) : "";
-			peer["port"] = TORRENT_PORT;
-			peer["client_name"] = RecognizeClientByPeerID (it->GetRemotePeerID ());
-			peer["is_dowloading_from"] = it->IsDownloading ();
-			peer["is_uploading_to"] = it->IsUploading ();
-			peer["rate_to_client"] = it->GetDownloadRate ();
-			peer["rate_to_peer"] = it->GetUploadRate ();
-			peer["is_incoming"] = stream ? stream->IsIncoming () : false;
-			peer["client_is_choked"] = it->IsChoked ();
-			peer["peer_is_choked"] = it->IsRemoteChoked ();
-			peer["client_is_intersted"] = it->IsInterested ();
-			peer["peer_is_interested"] = it->IsRemoteInterested ();
-			peer["flag_str"] = "TE"; // TODO:
-			peer["progress"] = 0.5; // TODO:
-			peers.push_back (peer);
+			if (it->IsEstablished ())
+			{
+				boost::json::object peer;
+				auto stream = it->GetStream ();
+				peer["address"] = stream ? stream->GetRemoteIdentity ()->GetIdentHash ().ToBase64 ().substr (0,4) : "";
+				peer["port"] = TORRENT_PORT;
+				peer["client_name"] = RecognizeClientByPeerID (it->GetRemotePeerID ());
+				peer["is_dowloading_from"] = it->IsDownloading ();
+				peer["is_uploading_to"] = it->IsUploading ();
+				peer["rate_to_client"] = it->GetDownloadRate ();
+				peer["rate_to_peer"] = it->GetUploadRate ();
+				peer["is_incoming"] = stream ? stream->IsIncoming () : false;
+				peer["client_is_choked"] = it->IsChoked ();
+				peer["peer_is_choked"] = it->IsRemoteChoked ();
+				peer["client_is_intersted"] = it->IsInterested ();
+				peer["peer_is_interested"] = it->IsRemoteInterested ();
+				peer["flag_str"] = ""; // TODO:
+				peer["progress"] = 0.5; // TODO:
+				peers.push_back (peer);
+			}
 		}
 		return peers;
 	}
 
-	std::string_view JSONRPCHandler::RecognizeClientByPeerID (std::string_view peerID)
+	std::string_view JSONRPCHandler::RecognizeClientByPeerID (const PeerConnection::PeerID& peerID)
 	{
-		const static std::map<std::string_view, std::string_view> twoChars =
+		static constexpr std::array<uint8_t,12> i2psnark { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x03, 0x03 };
+		static const std::map<std::string_view, std::string_view> twoChars =
 		{
 			{ "qB", "qBittorrent" },
 			{ "XD", "XD"},
@@ -325,16 +330,19 @@ namespace torrents
 			{ "LT", "libtorrent" }
 		};
 
-		if (peerID.substr (0, 6) == "-I2PD-")
+		if (peerID.size () >= i2psnark.size () && !memcmp (peerID.data (), i2psnark.data (), i2psnark.size ()))
+			return "I2PSnark";
+
+		std::string_view peerIDStr ((const char *)peerID.data (), peerID.size ());
+		if (peerIDStr.substr (0, 6) == "-I2PD-")
 			return "i2pd";
-		if (peerID[0] == '-')
+		if (peerIDStr[0] == '-')
 		{
-			auto it = twoChars.find (peerID.substr (1,2));
+			auto it = twoChars.find (peerIDStr.substr (1,2));
 			if (it != twoChars.end ())
 				return it->second;
 		}
-		if (peerID.substr (0, 12) == "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03\x03\x03")
-			return "I2PSnark";
+
 		return "Unknown";
 	}
 

@@ -974,7 +974,7 @@ namespace torrents
 			Terminate ();
 			return 0;
 		}
-		m_RemotePeerID = std::string_view ((const char *)(m_ReceiveBuffer + 48), 20);
+		memcpy (m_RemotePeerID.data (), m_ReceiveBuffer + 48, m_RemotePeerID.size ());
 		// respond wiith handshake if incoming
 		if (!m_IsHandshakeSent)
 			SendHandshakeMsg ();
