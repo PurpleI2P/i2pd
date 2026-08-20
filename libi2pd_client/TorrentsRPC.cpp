@@ -270,6 +270,50 @@ namespace torrents
 					return boost::json::value(b64pieces);
 				}
 			},
+			{ "files", [](std::shared_ptr<Torrent> torrent)
+				{
+					boost::json::array files;
+					const auto& torrentFiles = torrent->GetFiles ();
+					if (torrentFiles.empty ())
+					{
+						boost::json::object file;
+						file["name"] = torrent->GetFullPath ().string ();
+						file["length"] = torrent->GetLength ();
+						file["bytes_completed"] = torrent->GetLength () - torrent->GetLeft ();
+						files.push_back (file);
+					}
+					else
+						for (const auto& [filePath, fileSize]: torrentFiles)
+						{
+							boost::json::object file;
+							file["name"] = filePath.string ();
+							file["length"] = fileSize;
+							file["bytes_completed"] = 0; // TODO:
+							files.push_back (file);
+						}
+					return files;
+				}
+			},
+			{ "wanted", [](std::shared_ptr<Torrent> torrent)
+				{
+					boost::json::array wanted;
+					size_t numFiles = torrent->GetFiles ().size ();
+					if (!numFiles) numFiles = 1;
+					wanted.resize (numFiles);
+					std::fill (wanted.begin(), wanted.end(), 1);
+					return wanted;
+				}
+			},
+			{ "priorities", [](std::shared_ptr<Torrent> torrent)
+				{
+					boost::json::array priorities;
+					size_t numFiles = torrent->GetFiles ().size ();
+					if (!numFiles) numFiles = 1;
+					priorities.resize (numFiles);
+					std::fill (priorities.begin(), priorities.end(), 0);
+					return priorities;
+				}
+			},
 			{ "error", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(0); } }, // no error
 			{ "eta", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(600); } }, // TODO:
 			{ "uploadRatio", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(1); } } // TODO:
@@ -297,7 +341,10 @@ namespace torrents
 			if (it->IsEstablished ())
 			{
 				boost::json::object peer;
+				std::string flags;
 				auto stream = it->GetStream ();
+				bool isIncoming = stream ? stream->IsIncoming () : false;
+				if (isIncoming) flags.push_back ('I');
 				peer["address"] = stream ? stream->GetRemoteIdentity ()->GetIdentHash ().ToBase64 ().substr (0,4) : "";
 				peer["port"] = TORRENT_PORT;
 				peer["client_name"] = RecognizeClientByPeerID (it->GetRemotePeerID ());
@@ -305,12 +352,12 @@ namespace torrents
 				peer["is_uploading_to"] = it->IsUploading ();
 				peer["rate_to_client"] = it->GetDownloadRate ();
 				peer["rate_to_peer"] = it->GetUploadRate ();
-				peer["is_incoming"] = stream ? stream->IsIncoming () : false;
+				peer["is_incoming"] = isIncoming;
 				peer["client_is_choked"] = it->IsChoked ();
 				peer["peer_is_choked"] = it->IsRemoteChoked ();
 				peer["client_is_intersted"] = it->IsInterested ();
 				peer["peer_is_interested"] = it->IsRemoteInterested ();
-				peer["flag_str"] = ""; // TODO:
+				peer["flag_str"] = flags;
 				peer["progress"] = 0.5; // TODO:
 				peers.push_back (peer);
 			}
