@@ -654,6 +654,7 @@ namespace datagram
 			}
 		}
 
+		if (!m_RoutingSession) return nullptr;
 		auto path = m_RoutingSession->GetSharedRoutingPath();
 		if (path && m_RoutingSession->IsRatchets () && m_RoutingSession->CleanupUnconfirmedTags ())
 		{

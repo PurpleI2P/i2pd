@@ -450,8 +450,9 @@ namespace stream
 	bool Stream::ProcessOptions (uint16_t flags, Packet * packet)
 	{
 		const uint8_t * optionData = packet->GetOptionData ();
+		size_t optionOffset = optionData - packet->buf;
 		size_t optionSize = packet->GetOptionSize ();
-		if (optionSize > packet->len)
+		if (optionOffset > packet->len || optionSize > packet->len - optionOffset)
 		{
 			LogPrint (eLogInfo, "Streaming: Invalid option size ", optionSize, " Discarded");
 			return false;
@@ -626,8 +627,14 @@ namespace stream
 
 		if (flags & PACKET_FLAG_SIGNATURE_INCLUDED)
 		{
+			if (!m_TransientVerifier && !m_RemoteIdentity)
+			{
+				LogPrint (eLogError, "Streaming: Signature included without remote identity");
+				return false;
+			}
 			auto signatureLen = m_TransientVerifier ? m_TransientVerifier->GetSignatureLen () : m_RemoteIdentity->GetSignatureLen ();
-			if (signatureLen > packet->GetLength ())
+			size_t optionOffset2 = optionData - packet->buf;
+			if (optionOffset2 > packet->len || signatureLen > packet->len - optionOffset2)
 			{
 				LogPrint (eLogError, "Streaming: Signature too big, ", signatureLen, " bytes");
 				return false;

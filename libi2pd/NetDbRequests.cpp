@@ -360,6 +360,12 @@ namespace data
 	void NetDbRequests::HandleDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg)
 	{
 		const uint8_t * buf = msg->GetPayload ();
+		size_t payloadLen = msg->GetPayloadLength ();
+		if (payloadLen < 33)
+		{
+			LogPrint (eLogWarning, "NetDbReq: Database search reply is too short, ", payloadLen);
+			return;
+		}
 		std::string key;
 		size_t num = buf[32]; // num
 		if (CheckLogLevel (eLogInfo))
@@ -393,7 +399,13 @@ namespace data
 		{
 			LogPrint (eLogWarning, "NetDbReq: Too many peer hashes ", num, " in database search reply, Reduced to ", NETDB_MAX_NUM_SEARCH_REPLY_PEER_HASHES);
 			num = NETDB_MAX_NUM_SEARCH_REPLY_PEER_HASHES;
-		}	
+		}
+		size_t maxNum = (payloadLen - 33)/32;
+		if (num > maxNum)
+		{
+			LogPrint (eLogWarning, "NetDbReq: Declared number of peer hashes ", num, " exceeds message size, reduced to ", maxNum);
+			num = maxNum;
+		}
 		if (isExploratory && !m_DiscoveredRouterHashes.empty ())
 		{
 			// request outstanding routers

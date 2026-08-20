@@ -557,8 +557,19 @@ namespace client
 
 	void LeaseSetDestination::HandleDatabaseSearchReplyMessage (const uint8_t * buf, size_t len)
 	{
+		if (len < 33)
+		{
+			LogPrint (eLogWarning, "Destination: Database search reply is too short, ", len);
+			return;
+		}
 		i2p::data::IdentHash key (buf);
 		int num = buf[32]; // num
+		size_t maxNum = (len - 33)/32;
+		if ((size_t)num > maxNum)
+		{
+			LogPrint (eLogWarning, "Destination: Declared number of peer hashes ", num, " exceeds message size, reduced to ", maxNum);
+			num = maxNum;
+		}
 		LogPrint (eLogDebug, "Destination: DatabaseSearchReply for ", key.ToBase64 (), " num=", num);
 		auto it = m_LeaseSetRequests.find (key);
 		if (it != m_LeaseSetRequests.end ())

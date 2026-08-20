@@ -992,7 +992,7 @@ namespace transport
 					return;
 				}
 				auto size = bufbe16toh (buf->data () + 1);
-				if (size + 3 > (int)buf->size () || size > i2p::data::MAX_RI_BUFFER_SIZE + 1)
+				if (size < 1 || size + 3 > (int)buf->size () || size > i2p::data::MAX_RI_BUFFER_SIZE + 1)
 				{
 					LogPrint (eLogError, "NTCP2: Unexpected RouterInfo size ", size, " in SessionConfirmed");
 					boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
