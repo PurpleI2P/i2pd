@@ -46,7 +46,9 @@ namespace torrents
 			std::string ErrorResponse (JSONRPCErrorCode errorCode, int64_t id, std::string_view message);
 			int64_t GetTag (boost::json::object& jsonRequest) const;
 			std::string GetNewFieldName (std::string_view fieldName) const;
-			boost::json::value GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent);
+			static boost::json::value GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent);
+			boost::json::array GetPeers (std::shared_ptr<Torrent> torrent);
+			static std::string_view RecognizeClientByPeerID (std::string_view peerID);
 
 			std::string HandleTorrrentAdd (boost::json::object&& jsonRequest);
 			std::string HandleTorrrentRemove (boost::json::object&& jsonRequest);
@@ -217,7 +219,11 @@ namespace torrents
 				t["id"] = id;
 				for (const auto& field: fields)
 				{
-					if (field != "id")
+					if (field == "id")
+						continue;
+					else if (field == "peers")
+						t["peers"] = GetPeers (torrent);
+					else
 					{
 						auto fieldValue = GetFieldValue (field.as_string (), torrent);
 						if (!fieldValue.is_null ())
@@ -274,6 +280,62 @@ namespace torrents
 				return it->second (torrent);
 		}
 		return boost::json::value ();
+	}
+
+	boost::json::array JSONRPCHandler::GetPeers (std::shared_ptr<Torrent> torrent)
+	{
+		boost::json::array peers;
+		std::list<std::shared_ptr<PeerConnection> > conns;
+		boost::asio::post (m_Tunnel->GetService (),
+			boost::asio::use_future ([tunnel = m_Tunnel, torrent, &conns]()
+			{
+				conns = tunnel->GetTorrentConnections (torrent);
+			})).wait ();
+		for (const auto& it: conns)
+		{
+			boost::json::object peer;
+			auto stream = it->GetStream ();
+			peer["address"] = stream ? stream->GetRemoteIdentity ()->GetIdentHash ().ToBase64 ().substr (0,4) : "";
+			peer["port"] = TORRENT_PORT;
+			peer["client_name"] = RecognizeClientByPeerID (it->GetRemotePeerID ());
+			peer["is_dowloading_from"] = it->IsDownloading ();
+			peer["is_uploading_to"] = it->IsUploading ();
+			peer["rate_to_client"] = it->GetDownloadRate ();
+			peer["rate_to_peer"] = it->GetUploadRate ();
+			peer["is_incoming"] = stream ? stream->IsIncoming () : false;
+			peer["client_is_choked"] = it->IsChoked ();
+			peer["peer_is_choked"] = it->IsRemoteChoked ();
+			peer["client_is_intersted"] = it->IsInterested ();
+			peer["peer_is_interested"] = it->IsRemoteInterested ();
+			peer["flag_str"] = "TE"; // TODO:
+			peer["progress"] = 0.5; // TODO:
+			peers.push_back (peer);
+		}
+		return peers;
+	}
+
+	std::string_view JSONRPCHandler::RecognizeClientByPeerID (std::string_view peerID)
+	{
+		const static std::map<std::string_view, std::string_view> twoChars =
+		{
+			{ "qB", "qBittorrent" },
+			{ "XD", "XD"},
+			{ "BI", "BiglyBT" },
+			{ "AZ", "Vuze" },
+			{ "LT", "libtorrent" }
+		};
+
+		if (peerID.substr (0, 6) == "-I2PD-")
+			return "i2pd";
+		if (peerID[0] == '-')
+		{
+			auto it = twoChars.find (peerID.substr (1,2));
+			if (it != twoChars.end ())
+				return it->second;
+		}
+		if (peerID.substr (0, 12) == "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03\x03\x03")
+			return "I2PSnark";
+		return "Unknown";
 	}
 
 #endif

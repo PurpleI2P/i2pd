@@ -262,11 +262,16 @@ namespace torrents
 			const boost::dynamic_bitset<>& GetRemoteBitfield () const  { return m_RemoteBitfield; }
 			std::string_view GetRemotePeerID () const { return m_RemotePeerID; }
 
+			// stats
 			void ResetStats ();
 			uint64_t GetDownloadRate () const { return m_DownloadRate; }
 			uint64_t GetUploadRate () const { return m_UploadRate; }
 			bool IsDownloading () const { return m_NumRequests > 0; }
 			bool IsUploading () const { return m_NumPieces > 0 || (m_Stream && m_Stream->GetSendBufferSize () > 4); }
+			bool IsInterested () const  { return m_IsInterested; }
+			bool IsRemoteInterested () const  { return m_IsRemoteInterested; }
+			bool IsChoked () const  { return m_IsChoked; }
+			bool IsRemoteChoked () const  { return m_IsRemoteChoked; }
 
 		private:
 
