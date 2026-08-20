@@ -1005,7 +1005,7 @@ namespace torrents
 		if (index < m_RemoteBitfield.size ())
 		{
 			m_RemoteBitfield.set (index);
-			if (m_NumRequests < MAX_NUM_REQUESTS && m_Torrent && !m_Torrent->IsComplete ())
+			if (m_Torrent && !m_Torrent->IsComplete ())
 			{
 				Piece& piece = m_Torrent->GetPiece (index);
 				if (!piece.IsComplete ())
