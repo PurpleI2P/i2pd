@@ -1156,6 +1156,34 @@ namespace client
 
 	void ClientDestination::Stop ()
 	{
+		// Stop may be called from any thread, while the service thread is still
+		// inside handlers of this destination, so the teardown goes there. A
+		// stopped service would never run it, in that case there is nobody left
+		// to race with and it is done right here
+		auto& service = GetService ();
+		if (!service.stopped () && !service.get_executor ().running_in_this_thread ())
+		{
+			// the promise is shared because the wait below is bounded: a service
+			// stopped right after the check would never run the handler, and a
+			// stack promise would be gone by then
+			auto done = std::make_shared<std::promise<void> >();
+			auto future = done->get_future ();
+			boost::asio::post (service, [this, done]()
+				{
+					StopInternal ();
+					done->set_value ();
+				});
+			if (future.wait_for (std::chrono::seconds (STOP_ON_SERVICE_TIMEOUT)) == std::future_status::ready)
+				return;
+			LogPrint (eLogError, "Destination: Service didn't stop the destination in ",
+				STOP_ON_SERVICE_TIMEOUT, " seconds");
+			return;
+		}
+		StopInternal ();
+	}
+
+	void ClientDestination::StopInternal ()
+	{
 		LogPrint(eLogDebug, "Destination: Stopping destination ", GetIdentHash().ToBase32(), ".b32.i2p");
 		m_ReadyChecker.cancel();
 		LogPrint(eLogDebug, "Destination: -> Stopping Streaming Destination");
@@ -1692,20 +1720,7 @@ namespace client
 	{
 		if (IsRunning ())
 		{
-			// the destination's own thread may still be handling packets of this
-			// very destination, so tear it down there rather than under the caller
-			if (GetIOService ().get_executor ().running_in_this_thread ())
-				ClientDestination::Stop ();
-			else
-			{
-				std::promise<void> done;
-				boost::asio::post (GetIOService (), [this, &done]()
-					{
-						ClientDestination::Stop ();
-						done.set_value ();
-					});
-				done.get_future ().wait ();
-			}
+			ClientDestination::Stop (); // takes care of the thread it runs on
 			StopIOService ();
 		}
 	}

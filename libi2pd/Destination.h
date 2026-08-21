@@ -45,6 +45,7 @@ namespace client
 	const int PUBLISH_VERIFICATION_TIMEOUT_VARIANCE = 3; // in seconds
 	const int PUBLISH_MIN_INTERVAL = 20; // in seconds
 	const int PUBLISH_REGULAR_VERIFICATION_INTERNAL = 100; // in seconds periodically
+	const int STOP_ON_SERVICE_TIMEOUT = 10; // in seconds, how long Stop waits for the destination's thread
 	const int LEASESET_REQUEST_TIMEOUT = 1200; // in milliseconds
 	const int MAX_LEASESET_REQUEST_TIMEOUT = 17000; // in milliseconds
 	const int DESTINATION_CLEANUP_TIMEOUT = 44; // in seconds
@@ -260,6 +261,7 @@ namespace client
 
 			void Start () override;
 			void Stop () override;
+			void StopInternal (); // the teardown itself, always on the destination's thread
 
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
 			void SetPrivateKeys (const i2p::data::PrivateKeys& keys);
