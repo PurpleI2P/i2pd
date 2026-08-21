@@ -143,10 +143,12 @@ namespace torrents
 
 	std::string JSONRPCHandler::HandleSessionGet (boost::json::object&& jsonRequest)
 	{
-		//todo // заглушка
+		//todo // заглушка. наебываем систему тут, переделать потом на норм
 		boost::json::object response, arguments;
 		response["result"] = "success";
-		arguments["version"] = "4.0.0";
+		response["version"] = "4.0.0";
+		response["rpc-version"] = 17;
+		arguments["version"] = "4.0.0"; // не нужно наверно
 		response["arguments"] = arguments;
 		response["tag"] = 0;
 		return SuccessResponse (GetTag (jsonRequest), std::move (response));
@@ -444,8 +446,10 @@ namespace torrents
 					else
 						SendResponse (boost::beast::http::status::no_content);
 				}
-				else
+				else {
+					LogPrint(eLogDebug, "TorrentRPC ", path, " not found ", tunnel);
 					SendResponse (boost::beast::http::status::not_found);
+				}
 			}
 			else
 				SendResponse (boost::beast::http::status::method_not_allowed);
