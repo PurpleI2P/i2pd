@@ -54,7 +54,8 @@ namespace torrents
 			std::string HandleTorrrentAdd (boost::json::object&& jsonRequest);
 			std::string HandleTorrrentRemove (boost::json::object&& jsonRequest);
 			std::string HandleTorrrentGet (boost::json::object&& jsonRequest);
-
+			// https://github.com/transmission/transmission/blob/main/docs/rpc-spec.md#2-message-format
+			std::string HandleSessionGet (boost::json::object&& jsonRequest); // for transmission-rpc library
 		private:
 
 			std::shared_ptr<TorrentsTunnel> m_Tunnel;
@@ -124,6 +125,8 @@ namespace torrents
 				return HandleTorrrentRemove (std::move (jsonRequest));
 			else if (method == "torrent-get")
 				return HandleTorrrentGet (std::move (jsonRequest));
+			else if (method == "session-get")
+				return HandleSessionGet( std::move (jsonRequest));
 			else
 			{
 				LogPrint (eLogInfo, "TorrentsRPC: Method not found ", method);
@@ -138,6 +141,16 @@ namespace torrents
 		return "";
 	}
 
+	std::string JSONRPCHandler::HandleSessionGet (boost::json::object&& jsonRequest)
+	{
+		//todo // заглушка
+		boost::json::object response, arguments;
+		response["result"] = "success";
+		arguments["version"] = "4.0.0";
+		response["arguments"] = arguments;
+		response["tag"] = 0;
+		return SuccessResponse (GetTag (jsonRequest), std::move (response));
+	}
 	std::string JSONRPCHandler::HandleTorrrentAdd (boost::json::object&& jsonRequest)
 	{
 		auto arguments = jsonRequest.at ("arguments").as_object ();
