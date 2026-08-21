@@ -46,7 +46,6 @@ namespace torrents
 			std::string ResultResponse (int64_t id, boost::json::object&& result);
 			std::string ErrorResponse (JSONRPCErrorCode errorCode, int64_t id, std::string_view message);
 			int64_t GetTag (boost::json::object& jsonRequest) const;
-			std::string GetNewFieldName (std::string_view fieldName) const;
 			static boost::json::value GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent);
 			boost::json::array GetPeers (std::shared_ptr<Torrent> torrent);
 			static std::string_view RecognizeClientByPeerID (const PeerConnection::PeerID& peerID);
@@ -96,21 +95,6 @@ namespace torrents
 		if (jsonRequest.contains ("tag"))
 			return jsonRequest.at ("tag").as_int64 ();
 		return 0;
-	}
-
-	std::string JSONRPCHandler::GetNewFieldName (std::string_view fieldName) const
-	{
-		std::string newFieldName;
-		newFieldName.reserve (fieldName.length ());
-		for (auto it: fieldName)
-			if (std::isupper (it))
-			{
-				newFieldName.push_back ('_');
-				newFieldName.push_back (std::tolower (it));
-			}
-			else
-				newFieldName.push_back (it);
-		return newFieldName;
 	}
 
 	std::string JSONRPCHandler::HandleRequest (std::string_view request)
@@ -245,7 +229,7 @@ namespace torrents
 					{
 						auto fieldValue = GetFieldValue (field.as_string (), torrent);
 						if (!fieldValue.is_null ())
-							t[GetNewFieldName (field.as_string ())] = fieldValue;
+							t[field.as_string ()] = fieldValue;
 					}
 				}
 				torrents.push_back (t);
@@ -296,7 +280,7 @@ namespace torrents
 						boost::json::object file;
 						file["name"] = torrent->GetFullPath ().string ();
 						file["length"] = torrent->GetLength ();
-						file["bytes_completed"] = torrent->GetLength () - torrent->GetLeft ();
+						file["bytesCompleted"] = torrent->GetLength () - torrent->GetLeft ();
 						files.push_back (file);
 					}
 					else
@@ -305,7 +289,7 @@ namespace torrents
 							boost::json::object file;
 							file["name"] = filePath.string ();
 							file["length"] = fileSize;
-							file["bytes_completed"] = 0; // TODO:
+							file["bytesCompleted"] = 0; // TODO:
 							files.push_back (file);
 						}
 					return files;
@@ -364,17 +348,17 @@ namespace torrents
 				if (isIncoming) flags.push_back ('I');
 				peer["address"] = stream ? stream->GetRemoteIdentity ()->GetIdentHash ().ToBase64 ().substr (0,4) : "";
 				peer["port"] = TORRENT_PORT;
-				peer["client_name"] = RecognizeClientByPeerID (it->GetRemotePeerID ());
-				peer["is_dowloading_from"] = it->IsDownloading ();
-				peer["is_uploading_to"] = it->IsUploading ();
-				peer["rate_to_client"] = it->GetDownloadRate ();
-				peer["rate_to_peer"] = it->GetUploadRate ();
-				peer["is_incoming"] = isIncoming;
-				peer["client_is_choked"] = it->IsChoked ();
-				peer["peer_is_choked"] = it->IsRemoteChoked ();
-				peer["client_is_intersted"] = it->IsInterested ();
-				peer["peer_is_interested"] = it->IsRemoteInterested ();
-				peer["flag_str"] = flags;
+				peer["clientName"] = RecognizeClientByPeerID (it->GetRemotePeerID ());
+				peer["isDowloadingFrom"] = it->IsDownloading ();
+				peer["isUploading_to"] = it->IsUploading ();
+				peer["rateToClient"] = it->GetDownloadRate ();
+				peer["rateToPeer"] = it->GetUploadRate ();
+				peer["isIncoming"] = isIncoming;
+				peer["clientIsChoked"] = it->IsChoked ();
+				peer["peerIsChoked"] = it->IsRemoteChoked ();
+				peer["clientIsIntersted"] = it->IsInterested ();
+				peer["peerIsInterested"] = it->IsRemoteInterested ();
+				peer["flagStr"] = flags;
 				peer["progress"] = 0.5; // TODO:
 				peers.push_back (peer);
 			}
