@@ -659,8 +659,9 @@ namespace torrents
 		}
 	}
 
-	PeerConnection::PeerConnection (std::shared_ptr<i2p::client::I2PService> owner,  std::shared_ptr<i2p::stream::Stream> stream):
-		i2p::client::I2PServiceHandler (owner), m_Stream (stream), m_ReceiveBufferOffset (0),
+	PeerConnection::PeerConnection (std::shared_ptr<i2p::client::I2PService> owner,
+		std::shared_ptr<i2p::stream::Stream> stream): i2p::client::I2PServiceHandler (owner),
+		m_Stream (stream), m_ReceiveBufferOffset (0), m_NextMsgLength (0),
 		m_IsHandshakeSent (false), m_IsEstablished (false), m_IsChoked (true), m_IsRemoteChoked (true),
 		m_IsInterested (false), m_IsRemoteInterested (false), m_LastReceiveTime (0), m_LastSendTime (0),
 		m_NumRequests (0), m_NumPieces (0), m_LastRequestedPieceIndex (-1)
@@ -843,7 +844,7 @@ namespace torrents
 		{
 			if (ecode != boost::asio::error::operation_aborted)
 			{
-				LogPrint (eLogError, "Torrents: Stream read error: ", ecode.message ());
+				LogPrint (eLogInfo, "Torrents: Stream read error: ", ecode.message ());
 				if (bytes_transferred > 0)
 				{
 					m_ReceiveBufferOffset += bytes_transferred;
@@ -869,6 +870,7 @@ namespace torrents
 	void PeerConnection::HandleReceived ()
 	{
 		m_LastReceiveTime = i2p::util::GetMonotonicSeconds ();
+		if (m_NextMsgLength > 0 && m_ReceiveBufferOffset < m_NextMsgLength) return; // not enough received
 		size_t offset = 0;
 		while (size_t len = HandleNextMsg (offset))
 			offset += len;
@@ -882,20 +884,35 @@ namespace torrents
 				memmove (m_ReceiveBuffer, m_ReceiveBuffer + offset, m_ReceiveBufferOffset);
 			}
 			else
+			{
 				m_ReceiveBufferOffset = 0;
+				m_NextMsgLength = 0;
+			}
 		}
 	}
 
 	size_t PeerConnection::HandleNextMsg (size_t offset)
 	{
-		if (offset >= m_ReceiveBufferOffset) return 0;
+		if (offset >= m_ReceiveBufferOffset)
+		{
+			LogPrint (eLogError, "Torrents: Start of message ", offset, " is beyond received buffer ", m_ReceiveBufferOffset);
+			return 0;
+		}
 		if (!m_IsEstablished)
 			return HandleHandshakeMsg ();
 		// regular messages
 		size_t len = m_ReceiveBufferOffset - offset;
-		if (len < 4) return 0;
+		if (len < 4)
+		{
+			m_NextMsgLength = 0;
+			return 0;
+		}
 		uint32_t msgLen = bufbe32toh (m_ReceiveBuffer + offset);
-		if (len < msgLen + 4) return 0;
+		if (len < msgLen + 4)
+		{
+			m_NextMsgLength = msgLen + 4;
+			return 0;
+		}
 		offset += 4;
 		if (msgLen >= 1)
 		{

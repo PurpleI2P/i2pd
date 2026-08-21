@@ -316,7 +316,7 @@ namespace torrents
 
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
 			uint8_t m_ReceiveBuffer[PEER_CONNECTION_RECEIVE_BUFFER_SIZE];
-			size_t m_ReceiveBufferOffset;
+			size_t m_ReceiveBufferOffset, m_NextMsgLength;
 			std::shared_ptr<Torrent> m_Torrent;
 			PeerID m_RemotePeerID;
 			boost::dynamic_bitset<> m_RemoteBitfield;
