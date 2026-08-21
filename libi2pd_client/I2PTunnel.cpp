@@ -31,20 +31,22 @@ namespace client
 		}
 	}
 
-	I2PTunnelConnection::I2PTunnelConnection (I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
+	I2PTunnelConnection::I2PTunnelConnection (std::shared_ptr<I2PService> owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
 		std::shared_ptr<const i2p::data::LeaseSet> leaseSet, uint16_t port):
 		I2PServiceHandler(owner), m_Socket (socket), m_IsReceiving (false)
 	{
-		m_Stream = GetOwner()->GetLocalDestination ()->CreateStream (leaseSet, port);
+		auto service = GetOwner ();
+		if (service)
+			m_Stream = service->GetLocalDestination ()->CreateStream (leaseSet, port);
 	}
 
-	I2PTunnelConnection::I2PTunnelConnection (I2PService * owner,
+	I2PTunnelConnection::I2PTunnelConnection (std::shared_ptr<I2PService> owner,
 		std::shared_ptr<boost::asio::ip::tcp::socket> socket, std::shared_ptr<i2p::stream::Stream> stream):
 		I2PServiceHandler(owner), m_Socket (socket), m_Stream (stream), m_IsReceiving (false)
 	{
 	}
 
-	I2PTunnelConnection::I2PTunnelConnection (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
+	I2PTunnelConnection::I2PTunnelConnection (std::shared_ptr<I2PService> owner, std::shared_ptr<i2p::stream::Stream> stream,
 		const boost::asio::ip::tcp::endpoint& target,std::shared_ptr<boost::asio::ssl::context> sslCtx):
 		I2PServiceHandler(owner), m_Stream (stream), m_RemoteEndpoint (target), m_IsReceiving (false)
 	{
@@ -266,7 +268,8 @@ namespace client
 					else
 						s->Terminate ();
 				});
-			GetOwner ()->UpdateLastActivityTime ();
+			auto owner = GetOwner ();
+			if (owner) owner->UpdateLastActivityTime ();
 		}
 	}
 
@@ -338,7 +341,8 @@ namespace client
 		else
 			boost::asio::async_write (*m_Socket, boost::asio::buffer (buf, len), boost::asio::transfer_all (),
 				std::bind (&I2PTunnelConnection::HandleWrite, shared_from_this (), std::placeholders::_1));
-		GetOwner ()->UpdateLastActivityTime ();
+		auto owner = GetOwner ();
+		if (owner) owner->UpdateLastActivityTime ();
 	}
 
 	void I2PTunnelConnection::HandleConnect (const boost::system::error_code& ecode)
@@ -446,7 +450,7 @@ namespace client
 		}
 	}
 
-	I2PServerTunnelConnectionHTTP::I2PServerTunnelConnectionHTTP (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
+	I2PServerTunnelConnectionHTTP::I2PServerTunnelConnectionHTTP (std::shared_ptr<I2PService> owner, std::shared_ptr<i2p::stream::Stream> stream,
 		const boost::asio::ip::tcp::endpoint& target, const std::string& host, const std::string& XI2P,
 	    std::shared_ptr<boost::asio::ssl::context> sslCtx):
 		I2PTunnelConnection (owner, stream, target, sslCtx), m_Host (host), m_XI2P (XI2P),
@@ -597,7 +601,7 @@ namespace client
 		}
 	}
 
-	I2PTunnelConnectionIRC::I2PTunnelConnectionIRC (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
+	I2PTunnelConnectionIRC::I2PTunnelConnectionIRC (std::shared_ptr<I2PService> owner, std::shared_ptr<i2p::stream::Stream> stream,
 		const boost::asio::ip::tcp::endpoint& target, const std::string& webircpass,
 	    std::shared_ptr<boost::asio::ssl::context> sslCtx):
 		I2PTunnelConnection (owner, stream, target, sslCtx), m_From (stream->GetRemoteIdentity ()),
@@ -650,7 +654,7 @@ namespace client
 	class I2PClientTunnelHandler: public I2PServiceHandler, public std::enable_shared_from_this<I2PClientTunnelHandler>
 	{
 		public:
-			I2PClientTunnelHandler (I2PClientTunnel * parent, std::shared_ptr<const Address> address,
+			I2PClientTunnelHandler (std::shared_ptr<I2PService> parent, std::shared_ptr<const Address> address,
 				uint16_t destinationPort, std::shared_ptr<boost::asio::ip::tcp::socket> socket):
 				I2PServiceHandler(parent), m_Address(address),
 				m_DestinationPort (destinationPort), m_Socket(socket) {};
@@ -665,8 +669,10 @@ namespace client
 
 	void I2PClientTunnelHandler::Handle()
 	{
-		GetOwner ()->UpdateLastActivityTime ();
-		GetOwner()->CreateStream (
+		auto owner = GetOwner ();
+		if (!owner) return;
+		owner->UpdateLastActivityTime ();
+		owner->CreateStream (
 			std::bind (&I2PClientTunnelHandler::HandleStreamRequestComplete, shared_from_this(), std::placeholders::_1),
 			m_Address, m_DestinationPort);
 	}
@@ -679,8 +685,10 @@ namespace client
 			if (m_Socket && m_Socket->is_open ())
 			{
 				LogPrint (eLogDebug, "I2PTunnel: New connection");
-				auto connection = std::make_shared<I2PTunnelConnection>(GetOwner(), m_Socket, stream);
-				GetOwner()->AddHandler (connection);
+				auto owner = GetOwner ();
+				if (!owner) { Done (shared_from_this ()); return; }
+				auto connection = std::make_shared<I2PTunnelConnection>(owner, m_Socket, stream);
+				owner->AddHandler (connection);
 				connection->I2PConnect ();
 				Done(shared_from_this());
 			}
@@ -772,7 +780,7 @@ namespace client
 	{
 		auto address = GetAddress ();
 		if (address)
-			return std::make_shared<I2PClientTunnelHandler>(this, address, m_DestinationPort, socket);
+			return std::make_shared<I2PClientTunnelHandler>(shared_from_this (), address, m_DestinationPort, socket);
 		else
 			return nullptr;
 	}
@@ -993,7 +1001,7 @@ namespace client
 
 	std::shared_ptr<I2PTunnelConnection> I2PServerTunnel::CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream)
 	{
-		return std::make_shared<I2PTunnelConnection> (this, stream, GetEndpoint (), m_SSLCtx);
+		return std::make_shared<I2PTunnelConnection> (shared_from_this (), stream, GetEndpoint (), m_SSLCtx);
 
 	}
 
@@ -1017,7 +1025,7 @@ namespace client
 			ss << X_I2P_DEST_B64 << ": " << from->ToBase64 () << "\r\n";
 			m_XI2P = ss.str ();
 		}
-		return std::make_shared<I2PServerTunnelConnectionHTTP> (this, stream, GetEndpoint (), m_Host, m_XI2P, GetSSLCtx ());
+		return std::make_shared<I2PServerTunnelConnectionHTTP> (shared_from_this (), stream, GetEndpoint (), m_Host, m_XI2P, GetSSLCtx ());
 	}
 
 	I2PServerTunnelIRC::I2PServerTunnelIRC (const std::string& name, const std::string& address,
@@ -1030,7 +1038,7 @@ namespace client
 
 	std::shared_ptr<I2PTunnelConnection> I2PServerTunnelIRC::CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream)
 	{
-		return std::make_shared<I2PTunnelConnectionIRC> (this, stream, GetEndpoint (), m_WebircPass, GetSSLCtx ());
+		return std::make_shared<I2PTunnelConnectionIRC> (shared_from_this (), stream, GetEndpoint (), m_WebircPass, GetSSLCtx ());
 	}
 }
 }

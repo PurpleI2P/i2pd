@@ -126,13 +126,13 @@ namespace proxy
 
 		public:
 
-			HTTPReqHandler(HTTPProxy * parent, std::shared_ptr<boost::asio::ip::tcp::socket> sock) :
+			HTTPReqHandler(std::shared_ptr<i2p::client::I2PService> parent, std::shared_ptr<boost::asio::ip::tcp::socket> sock) :
 				I2PServiceHandler(parent), m_sock(sock),
 				m_proxysock(std::make_shared<boost::asio::ip::tcp::socket>(parent->GetService())),
 				m_proxy_resolver(parent->GetService()),
-				m_OutproxyUrl(parent->GetOutproxyURL()),
-				m_Addresshelper(parent->GetHelperSupport()),
-				m_SendUserAgent (parent->GetSendUserAgent ()) {}
+				m_OutproxyUrl(std::static_pointer_cast<HTTPProxy>(parent)->GetOutproxyURL()),
+				m_Addresshelper(std::static_pointer_cast<HTTPProxy>(parent)->GetHelperSupport()),
+				m_SendUserAgent (std::static_pointer_cast<HTTPProxy>(parent)->GetSendUserAgent ()) {}
 			~HTTPReqHandler() { Terminate(); }
 			void Handle () { AsyncSockRead(); } /* overload */
 	};
@@ -567,8 +567,10 @@ namespace proxy
 		m_send_buf.append(m_recv_buf);
 		/* connect to destination */
 		LogPrint(eLogDebug, "HTTPProxy: Connecting to host ", dest_host, ":", dest_port);
-		GetOwner ()->UpdateLastActivityTime ();
-		GetOwner()->CreateStream (std::bind (&HTTPReqHandler::HandleStreamRequestComplete,
+		auto owner = GetOwner ();
+		if (!owner) return true;
+		owner->UpdateLastActivityTime ();
+		owner->CreateStream (std::bind (&HTTPReqHandler::HandleStreamRequestComplete,
 			shared_from_this(), std::placeholders::_1), dest_host, dest_port);
 		return true;
 	}
@@ -611,8 +613,10 @@ namespace proxy
 				m_send_buf = m_ClientRequest.to_string();
 				m_recv_buf.erase(0, m_req_len);
 				m_send_buf.append(m_recv_buf);
-				GetOwner()->CreateStream (std::bind (&HTTPReqHandler::HandleStreamRequestComplete,
-					shared_from_this(), std::placeholders::_1), m_ProxyURL.host, m_ProxyURL.port);
+				auto owner = GetOwner ();
+				if (owner)
+					owner->CreateStream (std::bind (&HTTPReqHandler::HandleStreamRequestComplete,
+						shared_from_this(), std::placeholders::_1), m_ProxyURL.host, m_ProxyURL.port);
 			}
 			else
 			{
@@ -677,10 +681,12 @@ namespace proxy
 	void HTTPReqHandler::HandoverToUpstreamProxy()
 	{
 		LogPrint(eLogDebug, "HTTPProxy: Handover to SOCKS proxy");
-		auto connection = CreateSocketsPipe (GetOwner(), m_proxysock, m_sock);
+		auto owner = GetOwner ();
+		if (!owner) { Terminate (); return; }
+		auto connection = CreateSocketsPipe (owner, m_proxysock, m_sock);
 		m_sock = nullptr;
 		m_proxysock = nullptr;
-		GetOwner()->AddHandler(connection);
+		owner->AddHandler(connection);
 		connection->Start();
 		Terminate();
 	}
@@ -688,9 +694,13 @@ namespace proxy
 	void HTTPReqHandler::HTTPConnect(std::string_view host, uint16_t port)
 	{
 		LogPrint(eLogDebug, "HTTPProxy: CONNECT ",host, ":", port);
+		auto owner = GetOwner ();
 		if(str_rmatch(host, ".i2p"))
-			GetOwner()->CreateStream (std::bind (&HTTPReqHandler::HandleHTTPConnectStreamRequestComplete,
-				shared_from_this(), std::placeholders::_1), host, port);
+		{
+			if (owner)
+				owner->CreateStream (std::bind (&HTTPReqHandler::HandleHTTPConnectStreamRequestComplete,
+					shared_from_this(), std::placeholders::_1), host, port);
+		}
 		else
 			ForwardToUpstreamProxy();
 	}
@@ -705,8 +715,10 @@ namespace proxy
 				m_ClientResponse.status = "OK";
 				m_send_buf = m_ClientResponse.to_string();
 				m_sock->send(boost::asio::buffer(m_send_buf));
-				auto connection = std::make_shared<i2p::client::I2PTunnelConnection>(GetOwner(), m_sock, stream);
-				GetOwner()->AddHandler(connection);
+				auto owner = GetOwner ();
+				if (!owner) { Terminate (); return; }
+				auto connection = std::make_shared<i2p::client::I2PTunnelConnection>(owner, m_sock, stream);
+				owner->AddHandler(connection);
 				connection->I2PConnect();
 			}
 			else
@@ -785,8 +797,10 @@ namespace proxy
 		if (Kill())
 			return;
 		LogPrint (eLogDebug, "HTTPProxy: Created new I2PTunnel stream, sSID=", stream->GetSendStreamID(), ", rSID=", stream->GetRecvStreamID());
-		auto connection = std::make_shared<i2p::client::I2PClientTunnelConnectionHTTP>(GetOwner(), m_sock, stream);
-		GetOwner()->AddHandler (connection);
+		auto owner = GetOwner ();
+		if (!owner) { Done (shared_from_this()); return; }
+		auto connection = std::make_shared<i2p::client::I2PClientTunnelConnectionHTTP>(owner, m_sock, stream);
+		owner->AddHandler (connection);
 		connection->I2PConnect (reinterpret_cast<const uint8_t*>(m_send_buf.data()), m_send_buf.length());
 		Done (shared_from_this());
 	}
@@ -812,7 +826,7 @@ namespace proxy
 
 	std::shared_ptr<i2p::client::I2PServiceHandler> HTTPProxy::CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket)
 	{
-		return std::make_shared<HTTPReqHandler> (this, socket);
+		return std::make_shared<HTTPReqHandler> (shared_from_this (), socket);
 	}
 } // http
 } // i2p

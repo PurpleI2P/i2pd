@@ -128,7 +128,7 @@ namespace proxy
 			void HandleSockRecv(const boost::system::error_code & ecode, std::size_t bytes_transfered);
 			void Terminate();
 			void AsyncSockRead();
-			SOCKSServer * GetServer () { return (SOCKSServer *)GetOwner (); };
+			std::shared_ptr<SOCKSServer> GetServer () { return std::static_pointer_cast<SOCKSServer>(GetOwner ()); };
 			boost::asio::const_buffer GenerateSOCKS4Response(errTypes error, uint32_t ip, uint16_t port);
 			boost::asio::const_buffer GenerateSOCKS5Response(errTypes error, addrTypes type, const address &addr, uint16_t port);
 			bool Socks5ChooseAuth();
@@ -179,7 +179,7 @@ namespace proxy
 
 		public:
 
-			SOCKSHandler(SOCKSServer * parent, std::shared_ptr<boost::asio::ip::tcp::socket> sock, const std::string & upstreamAddr, const uint16_t upstreamPort, const bool useUpstream) :
+			SOCKSHandler(std::shared_ptr<i2p::client::I2PService> parent, std::shared_ptr<boost::asio::ip::tcp::socket> sock, const std::string & upstreamAddr, const uint16_t upstreamPort, const bool useUpstream) :
 				I2PServiceHandler(parent),
 				m_proxy_resolver(parent->GetService()),
 				m_sock(sock), m_stream(nullptr),
@@ -363,7 +363,9 @@ namespace proxy
 				}
 				else
 				{
-					auto s = i2p::client::context.GetAddressBook().ToAddress(GetOwner()->GetLocalDestination()->GetIdentHash());
+					auto owner = GetOwner ();
+					if (!owner) { Terminate (); return; }
+					auto s = i2p::client::context.GetAddressBook().ToAddress(owner->GetLocalDestination()->GetIdentHash());
 					address ad; ad.dns.SetString(s);
 					// HACK only 16 bits passed in port as SOCKS5 doesn't allow for more
 					response = GenerateSOCKS5Response(SOCKS5_OK, ADDR_DNS, ad, m_stream ? (uint16_t)m_stream->GetRecvStreamID() : 0);
@@ -672,7 +674,9 @@ namespace proxy
 				{
 					// resolve to 255.x.x.x address
 					LogPrint(eLogInfo, "SOCKS: Resolve ", addr);
-					boost::asio::post (GetOwner ()->GetService (), [this, addr](void)
+					auto owner = GetOwner ();
+					if (!owner) { Terminate (); return; }
+					boost::asio::post (owner->GetService (), [this, addr](void)
 						{
 							address ad;
 							ad.ip = GetServer ()->ResolveAddress (addr).to_uint();
@@ -691,21 +695,29 @@ namespace proxy
 					switch (m_cmd)
 					{
 						case CMD_CONNECT:
+						{
 							//make an i2p session
-							GetOwner ()->UpdateLastActivityTime ();
-							GetOwner()->CreateStream ( std::bind (&SOCKSHandler::HandleStreamRequestComplete,
+							auto owner = GetOwner ();
+							if (!owner) { Terminate (); return; }
+							owner->UpdateLastActivityTime ();
+							owner->CreateStream ( std::bind (&SOCKSHandler::HandleStreamRequestComplete,
 								shared_from_this(), std::placeholders::_1), addr, m_port);
+						}
 						break;
 						case CMD_UDP:
+						{
 							// create UDP client tunnel
 							LogPrint (eLogInfo, "SOCKS: New UDP associate connection");
+							auto owner = GetOwner ();
+							if (!owner) { Terminate (); return; }
 							m_UDPTunnel = std::make_unique<i2p::client::I2PUDPClientTunnel>("", addr,
 								GetServer ()->GetNextLocalUDPEndpoint (),
-							    GetOwner ()->GetLocalDestination (), m_port, false, i2p::datagram::eDatagramV3);
-							boost::asio::post (GetOwner ()->GetService (), [this](void)
+							    owner->GetLocalDestination (), m_port, false, i2p::datagram::eDatagramV3);
+							boost::asio::post (owner->GetService (), [this](void)
 								{
 									SocksRequestSuccess();
 								});
+						}
 						break;
 						default: ;
 					}
@@ -739,8 +751,10 @@ namespace proxy
 				if (m_sock && m_sock->is_open ())
 				{
 					LogPrint (eLogInfo, "SOCKS: New I2PTunnel connection");
-					auto connection = std::make_shared<i2p::client::I2PTunnelConnection>(GetOwner(), m_sock, m_stream);
-					GetOwner()->AddHandler (connection);
+					auto owner = GetOwner ();
+					if (!owner) { Terminate (); return; }
+					auto connection = std::make_shared<i2p::client::I2PTunnelConnection>(owner, m_sock, m_stream);
+					owner->AddHandler (connection);
 					connection->I2PConnect (m_remaining_data,m_remaining_data_len);
 					Done(shared_from_this());
 				}
@@ -802,7 +816,9 @@ namespace proxy
 		{
 #if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
 			EnterState(UPSTREAM_CONNECT);
-			m_upstreamLocalSock = std::make_shared<boost::asio::local::stream_protocol::socket>(GetOwner()->GetService());
+			auto owner = GetOwner ();
+			if (!owner) { Terminate (); return; }
+			m_upstreamLocalSock = std::make_shared<boost::asio::local::stream_protocol::socket>(owner->GetService());
 			auto s = shared_from_this ();
 			m_upstreamLocalSock->async_connect(m_UpstreamProxyAddress,
 			    [s](const boost::system::error_code& ecode)
@@ -855,10 +871,12 @@ namespace proxy
 			break;
 		}
 		m_sock->send(response);
-		auto forwarder = CreateSocketsPipe (GetOwner(), m_sock, upstreamSock);
+		auto owner = GetOwner ();
+		if (!owner) { Terminate (); return; }
+		auto forwarder = CreateSocketsPipe (owner, m_sock, upstreamSock);
 		upstreamSock = nullptr;
 		m_sock = nullptr;
-		GetOwner()->AddHandler(forwarder);
+		owner->AddHandler(forwarder);
 		forwarder->Start();
 		Terminate();
 	}
@@ -929,7 +947,9 @@ namespace proxy
 		}
 		LogPrint(eLogInfo, "SOCKS: Upstream proxy resolved");
 		EnterState(UPSTREAM_CONNECT);
-		auto & service = GetOwner()->GetService();
+		auto owner = GetOwner ();
+		if (!owner) { Terminate (); return; }
+		auto & service = owner->GetService();
 		m_upstreamSock = std::make_shared<boost::asio::ip::tcp::socket>(service);
 		boost::asio::async_connect(*m_upstreamSock, endpoints,
 			std::bind(&SOCKSHandler::HandleUpstreamConnected,
@@ -948,7 +968,7 @@ namespace proxy
 
 	std::shared_ptr<i2p::client::I2PServiceHandler> SOCKSServer::CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket)
 	{
-		return std::make_shared<SOCKSHandler> (this, socket, m_UpstreamProxyAddress, m_UpstreamProxyPort, m_UseUpstreamProxy);
+		return std::make_shared<SOCKSHandler> (shared_from_this (), socket, m_UpstreamProxyAddress, m_UpstreamProxyPort, m_UseUpstreamProxy);
 	}
 
 	void SOCKSServer::SetUpstreamProxy(const std::string & addr, const uint16_t port)

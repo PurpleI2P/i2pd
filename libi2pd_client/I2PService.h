@@ -118,7 +118,7 @@ namespace client
 	{
 		public:
 
-			I2PServiceHandler(I2PService * parent) : m_Service(parent)
+			I2PServiceHandler(std::shared_ptr<I2PService> parent) : m_Service(parent)
 #if __cplusplus < 202002L // C++20
 				, m_Dead ATOMIC_FLAG_INIT // {0}
 #endif
@@ -135,13 +135,15 @@ namespace client
 			// Call when terminating or handing over to avoid race conditions
 			inline bool Kill () { return m_Dead.test_and_set (); }
 			// Call when done to clean up (make sure Kill is called first)
-			inline void Done (std::shared_ptr<I2PServiceHandler> me) { if(m_Service) m_Service->RemoveHandler(me); }
+			inline void Done (std::shared_ptr<I2PServiceHandler> me) { auto owner = GetOwner (); if (owner) owner->RemoveHandler (me); }
 			// Call to talk with the owner
-			inline I2PService * GetOwner() const { return m_Service; }
+			// the owner may be destroyed while a handler is still working on
+			// another thread, so it is only reachable through a weak pointer
+			inline std::shared_ptr<I2PService> GetOwner () const { return m_Service.lock (); }
 
 		private:
 
-			I2PService * m_Service;
+			std::weak_ptr<I2PService> m_Service;
 			std::atomic_flag m_Dead; //To avoid cleaning up multiple times
 	};
 
@@ -154,7 +156,7 @@ namespace client
 	{
 		public:
 
-			SocketsPipe(I2PService * owner, std::shared_ptr<SocketUpstream> upstream, std::shared_ptr<SocketDownstream> downstream):
+			SocketsPipe(std::shared_ptr<I2PService> owner, std::shared_ptr<SocketUpstream> upstream, std::shared_ptr<SocketDownstream> downstream):
 				I2PServiceHandler(owner), m_up(upstream), m_down(downstream)
 			{
 				try
@@ -240,7 +242,7 @@ namespace client
 	};
 
 	template<typename SocketUpstream, typename SocketDownstream>
-	std::shared_ptr<I2PServiceHandler> CreateSocketsPipe (I2PService * owner, std::shared_ptr<SocketUpstream> upstream, std::shared_ptr<SocketDownstream> downstream)
+	std::shared_ptr<I2PServiceHandler> CreateSocketsPipe (std::shared_ptr<I2PService> owner, std::shared_ptr<SocketUpstream> upstream, std::shared_ptr<SocketDownstream> downstream)
 	{
 		return std::make_shared<SocketsPipe<SocketUpstream, SocketDownstream> >(owner, upstream, downstream);
 	}
