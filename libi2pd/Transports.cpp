@@ -175,7 +175,7 @@ namespace transport
 		m_InBandwidth (0), m_OutBandwidth (0), m_TransitBandwidth (0),
 		m_InBandwidth15s (0), m_OutBandwidth15s (0), m_TransitBandwidth15s (0),
 		m_InBandwidth5m (0), m_OutBandwidth5m (0), m_TransitBandwidth5m (0),
-		m_Rng(i2p::util::GetMonotonicMicroseconds () % 1000000LL)
+		m_Rng(i2p::util::GetRngSeed ())
 	{
 	}
 

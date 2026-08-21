@@ -25,7 +25,7 @@ namespace transport
 		m_TerminationTimer (GetService ()), m_CleanupTimer (GetService ()), m_ResendTimer (GetService ()),
 		m_IntroducersUpdateTimer (GetService ()), m_IntroducersUpdateTimerV6 (GetService ()),
 		m_IsPublished (true), m_IsSyncClockFromPeers (true), m_PendingTimeOffset (0),
-		m_Rng(i2p::util::GetMonotonicMicroseconds ()%1000000LL), m_IsForcedFirewalled4 (false),
+		m_Rng(i2p::util::GetRngSeed ()), m_IsForcedFirewalled4 (false),
 		m_IsForcedFirewalled6 (false), m_Version (2), m_IsThroughProxy (false)
 	{
 	}

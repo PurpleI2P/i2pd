@@ -18,6 +18,7 @@
 #include <thread>
 #include <utility>
 #include <charconv>
+#include <cstdint>
 #include <boost/asio.hpp>
 
 #ifdef ANDROID
@@ -332,6 +333,8 @@ namespace util
 
 			const decltype(m_Options)& GetOptions () const { return m_Options; }
 	};
+
+	uint_fast32_t GetRngSeed ();
 
 	namespace net
 	{

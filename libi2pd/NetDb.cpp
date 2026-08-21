@@ -41,7 +41,7 @@ namespace data
 	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr),
 		m_Storage("netDb", "r", "routerInfo-", "dat"), m_PersistProfiles (true),
 		m_NetDbPersistInterval (NETDB_MIN_PERSIST_INTERVAL*1000LL),
-		m_LastExploratorySelectionUpdateTime (0), m_Rng(i2p::util::GetMonotonicMicroseconds () % 1000000LL)
+		m_LastExploratorySelectionUpdateTime (0), m_Rng(i2p::util::GetRngSeed ())
 	{
 	}
 

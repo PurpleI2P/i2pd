@@ -1727,10 +1727,8 @@ namespace transport
 
 	NTCP2Server::NTCP2Server ():
 		RunnableServiceWithWork ("NTCP2"), m_TerminationTimer (GetService ()),
-		m_ProxyType(eNoProxy), m_Resolver(GetService ()),
-		m_Rng(i2p::util::GetMonotonicMicroseconds ()%1000000LL),
-		m_EstablisherService (m_Rng ()),
-		m_Version (2)
+		m_ProxyType(eNoProxy), m_Resolver(GetService ()), m_Rng(i2p::util::GetRngSeed ()),
+		m_EstablisherService (m_Rng ()), m_Version (2)
 	{
 	}
 

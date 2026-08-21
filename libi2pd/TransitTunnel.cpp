@@ -198,7 +198,7 @@ namespace tunnel
 	}
 
 	TransitTunnels::TransitTunnels ():
-		m_IsRunning (false), m_Rng(i2p::util::GetMonotonicMicroseconds ()%1000000LL)
+		m_IsRunning (false), m_Rng(i2p::util::GetRngSeed ())
 	{
 	}
 

@@ -134,7 +134,7 @@ namespace data
 		int reseedAttempts = std::min (numReseeds, MAX_NUM_RESEED_ATTEMPTS);
 		if (reseedAttempts)
 		{
-			std::mt19937 rng(i2p::util::GetMonotonicMicroseconds () % 1000000LL);
+			std::mt19937 rng(i2p::util::GetRngSeed ());
 			for (int i = 0; i < reseedAttempts; i++)
 			{
 				auto ind = rng () % numReseeds;

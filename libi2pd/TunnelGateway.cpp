@@ -12,7 +12,7 @@
 #include "Log.h"
 #include "RouterContext.h"
 #include "Transports.h"
-#include "Timestamp.h"
+#include "util.h"
 #include "TunnelGateway.h"
 
 namespace i2p
@@ -178,7 +178,7 @@ namespace tunnel
 		m_CurrentTunnelDataMsg->offset = m_CurrentTunnelDataMsg->len - TUNNEL_DATA_MSG_SIZE - I2NP_HEADER_SIZE;
 		uint8_t * buf = m_CurrentTunnelDataMsg->GetPayload ();
 		// original IV (16 bytes)
-		if (!m_Rng) m_Rng = std::make_unique<std::mt19937>(i2p::util::GetMonotonicMicroseconds ()%1000000LL);
+		if (!m_Rng) m_Rng = std::make_unique<std::mt19937>(i2p::util::GetRngSeed ());
 		for (size_t offset = 4; offset < 20; offset += 4)
 			htobuf32 (buf + offset, (*m_Rng)());
 		memcpy (payload + size, buf + 4, 16); // copy IV for checksum

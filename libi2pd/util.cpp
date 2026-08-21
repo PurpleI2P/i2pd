@@ -15,6 +15,7 @@
 #include "util.h"
 #include "Log.h"
 #include "I2PEndian.h"
+#include "Timestamp.h"
 
 #if !defined (__FreeBSD__) && !defined(_MSC_VER)
 #include <pthread.h>
@@ -360,6 +361,11 @@ namespace util
 			}
 		}
 		return ret;
+	}
+
+	uint_fast32_t GetRngSeed ()
+	{
+		return GetMonotonicMicroseconds ();
 	}
 
 namespace net

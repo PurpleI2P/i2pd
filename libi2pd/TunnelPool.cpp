@@ -12,6 +12,7 @@
 #include "Tunnel.h"
 #include "NetDb.hpp"
 #include "Timestamp.h"
+#include "util.h"
 #include "Garlic.h"
 #include "ECIESX25519AEADRatchetSession.h"
 #include "Transports.h"
@@ -41,7 +42,7 @@ namespace tunnel
 		m_NumInboundTunnels (numInboundTunnels), m_NumOutboundTunnels (numOutboundTunnels),
 		m_InboundVariance (inboundVariance), m_OutboundVariance (outboundVariance),
 		m_IsActive (true), m_IsHighBandwidth (isHighBandwidth), m_CustomPeerSelector(nullptr),
-		m_Rng (i2p::util::GetMonotonicMicroseconds ()%1000000LL)
+		m_Rng (i2p::util::GetRngSeed ())
 	{
 		if (m_NumInboundHops > MAX_NUM_RECORDS) m_NumInboundHops = MAX_NUM_RECORDS;
 		if (m_NumOutboundHops > MAX_NUM_RECORDS) m_NumOutboundHops = MAX_NUM_RECORDS;
