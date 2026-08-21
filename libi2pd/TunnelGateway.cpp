@@ -177,14 +177,10 @@ namespace tunnel
 
 		m_CurrentTunnelDataMsg->offset = m_CurrentTunnelDataMsg->len - TUNNEL_DATA_MSG_SIZE - I2NP_HEADER_SIZE;
 		uint8_t * buf = m_CurrentTunnelDataMsg->GetPayload ();
-		if (m_Rng)
-		{
-			// original IV (16 bytes)
-			for (size_t offset = 4; offset < 20; offset += 4)
-				htobuf32 (buf + offset, (*m_Rng)());
-		}
-		else
-			RAND_bytes (buf + 4, 16); // original IV
+		// original IV (16 bytes)
+		if (!m_Rng) m_Rng = std::make_unique<std::mt19937>(i2p::util::GetMonotonicMicroseconds ()%1000000LL);
+		for (size_t offset = 4; offset < 20; offset += 4)
+			htobuf32 (buf + offset, (*m_Rng)());
 		memcpy (payload + size, buf + 4, 16); // copy IV for checksum
 		uint8_t hash[32];
 		SHA256(payload, size+16, hash);
@@ -196,13 +192,13 @@ namespace tunnel
 			// non-zero padding
 			if (!m_NonZeroRandomBuffer) // first time?
 			{
-				m_NonZeroRandomBuffer = std::make_unique<std::array<uint8_t, TUNNEL_DATA_MAX_PAYLOAD_SIZE> >();
-				RAND_bytes (m_NonZeroRandomBuffer->data(), TUNNEL_DATA_MAX_PAYLOAD_SIZE);
-				m_Rng = std::make_unique<std::mt19937>(i2p::util::GetMonotonicMicroseconds ()%1000000LL);
+				m_NonZeroRandomBuffer = std::make_unique<std::array<uint8_t, TUNNEL_DATA_MAX_PAYLOAD_SIZE + 1> >(); // multiple of 4
+				for (size_t offset = 0; offset < TUNNEL_DATA_MAX_PAYLOAD_SIZE + 1; offset += 4)
+					htobuf32 (m_NonZeroRandomBuffer->data() + offset, (*m_Rng)());
 				for (auto& it: *m_NonZeroRandomBuffer)
-					if (!it) it = (uint8_t)(((*m_Rng) ()) % 255 + 1);
+					if (!it) it = (uint8_t)((*m_Rng)() % 255 + 1);
 			}
-			auto randomOffset = ((*m_Rng) ()) % (TUNNEL_DATA_MAX_PAYLOAD_SIZE - paddingSize + 1);
+			auto randomOffset = (*m_Rng)() % (TUNNEL_DATA_MAX_PAYLOAD_SIZE - paddingSize + 1);
 			memcpy (buf + 24, m_NonZeroRandomBuffer->data() + randomOffset, paddingSize);
 		}
 
