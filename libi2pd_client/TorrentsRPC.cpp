@@ -51,9 +51,9 @@ namespace torrents
 			boost::json::array GetPeers (std::shared_ptr<Torrent> torrent);
 			static std::string_view RecognizeClientByPeerID (const PeerConnection::PeerID& peerID);
 
-			std::string HandleTorrrentAdd (boost::json::object&& jsonRequest);
-			std::string HandleTorrrentRemove (boost::json::object&& jsonRequest);
-			std::string HandleTorrrentGet (boost::json::object&& jsonRequest);
+			std::string HandleTorrentAdd (boost::json::object&& jsonRequest);
+			std::string HandleTorrentRemove (boost::json::object&& jsonRequest);
+			std::string HandleTorrentGet (boost::json::object&& jsonRequest);
 			// https://github.com/transmission/transmission/blob/main/docs/rpc-spec.md#2-message-format
 			std::string HandleSessionGet (boost::json::object&& jsonRequest); // for transmission-rpc library
 		private:
@@ -120,11 +120,11 @@ namespace torrents
 			auto jsonRequest = boost::json::parse (request).as_object ();
 			auto method = jsonRequest.at ("method").as_string ();
 			if (method == "torrent-add")
-				return HandleTorrrentAdd (std::move (jsonRequest));
+				return HandleTorrentAdd (std::move (jsonRequest));
 			else if (method == "torrent-remove")
-				return HandleTorrrentRemove (std::move (jsonRequest));
+				return HandleTorrentRemove (std::move (jsonRequest));
 			else if (method == "torrent-get")
-				return HandleTorrrentGet (std::move (jsonRequest));
+				return HandleTorrentGet (std::move (jsonRequest));
 			else if (method == "session-get")
 				return HandleSessionGet( std::move (jsonRequest));
 			else
@@ -153,7 +153,7 @@ namespace torrents
 		response["tag"] = 0;
 		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}
-	std::string JSONRPCHandler::HandleTorrrentAdd (boost::json::object&& jsonRequest)
+	std::string JSONRPCHandler::HandleTorrentAdd (boost::json::object&& jsonRequest)
 	{
 		auto arguments = jsonRequest.at ("arguments").as_object ();
 		auto b64torrent = arguments.at ("metainfo").as_string ();
@@ -184,7 +184,7 @@ namespace torrents
 		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}
 
-	std::string JSONRPCHandler::HandleTorrrentRemove (boost::json::object&& jsonRequest)
+	std::string JSONRPCHandler::HandleTorrentRemove (boost::json::object&& jsonRequest)
 	{
 		auto arguments = jsonRequest.at ("arguments").as_object ();
 		bool deleteFiles = false;
@@ -206,7 +206,7 @@ namespace torrents
 		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}
 
-	std::string JSONRPCHandler::HandleTorrrentGet (boost::json::object&& jsonRequest)
+	std::string JSONRPCHandler::HandleTorrentGet (boost::json::object&& jsonRequest)
 	{
 		auto arguments = jsonRequest.at ("arguments").as_object ();
 		std::vector<int> torrentIds;
