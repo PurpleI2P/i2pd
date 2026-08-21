@@ -208,6 +208,7 @@ namespace torrents
 
 	std::string JSONRPCHandler::HandleTorrentGet (boost::json::object&& jsonRequest)
 	{
+
 		auto arguments = jsonRequest.at ("arguments").as_object ();
 		std::vector<int> torrentIds;
 		bool torrentsRequested = arguments.contains ("ids");
@@ -225,6 +226,7 @@ namespace torrents
 		auto fields = arguments.at ("fields").as_array ();
 
 		boost::json::object response;
+		response["jsonrpc"] = "2.0";
 		boost::json::array torrents;
 		for (auto id: torrentIds)
 		{
