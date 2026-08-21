@@ -18,6 +18,7 @@
 #include "FS.h"
 #include "Log.h"
 #include "Timestamp.h"
+#include "util.h"
 #include "NetDb.hpp"
 #include "Tunnel.h"
 #include "Profiling.h"
@@ -31,7 +32,7 @@ namespace data
 	static std::mutex g_ProfilesMutex;
 	static std::list<std::pair<i2p::data::IdentHash, std::function<void (std::shared_ptr<RouterProfile>)> > > g_PostponedUpdates;
 	static std::mutex g_PostponedUpdatesMutex;
-	static std::mt19937 m_ProfilesRng(i2p::util::GetMonotonicMicroseconds () % 1000000LL);
+	static std::mt19937 m_ProfilesRng(i2p::util::GetRngSeed ());
 
 	RouterProfile::RouterProfile ():
 		m_IsUpdated (false), m_LastDeclineTime (0), m_LastUnreachableTime (0),
