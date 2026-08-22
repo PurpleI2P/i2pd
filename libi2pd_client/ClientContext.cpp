@@ -117,13 +117,6 @@ namespace client
 
 		m_AddressBook.StartResolvers ();
 
-		// start UDP cleanup
-		if (!m_ServerForwards.empty ())
-		{
-			m_CleanupUDPTimer.reset (new boost::asio::steady_timer(m_SharedLocalDestination->GetService ()));
-			ScheduleCleanupUDP();
-		}
-
 		// start torrents RPC server
 		for (auto& it: m_TorrentsRPCServers)
 			it.second->Start ();
@@ -218,13 +211,6 @@ namespace client
 			std::lock_guard<std::mutex> lock(m_ForwardsMutex);
 			m_ServerForwards.clear();
 			m_ClientForwards.clear();
-		}
-
-		LogPrint(eLogInfo, "Clients: Stopping UDP Tunnels timers");
-		if (m_CleanupUDPTimer)
-		{
-			m_CleanupUDPTimer->cancel ();
-			m_CleanupUDPTimer = nullptr;
 		}
 
 		{
@@ -1179,26 +1165,6 @@ namespace client
 				LogPrint(eLogCritical, "Clients: Exception in SOCKS Proxy: ", e.what());
 				ThrowFatal ("Unable to start SOCKS Proxy at ", socksProxyAddr, ":", socksProxyPort, ": ", e.what ());
 			}
-		}
-	}
-
-	void ClientContext::ScheduleCleanupUDP()
-	{
-		if (m_CleanupUDPTimer)
-		{
-			// schedule cleanup in 17 seconds
-			m_CleanupUDPTimer->expires_after (std::chrono::seconds (17));
-			m_CleanupUDPTimer->async_wait(std::bind(&ClientContext::CleanupUDP, this, std::placeholders::_1));
-		}
-	}
-
-	void ClientContext::CleanupUDP(const boost::system::error_code & ecode)
-	{
-		if(!ecode)
-		{
-			std::lock_guard<std::mutex> lock(m_ForwardsMutex);
-			for (auto & s : m_ServerForwards ) s.second->ExpireStale();
-			ScheduleCleanupUDP();
 		}
 	}
 

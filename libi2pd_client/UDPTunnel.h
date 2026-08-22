@@ -30,6 +30,7 @@ namespace client
 {
 	/** 2 minute timeout for udp sessions */
 	const uint64_t I2P_UDP_SESSION_TIMEOUT = 1000 * 60 * 2;
+	const int I2P_UDP_SESSION_CLEANUP_INTERVAL = 17; // in seconds
 	const uint64_t I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL = 100; // in milliseconds
 	const uint64_t I2P_UDP_MAX_UNACKED_DATAGRAM_TIME = 8000; // in milliseconds
 	const uint64_t I2P_UDP_MIN_ACK_TIMEOUT = 500; // in milliseconds
@@ -176,6 +177,8 @@ namespace client
 
 			void ScheduleStatsTimer ();
 			void HandleStatsTimer (const boost::system::error_code& ecode);
+			void ScheduleCleanupTimer ();
+			void HandleCleanupTimer (const boost::system::error_code& ecode);
 
 		private:
 
@@ -192,6 +195,7 @@ namespace client
 			uint32_t m_NumRawNoSession = 0;
 			size_t m_MaxWindow = I2P_UDP_MIN_MAX_NUM_UNACKED_DATAGRAMS;
 			std::unique_ptr<boost::asio::steady_timer> m_StatsTimer;
+			std::unique_ptr<boost::asio::steady_timer> m_CleanupTimer;
 
 		public:
 
@@ -240,6 +244,8 @@ namespace client
 
 			void ScheduleStatsTimer ();
 			void HandleStatsTimer (const boost::system::error_code& ecode);
+			void ScheduleCleanupTimer ();
+			void HandleCleanupTimer (const boost::system::error_code& ecode);
 
 		private:
 

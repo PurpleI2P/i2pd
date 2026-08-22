@@ -488,6 +488,27 @@ namespace client
 		);
 		m_StatsTimer.reset (new boost::asio::steady_timer (m_LocalDest->GetService ()));
 		ScheduleStatsTimer ();
+		m_CleanupTimer.reset (new boost::asio::steady_timer (m_LocalDest->GetService ()));
+		ScheduleCleanupTimer ();
+	}
+
+	void I2PUDPServerTunnel::ScheduleCleanupTimer ()
+	{
+		if (m_CleanupTimer)
+		{
+			m_CleanupTimer->expires_after (std::chrono::seconds (I2P_UDP_SESSION_CLEANUP_INTERVAL));
+			m_CleanupTimer->async_wait (std::bind (&I2PUDPServerTunnel::HandleCleanupTimer,
+				this, std::placeholders::_1));
+		}
+	}
+
+	void I2PUDPServerTunnel::HandleCleanupTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			ExpireStale ();
+			ScheduleCleanupTimer ();
+		}
 	}
 
 	void I2PUDPServerTunnel::ScheduleStatsTimer ()
@@ -524,6 +545,7 @@ namespace client
 	void I2PUDPServerTunnel::Stop ()
 	{
 		if (m_StatsTimer) m_StatsTimer->cancel ();
+		if (m_CleanupTimer) m_CleanupTimer->cancel ();
 		auto dgram = m_LocalDest->GetDatagramDestination ();
 		if (dgram) {
 			dgram->ResetReceiver (m_inPort);
