@@ -255,6 +255,14 @@ namespace torrents
 			{ "pieceCount", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetNumPieces ()); } },
 			{ "pieceSize", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetPieceLength ()); } },
 			{ "totalSize", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetLength ()); } },
+			{ "percentDone", [](std::shared_ptr<Torrent> torrent)
+				{
+				 if(!torrent->GetLength()) return boost::json::value ( 100.0 );
+				 double left = torrent->GetLength () - torrent->GetLeft();
+				 double percent = (left*100)/torrent->GetLength();
+				 return boost::json::value(  percent  );
+				}
+			},
 			{ "hashString", [](std::shared_ptr<Torrent> torrent)
 				{
 					std::string hexHash;
