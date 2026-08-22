@@ -1322,13 +1322,19 @@ namespace torrents
 
 	void PeerConnection::SendRequestMsg (uint32_t index, uint32_t offset, uint32_t len)
 	{
-		uint8_t buf[REQUEST_MSG_PAYLOAD_LENGTH + 5];
+		uint8_t buf[REQUEST_MSG_LENGTH];
+		FillRequestMsg (buf, index, offset, len);
+		WriteToStream (buf, REQUEST_MSG_LENGTH);
+	}
+
+	size_t PeerConnection::FillRequestMsg (uint8_t * buf, uint32_t index, uint32_t offset, uint32_t len)
+	{
 		htobe32buf (buf, REQUEST_MSG_PAYLOAD_LENGTH + 1); // msg length
 		buf[4] = eMessageTypeRequest; // msg ID
 		htobe32buf (buf + 5, index); // index
 		htobe32buf (buf + 9, offset); // offset
 		htobe32buf (buf + 13, len); // length
-		WriteToStream (buf, REQUEST_MSG_PAYLOAD_LENGTH + 5);
+		return REQUEST_MSG_LENGTH;
 	}
 
 	void PeerConnection::SendInterestedMsg ()
@@ -1372,53 +1378,45 @@ namespace torrents
 		m_LastRequestedPieceIndex = -1;
 	}
 
-	bool PeerConnection::RequestNextBlock ()
+	std::optional<std::tuple<uint32_t, uint32_t, uint32_t> > PeerConnection::GetNextBlockToRequest ()
 	{
-		if (!m_Torrent) return false;
-		auto [index, offset, len] = m_Torrent->GetNextBlockToRequest (shared_from_this (), true); // skip already requested pieces
-		if (len > 0)
-			RequestNextBlock (index, offset, len);
-		else
+		auto block = m_Torrent->GetNextBlockToRequest (shared_from_this (), true); // skip already requested pieces
+		if (std::get<2>(block) > 0) return block;
+		// try to get block from requested by another connection piece
+		auto block1 = m_Torrent->GetNextBlockToRequest (shared_from_this (), false);
+		if (std::get<2>(block1) > 0) return block1;
+		if (m_LastRequestedPieceIndex >= 0)
 		{
-			// try to get block from requested by another connection piece
-			auto [index1, offset1, len1] = m_Torrent->GetNextBlockToRequest (shared_from_this (), false);
-			if (len1 > 0)
+			m_LastRequestedPieceIndex = -1; // no request
+			if (m_IsInterested)
 			{
-				len = len1;
-				RequestNextBlock (index1, offset1, len1);
-			}
-			else if (m_LastRequestedPieceIndex >= 0)
-			{
-				m_LastRequestedPieceIndex = -1; // no request
-				if (m_IsInterested)
-				{
-					m_IsInterested = false;
-					SendNotinterestedMsg ();
-				}
+				m_IsInterested = false;
+				SendNotinterestedMsg ();
 			}
 		}
-		return len > 0;
-	}
-
-	void PeerConnection::RequestNextBlock (uint32_t index, uint32_t offset, uint32_t len)
-	{
-		m_LastRequestedPieceIndex = index;
-		SendRequestMsg (index, offset, len);
-		m_NumRequests++;
+		return {};
 	}
 
 	bool PeerConnection::RequestNextBlocks ()
 	{
 		if (m_IsChoked || !m_Torrent || m_Torrent->IsComplete ()) return false;
-		bool sent = false;
+		if (m_NumRequests >= MAX_NUM_REQUESTS) return false;
+		std::vector<uint8_t> buf;
+		buf.reserve (REQUEST_MSG_LENGTH*(MAX_NUM_REQUESTS - m_NumRequests));
+		size_t bufOffset = 0;
 		while (m_NumRequests < MAX_NUM_REQUESTS)
 		{
-			if (RequestNextBlock ())
-				sent = true;
-			else
-				break;
+			auto nextBlock = GetNextBlockToRequest ();
+			if (!nextBlock) break;
+			auto [index, offset, len] = *nextBlock;
+			FillRequestMsg (buf.data () + bufOffset, index, offset, len);
+			bufOffset += REQUEST_MSG_LENGTH;
+			m_LastRequestedPieceIndex = index;
+			m_NumRequests++;
 		}
-		return sent;
+		if (bufOffset > 0)
+			WriteToStream (buf.data (), bufOffset);
+		return bufOffset > 0;
 	}
 
 	TorrentsTunnel::TorrentsTunnel (std::string_view name, std::shared_ptr<i2p::client::ClientDestination> localDestination,

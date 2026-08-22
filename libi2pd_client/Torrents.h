@@ -23,6 +23,7 @@
 #include <string_view>
 #include <random>
 #include <tuple>
+#include <optional>
 #include <filesystem>
 #include <mutex>
 #include "util.h"
@@ -61,6 +62,7 @@ namespace torrents
 	constexpr size_t CHOKE_MSG_LENGTH = 5;
 	constexpr size_t UNCHOKE_MSG_LENGTH = 5;
 	constexpr size_t REQUEST_MSG_PAYLOAD_LENGTH = 12;
+	constexpr size_t REQUEST_MSG_LENGTH = REQUEST_MSG_PAYLOAD_LENGTH + 5;
 	constexpr size_t HAVE_MSG_PAYLOAD_LENGTH = 4;
 
 	enum MessageType
@@ -301,14 +303,14 @@ namespace torrents
 			void SendPieceMsg (uint32_t index, uint32_t offset, const uint8_t * data, size_t len);
 			void HandleRequestMsg (const uint8_t * buf, size_t len);
 			void SendRequestMsg (uint32_t index, uint32_t offset, uint32_t len);
+			size_t FillRequestMsg (uint8_t * buf, uint32_t index, uint32_t offset, uint32_t len);
 			void SendInterestedMsg ();
 			void SendNotinterestedMsg ();
 			void SendUnchokeMsg ();
 			void SendChokeMsg ();
 			void HandleChokeMsg ();
 
-			bool RequestNextBlock ();
-			void RequestNextBlock (uint32_t index, uint32_t offset, uint32_t len);
+			std::optional<std::tuple<uint32_t, uint32_t, uint32_t> > GetNextBlockToRequest ();
 			bool RequestNextBlocks ();
 			bool SendRequestedBlock (const RequestedBlock& requestedBlock);
 
