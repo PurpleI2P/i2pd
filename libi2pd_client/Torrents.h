@@ -49,7 +49,7 @@ namespace torrents
 	constexpr int PEER_KEEP_ALIVE_TIMEOUT = 120; // in seconds
 	constexpr int PEER_KEEP_SEND_INTERVAL = 95; // in seconds
 	constexpr int PEER_KEEP_ALIVE_CHECK_INTERVAL = 15; // in seconds
-	constexpr size_t MAX_NUM_REQUESTS = 8;
+	constexpr size_t MAX_NUM_REQUESTS = 12;
 	constexpr size_t MAX_NUM_PIECES = 6;
 	constexpr int PIECE_INACTIVITY_TIMEOUT = 60; // in seconds
 	constexpr int TORRENTS_STATUS_UPDATE_INTERVAL = 25; // in seconds

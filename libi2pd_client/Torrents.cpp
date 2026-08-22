@@ -1150,7 +1150,8 @@ namespace torrents
 			}
 		}
 		if (m_NumRequests > 0) m_NumRequests--;
-		RequestNextBlocks ();
+		if (m_NumRequests <= MAX_NUM_REQUESTS*2/3)
+			RequestNextBlocks ();
 		// update stats
 		auto ts = i2p::util::GetMonotonicMilliseconds ();
 		if (m_LastBlockDownloadTimestamp)
