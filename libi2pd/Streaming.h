@@ -215,7 +215,7 @@ namespace stream
 			void SendPing ();
 
 			template<typename Buffer, typename ReceiveHandler>
-			void AsyncReceive (const Buffer& buffer, ReceiveHandler&& handler, int timeout = 0);
+			void AsyncReceive (const Buffer& buffer, ReceiveHandler&& handler, int timeout = 0, size_t minSize = 0);
 			size_t ReadSome (uint8_t * buf, size_t len) { return ConcatenatePackets (buf, len); };
 			size_t Receive (uint8_t * buf, size_t len, int timeout);
 
@@ -286,7 +286,6 @@ namespace stream
 				m_IsRemoteLeaseChangeInProgress, m_IsBufferEmpty, m_IsJavaClient, m_DontSign;
 			StreamingDestination& m_LocalDestination;
 			// own reference to the pool: the destination can be gone by the time we are destroyed
-			std::shared_ptr<i2p::util::MemoryPool<Packet> > m_PacketsPool;
 			std::shared_ptr<const i2p::data::IdentityEx> m_RemoteIdentity;
 			std::shared_ptr<const i2p::crypto::Verifier> m_TransientVerifier; // in case of offline key
 			std::shared_ptr<const i2p::data::LeaseSet> m_RemoteLeaseSet;
@@ -295,6 +294,7 @@ namespace stream
 			std::shared_ptr<const i2p::data::Lease> m_NextRemoteLease;
 			std::shared_ptr<i2p::tunnel::OutboundTunnel> m_CurrentOutboundTunnel;
 			std::queue<Packet *> m_ReceiveQueue;
+			size_t m_SizeToReceive; // before invoke AsyncReceive handler
 			std::set<Packet *, PacketCmp> m_SavedPackets;
 			std::list<Packet *> m_SentPackets;
 			std::list<Packet *> m_NACKedPackets;
@@ -350,10 +350,8 @@ namespace stream
 			void HandleDataMessagePayload (const uint8_t * buf, size_t len, i2p::garlic::ECIESX25519AEADRatchetSession * from);
 			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len, uint16_t toPort, bool checksum = true, bool gzip = false);
 
-			Packet * NewPacket () { return m_PacketsPool->Acquire(); }
-			void DeletePacket (Packet * p) { return m_PacketsPool->Release(p); }
-			// streams keep the pool alive: pending handlers may outlive this destination
-			std::shared_ptr<i2p::util::MemoryPool<Packet> > GetPacketsPool () const { return m_PacketsPool; }
+			Packet * NewPacket () { return m_PacketsPool.Acquire(); }
+			void DeletePacket (Packet * p) { return m_PacketsPool.Release(p); }
 			uint32_t GetRandom ();
 
 		private:
@@ -366,7 +364,7 @@ namespace stream
 
 		private:
 
-            std::shared_ptr<i2p::util::MemoryPool<Packet> > m_PacketsPool;
+			i2p::util::MemoryPool<Packet> m_PacketsPool;
 			i2p::util::MemoryPool<I2NPMessageBuffer<I2NP_MAX_SHORT_MESSAGE_SIZE> > m_I2NPMsgsPool;
 
 			std::shared_ptr<i2p::client::ClientDestination> m_Owner;
@@ -400,15 +398,16 @@ namespace stream
 //-------------------------------------------------
 
 	template<typename Buffer, typename ReceiveHandler>
-	void Stream::AsyncReceive (const Buffer& buffer, ReceiveHandler&& handler, int timeout)
+	void Stream::AsyncReceive (const Buffer& buffer, ReceiveHandler&& handler, int timeout, size_t minSize)
 	{
 		auto s = shared_from_this();
-		boost::asio::post (m_Service, [s, buffer, handler = std::move (handler), timeout](void) mutable
+		boost::asio::post (m_Service, [s, buffer, handler = std::move (handler), timeout, minSize](void) mutable
 		{
 			if (!s->m_ReceiveQueue.empty () || (s->m_Status != eStreamStatusNew && s->m_Status != eStreamStatusOpen))
 				s->HandleReceiveTimer (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), buffer, handler, 0);
 			else
 			{
+				s->m_SizeToReceive = minSize;
 				int t = (timeout > MAX_RECEIVE_TIMEOUT) ? MAX_RECEIVE_TIMEOUT : timeout;
 				s->m_ReceiveTimer.expires_after (std::chrono::seconds(t));
 				int left = timeout - t;
@@ -456,6 +455,7 @@ namespace stream
 			// timeout expired
 			if (remainingTimeout <= 0)
 			{
+				m_SizeToReceive = 0;
 				if (m_Status != eStreamStatusTerminated)
 					handler (boost::asio::error::make_error_code (boost::asio::error::timed_out), 0);
 			}
@@ -463,7 +463,7 @@ namespace stream
 			{
 				// intermediate interrupt
 				SendUpdatedLeaseSet (); // send our leaseset if applicable
-				AsyncReceive (buffer, handler, remainingTimeout);
+				AsyncReceive (buffer, handler, remainingTimeout, m_SizeToReceive);
 			}
 		}
 	}

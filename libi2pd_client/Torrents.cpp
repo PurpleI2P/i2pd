@@ -820,7 +820,8 @@ namespace torrents
 					PEER_CONNECTION_RECEIVE_BUFFER_SIZE - m_ReceiveBufferOffset),
 					std::bind (&PeerConnection::HandleStreamReceive, shared_from_this (),
 					std::placeholders::_1, std::placeholders::_2),
-					PEER_CONNECTION_MAX_IDLE);
+					PEER_CONNECTION_MAX_IDLE,
+					m_NextMsgLength > m_ReceiveBufferOffset ? m_NextMsgLength - m_ReceiveBufferOffset : 0);
 			}
 			else // closed by peer
 			{
