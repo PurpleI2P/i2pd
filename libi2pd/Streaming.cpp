@@ -200,12 +200,10 @@ namespace stream
 		}
 
 		m_SendBuffer.CleanUp ();
-		while (!m_ReceiveQueue.empty ())
-		{
-			auto packet = m_ReceiveQueue.front ();
-			m_ReceiveQueue.pop ();
-			delete packet;
-		}
+
+		for (auto it: m_ReceiveQueue)
+			delete it;
+		m_ReceiveQueue.clear ();
 
 		m_NACKedPackets.clear ();
 
@@ -425,7 +423,7 @@ namespace stream
 		size_t packetLength = packet->GetLength ();
 		if (packetLength > 0)
 		{
-			m_ReceiveQueue.push (packet);
+			m_ReceiveQueue.push_back (packet);
 			if (m_SizeToReceive)
 			{
 				if (packetLength < m_SizeToReceive)
@@ -1483,20 +1481,23 @@ namespace stream
 
 	size_t Stream::ConcatenatePackets (uint8_t * buf, size_t len)
 	{
+		if (m_ReceiveQueue.empty ()) return 0;
 		size_t pos = 0;
-		while (pos < len && !m_ReceiveQueue.empty ())
+		auto it = m_ReceiveQueue.begin ();
+		while (pos < len && it != m_ReceiveQueue.end ())
 		{
-			Packet * packet = m_ReceiveQueue.front ();
+			Packet * packet = *it;
 			size_t l = std::min (packet->GetLength (), len - pos);
 			memcpy (buf + pos, packet->GetBuffer (), l);
 			pos += l;
 			packet->offset += l;
 			if (!packet->GetLength ())
 			{
-				m_ReceiveQueue.pop ();
 				m_LocalDestination.DeletePacket (packet);
+				it++;
 			}
 		}
+		m_ReceiveQueue.erase (m_ReceiveQueue.begin (), it);
 		return pos;
 	}
 

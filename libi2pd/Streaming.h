@@ -13,7 +13,6 @@
 #include <string>
 #include <unordered_map>
 #include <set>
-#include <queue>
 #include <vector>
 #include <functional>
 #include <memory>
@@ -293,7 +292,7 @@ namespace stream
 			std::shared_ptr<const i2p::data::Lease> m_CurrentRemoteLease;
 			std::shared_ptr<const i2p::data::Lease> m_NextRemoteLease;
 			std::shared_ptr<i2p::tunnel::OutboundTunnel> m_CurrentOutboundTunnel;
-			std::queue<Packet *> m_ReceiveQueue;
+			std::list<Packet *> m_ReceiveQueue;
 			size_t m_SizeToReceive; // before invoke AsyncReceive handler
 			std::set<Packet *, PacketCmp> m_SavedPackets;
 			std::list<Packet *> m_SentPackets;
