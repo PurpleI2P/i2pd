@@ -139,6 +139,15 @@ namespace torrents
 		return { strings, len };
 	}
 
+	static bool IsSafePathComponent (std::string_view s)
+	{
+		if (s.empty () || s == "." || s == "..") return false;
+		if (s.find ('/') != std::string_view::npos) return false;
+		if (s.find ('\\') != std::string_view::npos) return false;
+		if (s.find ('\0') != std::string_view::npos) return false;
+		return true;
+	}
+
 //------------------------------------
 
 	Piece::Piece (size_t size, const uint8_t * hash):
@@ -325,7 +334,7 @@ namespace torrents
 	{
 		auto [hashes, len] = ExtractByteString (buf);
 		size_t totalLen = 0;
-		while (!hashes.empty () && totalLen < m_Length)
+		while (hashes.size () >= (size_t)SHA_DIGEST_LENGTH && totalLen < m_Length)
 		{
 			auto l = (totalLen + m_PieceLength <= m_Length) ? m_PieceLength : m_Length - totalLen;
 			m_Pieces.emplace_back (l, (const uint8_t *)hashes.substr (0, SHA_DIGEST_LENGTH).data ());
@@ -348,7 +357,7 @@ namespace torrents
 				else if (key == "name")
 				{
 					auto [name, l] = ExtractByteString (buf);
-					if (l) m_Name = name;
+					if (l && IsSafePathComponent (name)) m_Name = name;
 					return l;
 				}
 				else if (key == "piece length")
@@ -384,7 +393,8 @@ namespace torrents
 						if (key == "path")
 						{
 							auto [subdirs, l] = ParseStringList (value);
-							if (l) filePath = i2p::fs::CreatePath (subdirs);
+							if (l && std::all_of (subdirs.begin (), subdirs.end (), IsSafePathComponent))
+								filePath = i2p::fs::CreatePath (subdirs);
 							return l;
 						}
 						else if (key == "length")
@@ -456,7 +466,7 @@ namespace torrents
 	{
 		m_Peers.clear ();
 		auto [hashes, len] = ExtractByteString (buf);
-		while (!hashes.empty ())
+		while (hashes.size () >= i2p::data::IdentHash::len)
 		{
 			m_Peers.emplace (i2p::data::IdentHash ((const uint8_t *)hashes.substr (0, i2p::data::IdentHash::len).data ()));
 			hashes = hashes.substr (i2p::data::IdentHash::len);
@@ -909,9 +919,9 @@ namespace torrents
 			return 0;
 		}
 		uint32_t msgLen = bufbe32toh (m_ReceiveBuffer + offset);
-		if (len < msgLen + 4)
+		if (len < (size_t)msgLen + 4)
 		{
-			m_NextMsgLength = msgLen + 4;
+			m_NextMsgLength = (size_t)msgLen + 4;
 			return 0;
 		}
 		offset += 4;
@@ -1313,7 +1323,8 @@ namespace torrents
 		Piece& piece = m_Torrent->GetPiece (requestedBlock.index);
 		piece.SetIsSending (true);
 		auto data = piece.GetData ();
-		if (data && piece.HasBlock (requestedBlock.offset))
+		if (data && piece.HasBlock (requestedBlock.offset) &&
+			requestedBlock.offset + requestedBlock.length <= piece.GetSize ())
 			SendPieceMsg (requestedBlock.index, requestedBlock.offset, data + requestedBlock.offset, requestedBlock.length);
 		else
 			ret = false;
@@ -1499,7 +1510,9 @@ namespace torrents
 
 		if (torrent)
 		{
-			torrent->SetFullPath (m_TorrentsDir/std::filesystem::path (torrent->GetName ()));
+			auto name = torrent->GetName ();
+			torrent->SetFullPath (m_TorrentsDir/std::filesystem::path (
+				!name.empty () ? std::string (name) : torrent->GetHexStringInfoHash ()));
 			InitTorrentFiles (torrent);
 			InsertTorrent (torrent);
 		}
@@ -1685,7 +1698,9 @@ namespace torrents
 		auto torrent = std::make_shared<Torrent> (torrentFileContent);
 		if (m_Torrents.find (torrent->GetInfoHash ()) == m_Torrents.end ())
 		{
-			torrent->SetFullPath (m_TorrentsDir/std::filesystem::path (torrent->GetName ()));
+			auto name = torrent->GetName ();
+			torrent->SetFullPath (m_TorrentsDir/std::filesystem::path (
+				!name.empty () ? std::string (name) : torrent->GetHexStringInfoHash ()));
 			{
 				auto torrentFilePath = torrent->GetFullPath ();  torrentFilePath += ".torrent";
 				std::ofstream f(torrentFilePath, std::ofstream::binary);
