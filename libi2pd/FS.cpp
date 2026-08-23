@@ -274,14 +274,6 @@ namespace fs {
 #endif
 	}
 
-	std::string CreatePath (const std::vector<std::string_view>& subdirs)
-	{
-		fs_lib::path ret;
-		for (const auto& it: subdirs)
-			ret /= it;
-		return ret.string ();
-	}
-
 	bool Remove(const std::string & path)
 	{
 		if (!fs_lib::exists(path))

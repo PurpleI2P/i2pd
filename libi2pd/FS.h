@@ -163,8 +163,6 @@ namespace fs {
 		_ExpandPath(path, other ...);
 	}
 
-	std::string CreatePath (const std::vector<std::string_view>& subdirs);
-
 	/**
 	 * @brief Get path relative to datadir
 	 *
