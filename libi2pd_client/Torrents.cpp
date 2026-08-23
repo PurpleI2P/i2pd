@@ -378,13 +378,15 @@ namespace torrents
 		m_Length = 0;
 		return ParseList (buf, [this](std::string_view file)->size_t
 			{
-				std::string filePath; size_t fileLength = 0;
+				std::filesystem::path filePath; size_t fileLength = 0;
 				auto len = ParseDictionary (file, [&filePath, &fileLength](std::string_view key, std::string_view value)->size_t
 					{
 						if (key == "path")
 						{
 							auto [subdirs, l] = ParseStringList (value);
-							if (l) filePath = i2p::fs::CreatePath (subdirs);
+							if (l)
+								for (const auto& it: subdirs)
+									filePath /= it;
 							return l;
 						}
 						else if (key == "length")
