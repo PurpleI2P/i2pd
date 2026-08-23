@@ -671,7 +671,7 @@ namespace client
 		auto inbound = m_Pool->GetNextInboundTunnel (nullptr, floodfill->GetCompatibleTransports (true));
 		if (!outbound || !inbound)
 		{
-			if (!m_Pool->GetInboundTunnels ().empty () && !m_Pool->GetOutboundTunnels ().empty ())
+			if (m_Pool->HasInboundTunnels () && m_Pool->HasOutboundTunnels ())
 			{
 				LogPrint (eLogInfo, "Destination: No compatible tunnels with ", floodfill->GetIdentHash ().ToBase64 (), ". Trying another floodfill");
 				m_ExcludedFloodfills.insert (floodfill->GetIdentHash ());

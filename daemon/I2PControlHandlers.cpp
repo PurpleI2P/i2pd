@@ -235,7 +235,7 @@ namespace client
 
 	void I2PControlHandlers::TunnelsParticipatingHandler (std::ostringstream& results)
 	{
-		int transit = i2p::tunnel::tunnels.GetTransitTunnels ().size ();
+		int transit = i2p::tunnel::tunnels.CountTransitTunnels ();
 		InsertParam (results, "i2p.router.net.tunnels.participating", transit);
 	}
 
@@ -468,7 +468,7 @@ namespace client
 		{
 			pt.put("enabled", true);
 			boost::property_tree::ptree sam_sessions;
-			for (auto& it: sam->GetSessions ())
+			for (auto& it: sam->GetSessionsList ())
 			{
 				boost::property_tree::ptree sam_session, sam_session_sockets;
 				auto& name = it.second->GetLocalDestination ()->GetNickname ();

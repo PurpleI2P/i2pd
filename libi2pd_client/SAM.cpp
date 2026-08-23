@@ -1687,6 +1687,7 @@ namespace client
 	bool SAMBridge::AddSession (std::shared_ptr<SAMSession> session)
 	{
 		if (!session) return false;
+		std::unique_lock<std::mutex> l(m_SessionsMutex);
 		auto ret = m_Sessions.emplace (session->Name, session);
 		return ret.second;
 	}

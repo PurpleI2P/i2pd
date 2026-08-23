@@ -440,7 +440,7 @@ namespace http {
 	{
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
 		s << "<b>" << tr("Local Destinations") << ":</b><br>\r\n<div class=\"list\">\r\n";
-		for (auto& it: i2p::client::context.GetDestinations ())
+		for (auto& it: i2p::client::context.GetDestinationsList ())
 		{
 			auto ident = it.second->GetIdentHash ();
 			s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
@@ -449,10 +449,11 @@ namespace http {
 		s << "</div>\r\n<br>\r\n";
 
 		auto i2cpServer = i2p::client::context.GetI2CPServer ();
-		if (i2cpServer && !(i2cpServer->GetSessions ().empty ()))
+		auto i2cpSessions = i2cpServer ? i2cpServer->GetSessionsList () : std::vector<std::pair<uint16_t, std::shared_ptr<i2p::client::I2CPSession> > > ();
+		if (!i2cpSessions.empty ())
 		{
 			s << "<br><b>I2CP "<< tr("Local Destinations") << ":</b><br>\r\n<div class=\"list\">\r\n";
-			for (auto& it: i2cpServer->GetSessions ())
+			for (auto& it: i2cpSessions)
 			{
 				auto dest = it.second->GetDestination ();
 				if (dest)
@@ -523,15 +524,15 @@ namespace http {
 			  << "<th>" << tr("Type") << "</th>"
 			  << "<th>" << tr("EncType") << "</th>"
 			  << "</tr></thead>\r\n<tbody class=\"tableitem\">";
-			for(auto& it: dest->GetLeaseSets ())
+			for(auto& it: dest->GetLeaseSetsList ())
 			{
 				s << "<tr>"
-				  << "<td>" << it.first.ToBase32 () << "</td>"
+				  << "<td>" << it->GetIdentHash ().ToBase32 () << "</td>"
 				  << "<td><a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_EXPIRELEASE<< "&b32=" << dest->GetIdentHash ().ToBase32 ()
-				  << "&lease=" << it.first.ToBase32 () << "&token=" << token << "\" title=\"" << tr("Expire LeaseSet") << "\"> &#10008; </a></td>"
-				  << "<td>" << (int)it.second->GetStoreType () << "</td>";
-				if (!it.second->IsIncompatibleCrypto ())
-					s << "<td>" << (int)it.second->GetEncryptionType () <<"</td>";
+				  << "&lease=" << it->GetIdentHash ().ToBase32 () << "&token=" << token << "\" title=\"" << tr("Expire LeaseSet") << "\"> &#10008; </a></td>"
+				  << "<td>" << (int)it->GetStoreType () << "</td>";
+				if (!it->IsIncompatibleCrypto ())
+					s << "<td>" << (int)it->GetEncryptionType () <<"</td>";
 				else
 					s << "<td>n/a</td>";
 				s << "</tr>\r\n";
@@ -545,7 +546,7 @@ namespace http {
 		if (pool)
 		{
 			s << "<b>" << tr("Inbound tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
-			for (auto & it : pool->GetInboundTunnels ()) {
+			for (auto & it : pool->GetInboundTunnelsList ()) {
 				s << "<div class=\"listitem\">";
 				// for each tunnel hop if not zero-hop
 				if (it->GetNumHops ())
@@ -567,7 +568,7 @@ namespace http {
 			}
 			s << "</div>\r\n<br>\r\n";
 			s << "<b>" << tr("Outbound tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
-			for (auto & it : pool->GetOutboundTunnels ()) {
+			for (auto & it : pool->GetOutboundTunnelsList ()) {
 				s << "<div class=\"listitem\">";
 				s << it->GetTunnelID () << ":me &#8658;";
 				// for each tunnel hop if not zero-hop
@@ -593,9 +594,10 @@ namespace http {
 
 		s << "<b>" << tr("Tags") << "</b><br>\r\n"
 		  << tr("Incoming") << ": <i>" << dest->GetNumIncomingTags () << "</i><br>\r\n";
-		if (!dest->GetSessions ().empty ()) {
+		auto sessionsList = dest->GetSessionsList ();
+		if (!sessionsList.empty ()) {
 			std::stringstream tmp_s; uint32_t out_tags = 0;
-			for (const auto& it: dest->GetSessions ()) {
+			for (const auto& it: sessionsList) {
 				tmp_s << "<tr><td>" << i2p::client::context.GetAddressBook ().ToAddress(it.first) << "</td><td>" << it.second->GetNumOutgoingTags () << "</td></tr>\r\n";
 				out_tags += it.second->GetNumOutgoingTags ();
 			}
@@ -612,11 +614,12 @@ namespace http {
 		auto numECIESx25519Tags = dest->GetNumIncomingECIESx25519Tags ();
 		if (numECIESx25519Tags > 0) {
 			s << "<b>ECIESx25519</b><br>\r\n" << tr("Incoming Tags") << ": <i>" << numECIESx25519Tags << "</i><br>\r\n";
-			if (!dest->GetECIESx25519Sessions ().empty ())
+			auto eciesSessionsList = dest->GetECIESx25519SessionsList ().get ();
+			if (!eciesSessionsList.empty ())
 			{
 				std::stringstream tmp_s; uint32_t ecies_sessions = 0;
-				for (const auto& it: dest->GetECIESx25519Sessions ()) {
-					tmp_s << "<tr><td>" << i2p::client::context.GetAddressBook ().ToAddress(it.second->GetDestination ()) << "</td><td>" << it.second->GetState () << "</td></tr>\r\n";
+				for (const auto& it: eciesSessionsList) {
+					tmp_s << "<tr><td>" << i2p::client::context.GetAddressBook ().ToAddress(it->GetDestination ()) << "</td><td>" << it->GetState () << "</td></tr>\r\n";
 					ecies_sessions++;
 				}
 				s << "<div class='slide'><label for='slide-ecies-sessions'>" << tr("Tags sessions") << ": <i>" << ecies_sessions << "</i></label>\r\n"
@@ -696,9 +699,9 @@ namespace http {
 		if (i2cpServer)
 		{
 			s << "<b>I2CP " << tr("Local Destination") << ":</b><br>\r\n<br>\r\n";
-			auto it = i2cpServer->GetSessions ().find (std::stoi (id));
-			if (it != i2cpServer->GetSessions ().end ())
-				ShowLeaseSetDestination (s, it->second->GetDestination (), 0);
+			auto session = i2cpServer->FindSessionByID ((uint16_t)std::stoi (id));
+			if (session)
+				ShowLeaseSetDestination (s, session->GetDestination (), 0);
 			else
 				ShowError(s, tr("I2CP session not found"));
 		}
@@ -776,7 +779,7 @@ namespace http {
 		auto ExplPool = i2p::tunnel::tunnels.GetExploratoryPool ();
 
 		s << "<b>" << tr("Inbound tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
-		for (auto & it : i2p::tunnel::tunnels.GetInboundTunnels ()) {
+		for (auto & it : i2p::tunnel::tunnels.GetInboundTunnelsList ()) {
 			s << "<div class=\"listitem\">";
 			if (it->GetNumHops ())
 			{
@@ -797,7 +800,7 @@ namespace http {
 		}
 		s << "</div>\r\n<br>\r\n";
 		s << "<b>" << tr("Outbound tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
-		for (auto & it : i2p::tunnel::tunnels.GetOutboundTunnels ()) {
+		for (auto & it : i2p::tunnel::tunnels.GetOutboundTunnelsList ()) {
 			s << "<div class=\"listitem\">";
 			s << it->GetTunnelID () << ":me &#8658;";
 			// for each tunnel hop if not zero-hop
@@ -899,7 +902,7 @@ namespace http {
 			s << "<table>\r\n";
 			s << "<thead><tr><th>&#8658;</th><th>ID</th><th>&#8658;</th><th>" << tr("Amount") << "</th><th>" << tr("Next") << "</th></tr></thead>\r\n";
 			s << "<tbody class=\"tableitem\">\r\n";
-			for (const auto& it: i2p::tunnel::tunnels.GetTransitTunnels ())
+			for (const auto& it: i2p::tunnel::tunnels.GetTransitTunnelsList ())
 			{
 				s << "<tr class=\"tcell_center\">";
 				if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelGateway>(it))
@@ -1033,10 +1036,11 @@ namespace http {
 			return;
 		}
 
-		if (sam->GetSessions ().size ())
+		auto samSessions = sam->GetSessionsList ();
+		if (samSessions.size ())
 		{
 			s << "<b>" << tr("SAM sessions") << ":</b><br>\r\n<div class=\"list\">\r\n";
-			for (auto& it: sam->GetSessions ())
+			for (auto& it: samSessions)
 			{
 				auto& name = it.second->GetLocalDestination ()->GetNickname ();
 				auto sam_id = i2p::data::ByteStreamToBase64 ((const uint8_t *)it.first.data (), it.first.length ()); // base64, becuase session name might be UTF-8

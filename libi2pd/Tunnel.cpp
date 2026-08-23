@@ -888,7 +888,10 @@ namespace tunnel
 				if (pool)
 					pool->TunnelExpired (tunnel);
 				// we don't have outbound tunnels in m_Tunnels
-				it = m_OutboundTunnels.erase (it);
+				{
+					std::lock_guard<std::mutex> l(m_TunnelsMutex);
+					it = m_OutboundTunnels.erase (it);
+				}
 			}
 			else
 			{
@@ -939,7 +942,10 @@ namespace tunnel
 				if (pool)
 					pool->TunnelExpired (tunnel);
 				RemoveTunnel (tunnel->GetTunnelID ());
-				it = m_InboundTunnels.erase (it);
+				{
+					std::lock_guard<std::mutex> l(m_TunnelsMutex);
+					it = m_InboundTunnels.erase (it);
+				}
 			}
 			else
 			{
@@ -1061,7 +1067,10 @@ namespace tunnel
 	void Tunnels::AddOutboundTunnel (std::shared_ptr<OutboundTunnel> newTunnel)
 	{
 		// we don't need to insert it to m_Tunnels
-		m_OutboundTunnels.push_back (newTunnel);
+		{
+			std::lock_guard<std::mutex> l(m_TunnelsMutex);
+			m_OutboundTunnels.push_back (newTunnel);
+		}
 		auto pool = newTunnel->GetTunnelPool ();
 		if (pool && pool->IsActive ())
 			pool->TunnelCreated (newTunnel);
@@ -1073,7 +1082,10 @@ namespace tunnel
 	{
 		if (AddTunnel (newTunnel))
 		{
-			m_InboundTunnels.push_back (newTunnel);
+			{
+				std::lock_guard<std::mutex> l(m_TunnelsMutex);
+				m_InboundTunnels.push_back (newTunnel);
+			}
 			auto pool = newTunnel->GetTunnelPool ();
 			if (!pool)
 			{
@@ -1100,7 +1112,10 @@ namespace tunnel
 		auto inboundTunnel = std::make_shared<ZeroHopsInboundTunnel> ();
 		inboundTunnel->SetTunnelPool (pool);
 		inboundTunnel->SetState (eTunnelStateEstablished);
-		m_InboundTunnels.push_back (inboundTunnel);
+		{
+			std::lock_guard<std::mutex> l(m_TunnelsMutex);
+			m_InboundTunnels.push_back (inboundTunnel);
+		}
 		AddTunnel (inboundTunnel);
 		return inboundTunnel;
 	}
@@ -1110,7 +1125,10 @@ namespace tunnel
 		auto outboundTunnel = std::make_shared<ZeroHopsOutboundTunnel> ();
 		outboundTunnel->SetTunnelPool (pool);
 		outboundTunnel->SetState (eTunnelStateEstablished);
-		m_OutboundTunnels.push_back (outboundTunnel);
+		{
+			std::lock_guard<std::mutex> l(m_TunnelsMutex);
+			m_OutboundTunnels.push_back (outboundTunnel);
+		}
 		// we don't insert into m_Tunnels
 		return outboundTunnel;
 	}
