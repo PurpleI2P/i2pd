@@ -144,8 +144,6 @@ namespace client
 			void ReadI2CPOptions (const Section& section, bool isServer, i2p::util::Mapping& options) const; // for tunnels
 			void ReadI2CPOptionsFromConfig (const std::string& prefix, i2p::util::Mapping& options) const; // for HTTP and SOCKS proxy
 
-			void CleanupUDP(const boost::system::error_code & ecode);
-			void ScheduleCleanupUDP();
 
 			void VisitTunnels (bool clean);
 
@@ -178,7 +176,6 @@ namespace client
 			BOBCommandChannel * m_BOBCommandChannel;
 			I2CPServer * m_I2CPServer;
 
-			std::unique_ptr<boost::asio::steady_timer> m_CleanupUDPTimer;
 
 			// i18n
 			std::shared_ptr<const i2p::i18n::Locale> m_Language;
