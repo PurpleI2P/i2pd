@@ -29,6 +29,7 @@ namespace client
 	const size_t I2P_CONTROL_MAX_REQUEST_SIZE = 1024;
 	typedef std::array<char, I2P_CONTROL_MAX_REQUEST_SIZE> I2PControlBuffer;
 
+	const uint64_t I2P_CONTROL_TOKEN_LIFETIME = 60*60; // 1 hour, in seconds
 	const long I2P_CONTROL_CERTIFICATE_VALIDITY = 365*10; // 10 years
 	const char I2P_CONTROL_CERTIFICATE_COMMON_NAME[] = "i2pd.i2pcontrol";
 	const char I2P_CONTROL_CERTIFICATE_ORGANIZATION[] = "Purple I2P";
@@ -95,7 +96,8 @@ namespace client
 #endif		
 			boost::asio::ssl::context m_SSLContext;
 			boost::asio::steady_timer m_ShutdownTimer;
-			std::set<std::string> m_Tokens;
+			std::map<std::string, uint64_t> m_Tokens; // token -> expiration time in seconds since epoch
+			bool IsValidToken (const std::string& token);
 
 			std::map<std::string, MethodHandler> m_MethodHandlers;
 			std::map<std::string, I2PControlRequestHandler> m_I2PControlHandlers;

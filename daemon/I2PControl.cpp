@@ -11,6 +11,8 @@
 #include <iomanip>
 #include <openssl/x509.h>
 #include <openssl/pem.h>
+#include <openssl/rand.h>
+#include <openssl/crypto.h>
 
 // Use global placeholders from boost introduced when local_time.hpp is loaded
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
@@ -18,6 +20,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include "FS.h"
+#include "Base.h"
 #include "Log.h"
 #include "Config.h"
 #include "NetDb.hpp"
@@ -278,7 +281,7 @@ namespace client
 				{
 					auto params = pt.get_child ("params");
 					if (method != "Authenticate" &&
-						!m_Tokens.count (params.get<std::string> ("Token", "")))
+						!IsValidToken (params.get<std::string> ("Token", "")))
 					{
 						LogPrint (eLogWarning, "I2PControl: Invalid or missing token for method ", method);
 						response << "{\"id\":null,\"error\":";
@@ -352,16 +355,40 @@ namespace client
 	{
 		int api       = params.get<int> ("API");
 		auto password = params.get<std::string> ("Password");
-		LogPrint (eLogDebug, "I2PControl: Authenticate API=", api, " Password=", password);
-		if (password != m_Password) {
-			LogPrint (eLogError, "I2PControl: Authenticate - Invalid password: ", password);
+		LogPrint (eLogDebug, "I2PControl: Authenticate API=", api);
+		bool isValid = password.size () == m_Password.size () &&
+			CRYPTO_memcmp (password.data (), m_Password.data (), m_Password.size ()) == 0;
+		if (!isValid) {
+			LogPrint (eLogError, "I2PControl: Authenticate - Invalid password");
 			return;
 		}
 		InsertParam (results, "API", api);
 		results << ",";
-		std::string token = boost::lexical_cast<std::string>(i2p::util::GetSecondsSinceEpoch ());
-		m_Tokens.insert (token);
+		uint8_t tokenBytes[32];
+		RAND_bytes (tokenBytes, 32);
+		std::string token = i2p::data::ByteStreamToBase64 (tokenBytes, 32);
+		m_Tokens[token] = i2p::util::GetSecondsSinceEpoch () + I2P_CONTROL_TOKEN_LIFETIME;
 		InsertParam (results, "Token", token);
+	}
+
+	bool I2PControlService::IsValidToken (const std::string& token)
+	{
+		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
+		for (auto it = m_Tokens.begin (); it != m_Tokens.end ();)
+		{
+			if (ts > it->second)
+				it = m_Tokens.erase (it); // expired
+			else
+				++it;
+		}
+		bool found = false;
+		for (const auto& it: m_Tokens)
+		{
+			if (it.first.size () == token.size () &&
+				CRYPTO_memcmp (it.first.data (), token.data (), token.size ()) == 0)
+				found = true; // don't short-circuit; keep timing independent of match position
+		}
+		return found;
 	}
 
 	void I2PControlService::EchoHandler (const boost::property_tree::ptree& params, std::ostringstream& results)
