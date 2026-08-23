@@ -896,7 +896,8 @@ namespace torrents
 	{
 		if (offset >= m_ReceiveBufferOffset)
 		{
-			LogPrint (eLogError, "Torrents: Start of message ", offset, " is beyond received buffer ", m_ReceiveBufferOffset);
+			if (offset > m_ReceiveBufferOffset)
+				LogPrint (eLogError, "Torrents: Start of message ", offset, " is beyond received buffer ", m_ReceiveBufferOffset);
 			return 0;
 		}
 		if (!m_IsEstablished)
