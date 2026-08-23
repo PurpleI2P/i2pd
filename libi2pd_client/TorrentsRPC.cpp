@@ -325,7 +325,12 @@ namespace torrents
 			},
 			{ "error", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(0); } }, // no error
 			{ "eta", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(600); } }, // TODO:
-			{ "uploadRatio", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(1); } } // TODO:
+			{ "uploadRatio", [](std::shared_ptr<Torrent> torrent)
+				{
+					float ratio = torrent->GetDownloaded () ? ((float)torrent->GetUploaded ())/((float)torrent->GetDownloaded ()) : 100.0;
+					return boost::json::value (ratio);
+				}
+			}
 		};
 		if (torrent)
 		{
@@ -354,8 +359,10 @@ namespace torrents
 				auto stream = it->GetStream ();
 				bool isIncoming = stream ? stream->IsIncoming () : false;
 				if (isIncoming) flags.push_back ('I');
-				peer["address"] = stream ? stream->GetRemoteIdentity ()->GetIdentHash ().ToBase64 ().substr (0,4) : "";
+				auto identHashStr = stream ? stream->GetRemoteIdentity ()->GetIdentHash ().ToBase64 () : "";
+				peer["address"] = identHashStr.substr (0, 4);
 				peer["port"] = TORRENT_PORT;
+				peer["identHash"] = identHashStr;
 				peer["clientName"] = RecognizeClientByPeerID (it->GetRemotePeerID ());
 				peer["isDowloadingFrom"] = it->IsDownloading ();
 				peer["isUploading_to"] = it->IsUploading ();
@@ -367,7 +374,7 @@ namespace torrents
 				peer["clientIsIntersted"] = it->IsInterested ();
 				peer["peerIsInterested"] = it->IsRemoteInterested ();
 				peer["flagStr"] = flags;
-				peer["progress"] = 0.5; // TODO:
+				peer["progress"] = torrent->GetLength () ? ((float)it->GetDownloaded ())/(float)(torrent->GetLength ()) : 1.0;
 				peers.push_back (peer);
 			}
 		}

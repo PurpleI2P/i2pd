@@ -303,7 +303,7 @@ namespace torrents
 
 	Torrent::Torrent (std::string_view buf):
 		m_Length (0), m_PieceLength (0), m_Interval (MIN_TRACKER_REQUESTS_INTERVAL),
-		m_NextTrackerRequestTime (0), m_IsComplete (false),  m_Uploaded (0)
+		m_NextTrackerRequestTime (0), m_IsComplete (false),  m_Uploaded (0), m_Downloaded (0)
 	{
 		ResetStats ();
 		ParseDictionary (buf, [this](std::string_view key, std::string_view buf)->size_t
@@ -664,7 +664,8 @@ namespace torrents
 		m_Stream (stream), m_ReceiveBufferOffset (0), m_NextMsgLength (0),
 		m_IsHandshakeSent (false), m_IsEstablished (false), m_IsChoked (true), m_IsRemoteChoked (true),
 		m_IsInterested (false), m_IsRemoteInterested (false), m_LastReceiveTime (0), m_LastSendTime (0),
-		m_NumRequests (0), m_NumPieces (0), m_LastRequestedPieceIndex (-1)
+		m_NumRequests (0), m_NumPieces (0), m_LastRequestedPieceIndex (-1),
+		m_Downloaded (0), m_Uploaded (0)
 	{
 		ResetStats ();
 	}
@@ -1154,6 +1155,8 @@ namespace torrents
 		if (m_NumRequests <= MAX_NUM_REQUESTS*2/3)
 			RequestNextBlocks ();
 		// update stats
+		m_Downloaded += REQUEST_BLOCK_SIZE;
+		m_Torrent->AddDownloaded (REQUEST_BLOCK_SIZE);
 		auto ts = i2p::util::GetMonotonicMilliseconds ();
 		if (m_LastBlockDownloadTimestamp)
 		{
@@ -1224,6 +1227,7 @@ namespace torrents
 					s->Terminate ();
 			});
 		m_LastSendTime = i2p::util::GetMonotonicSeconds ();
+		m_Uploaded += REQUEST_BLOCK_SIZE;
 		m_Torrent->AddUploaded (len);
 	}
 

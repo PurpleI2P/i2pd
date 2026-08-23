@@ -192,6 +192,8 @@ namespace torrents
 			void SetNextTrackerRequestTime (uint64_t ts) { m_NextTrackerRequestTime = ts; }
 			size_t GetUploaded () const { return m_Uploaded; }
 			void AddUploaded (size_t add) { m_Uploaded += add; }
+			size_t GetDownloaded () const { return m_Downloaded; }
+			void AddDownloaded (size_t add) { m_Downloaded += add; }
 
 			void SaveTorrentResumeFile (const std::filesystem::path& fullPath);
 
@@ -228,7 +230,7 @@ namespace torrents
 			std::unordered_set<i2p::data::IdentHash> m_Peers;
 			bool m_IsComplete;
 			std::list<std::pair<std::filesystem::path, size_t> > m_Files; // list of (path, length)
-			size_t m_Uploaded;
+			size_t m_Uploaded, m_Downloaded;
 			// stats
 			uint64_t m_DownloadRate, m_UploadRate; // B/sec
 			int m_NumDownloadingFromPeers, m_NumUploadingToPeers; // by us
@@ -277,6 +279,8 @@ namespace torrents
 			bool IsRemoteInterested () const  { return m_IsRemoteInterested; }
 			bool IsChoked () const  { return m_IsChoked; }
 			bool IsRemoteChoked () const  { return m_IsRemoteChoked; }
+			size_t GetDownloaded () const { return m_Downloaded; }
+			size_t GetUploaded () const { return m_Uploaded; }
 
 		private:
 
@@ -333,6 +337,7 @@ namespace torrents
 			uint64_t m_DownloadRate, m_UploadRate; // B/sec
 			uint64_t m_LastBlockDownloadTimestamp, m_LastBlockUploadTimestamp; // monotonic milliseconds
 			size_t m_ReceivedSinceLastTimestamp, m_SentSinceLastTimestamp; // bytes
+			size_t m_Downloaded, m_Uploaded; // bytes
 	};
 
 	class TorrentsTunnel final: public i2p::client::I2PService
