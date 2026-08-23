@@ -1008,7 +1008,7 @@ namespace stream
 		else if (numMsgs > m_NumPacketsToSend)
 			numMsgs = m_NumPacketsToSend;
 
-		if (!m_RemoteLeaseSet) m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());
+		if (!m_RemoteLeaseSet && m_RemoteIdentity) m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());
 		if (m_RemoteLeaseSet)
 		{
 			if (!m_RoutingSession)
@@ -1082,7 +1082,7 @@ namespace stream
 			{
 				// initial packet
 				m_Status = eStreamStatusOpen;
-				if (!m_RemoteLeaseSet) m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());
+				if (!m_RemoteLeaseSet && m_RemoteIdentity) m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());
 				if (m_RemoteLeaseSet)
 				{
 					m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true, !m_IsIncoming);
@@ -1972,6 +1972,13 @@ namespace stream
 		bool isLeaseChanged = true;
 		if (!m_RemoteLeaseSet || m_RemoteLeaseSet->IsExpired ())
 		{
+			if (!m_RemoteIdentity)
+			{
+				// no remote identity established yet, nothing to look up
+				m_Status = eStreamStatusClosed;
+				AsyncClose ();
+				return;
+			}
 			auto remoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());
 			if (!remoteLeaseSet)
 			{
