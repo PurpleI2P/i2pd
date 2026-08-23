@@ -11,6 +11,7 @@
 
 #include <inttypes.h>
 #include <list>
+#include <vector>
 #include <mutex>
 #include <memory>
 #include "Crypto.h"
@@ -137,7 +138,7 @@ namespace tunnel
 			void Stop ();
 			void PostTransitTunnelBuildMsg  (std::shared_ptr<I2NPMessage>&& msg);
 
-			size_t GetNumTransitTunnels () const { return m_TransitTunnels.size (); }
+			size_t GetNumTransitTunnels () const { std::lock_guard<std::mutex> l(m_TransitTunnelsMutex); return m_TransitTunnels.size (); }
 			int GetTransitTunnelsExpirationTimeout ();
 
 		private:
@@ -155,14 +156,19 @@ namespace tunnel
 
 			volatile bool m_IsRunning;
 			std::unique_ptr<std::thread> m_Thread;
+			mutable std::mutex m_TransitTunnelsMutex;
 			std::list<std::shared_ptr<TransitTunnel> > m_TransitTunnels;
 			i2p::util::Queue<std::shared_ptr<I2NPMessage> > m_TunnelBuildMsgQueue;
 			std::mt19937 m_Rng;
 
 		public:
 
-			// for HTTP only
-			const auto& GetTransitTunnels () const { return m_TransitTunnels; };
+			// for HTTP and I2PControl; thread-safe snapshot, safe to iterate without holding any lock
+			std::vector<std::shared_ptr<TransitTunnel> > GetTransitTunnelsList () const
+			{
+				std::lock_guard<std::mutex> l(m_TransitTunnelsMutex);
+				return std::vector<std::shared_ptr<TransitTunnel> > (m_TransitTunnels.begin (), m_TransitTunnels.end ());
+			}
 			size_t GetTunnelBuildMsgQueueSize () const { return m_TunnelBuildMsgQueue.GetSize (); };
 	};
 }

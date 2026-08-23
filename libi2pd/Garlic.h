@@ -12,6 +12,8 @@
 #include <inttypes.h>
 #include <unordered_map>
 #include <list>
+#include <vector>
+#include <utility>
 #include <string>
 #include <thread>
 #include <mutex>
@@ -319,7 +321,7 @@ namespace garlic
 			bool m_IsIdling;
 			// outgoing sessions
 			int m_NumTags;
-			std::mutex m_SessionsMutex;
+			mutable std::mutex m_SessionsMutex;
 			std::unordered_map<i2p::data::IdentHash, ElGamalAESSessionPtr> m_Sessions;
 			std::unordered_map<i2p::data::Tag<32>, ECIESX25519AEADRatchetSessionPtr> m_ECIESx25519Sessions; // static key -> session
 			uint8_t * m_PayloadBuffer; // for ECIESX25519AEADRatchet
@@ -341,8 +343,21 @@ namespace garlic
 			// for HTTP only
 			size_t GetNumIncomingTags () const { return m_Tags.size (); }
 			size_t GetNumIncomingECIESx25519Tags () const { return m_ECIESx25519Tags.size (); }
-			const decltype(m_Sessions)& GetSessions () const { return m_Sessions; };
-			const decltype(m_ECIESx25519Sessions)& GetECIESx25519Sessions () const { return m_ECIESx25519Sessions; }
+			// thread-safe snapshots, safe to iterate without holding any lock
+			std::vector<std::pair<i2p::data::IdentHash, ElGamalAESSessionPtr> > GetSessionsList () const
+			{
+				std::unique_lock<std::mutex> l(m_SessionsMutex);
+				return std::vector<std::pair<i2p::data::IdentHash, ElGamalAESSessionPtr> > (m_Sessions.begin (), m_Sessions.end ());
+			}
+			std::vector<ECIESX25519AEADRatchetSessionPtr> GetECIESx25519SessionsList () const
+			{
+				std::unique_lock<std::mutex> l(m_SessionsMutex);
+				std::vector<ECIESX25519AEADRatchetSessionPtr> sessions;
+				sessions.reserve (m_ECIESx25519Sessions.size ());
+				for (const auto& it: m_ECIESx25519Sessions)
+					sessions.push_back (it.second);
+				return sessions;
+			}
 	};
 
 	void CleanUpTagsFiles ();

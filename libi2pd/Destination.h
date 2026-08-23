@@ -150,7 +150,7 @@ namespace client
 			virtual bool Reconfigure(const i2p::util::Mapping& i2cpOpts);
 
 			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () { return m_Pool; };
-			bool IsReady () const { return m_LeaseSet && !m_LeaseSet->IsExpired () && m_Pool->GetOutboundTunnels ().size () > 0; };
+			bool IsReady () const { return m_LeaseSet && !m_LeaseSet->IsExpired () && !m_Pool->GetOutboundTunnelsList ().empty (); };
 			std::shared_ptr<i2p::data::LeaseSet> FindLeaseSet (const i2p::data::IdentHash& ident);
 			bool RequestDestination (const i2p::data::IdentHash& dest, RequestComplete requestComplete = nullptr);
 			bool RequestDestinationWithEncryptedLeaseSet (std::shared_ptr<const i2p::data::BlindedPublicKey> dest, RequestComplete requestComplete = nullptr);
@@ -234,8 +234,7 @@ namespace client
 		public:
 
 			// for HTTP only
-			int GetNumRemoteLeaseSets () const { return m_RemoteLeaseSets.size (); };
-			const decltype(m_RemoteLeaseSets)& GetLeaseSets () const { return m_RemoteLeaseSets; };
+			int GetNumRemoteLeaseSets () const { std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex); return m_RemoteLeaseSets.size (); };
 			// copy for other threads, unlike GetLeaseSets which hands out the container itself
 			std::vector<std::shared_ptr<i2p::data::LeaseSet> > GetLeaseSetsList () const
 			{

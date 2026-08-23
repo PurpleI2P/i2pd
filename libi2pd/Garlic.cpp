@@ -772,10 +772,14 @@ namespace garlic
 				ECIESX25519AEADRatchetSessionPtr session;
 				uint8_t staticKey[32];
 				destination->Encrypt (nullptr, staticKey); // we are supposed to get static key
-				auto it = m_ECIESx25519Sessions.find (staticKey);
-				if (it != m_ECIESx25519Sessions.end ())
 				{
-					session = it->second;
+					std::unique_lock<std::mutex> l(m_SessionsMutex);
+					auto it = m_ECIESx25519Sessions.find (staticKey);
+					if (it != m_ECIESx25519Sessions.end ())
+						session = it->second;
+				}
+				if (session)
+				{
 					if (session->IsInactive (i2p::util::GetSecondsSinceEpoch ()))
 					{
 						LogPrint (eLogDebug, "Garlic: Session restarted");
@@ -862,15 +866,18 @@ namespace garlic
 			}
 		}
 		// ECIESx25519
-		for (auto it = m_ECIESx25519Sessions.begin (); it != m_ECIESx25519Sessions.end ();)
 		{
-			if (it->second->CheckExpired (ts))
+			std::unique_lock<std::mutex> l(m_SessionsMutex);
+			for (auto it = m_ECIESx25519Sessions.begin (); it != m_ECIESx25519Sessions.end ();)
 			{
-				it->second->Terminate ();
-				it = m_ECIESx25519Sessions.erase (it);
+				if (it->second->CheckExpired (ts))
+				{
+					it->second->Terminate ();
+					it = m_ECIESx25519Sessions.erase (it);
+				}
+				else
+					++it;
 			}
-			else
-				++it;
 		}
 
 		numExpiredTags = 0;
@@ -934,9 +941,9 @@ namespace garlic
 			std::unique_lock<std::mutex> l(m_SessionsMutex);
 			for (auto& it: m_Sessions)
 				it.second->SetLeaseSetUpdated ();
+			for (auto& it: m_ECIESx25519Sessions)
+				it.second->SetLeaseSetUpdated ();
 		}
-		for (auto& it: m_ECIESx25519Sessions)
-			it.second->SetLeaseSetUpdated ();
 	}
 
 	void GarlicDestination::ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg)
@@ -1108,6 +1115,7 @@ namespace garlic
 	void GarlicDestination::AddECIESx25519Session (const uint8_t * staticKey, ECIESX25519AEADRatchetSessionPtr session)
 	{
 		i2p::data::Tag<32> staticKeyTag (staticKey);
+		std::unique_lock<std::mutex> l(m_SessionsMutex);
 		auto it = m_ECIESx25519Sessions.find (staticKeyTag);
 		if (it != m_ECIESx25519Sessions.end ())
 		{
@@ -1127,6 +1135,7 @@ namespace garlic
 
 	void GarlicDestination::RemoveECIESx25519Session (const uint8_t * staticKey)
 	{
+		std::unique_lock<std::mutex> l(m_SessionsMutex);
 		auto it = m_ECIESx25519Sessions.find (staticKey);
 		if (it != m_ECIESx25519Sessions.end ())
 		{

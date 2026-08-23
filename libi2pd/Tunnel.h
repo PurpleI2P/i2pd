@@ -328,9 +328,18 @@ namespace tunnel
 		public:
 
 			// for HTTP only
-			const decltype(m_OutboundTunnels)& GetOutboundTunnels () const { return m_OutboundTunnels; };
-			const decltype(m_InboundTunnels)& GetInboundTunnels () const { return m_InboundTunnels; };
-			const auto& GetTransitTunnels () const { return m_TransitTunnels.GetTransitTunnels (); };
+			// for HTTP only; thread-safe snapshots, safe to iterate without holding any lock
+			std::vector<std::shared_ptr<OutboundTunnel> > GetOutboundTunnelsList () const
+			{
+				std::lock_guard<std::mutex> l(m_TunnelsMutex);
+				return std::vector<std::shared_ptr<OutboundTunnel> > (m_OutboundTunnels.begin (), m_OutboundTunnels.end ());
+			}
+			std::vector<std::shared_ptr<InboundTunnel> > GetInboundTunnelsList () const
+			{
+				std::lock_guard<std::mutex> l(m_TunnelsMutex);
+				return std::vector<std::shared_ptr<InboundTunnel> > (m_InboundTunnels.begin (), m_InboundTunnels.end ());
+			}
+			auto GetTransitTunnelsList () const { return m_TransitTunnels.GetTransitTunnelsList (); };
 
 			size_t CountTransitTunnels() const;
 			size_t CountInboundTunnels() const;

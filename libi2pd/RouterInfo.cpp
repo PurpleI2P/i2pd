@@ -324,7 +324,7 @@ namespace data
 					}
 					else if (address->transportStyle == eTransportSSU2)
 					{
-						if (value[0] >= '3' && value[0] <= '4') // only 3,4 allowed, TODO: support multiple values
+						if (value.size () == 1 && value[0] >= '3' && value[0] <= '4') // only 3,4 allowed, TODO: support multiple values
                             address->v = value[0] - '0';
 					}
 				}

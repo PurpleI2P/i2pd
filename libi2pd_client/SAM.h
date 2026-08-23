@@ -15,6 +15,8 @@
 #include <map>
 #include <list>
 #include <set>
+#include <vector>
+#include <utility>
 #include <thread>
 #include <mutex>
 #include <memory>
@@ -319,8 +321,12 @@ namespace client
 
 		public:
 
-			// for HTTP
-			const decltype(m_Sessions)& GetSessions () const { return m_Sessions; };
+			// for HTTP; thread-safe snapshot, safe to iterate without holding any lock
+			std::vector<std::pair<std::string, std::shared_ptr<SAMSession> > > GetSessionsList () const
+			{
+				std::lock_guard<std::mutex> l(m_SessionsMutex);
+				return std::vector<std::pair<std::string, std::shared_ptr<SAMSession> > > (m_Sessions.begin (), m_Sessions.end ());
+			}
 	};
 }
 }

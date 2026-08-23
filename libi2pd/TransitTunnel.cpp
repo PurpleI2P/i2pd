@@ -222,6 +222,7 @@ namespace tunnel
 			m_Thread->join ();
 			m_Thread = nullptr;
 		}
+		std::lock_guard<std::mutex> l(m_TransitTunnelsMutex);
 		m_TransitTunnels.clear ();
 	}
 
@@ -636,7 +637,10 @@ namespace tunnel
 	bool TransitTunnels::AddTransitTunnel (std::shared_ptr<TransitTunnel> tunnel)
 	{
 		if (tunnels.AddTunnel (tunnel))
+		{
+			std::lock_guard<std::mutex> l(m_TransitTunnelsMutex);
 			m_TransitTunnels.push_back (tunnel);
+		}
 		else
 		{
 			LogPrint (eLogError, "TransitTunnel: Tunnel with id ", tunnel->GetTunnelID (), " already exists");
@@ -647,6 +651,7 @@ namespace tunnel
 
 	void TransitTunnels::ManageTransitTunnels (uint64_t ts)
 	{
+		std::lock_guard<std::mutex> l(m_TransitTunnelsMutex);
 		for (auto it = m_TransitTunnels.begin (); it != m_TransitTunnels.end ();)
 		{
 			auto tunnel = *it;
@@ -670,7 +675,7 @@ namespace tunnel
 	{
 		int timeout = 0;
 		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-		// TODO: possible race condition with I2PControl
+		std::lock_guard<std::mutex> l(m_TransitTunnelsMutex);
 		for (const auto& it : m_TransitTunnels)
 		{
 			int t = it->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT - ts;
