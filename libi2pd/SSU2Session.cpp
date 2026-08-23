@@ -1707,9 +1707,9 @@ namespace transport
 
 	uint32_t SSU2Session::SendData (const uint8_t * buf, size_t len, uint8_t flags)
 	{
-		if (len < 8)
+		if (len < 8 || len + 16 > SSU2_MAX_PACKET_SIZE)
 		{
-			LogPrint (eLogWarning, "SSU2: Data message payload is too short ", (int)len);
+			LogPrint (eLogWarning, "SSU2: Data message payload length ", (int)len, " is out of range");
 			return 0;
 		}
 		Header header;
@@ -1721,7 +1721,11 @@ namespace transport
 		uint8_t nonce[12];
 		CreateNonce (m_SendPacketNum, nonce);
 		uint8_t payload[SSU2_MAX_PACKET_SIZE];
-		m_Server.AEADChaCha20Poly1305Encrypt (buf, len, header.buf, 16, m_KeyDataSend, nonce, payload, SSU2_MAX_PACKET_SIZE);
+		if (!m_Server.AEADChaCha20Poly1305Encrypt (buf, len, header.buf, 16, m_KeyDataSend, nonce, payload, SSU2_MAX_PACKET_SIZE))
+		{
+			LogPrint (eLogError, "SSU2: Data message AEAD encryption failed");
+			return 0;
+		}
 		header.ll[0] ^= CreateHeaderMask (m_Address->i, payload + (len - 8));
 		header.ll[1] ^= CreateHeaderMask (m_KeyDataSend + 32, payload + (len + 4));
 		m_Server.Send (header.buf, 16, payload, len + 16, m_RemoteEndpoint);
@@ -1804,6 +1808,12 @@ namespace transport
 				case eSSU2BlkI2NPMessage:
 				{
 					LogPrint (eLogDebug, "SSU2: I2NP message");
+					if (size < 9)
+					{
+						LogPrint (eLogWarning, "SSU2: I2NP message block size ", size, " is too short");
+						m_IsInvalidMessage = true;
+						break;
+					}
 					auto nextMsg = (buf[offset] == eI2NPTunnelData) ? NewI2NPTunnelMessage (true) : NewI2NPShortMessage ();
 					if (nextMsg->offset + size + 7 > nextMsg->maxLen) // 7 more bytes for full I2NP header
 					{
@@ -2157,6 +2167,12 @@ namespace transport
 
 	void SSU2Session::HandleFirstFragment (const uint8_t * buf, size_t len)
 	{
+		if (len < 9)
+		{
+			LogPrint (eLogWarning, "SSU2: First fragment size ", len, " is too short");
+			m_IsInvalidMessage = true;
+			return;
+		}
 		auto msg = (buf[0] == eI2NPTunnelData) ? NewI2NPTunnelMessage (true) : NewI2NPShortMessage ();
 		if (msg->offset + len + 7 > msg->maxLen)
 		{
@@ -2434,13 +2450,19 @@ namespace transport
 			if (relaySession && relaySession->IsEstablished ())
 			{
 				// we are Bob, message from Charlie
+				size_t maxPayloadSize = relaySession->GetMaxPayloadSize ();
+				if (len + 3 > maxPayloadSize)
+				{
+					LogPrint (eLogWarning, "SSU2: RelayResponse block size ", len, " is too long");
+					return;
+				}
 				auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
 				uint8_t * payload = packet->payload;
 				payload[0] = eSSU2BlkRelayResponse;
 				htobe16buf (payload + 1, len);
 				memcpy (payload + 3, buf, len); // forward to Alice as is
 				packet->payloadSize = len + 3;
-				packet->payloadSize += CreatePaddingBlock (payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
+				packet->payloadSize += CreatePaddingBlock (payload + packet->payloadSize, maxPayloadSize - packet->payloadSize);
 				uint32_t packetNum = relaySession->SendData (packet->payload, packet->payloadSize);
 				if (m_RemoteVersion >= SSU2_MIN_RELAY_RESPONSE_RESEND_VERSION)
 				{

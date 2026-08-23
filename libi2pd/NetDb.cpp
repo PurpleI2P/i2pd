@@ -804,7 +804,7 @@ namespace data
 	void NetDb::HandleDatabaseStoreMsg (std::shared_ptr<const I2NPMessage> m)
 	{
 		const uint8_t * buf = m->GetPayload ();
-		size_t len = m->GetSize ();
+		size_t len = m->GetPayloadLength ();
 		if (len < DATABASE_STORE_HEADER_SIZE)
 		{
 			LogPrint (eLogError, "NetDb: Database store msg is too short ", len, ". Dropped");
@@ -964,6 +964,12 @@ namespace data
 
 		LogPrint (eLogDebug, "NetDb: DatabaseLookup for ", key, " received flags=", (int)flag);
 		uint8_t lookupType = flag & DATABASE_LOOKUP_TYPE_FLAGS_MASK;
+		size_t minLen = 65 + ((flag & DATABASE_LOOKUP_DELIVERY_FLAG) ? 4 : 0) + 2;
+		if (msg->GetPayloadLength () < minLen)
+		{
+			LogPrint (eLogWarning, "NetDb: DatabaseLookup message is too short for its flags");
+			return;
+		}
 		const uint8_t * excluded = buf + 65;
 		uint32_t replyTunnelID = 0;
 		if (flag & DATABASE_LOOKUP_DELIVERY_FLAG) //reply to tunnel
@@ -1061,27 +1067,34 @@ namespace data
 				// encryption might be used though tunnel only
 				if (flag & (DATABASE_LOOKUP_ENCRYPTION_FLAG | DATABASE_LOOKUP_ECIES_FLAG)) // encrypted reply requested
 				{
-					const uint8_t * sessionKey = excluded;
-					const uint8_t numTags = excluded[32];
-					if (numTags)
+					// session key (32) + numTags (1), then the tag itself: 8 bytes for ECIES, 32 for ElGamal
+					size_t tagLen = (flag & DATABASE_LOOKUP_ECIES_FLAG) ? 8 : 32;
+					if ((size_t)(excluded - buf) + 33 + tagLen > msg->GetPayloadLength ())
+						LogPrint (eLogWarning, "NetDb: DatabaseLookup reply key block is truncated");
+					else
 					{
-						if (flag & DATABASE_LOOKUP_ECIES_FLAG)
+						const uint8_t * sessionKey = excluded;
+						const uint8_t numTags = excluded[32];
+						if (numTags)
 						{
-							uint64_t tag;
-							memcpy (&tag, excluded + 33, 8);
-							replyMsg = i2p::garlic::WrapECIESX25519Message (replyMsg, sessionKey, tag);
+							if (flag & DATABASE_LOOKUP_ECIES_FLAG)
+							{
+								uint64_t tag;
+								memcpy (&tag, excluded + 33, 8);
+								replyMsg = i2p::garlic::WrapECIESX25519Message (replyMsg, sessionKey, tag);
+							}
+							else
+							{
+								const i2p::garlic::SessionTag sessionTag(excluded + 33); // take first tag
+								i2p::garlic::ElGamalAESSession garlic (sessionKey, sessionTag);
+								replyMsg = garlic.WrapSingleMessage (replyMsg);
+							}
+							if (!replyMsg)
+								LogPrint (eLogError, "NetDb: Failed to wrap message");
 						}
 						else
-						{
-							const i2p::garlic::SessionTag sessionTag(excluded + 33); // take first tag
-							i2p::garlic::ElGamalAESSession garlic (sessionKey, sessionTag);
-							replyMsg = garlic.WrapSingleMessage (replyMsg);
-						}
-						if (!replyMsg)
-							LogPrint (eLogError, "NetDb: Failed to wrap message");
+							LogPrint(eLogWarning, "NetDb: Encrypted reply requested but no tags provided");
 					}
-					else
-						LogPrint(eLogWarning, "NetDb: Encrypted reply requested but no tags provided");
 				}
 				bool direct = true;
 				if (!i2p::transport::transports.IsConnected (replyIdent))

@@ -243,9 +243,9 @@ namespace datagram
 				return;
 			}
 		}
-		if (offset > len)
+		if (offset > len || signatureLen > len - offset)
 		{
-			LogPrint (eLogWarning, "Datagram: datagram2 is too short ", len, " expected ", offset);
+			LogPrint (eLogWarning, "Datagram: datagram2 is too short ", len, " expected ", offset + signatureLen);
 			return;
 		}
 		if (!verified)
@@ -260,6 +260,11 @@ namespace datagram
 					return;
 				}
 				signatureLen = transientVerifier->GetSignatureLen ();
+			}
+			if (offset > len || signatureLen > len - offset)
+			{
+				LogPrint (eLogWarning, "Datagram: datagram2 is too short ", len, " expected ", offset + signatureLen);
+				return;
 			}
 			std::vector<uint8_t> signedData (len + 32 - identityLen - signatureLen);
 			memcpy (signedData.data (), identity.GetIdentHash (), 32);

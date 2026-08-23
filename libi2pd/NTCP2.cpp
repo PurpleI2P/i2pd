@@ -1338,6 +1338,11 @@ namespace transport
 						LogPrint (eLogError, "NTCP2: I2NP block is too long ", size);
 						break;
 					}
+					if (size < 9)
+					{
+						LogPrint (eLogError, "NTCP2: I2NP block is too short ", size);
+						break;
+					}
 					auto nextMsg = (frame[offset] == eI2NPTunnelData) ? NewI2NPTunnelMessage (true) : NewI2NPMessage (size);
 					nextMsg->len = nextMsg->offset + size + 7; // 7 more bytes for full I2NP header
 					if (nextMsg->len <= nextMsg->maxLen)
