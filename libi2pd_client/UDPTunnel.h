@@ -55,7 +55,9 @@ namespace client
 	/** local socket buffers, not datagram size */
 	const size_t I2P_UDP_SOCKET_BUFFER_SIZE = 4*1024*1024;
 
-	struct UDPConnection
+	// handlers of both sides are queued on sockets and can outlive the object
+	// they belong to, so they hold it by a shared pointer
+	struct UDPConnection: public std::enable_shared_from_this<UDPConnection>
 	{
 		std::shared_ptr<i2p::datagram::DatagramDestination> m_Destination;
 		std::weak_ptr<i2p::datagram::DatagramSession> m_LastDatagramSession;
