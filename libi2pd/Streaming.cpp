@@ -293,19 +293,22 @@ namespace stream
 			ProcessPacket (packet);
 			if (m_Status == eStreamStatusTerminated) return;
 
-			// we should also try stored messages if any
-			for (auto it = m_SavedPackets.begin (); it != m_SavedPackets.end ();)
+			if (!m_SavedPackets.empty ())
 			{
-				if ((*it)->GetSeqn () == (uint32_t)(m_LastReceivedSequenceNumber + 1))
+				// we should also try stored messages if any
+				auto it = m_SavedPackets.begin ();
+				while (it != m_SavedPackets.end ())
 				{
-					Packet * savedPacket = *it;
-					m_SavedPackets.erase (it++);
-
-					ProcessPacket (savedPacket);
-					if (m_Status == eStreamStatusTerminated) return;
+					if ((*it)->GetSeqn () == (uint32_t)(m_LastReceivedSequenceNumber + 1))
+					{
+						ProcessPacket (*it);
+						it++;
+					}
+					else
+						break;
 				}
-				else
-					break;
+				m_SavedPackets.erase (m_SavedPackets.begin (), it);
+				if (m_Status == eStreamStatusTerminated) return; // status migth have changed in ProcessPacket
 			}
 
 			// schedule ack for last message
