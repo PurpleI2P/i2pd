@@ -155,6 +155,7 @@ namespace client
 		auto s = std::make_shared<UDPSession>(boost::asio::ip::udp::endpoint(addr, 0),
 			m_LocalDest, m_RemoteEndpoint, ih, localPort, remotePort);
 		s->SetMaxWindow (m_MaxWindow);
+		s->Receive ();
 		std::lock_guard<std::mutex> lock(m_SessionsMutex);
 		m_Sessions.emplace (idx, s);
 		return s;
@@ -377,14 +378,18 @@ namespace client
 		IPSocket.set_option (boost::asio::socket_base::receive_buffer_size (I2P_UDP_SOCKET_BUFFER_SIZE));
 		IPSocket.set_option (boost::asio::socket_base::send_buffer_size (I2P_UDP_SOCKET_BUFFER_SIZE));
 		IPSocket.non_blocking (true);
-		Receive();
+		// Receive is not called here: it takes a shared pointer to this session,
+		// which does not exist yet while the constructor runs
 	}
 
 	void UDPSession::Receive()
 	{
 		LogPrint(eLogDebug, "UDPSession: Receive");
-		IPSocket.async_receive_from(boost::asio::buffer(m_Buffer, I2P_UDP_MAX_MTU),
-			FromEndpoint, std::bind(&UDPSession::HandleReceived, this, std::placeholders::_1, std::placeholders::_2));
+		IPSocket.async_receive_from(boost::asio::buffer(m_Buffer, I2P_UDP_MAX_MTU), FromEndpoint,
+			[s = std::static_pointer_cast<UDPSession>(shared_from_this ())](const boost::system::error_code& ecode, std::size_t len)
+			{
+				s->HandleReceived (ecode, len);
+			});
 	}
 
 	void UDPSession::HandleReceived(const boost::system::error_code & ecode, std::size_t len)
@@ -662,8 +667,11 @@ namespace client
 
 	void I2PUDPClientTunnel::RecvFromLocal ()
 	{
-		m_LocalSocket->async_receive_from (boost::asio::buffer (m_RecvBuff, I2P_UDP_MAX_MTU),
-			m_RecvEndpoint, std::bind (&I2PUDPClientTunnel::HandleRecvFromLocal, this, std::placeholders::_1, std::placeholders::_2));
+		m_LocalSocket->async_receive_from (boost::asio::buffer (m_RecvBuff, I2P_UDP_MAX_MTU), m_RecvEndpoint,
+			[s = std::static_pointer_cast<I2PUDPClientTunnel>(shared_from_this ())](const boost::system::error_code& ecode, std::size_t transferred)
+			{
+				s->HandleRecvFromLocal (ecode, transferred);
+			});
 	}
 
 	void I2PUDPClientTunnel::HandleRecvFromLocal (const boost::system::error_code & ec, std::size_t transferred)
