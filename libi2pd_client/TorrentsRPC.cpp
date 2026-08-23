@@ -292,14 +292,19 @@ namespace torrents
 						files.push_back (file);
 					}
 					else
+					{
+						auto filesCompleted = torrent->GetFilesCompleted ();
+						size_t ind = 0;
 						for (const auto& [filePath, fileSize]: torrentFiles)
 						{
 							boost::json::object file;
 							file["name"] = filePath.string ();
 							file["length"] = fileSize;
-							file["bytesCompleted"] = 0; // TODO:
+							file["bytesCompleted"] = (ind < filesCompleted.size ()) ? filesCompleted[ind] : 0;
 							files.push_back (file);
+							ind++;
 						}
+					}
 					return files;
 				}
 			},

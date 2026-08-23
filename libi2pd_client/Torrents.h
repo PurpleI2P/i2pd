@@ -186,6 +186,7 @@ namespace torrents
 			const std::unordered_set<i2p::data::IdentHash>&  GetPeers () const { return m_Peers; }
 			std::tuple<uint32_t, uint32_t, uint32_t> GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn, bool skipRequested = true); // return (index, offset, len)
 			std::vector<PieceFileFragment> GetPieceFileFragments (int index) const;
+			std::vector<size_t> GetFilesCompleted () const; // completed size per file
 			bool UpdateStatus (uint64_t ts); // return true if complete
 
 			uint64_t GetNextTrackerRequestTime () const { return m_NextTrackerRequestTime; }

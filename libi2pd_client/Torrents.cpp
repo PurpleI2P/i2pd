@@ -659,6 +659,33 @@ namespace torrents
 		}
 	}
 
+	std::vector<size_t> Torrent::GetFilesCompleted () const
+	{
+		std::vector<size_t> completed;
+		if (!m_Files.empty ())
+		{
+			auto filesIT = m_Files.begin ();
+			size_t currentSize = 0, currentCompletedSize = 0;
+			for (const auto& piece: m_Pieces)
+			{
+				if (currentSize + m_PieceLength < filesIT->second)
+				{
+					currentSize += m_PieceLength;
+					if (piece.IsComplete ()) currentCompletedSize += m_PieceLength;
+				}
+				else
+				{
+					if (piece.IsComplete ()) currentCompletedSize += (filesIT->second - currentSize);
+					completed.push_back (currentCompletedSize);
+					currentSize = 0; currentCompletedSize = 0;
+					filesIT++;
+					if (filesIT == m_Files.end ()) break;
+				}
+			}
+		}
+		return completed;
+	}
+
 	PeerConnection::PeerConnection (std::shared_ptr<i2p::client::I2PService> owner,
 		std::shared_ptr<i2p::stream::Stream> stream): i2p::client::I2PServiceHandler (owner),
 		m_Stream (stream), m_ReceiveBufferOffset (0), m_NextMsgLength (0),
