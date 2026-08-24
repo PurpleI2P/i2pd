@@ -431,8 +431,31 @@ namespace torrents
 	{
 		if (!ecode)
 		{
-			if (m_Request.method() == boost::beast::http::verb::post)
+			if (m_Request.method() == boost::beast::http::verb::options)
 			{
+				m_Response.version (11); // HTTP/1.1
+				m_Response.result (204);
+				m_Response.set (boost::beast::http::field::access_control_allow_origin, "*");
+				m_Response.set (boost::beast::http::field::access_control_allow_methods, "GET, POST, OPTIONS");
+				m_Response.set (boost::beast::http::field::access_control_allow_headers, "Content-Type, Authorization");
+
+				m_Response.keep_alive(m_Request.keep_alive());
+				m_Response.prepare_payload ();
+				boost::beast::http::async_write (m_Socket, m_Response,
+												 [s = shared_from_this ()](const boost::system::error_code& ecode, size_t bytes_transferred)
+												 {
+													 if (ecode)
+														 LogPrint (eLogWarning, "TorrentsRPC: Failed to send response: ", ecode.message ());
+												 });
+			}
+			else if (m_Request.method() == boost::beast::http::verb::post)
+			{
+				m_Response.set(
+					boost::beast::http::field::access_control_allow_origin,
+				   "*");
+				m_Response.set(
+					boost::beast::http::field::access_control_allow_headers,
+				   "Content-Type, Authorization");
 				auto path = m_Request.target ();
 				auto tunnel = m_Server.GetTunnel ( {path.data (), path.size ()}); // boost::beast::string_view to std::string_view
 				if (tunnel)
