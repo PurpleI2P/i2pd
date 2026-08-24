@@ -56,7 +56,7 @@ class TorrentClient {
             method: "POST",
             body: JSON.stringify({
                 'method': 'torrent-get',
-                'arguments': { "fields": ["id", "name", "status", "rateDownload", "rateUpload", "totalSize", "percentDone"] }
+                'arguments': { "fields": ["id", "name", "status", "rateDownload", "rateUpload", "totalSize", "percentDone", "files", "peers"] }
             }),
             headers: { 'Content-Type': 'application/json' }
         });
