@@ -92,6 +92,8 @@ namespace http {
 	const char HTTP_COMMAND_RELOAD_CSS[] = "reload_css";
 	const char HTTP_COMMAND_EXPIRELEASE[] = "expirelease";
 
+	const char HTTP_PAGE_JSTORRENTCLIENT[] = "js_torr_client";
+
 	static std::string ConvertTime (uint64_t time)
 	{
 		struct tm caltime;
@@ -1395,6 +1397,466 @@ namespace http {
 			ShowI2PTunnels (s);
 		else if (page == HTTP_PAGE_LEASESETS)
 			ShowLeasesSets(s);
+        else if (page == HTTP_PAGE_JSTORRENTCLIENT)
+        {
+                // Prepare a code. For add torrent. Content-Security-Policy also need
+                s << R"TJS(<script>
+                class TorrentClient {
+                    constructor(host = '127.0.0.1', port = 9191, path = 'mytorrents') {
+                        this.host = host;
+                        this.port = port;
+                        this.path = path;
+                    }
+
+                    setConnection(host, port, path) {
+                        this.host = host;
+                        this.port = port;
+                        this.path = path;
+                    }
+
+                    getEndpoint() {
+                        return `http://${this.host}:${this.port}/${this.path}/rpc/`;
+                    }
+
+                    getStatusString(status) {
+                        switch (status) {
+                            case 4: return 'DOWNLOADING';
+                            case 6: return 'SEEDING';
+                            case 0: return 'STOPPED';
+                            case 2: return 'CHECKING';
+                            default: return 'QUEUED';
+                        }
+                    }
+
+                    formatBytes(bytesPerSec) {
+                        if (!bytesPerSec) return '0 B/s';
+                        if (bytesPerSec > 1024 * 1024) {
+                            return (bytesPerSec / (1024 * 1024)).toFixed(2) + ' MB/s';
+                        }
+                        return (bytesPerSec / 1024).toFixed(2) + ' KB/s';
+                    }
+
+                    async addTorrent(b64metainfo) {
+                        const res = await fetch(this.getEndpoint(), {
+                            method: "POST",
+                            body: JSON.stringify({ 'method': 'torrent-add', 'arguments': { 'metainfo': b64metainfo } }),
+                                                headers: { 'Content-Type': 'application/json' }
+                        });
+                        return res.json();
+                    }
+
+                    async removeTorrent(id) {
+                        const res = await fetch(this.getEndpoint(), {
+                            method: "POST",
+                            body: JSON.stringify({ 'method': 'torrent-remove', 'arguments': { 'ids': [id], 'delete-local-data': true } }),
+                                                headers: { 'Content-Type': 'application/json' }
+                        });
+                        return res.json();
+                    }
+
+                    async getTorrents() {
+                        const res = await fetch(this.getEndpoint(), {
+                            method: "POST",
+                            body: JSON.stringify({
+                                'method': 'torrent-get',
+                                'arguments': { "fields": ["id", "name", "status", "rateDownload", "rateUpload", "totalSize", "percentDone"] }
+                            }),
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+                        return res.json();
+                    }
+                }
+
+                window.tjs = new TorrentClient();
+                </script>
+                <ifrmame>
+                <!doctype html>
+                <html lang="en">
+                <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Torrent Client Daemon</title>
+                <style>
+                :root {
+                    --bg-color: #0f172a;
+                    --card-bg: #1e293b;
+                    --border-color: #334155;
+                    --primary: #3b82f6;
+                    --primary-hover: #2563eb;
+                    --danger: #ef4444;
+                    --danger-hover: #dc2626;
+                    --text-main: #f8fafc;
+                    --text-muted: #94a3b8;
+                    --radius: 6px;
+                }
+
+                * {
+                    box-sizing: border-box;
+                    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+                }
+
+                body {
+                    background-color: var(--bg-color);
+                    color: var(--text-main);
+                    margin: 0;
+                    padding: 30px;
+                    display: flex;
+                    justify-content: center;
+                    min-height: 100vh;
+                }
+
+                .container {
+                    width: 100%;
+                    max-width: 900px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 20px;
+                }
+
+                header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    border-bottom: 1px solid var(--border-color);
+                    padding-bottom: 15px;
+                }
+
+                header h1 {
+                    margin: 0;
+                    font-size: 1.25rem;
+                    font-weight: 600;
+                    letter-spacing: -0.025em;
+                }
+
+                .config-panel {
+                    background: var(--card-bg);
+                    border: 1px solid var(--border-color);
+                    border-radius: var(--radius);
+                    padding: 15px;
+                    display: grid;
+                    grid-template-columns: 1fr 120px 1fr auto;
+                    gap: 10px;
+                    align-items: end;
+                }
+
+                .input-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 5px;
+                }
+
+                .input-group label {
+                    font-size: 0.75rem;
+                    color: var(--text-muted);
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                }
+
+                input[type="text"], input[type="number"] {
+                    background: var(--bg-color);
+                    border: 1px solid var(--border-color);
+                    color: var(--text-main);
+                    padding: 8px 12px;
+                    border-radius: var(--radius);
+                    font-size: 0.875rem;
+                    width: 100%;
+                }
+
+                input:focus {
+                    outline: none;
+                    border-color: var(--primary);
+                }
+
+                .btn {
+                    background-color: var(--primary);
+                    color: white;
+                    border: none;
+                    padding: 8px 16px;
+                    font-size: 0.875rem;
+                    font-weight: 500;
+                    border-radius: var(--radius);
+                    cursor: pointer;
+                    transition: background 0.15s ease;
+                    white-space: nowrap;
+                }
+
+                .btn:hover {
+                    background-color: var(--primary-hover);
+                }
+
+                .btn-danger {
+                    background-color: transparent;
+                    color: var(--danger);
+                    border: 1px solid var(--danger);
+                    padding: 4px 8px;
+                    font-size: 0.75rem;
+                }
+
+                .btn-danger:hover {
+                    background-color: var(--danger);
+                    color: white;
+                }
+
+                .action-bar {
+                    background: var(--card-bg);
+                    border: 1px dashed var(--border-color);
+                    border-radius: var(--radius);
+                    padding: 20px;
+                    text-align: center;
+                    cursor: pointer;
+                    transition: border-color 0.15s ease;
+                }
+
+                .action-bar:hover, .action-bar.dragover {
+                    border-color: var(--primary);
+                }
+
+                .table-container {
+                    background: var(--card-bg);
+                    border: 1px solid var(--border-color);
+                    border-radius: var(--radius);
+                    overflow: hidden;
+                }
+
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    text-align: left;
+                    font-size: 0.875rem;
+                }
+
+                th, td {
+                    padding: 12px 16px;
+                    border-bottom: 1px solid var(--border-color);
+                }
+
+                th {
+                    background: rgba(0, 0, 0, 0.2);
+                    color: var(--text-muted);
+                    font-size: 0.75rem;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                }
+
+                tr:last-child td {
+                    border-bottom: none;
+                }
+
+                .progress-wrapper {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }
+
+                .progress-bar {
+                    flex-grow: 1;
+                    background: var(--bg-color);
+                    border-radius: 4px;
+                    height: 6px;
+                    overflow: hidden;
+                    border: 1px solid var(--border-color);
+                }
+
+                .progress-fill {
+                    background: var(--primary);
+                    height: 100%;
+                    width: 0%;
+                }
+
+                .empty-state {
+                    text-align: center;
+                    color: var(--text-muted);
+                    padding: 30px;
+                }
+                </style>
+                </head>
+                <body>
+
+                <div class="container">
+                <header>
+                <h1>TORRENT_DAEMON_INTERFACE</h1>
+                <div id="connection_status" style="font-size: 0.75rem; color: var(--text-muted);">CONNECTING...</div>
+                </header>
+
+                <div class="config-panel">
+                <div class="input-group">
+                <label for="host_input">Host</label>
+                <input type="text" id="host_input" placeholder="127.0.0.1">
+                </div>
+                <div class="input-group">
+                <label for="port_input">Port</label>
+                <input type="number" id="port_input" placeholder="9191">
+                </div>
+                <div class="input-group">
+                <label for="path_input">Path Segment</label>
+                <input type="text" id="path_input" placeholder="mytorrents">
+                </div>
+                <button class="btn" id="save_config_btn">Apply Config</button>
+                </div>
+
+                <div id="drop_zone" class="action-bar">
+                <span>Drop torrent payload here or <span style="color: var(--primary); text-decoration: underline;">browse file</span></span>
+                <input type="file" id="torrentf" accept=".torrent" style="display:none"/>
+                </div>
+
+                <div class="table-container">
+                <table>
+                <thead>
+                <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Progress</th>
+                <th>Download Rate</th>
+                <th style="text-align: right;">Actions</th>
+                </tr>
+                </thead>
+                <tbody id="torrents_table_body">
+                <tr>
+                <td colspan="6" class="empty-state">No active transfers</td>
+                </tr>
+                </tbody>
+                </table>
+                </div>
+                </div>
+
+                <script>
+                const DEFAULT_HOST = '127.0.0.1';
+                const DEFAULT_PORT = 9191;
+                const DEFAULT_PATH = 'mytorrents';
+
+                let host = localStorage.getItem('transmission_host') || DEFAULT_HOST;
+                let port = parseInt(localStorage.getItem('transmission_port'), 10) || DEFAULT_PORT;
+                let t = localStorage.getItem('transmission_path') || DEFAULT_PATH;
+
+                window.tjs.setConnection(host, port, t);
+
+                const hostInput = document.getElementById('host_input');
+                const portInput = document.getElementById('port_input');
+                const pathInput = document.getElementById('path_input');
+
+                hostInput.value = host;
+                portInput.value = port;
+                pathInput.value = t;
+
+                document.getElementById('save_config_btn').onclick = () => {
+                    host = hostInput.value.trim() || DEFAULT_HOST;
+                    port = parseInt(portInput.value, 10) || DEFAULT_PORT;
+                    t = pathInput.value.trim() || DEFAULT_PATH;
+
+                    localStorage.setItem('transmission_host', host);
+                    localStorage.setItem('transmission_port', port);
+                    localStorage.setItem('transmission_path', t);
+
+                    hostInput.value = host;
+                    portInput.value = port;
+                    pathInput.value = t;
+
+                    window.tjs.setConnection(host, port, t);
+                };
+
+                setInterval(async () => {
+                    const statusIndicator = document.getElementById('connection_status');
+                    try {
+                        const r = await window.tjs.getTorrents();
+                        if (!r || !r.result || !r.result.torrents) {
+                            statusIndicator.textContent = 'STATUS: INVALID RESPONSE';
+                return;
+                        }
+
+                        statusIndicator.textContent = 'STATUS: CONNECTED';
+                statusIndicator.style.color = '#22c55e';
+
+                const tbody = document.getElementById('torrents_table_body');
+                const torrents = r.result.torrents;
+
+                if (torrents.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No active transfers</td></tr>';
+                return;
+                }
+
+                tbody.innerHTML = "";
+                torrents.forEach((el) => {
+                    const percent = Math.round(el.percentDone);
+                    const speed = window.tjs.formatBytes(el.rateDownload);
+                    const statusText = window.tjs.getStatusString(el.status);
+                    const name = el.name || 'UNNAMED_METADATA';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                <td>#${el.id}</td>
+                <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${name}">${name}</td>
+                <td>${statusText}</td>
+                <td>
+                <div class="progress-wrapper">
+                <span style="min-width: 35px; text-align: right;">${percent}%</span>
+                <div class="progress-bar">
+                <div class="progress-fill" style="width: ${percent}%;"></div>
+                </div>
+                </div>
+                </td>
+                <td>${speed}</td>
+                <td style="text-align: right;">
+                <button class="btn btn-danger" onclick="removeTorrent(${el.id})">TERMINATE</button>
+                </td>
+                `;
+                tbody.appendChild(tr);
+                });
+                    } catch (err) {
+                        statusIndicator.textContent = 'STATUS: CONNECTION_REFUSED';
+                statusIndicator.style.color = '#ef4444';
+                    }
+                }, 1000);
+
+                const fileInput = document.getElementById('torrentf');
+                const dropZone = document.getElementById('drop_zone');
+
+                dropZone.onclick = () => fileInput.click();
+
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, (e) => {
+                        e.preventDefault();
+                        dropZone.classList.add('dragover');
+                    }, false);
+                });
+
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, (e) => {
+                        e.preventDefault();
+                        dropZone.classList.remove('dragover');
+                    }, false);
+                });
+
+                dropZone.addEventListener('drop', (e) => {
+                    const files = e.dataTransfer.files;
+                    if (files.length) processFile(files[0]);
+                });
+
+                    fileInput.onchange = (e) => {
+                        const file = e.target.files[0];
+                        if (file) processFile(file);
+                    };
+
+                        function processFile(file) {
+                            const reader = new FileReader();
+                            reader.onload = async () => {
+                                const b64 = btoa(String.fromCharCode(...new Uint8Array(reader.result)));
+                                await window.tjs.addTorrent(b64);
+                                fileInput.value = '';
+                            };
+                            reader.readAsArrayBuffer(file);
+                        }
+
+                        async function removeTorrent(id) {
+                            await window.tjs.removeTorrent(id);
+                        }
+                        </script>
+                        </body>
+                        </html>
+                        </iframe>
+                        )TJS";
+                // TODO: or withous JS though torrent class. Example of usage the library -> https://github.com/wipedlifepotato/NeonI2P_JS/blob/master/Example/torrent_client.html
+        }
 		else {
 			res.code = 400;
 			ShowError(s, std::string (tr("Unknown page")) + ": " + page); // TODO
