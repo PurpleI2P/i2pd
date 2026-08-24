@@ -121,6 +121,7 @@ namespace config {
 			("http.lang", value<std::string>()->default_value("english"),       "WebUI language (default: english )")
 			("http.showTotalTCSR", value<bool>()->default_value(false),         "Show additional value with total TCSR since router's start (default: false)")
 			("http.theme", value<std::string>()->default_value("light"), 	    "Theme for http web console")
+			("http.javascript", value<bool>()->default_value(true),          	"Allow pages with javascript")
 		;
 
 		options_description httpproxy("HTTP Proxy options");
