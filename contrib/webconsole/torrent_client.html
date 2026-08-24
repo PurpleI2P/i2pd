@@ -102,7 +102,7 @@
         background: var(--bg-color);
         border-radius: 4px;
         height: 6px;
-        overflow: hidden;
+        overflow: scroll;
         border: 1px solid var(--border-color);
     }
 
@@ -138,6 +138,10 @@
     .torrent-wrapper .btn-danger:hover {
         background-color: var(--danger);
         color: white;
+    }
+    
+    .content {
+		max-width: 100em; /*fix for torrent interface*/
     }
 </style>
 
@@ -236,6 +240,7 @@
             } catch (err) {
                 statusIndicator.textContent = 'STATUS: CONNECTION_REFUSED';
                 statusIndicator.style.color = '#ef4444';
+		console.log(err)
             }
         }, 1000);
 

@@ -1406,16 +1406,20 @@ namespace http {
 				// todo: to an another method with return;
 				std::string tunnelname = params["tunnelname"];
 				auto findTunnelEndpoint = [](const std::string& tunnelname) -> std::pair<uint16_t, std::string> {
+					LogPrint(eLogDebug,"GetTorrentsRPC");
 					for (auto& [port, server] : i2p::client::context.GetTorrentsRPCServers())
 					{
-						if (!server) continue;
+						if (!server) {
+							LogPrint(eLogError,"GetTorrentsRPCServers return nothing");
+							continue;
+						}
 						for (const auto& [rpcPath, weakTunnel] : server->GetTunnels())
 						{
 							if (auto tunnel = weakTunnel.lock())
 							{
+								LogPrint(eLogDebug, "TUNNEL_OPENJS", tunnel->GetName());
 								if (tunnel->GetName() == tunnelname)
 								{
-
 									uint16_t rpcPort = server->GetAcceptor().local_endpoint().port();
 									return std::pair<uint16_t, std::string>(rpcPort, rpcPath);
 								}
