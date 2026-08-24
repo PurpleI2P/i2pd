@@ -302,8 +302,8 @@ namespace torrents
 	}
 
 	Torrent::Torrent (std::string_view buf):
-		m_Length (0), m_PieceLength (0), m_Interval (MIN_TRACKER_REQUESTS_INTERVAL),
-		m_NextTrackerRequestTime (0), m_IsComplete (false),  m_Uploaded (0), m_Downloaded (0)
+		m_Length (0), m_PieceLength (0), m_IsComplete (false),
+		m_Uploaded (0), m_Downloaded (0)
 	{
 		ResetStats ();
 		ParseDictionary (buf, [this](std::string_view key, std::string_view buf)->size_t
@@ -428,22 +428,25 @@ namespace torrents
 		return m_Length > completed ? m_Length - completed : 0;
 	}
 
-	void Torrent::ParseTrackerResponse (std::string_view buf)
+	void Torrent::ParseTrackerResponse (size_t trackerID, std::string_view buf)
 	{
-		ParseDictionary (buf, [this](std::string_view key, std::string_view buf)->size_t
+		if (trackerID >= m_TrackersInfo.size ())
+			m_TrackersInfo.resize (trackerID + 1, TrackerInfo{{}, MIN_TRACKER_REQUESTS_INTERVAL, 0});
+		ParseDictionary (buf, [this, trackerID](std::string_view key, std::string_view buf)->size_t
 			{
 				if (key == "interval")
 				{
 					auto [value, l] = ExtractInteger (buf);
 					if (l)
 					{
-						m_Interval = std::max (MIN_TRACKER_REQUESTS_INTERVAL, (int)value*1000); // in milliseconds
-						m_NextTrackerRequestTime = i2p::util::GetMonotonicMilliseconds () + m_Interval; // reset next request
+						int interval = std::max (MIN_TRACKER_REQUESTS_INTERVAL, (int)value*1000); // in milliseconds
+						std::get<1>(m_TrackersInfo[trackerID]) = interval;
+						std::get<2>(m_TrackersInfo[trackerID]) = i2p::util::GetMonotonicMilliseconds () + interval; // reset next request
 					}
 					return l;
 				}
 				else if (key == "peers")
-					return ParsePeers (buf);
+					return ParsePeers (trackerID, buf);
 				else if (key == "Failure Reason")
 				{
 					auto [reason, l] = ExtractByteString (buf);
@@ -454,13 +457,14 @@ namespace torrents
 			});
 	}
 
-	size_t Torrent::ParsePeers (std::string_view buf)
+	size_t Torrent::ParsePeers (size_t trackerID, std::string_view buf)
 	{
-		m_Peers.clear ();
+		auto& peers = std::get<0>(m_TrackersInfo[trackerID]);
+		peers.clear ();
 		auto [hashes, len] = ExtractByteString (buf);
 		while (!hashes.empty ())
 		{
-			m_Peers.emplace (i2p::data::IdentHash ((const uint8_t *)hashes.substr (0, i2p::data::IdentHash::len).data ()));
+			peers.emplace (i2p::data::IdentHash ((const uint8_t *)hashes.substr (0, i2p::data::IdentHash::len).data ()));
 			hashes = hashes.substr (i2p::data::IdentHash::len);
 		}
 		return len;
@@ -686,6 +690,32 @@ namespace torrents
 			}
 		}
 		return completed;
+	}
+
+	std::unordered_set<i2p::data::IdentHash> Torrent::GetPeers () const
+	{
+		if (m_TrackersInfo.size () == 1)
+			return std::get<0>(m_TrackersInfo.front ());
+		std::unordered_set<i2p::data::IdentHash> ret;
+		for (const auto& it: m_TrackersInfo)
+		{
+			const auto& peers = std::get<0>(it);
+			ret.insert (peers.begin (), peers.end ());
+		}
+		return ret;
+	}
+
+	uint64_t Torrent::GetNextTrackerRequestTime (size_t trackerID) const
+	{
+		if (trackerID < m_TrackersInfo.size ()) return std::get<2>(m_TrackersInfo[trackerID]);
+		return 0;
+	}
+
+	void Torrent::SetNextTrackerRequestTime (size_t trackerID, uint64_t ts)
+	{
+		if (trackerID >= m_TrackersInfo.size ())
+			m_TrackersInfo.resize (trackerID + 1, TrackerInfo{{}, MIN_TRACKER_REQUESTS_INTERVAL, 0});
+		std::get<2>(m_TrackersInfo[trackerID]) = ts;
 	}
 
 	PeerConnection::PeerConnection (std::shared_ptr<i2p::client::I2PService> owner,
@@ -1673,7 +1703,7 @@ namespace torrents
 				boost::asio::post (GetService (), [this, torrent]()
 					{
 						// inform tracker that we are done
-						RequestTracker (torrent, "completed");
+						RequestTorrentTrackers (torrent, "completed");
 						// close connections with seeds and reset stats for remaining
 						auto conns = GetTorrentConnections (torrent);
 						for (auto it: conns)
@@ -1828,12 +1858,21 @@ namespace torrents
 			LogPrint (eLogError, "Torrents: Local destination not set");
 	}
 
-	void TorrentsTunnel::RequestTracker (std::shared_ptr<Torrent> torrent, std::string_view event)
+	void TorrentsTunnel::RequestTorrentTrackers (std::shared_ptr<Torrent> torrent, std::string_view event)
+	{
+		if (!m_Trackers.empty ())
+			for (size_t i = 0; i < m_Trackers.size (); i++)
+				RequestTracker (i, torrent, event);
+		else
+			RequestTracker (0, torrent, event); // from announce
+	}
+
+	void TorrentsTunnel::RequestTracker (size_t trackerID, std::shared_ptr<Torrent> torrent, std::string_view event)
 	{
 		if (!torrent) return;
 		i2p::http::URL reqURL;
-		if (!m_Trackers.empty())
-			reqURL.parse (m_Trackers.front ());
+		if (trackerID < m_Trackers.size())
+			reqURL.parse (m_Trackers[trackerID]);
 		else
 			reqURL.parse (torrent->GetAnnounce ());
 #if __cplusplus >= 202002L // C++20
@@ -1864,20 +1903,21 @@ namespace torrents
 		req->set (boost::beast::http::field::host, reqURL.host);
 		req->set (boost::beast::http::field::user_agent, "I2PSocketEepGet");
 		req->keep_alive (false); // Connection: close
-		CreateStream ([this, req, torrent](std::shared_ptr<i2p::stream::Stream> stream)
+		CreateStream ([this, req, torrent, trackerID](std::shared_ptr<i2p::stream::Stream> stream)
 			{
 				if (stream)
 				{
 					auto httpStream = std::make_shared<i2p::client::BoostAsyncStream>(stream);
 					boost::beast::http::async_write (*httpStream, *req,
-						std::bind (&TorrentsTunnel::TrackerRequestSent, this, std::placeholders::_1, std::placeholders::_2, httpStream, torrent, req));
+						std::bind (&TorrentsTunnel::TrackerRequestSent, this, std::placeholders::_1,
+							std::placeholders::_2, httpStream, torrent, req, trackerID));
 				}
 			}, reqURL.host, reqURL.port);
 	}
 
 	void TorrentsTunnel::TrackerRequestSent (const boost::beast::error_code& ecode, size_t bytes_transferred,
 		std::shared_ptr<i2p::client::BoostAsyncStream> httpStream, std::shared_ptr<Torrent> torrent,
-		std::shared_ptr<boost::beast::http::request<boost::beast::http::string_body> > req)
+		std::shared_ptr<boost::beast::http::request<boost::beast::http::string_body> > req, size_t trackerID)
 	{
 		if (!ecode)
 		{
@@ -1885,19 +1925,19 @@ namespace torrents
 			auto buf = std::make_shared<boost::beast::flat_buffer> ();
 			auto res = std::make_shared<boost::beast::http::response<boost::beast::http::string_body> >();
 			boost::beast::http::async_read (*httpStream, *buf, *res,
-				[this, httpStream, torrent, buf, res](const boost::beast::error_code& ecode, size_t bytes_transferred)
+				[this, httpStream, torrent, buf, res, trackerID](const boost::beast::error_code& ecode, size_t bytes_transferred)
 				{
 					httpStream->GetStream ()->AsyncClose ();
 					if (!ecode)
 					{
 						if (res->result () == boost::beast::http::status::ok)
 						{
-							torrent->ParseTrackerResponse (res->body ());
+							torrent->ParseTrackerResponse (trackerID, res->body ());
 							ConnectToPeers (torrent);
 							ScheduleReconnectCheck ();
 						}
 						else
-							LogPrint (eLogWarning, "Torrents: Tracker response code ", res->result_int());
+							LogPrint (eLogWarning, "Torrents: Tracker ", trackerID, " response code ", res->result_int());
 					}
 				});
 		}
@@ -1946,12 +1986,13 @@ namespace torrents
 		{
 			auto ts = i2p::util::GetMonotonicMilliseconds ();
 			for (auto it: m_Torrents)
-				if (ts > it.second->GetNextTrackerRequestTime ())
-				{
-					auto nextInterval = it.second->GetInterval () + GetLocalDestination ()->GetRng()() % TRACKER_REQUESTS_INTERVAL_VARIANCE;
-					it.second->SetNextTrackerRequestTime (ts + nextInterval);
-					RequestTracker (it.second);
-				}
+				for (size_t i = 0; i < m_Trackers.size (); i++)
+					if (ts > it.second->GetNextTrackerRequestTime (i))
+					{
+						auto nextInterval = it.second->GetInterval (i) + GetLocalDestination ()->GetRng()() % TRACKER_REQUESTS_INTERVAL_VARIANCE;
+						it.second->SetNextTrackerRequestTime (i, ts + nextInterval);
+						RequestTracker (i, it.second);
+					}
 			ScheduleTrackerRequestsCheck ();
 		}
 	}
@@ -2040,19 +2081,8 @@ namespace torrents
 					if (handler)
 					{
 						auto conn = std::static_pointer_cast<PeerConnection>(handler);
-						if (conn->GetTorrent () == torrent)
-						{
-							auto ident = conn->GetStream ()->GetRemoteIdentity ();
-							if (ident)
-							{
-#if __cplusplus >= 202002L // C++20
-								if (torrent->GetPeers ().contains (ident->GetIdentHash ()))
-#else
-								if (torrent->GetPeers ().count (ident->GetIdentHash ()) > 0)
-#endif
-									ret.emplace_back (conn);
-							}
-						}
+						if (conn->GetTorrent () == torrent && conn->GetStream ())
+							ret.emplace_back (conn);
 					}
 				});
 		}
@@ -2072,7 +2102,7 @@ namespace torrents
 						if (handler)
 						{
 							auto conn = std::static_pointer_cast<PeerConnection>(handler);
-							if (conn->GetTorrent () == torrent)
+							if (conn->GetTorrent () == torrent && conn->GetStream ())
 							{
 								auto ident = conn->GetStream ()->GetRemoteIdentity ();
 								if (ident)

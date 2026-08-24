@@ -160,9 +160,10 @@ namespace torrents
 		public:
 
 			using InfoHash = std::array<uint8_t, 20>;
+			using TrackerInfo = std::tuple<std::unordered_set<i2p::data::IdentHash>, int, uint64_t>; // (peers, interval, next tracker request time in monotonic milliseconds)
 
 			Torrent (std::string_view buf);
-			void ParseTrackerResponse (std::string_view buf);
+			void ParseTrackerResponse (size_t trackerID, std::string_view buf);
 
 			bool IsComplete () const { return m_IsComplete; }
 			void SetComplete ();
@@ -176,7 +177,7 @@ namespace torrents
 			std::list<std::pair<std::filesystem::path, size_t> >& GetFiles () { return m_Files; }
 			size_t GetLength () const { return m_Length; }
 			size_t GetPieceLength () const { return m_PieceLength; }
-			int GetInterval () const { return m_Interval; }
+			int GetInterval (size_t trackerID) const { return (trackerID < m_TrackersInfo.size ()) ? std::get<1>(m_TrackersInfo[trackerID]) : MIN_TRACKER_REQUESTS_INTERVAL; }
 			const InfoHash& GetInfoHash () const { return m_InfoHash; }
 			size_t GetLeft () const;
 			std::string GetHexStringInfoHash () const; // in url format
@@ -184,14 +185,14 @@ namespace torrents
 			Piece& GetPiece (int index) { return m_Pieces[index]; }
 			std::pair<std::vector<uint8_t>, bool> CreateBitfield () const; // (bitfield, empty)
 			bool ApplyBitfield (const std::vector<uint8_t>& bitfield); // return true if complete
-			const std::unordered_set<i2p::data::IdentHash>&  GetPeers () const { return m_Peers; }
+			std::unordered_set<i2p::data::IdentHash>  GetPeers () const;
 			RequestedBlock GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn, bool skipRequested = true);
 			std::vector<PieceFileFragment> GetPieceFileFragments (int index) const;
 			std::vector<size_t> GetFilesCompleted () const; // completed size per file
 			bool UpdateStatus (uint64_t ts); // return true if complete
 
-			uint64_t GetNextTrackerRequestTime () const { return m_NextTrackerRequestTime; }
-			void SetNextTrackerRequestTime (uint64_t ts) { m_NextTrackerRequestTime = ts; }
+			uint64_t GetNextTrackerRequestTime (size_t trackerID) const;
+			void SetNextTrackerRequestTime (size_t trackerID, uint64_t ts);
 			size_t GetUploaded () const { return m_Uploaded; }
 			void AddUploaded (size_t add) { m_Uploaded += add; }
 			size_t GetDownloaded () const { return m_Downloaded; }
@@ -217,7 +218,7 @@ namespace torrents
 
 			size_t ParsePieces (std::string_view buf);
 			size_t ParseInfo (std::string_view buf);
-			size_t ParsePeers (std::string_view buf);
+			size_t ParsePeers (size_t trackerID, std::string_view buf);
 			size_t ParseFiles (std::string_view buf);
 
 		private:
@@ -225,11 +226,9 @@ namespace torrents
 			std::string m_Name, m_Announce;
 			std::filesystem::path m_FullPath;
 			size_t m_Length, m_PieceLength;
-			int m_Interval; // in miiliseconds
-			uint64_t m_NextTrackerRequestTime; // monotonic millicesonds
 			InfoHash m_InfoHash; // SHA1
 			std::vector<Piece> m_Pieces;
-			std::unordered_set<i2p::data::IdentHash> m_Peers;
+			std::vector<TrackerInfo> m_TrackersInfo;
 			bool m_IsComplete;
 			std::list<std::pair<std::filesystem::path, size_t> > m_Files; // list of (path, length)
 			size_t m_Uploaded, m_Downloaded;
@@ -377,10 +376,11 @@ namespace torrents
 			void RemoveTorrent (std::shared_ptr<Torrent> torrent, bool deleteFiles);
 			bool CreateAndReserveFile (const std::filesystem::path& filePath, size_t reserve);
 			void CompleteTorrent (std::shared_ptr<Torrent> torrent);
-			void RequestTracker (std::shared_ptr<Torrent> torrent, std::string_view event = "");
+			void RequestTracker (size_t trackerID, std::shared_ptr<Torrent> torrent, std::string_view event = "");
+			void RequestTorrentTrackers (std::shared_ptr<Torrent> torrent, std::string_view event = "");
 			void TrackerRequestSent (const boost::beast::error_code& ecode, size_t bytes_transferred,
 				std::shared_ptr<i2p::client::BoostAsyncStream> httpStream, std::shared_ptr<Torrent> torrent,
-				std::shared_ptr<boost::beast::http::request<boost::beast::http::string_body> > req);
+				std::shared_ptr<boost::beast::http::request<boost::beast::http::string_body> > req, size_t trackerID);
 
 			void ScheduleTrackerRequestsCheck ();
 			void HandleTrackerRequestsCheckTimer (const boost::system::error_code& ecode);
