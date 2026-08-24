@@ -1409,7 +1409,6 @@ namespace http {
 						{
 							if (auto tunnel = weakTunnel.lock())
 							{
-								LogPrint(eLogDebug, "HTTP SERVER DFASDFASDF tunnel", tunnel->GetName());
 								if (tunnel->GetName() == tunnelname)
 								{
 
