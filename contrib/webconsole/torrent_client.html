@@ -162,6 +162,7 @@
                         <th>Status</th>
                         <th>Progress</th>
                         <th>Download Rate</th>
+                        <th>Upload Rate</th>
                         <th style="text-align: right;">Actions</th>
                     </tr>
                 </thead>
@@ -205,6 +206,9 @@
                 torrents.forEach((el) => {
                     const percent = Math.round(el.percentDone);
                     const speed = window.tjs.formatBytes(el.rateDownload);
+                    const speed_upload = window.tjs.formatBytes(el.rateUpload);
+			console.log(`speed ${el.rateDownload}/${el.rateUpload}`);
+			console.log(el)
                     const statusText = window.tjs.getStatusString(el.status);
                     const name = el.name || 'UNNAMED_METADATA';
 
@@ -222,6 +226,7 @@
                             </div>
                         </td>
                         <td>${speed}</td>
+                        <td>${speed_upload}</td>
                         <td style="text-align: right;">
                             <button class="btn btn-danger" onclick="removeTorrent(${el.id})">TERMINATE</button>
                         </td>
