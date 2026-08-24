@@ -35,7 +35,7 @@ namespace torrents
 		private:
 
 			void HandleRequest (const boost::system::error_code& ecode, size_t bytes_transferred);
-			void SendResponse (boost::beast::http::status result, std::string_view data = "");
+			void SendResponse (boost::beast::http::status result, std::string_view data = "", bool isOptions = false);
 
 		private:
 

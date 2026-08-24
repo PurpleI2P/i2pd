@@ -431,31 +431,8 @@ namespace torrents
 	{
 		if (!ecode)
 		{
-			if (m_Request.method() == boost::beast::http::verb::options)
+			if (m_Request.method() == boost::beast::http::verb::post)
 			{
-				m_Response.version (11); // HTTP/1.1
-				m_Response.result (204);
-				m_Response.set (boost::beast::http::field::access_control_allow_origin, "*");
-				m_Response.set (boost::beast::http::field::access_control_allow_methods, "GET, POST, OPTIONS");
-				m_Response.set (boost::beast::http::field::access_control_allow_headers, "Content-Type, Authorization");
-
-				m_Response.keep_alive(m_Request.keep_alive());
-				m_Response.prepare_payload ();
-				boost::beast::http::async_write (m_Socket, m_Response,
-												 [s = shared_from_this ()](const boost::system::error_code& ecode, size_t bytes_transferred)
-												 {
-													 if (ecode)
-														 LogPrint (eLogWarning, "TorrentsRPC: Failed to send response: ", ecode.message ());
-												 });
-			}
-			else if (m_Request.method() == boost::beast::http::verb::post)
-			{
-				m_Response.set(
-					boost::beast::http::field::access_control_allow_origin,
-				   "*");
-				m_Response.set(
-					boost::beast::http::field::access_control_allow_headers,
-				   "Content-Type, Authorization");
 				auto path = m_Request.target ();
 				auto tunnel = m_Server.GetTunnel ( {path.data (), path.size ()}); // boost::beast::string_view to std::string_view
 				if (tunnel)
@@ -480,17 +457,24 @@ namespace torrents
 					SendResponse (boost::beast::http::status::not_found);
 				}
 			}
+			else if (m_Request.method() == boost::beast::http::verb::options)
+				SendResponse (boost::beast::http::status::no_content, "", true);
 			else
 				SendResponse (boost::beast::http::status::method_not_allowed);
 		}
 	}
 
-	void TorrentsRPCSession::SendResponse (boost::beast::http::status result, std::string_view data)
+	void TorrentsRPCSession::SendResponse (boost::beast::http::status result, std::string_view data, bool isOptions)
 	{
 		m_Response.version (11); // HTTP/1.1
 		m_Response.result (result);
 		m_Response.set (boost::beast::http::field::server, "i2pd torents RPC");
-		m_Response.set(boost::beast::http::field::content_type, (result == boost::beast::http::status::ok) ? "application/json; charset=UTF-8" : "text/plain");
+		m_Response.set (boost::beast::http::field::access_control_allow_origin, "*");
+		m_Response.set (boost::beast::http::field::access_control_allow_headers, "Content-Type, Authorization");
+		if (isOptions)
+			m_Response.set (boost::beast::http::field::access_control_allow_methods, "GET, POST, OPTIONS");
+		else
+			m_Response.set(boost::beast::http::field::content_type, (result == boost::beast::http::status::ok) ? "application/json; charset=UTF-8" : "text/plain");
 		m_Response.body () = data;
 		m_Response.prepare_payload ();
 		boost::beast::http::async_write (m_Socket, m_Response,
