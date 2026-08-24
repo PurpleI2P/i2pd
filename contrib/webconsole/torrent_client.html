@@ -64,7 +64,7 @@
         background: var(--card-bg);
         border: 1px solid var(--border-color);
         border-radius: var(--radius);
-        overflow: auto;
+        overflow: hidden;
     }
 
     .torrent-wrapper table {
@@ -138,6 +138,10 @@
     .torrent-wrapper .btn-danger:hover {
         background-color: var(--danger);
         color: white;
+    }
+    
+    .content {
+		max-width: 100em; /*fix for torrent interface*/
     }
 </style>
 
