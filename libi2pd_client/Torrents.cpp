@@ -13,6 +13,7 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <array>
 #include <functional>
 #include <set>
 #include <boost/algorithm/string.hpp>
@@ -335,6 +336,7 @@ namespace torrents
 		return len;
 	}
 
+
 	size_t Torrent::ParseInfo (std::string_view buf)
 	{
 		size_t len = ParseDictionary (buf, [this](std::string_view key, std::string_view buf)->size_t
@@ -348,7 +350,15 @@ namespace torrents
 				else if (key == "name")
 				{
 					auto [name, l] = ExtractByteString (buf);
-					if (l) m_Name = name;
+					if (l)
+					{
+						if (!IsSafeName (name))
+						{
+							LogPrint (eLogError, "Torrents: Unsafe name in torrent: ", name);
+							return 0;
+						}
+						m_Name = name;
+					}
 					return l;
 				}
 				else if (key == "piece length")
@@ -373,6 +383,29 @@ namespace torrents
 		return len;
 	}
 
+	bool Torrent::IsSafeName (std::string_view name)
+	{
+		// names come from a torrent file, that is from a stranger. A component
+		// that is empty, a dot pair, absolute or separated would take the path
+		// out of the torrents folder, and some names are refused by Windows
+		if (name.empty () || name == "." || name == "..") return false;
+		if (name.back () == '.' || name.back () == ' ') return false; // Windows drops those
+		for (char ch: name)
+			if (ch == '/' || ch == '\\' || ch == ':' || ch == '<' || ch == '>' ||
+				ch == '"' || ch == '|' || ch == '?' || ch == '*' || (unsigned char)ch < 0x20)
+				return false;
+		using namespace std::string_view_literals;
+		static constexpr std::array reserved
+		{
+			"CON"sv, "PRN"sv, "AUX"sv, "NUL"sv,
+			"COM1"sv, "COM2"sv, "COM3"sv, "COM4"sv, "COM5"sv, "COM6"sv, "COM7"sv, "COM8"sv, "COM9"sv,
+			"LPT1"sv, "LPT2"sv, "LPT3"sv, "LPT4"sv, "LPT5"sv, "LPT6"sv, "LPT7"sv, "LPT8"sv, "LPT9"sv
+		};
+		std::string stem (name.substr (0, name.find ('.')));
+		boost::to_upper (stem);
+		return std::find (reserved.begin (), reserved.end (), stem) == reserved.end ();
+	}
+
 	size_t Torrent::ParseFiles (std::string_view buf)
 	{
 		m_Length = 0;
@@ -386,7 +419,14 @@ namespace torrents
 							auto [subdirs, l] = ParseStringList (value);
 							if (l)
 								for (const auto& it: subdirs)
+								{
+									if (!IsSafeName (it))
+									{
+										LogPrint (eLogError, "Torrents: Unsafe path component in torrent: ", it);
+										return 0;
+									}
 									filePath /= it;
+								}
 							return l;
 						}
 						else if (key == "length")
