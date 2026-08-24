@@ -1,0 +1,280 @@
+<style>
+    :root {
+        --bg-color: #0f172a;
+        --card-bg: #1e293b;
+        --border-color: #334155;
+        --primary: #3b82f6;
+        --primary-hover: #2563eb;
+        --danger: #ef4444;
+        --danger-hover: #dc2626;
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+        --radius: 6px;
+    }
+    .torrent-wrapper {
+        background-color: var(--bg-color);
+        color: var(--text-main);
+        padding: 20px;
+        width: 100%;          
+        box-sizing: border-box;
+    }
+
+    .torrent-wrapper .container {
+        width: 100%;
+        max-width: none;       
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    .torrent-wrapper * {
+        box-sizing: border-box;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .torrent-wrapper header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 15px;
+    }
+
+    .torrent-wrapper header h1 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        letter-spacing: -0.025em;
+    }
+
+    .torrent-wrapper .action-bar {
+        background: var(--card-bg);
+        border: 1px dashed var(--border-color);
+        border-radius: var(--radius);
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: border-color 0.15s ease;
+    }
+
+    .torrent-wrapper .action-bar:hover, .torrent-wrapper .action-bar.dragover {
+        border-color: var(--primary);
+    }
+
+    .torrent-wrapper .table-container {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        overflow: hidden;
+    }
+
+    .torrent-wrapper table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        font-size: 0.875rem;
+    }
+
+    .torrent-wrapper th, .torrent-wrapper td {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .torrent-wrapper th {
+        background: rgba(0, 0, 0, 0.2);
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .torrent-wrapper tr:last-child td {
+        border-bottom: none;
+    }
+
+    .torrent-wrapper .progress-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .torrent-wrapper .progress-bar {
+        flex-grow: 1;
+        background: var(--bg-color);
+        border-radius: 4px;
+        height: 6px;
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+    }
+
+    .torrent-wrapper .progress-fill {
+        background: var(--primary);
+        height: 100%;
+        width: 0%;
+    }
+
+    .torrent-wrapper .empty-state {
+        text-align: center;
+        color: var(--text-muted);
+        padding: 30px;
+    }
+
+    .torrent-wrapper .btn {
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        border-radius: var(--radius);
+        cursor: pointer;
+    }
+
+    .torrent-wrapper .btn-danger {
+        background-color: transparent;
+        color: var(--danger);
+        border: 1px solid var(--danger);
+    }
+
+    .torrent-wrapper .btn-danger:hover {
+        background-color: var(--danger);
+        color: white;
+    }
+</style>
+
+<div class="torrent-wrapper">
+    <div class="container">
+        <header>
+            <h1>TORRENT_DAEMON_INTERFACE</h1>
+            <div id="connection_status" style="font-size: 0.75rem; color: var(--text-muted);">CONNECTING...</div>
+        </header>
+
+        <div id="drop_zone" class="action-bar">
+            <span>Drop torrent payload here or <span style="color: var(--primary); text-decoration: underline;">browse file</span></span>
+            <input type="file" id="torrentf" accept=".torrent" style="display:none"/>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th>Progress</th>
+                        <th>Download Rate</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="torrents_table_body">
+                    <tr>
+                        <td colspan="6" class="empty-state">No active transfers</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        setInterval(async () => {
+            const statusIndicator = document.getElementById('connection_status');
+            if (!window.tjs) {
+                statusIndicator.textContent = 'STATUS: TJS_NOT_LOADED';
+                return;
+            }
+            try {
+                const r = await window.tjs.getTorrents();
+                if (!r || !r.result || !r.result.torrents) {
+                    statusIndicator.textContent = 'STATUS: INVALID RESPONSE';
+                    return;
+                }
+
+                statusIndicator.textContent = 'STATUS: CONNECTED';
+                statusIndicator.style.color = '#22c55e';
+
+                const tbody = document.getElementById('torrents_table_body');
+                const torrents = r.result.torrents;
+
+                if (torrents.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No active transfers</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = "";
+                torrents.forEach((el) => {
+                    const percent = Math.round(el.percentDone);
+                    const speed = window.tjs.formatBytes(el.rateDownload);
+                    const statusText = window.tjs.getStatusString(el.status);
+                    const name = el.name || 'UNNAMED_METADATA';
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>#${el.id}</td>
+                        <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${name}">${name}</td>
+                        <td>${statusText}</td>
+                        <td>
+                            <div class="progress-wrapper">
+                                <span style="min-width: 35px; text-align: right;">${percent}%</span>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${percent}%;"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>${speed}</td>
+                        <td style="text-align: right;">
+                            <button class="btn btn-danger" onclick="removeTorrent(${el.id})">TERMINATE</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                statusIndicator.textContent = 'STATUS: CONNECTION_REFUSED';
+                statusIndicator.style.color = '#ef4444';
+            }
+        }, 1000);
+
+        const fileInput = document.getElementById('torrentf');
+        const dropZone = document.getElementById('drop_zone');
+
+        dropZone.onclick = () => fileInput.click();
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+            }, false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length) processFile(files[0]);
+        });
+
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) processFile(file);
+        };
+
+        function processFile(file) {
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const b64 = btoa(String.fromCharCode(...new Uint8Array(reader.result)));
+                if (window.tjs) await window.tjs.addTorrent(b64);
+                fileInput.value = '';
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        window.removeTorrent = async function(id) {
+            if (window.tjs) await window.tjs.removeTorrent(id);
+        }
+    })();
+</script>

@@ -189,6 +189,7 @@ namespace client
 			const decltype(m_ClientForwards)& GetClientForwards () const { return m_ClientForwards; }
 			const decltype(m_ServerForwards)& GetServerForwards () const { return m_ServerForwards; }
 			const decltype(m_TorrentsTunnels)& GetTorrentsTunnels () const { return m_TorrentsTunnels; }
+			const decltype(m_TorrentsRPCServers)& GetTorrentsRPCServers () const { return m_TorrentsRPCServers; }
 			std::shared_ptr<const I2PService> GetHttpProxy () const
 			{
 				std::lock_guard<std::mutex> l(m_ProxyMutex);

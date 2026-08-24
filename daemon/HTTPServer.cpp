@@ -92,6 +92,7 @@ namespace http {
 	const char HTTP_COMMAND_RELOAD_CSS[] = "reload_css";
 	const char HTTP_COMMAND_EXPIRELEASE[] = "expirelease";
 
+	const char OPENJS_TORRENT_CLIENT_PAGE[] = "torrent_client_open";
 	static std::string ConvertTime (uint64_t time)
 	{
 		struct tm caltime;
@@ -1194,11 +1195,14 @@ namespace http {
 			s << "<br>\r\n<b>" << tr("Torrents") << ":</b><br>\r\n<div class=\"list\">\r\n";
 			for (auto& it: torrentsTunnels)
 			{
+
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 				s << it.second->GetName () << "</a> &#8656; ";
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+				s << "<a href='?page=" << OPENJS_TORRENT_CLIENT_PAGE << "&tunnelname=" << it.second-> GetName()<< "'> | Open Torrent Client for this Tunnel</a>";
 				s << "</div>\r\n"<< std::endl;
+
 			}
 			s << "</div>\r\n<br>\r\n";
 		}
@@ -1393,9 +1397,58 @@ namespace http {
 			ShowSAMSession (s, params["sam_id"]);
 		else if (page == HTTP_PAGE_I2P_TUNNELS)
 			ShowI2PTunnels (s);
+		else if (page == OPENJS_TORRENT_CLIENT_PAGE)
+		{
+				// todo: to an another method with return;
+				std::string tunnelname = params["tunnelname"];
+				auto findTunnelEndpoint = [](const std::string& tunnelname) -> std::pair<uint16_t, std::string> {
+					for (auto& [port, server] : i2p::client::context.GetTorrentsRPCServers())
+					{
+						if (!server) continue;
+						for (const auto& [rpcPath, weakTunnel] : server->GetTunnels())
+						{
+							if (auto tunnel = weakTunnel.lock())
+							{
+								if (tunnel->GetName() == tunnelname)
+								{
+
+									uint16_t rpcPort = server->GetAcceptor().local_endpoint().port();
+									return std::pair<uint16_t, std::string>(rpcPort, rpcPath);
+								}
+							}
+						}
+					}
+					return std::pair<uint16_t, std::string>(0, "");
+				};
+				auto [rpcPort, rpcPath] = findTunnelEndpoint(tunnelname);
+				if (rpcPort && rpcPath.length())
+				{
+					std::string tjs_file = i2p::fs::DataDirPath("webconsole/torrent-rpc.js");
+					std::string tclient_file = i2p::fs::DataDirPath("webconsole/torrent_client.html");
+					if (i2p::fs::Exists(tjs_file)) {
+						std::ifstream f(tjs_file, std::ifstream::binary);
+						std::stringstream tjsss;
+						tjsss << f.rdbuf();
+						s << "<script>" << tjsss.str() << "</script>\r\n";
+						s << "<script>window.tjs = new TorrentClient('127.0.0.1', " << rpcPort << ", '" << rpcPath << "');</script>\r\n";
+					}
+					else {
+						s << "<h1 style='color:red'>Not found $datadir/webconsole/torrent-rpc.js</h1>\r\n";
+					}
+					if (i2p::fs::Exists(tclient_file)) {
+						std::ifstream f(tclient_file, std::ifstream::binary);
+						s << f.rdbuf() << "\r\n";
+					}
+					else {
+						s << "<h1 style='color:red'>Not found $datadir/webconsole/torrent_client.html</h1>\r\n";
+					}
+				} else {
+						s << "<h1 style='color:red'>Not found rpc tunnel " << tunnelname << "</h1>\r\n";
+				}
+		}
 		else if (page == HTTP_PAGE_LEASESETS)
 			ShowLeasesSets(s);
-		else {
+        	else {
 			res.code = 400;
 			ShowError(s, std::string (tr("Unknown page")) + ": " + page); // TODO
 			return;
@@ -1429,6 +1482,7 @@ namespace http {
 			i2p::context.SetAcceptsTunnels (true);
 		else if (cmd == HTTP_COMMAND_DISABLE_TRANSIT)
 			i2p::context.SetAcceptsTunnels (false);
+
 		else if (cmd == HTTP_COMMAND_SHUTDOWN_START)
 		{
 			i2p::context.SetAcceptsTunnels (false);
