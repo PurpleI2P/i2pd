@@ -515,7 +515,7 @@ namespace torrents
 		return complete;
 	}
 
-	std::tuple<uint32_t, uint32_t, uint32_t> Torrent::GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn, bool skipRequested)
+	RequestedBlock Torrent::GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn, bool skipRequested)
 	{
 		if (conn)
 		{
@@ -1295,15 +1295,15 @@ namespace torrents
 				else if (!SendRequestedBlock ({index, offset, length})) // block was not sent
 				{
 					// try to load from file
-					RequestedBlock requestBlock{index, offset, length};
 					boost::asio::post (GetTorrentsTunnel ()->GetDiskIOService (),
-					[requestBlock = std::move(requestBlock), torrent = m_Torrent, s = shared_from_this ()]() mutable
+					[requestBlock = RequestedBlock{index, offset, length}, torrent = m_Torrent, s = shared_from_this ()]() mutable
 					{
 						bool loaded = true;
-						Piece& piece = torrent->GetPiece (requestBlock.index);
+						auto [index, offset, len] = requestBlock;
+						Piece& piece = torrent->GetPiece (index);
 						if (!piece.GetData ()) // don't try to load if already loaded
 						{
-							auto fragments = torrent->GetPieceFileFragments (requestBlock.index);
+							auto fragments = torrent->GetPieceFileFragments (index);
 							piece.SetIsSending (true);
 							for (auto& it: fragments)
 							{
@@ -1312,7 +1312,7 @@ namespace torrents
 							}
 							if (loaded && !piece.VerifyHash ())
 							{
-								LogPrint (eLogError, "Torrent: Corrupted piece ", requestBlock.index);
+								LogPrint (eLogError, "Torrent: Corrupted piece ", index);
 								loaded = false;
 							}
 							piece.SetIsSending (false);
@@ -1328,7 +1328,7 @@ namespace torrents
 								});
 						else
 						{
-							LogPrint (eLogError, "Torrent: Failed to load piece ", requestBlock.index);
+							LogPrint (eLogError, "Torrent: Failed to load piece ", index);
 							piece.Reset ();
 						}
 					});
@@ -1344,11 +1344,12 @@ namespace torrents
 	bool PeerConnection::SendRequestedBlock (const RequestedBlock& requestedBlock)
 	{
 		bool ret = true;
-		Piece& piece = m_Torrent->GetPiece (requestedBlock.index);
+		auto [index, offset, len] = requestedBlock;
+		Piece& piece = m_Torrent->GetPiece (index);
 		piece.SetIsSending (true);
 		auto data = piece.GetData ();
-		if (data && piece.HasBlock (requestedBlock.offset))
-			SendPieceMsg (requestedBlock.index, requestedBlock.offset, data + requestedBlock.offset, requestedBlock.length);
+		if (data && piece.HasBlock (offset))
+			SendPieceMsg (index, offset, data + offset, len);
 		else
 			ret = false;
 		piece.SetIsSending (false);
@@ -1413,7 +1414,7 @@ namespace torrents
 		m_LastRequestedPieceIndex = -1;
 	}
 
-	std::optional<std::tuple<uint32_t, uint32_t, uint32_t> > PeerConnection::GetNextBlockToRequest ()
+	std::optional<RequestedBlock> PeerConnection::GetNextBlockToRequest ()
 	{
 		auto block = m_Torrent->GetNextBlockToRequest (shared_from_this (), true); // skip already requested pieces
 		if (std::get<2>(block) > 0) return block;

@@ -154,6 +154,7 @@ namespace torrents
 		eTorrentStatusSeeding = 6
 	};
 
+	using RequestedBlock = std::tuple<uint32_t, uint32_t, uint32_t>; // (index, offset, len)
 	class Torrent final
 	{
 		public:
@@ -184,7 +185,7 @@ namespace torrents
 			std::pair<std::vector<uint8_t>, bool> CreateBitfield () const; // (bitfield, empty)
 			bool ApplyBitfield (const std::vector<uint8_t>& bitfield); // return true if complete
 			const std::unordered_set<i2p::data::IdentHash>&  GetPeers () const { return m_Peers; }
-			std::tuple<uint32_t, uint32_t, uint32_t> GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn, bool skipRequested = true); // return (index, offset, len)
+			RequestedBlock GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn, bool skipRequested = true);
 			std::vector<PieceFileFragment> GetPieceFileFragments (int index) const;
 			std::vector<size_t> GetFilesCompleted () const; // completed size per file
 			bool UpdateStatus (uint64_t ts); // return true if complete
@@ -240,14 +241,6 @@ namespace torrents
 	class TorrentsTunnel;
 	class PeerConnection: public i2p::client::I2PServiceHandler, public std::enable_shared_from_this<PeerConnection>
 	{
-			struct RequestedBlock
-			{
-				uint32_t index, offset, length;
-				RequestedBlock (uint32_t i, uint32_t o, uint32_t l): index(i), offset(o), length (l) {}
-				RequestedBlock(const RequestedBlock& ) = default;
-				RequestedBlock(RequestedBlock&& ) = default;
-			};
-
 		public:
 
 			using PeerID = std::array<uint8_t, 20>;
@@ -315,7 +308,7 @@ namespace torrents
 			void SendChokeMsg ();
 			void HandleChokeMsg ();
 
-			std::optional<std::tuple<uint32_t, uint32_t, uint32_t> > GetNextBlockToRequest ();
+			std::optional<RequestedBlock> GetNextBlockToRequest ();
 			bool RequestNextBlocks ();
 			bool SendRequestedBlock (const RequestedBlock& requestedBlock);
 
