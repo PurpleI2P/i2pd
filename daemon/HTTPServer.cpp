@@ -66,6 +66,9 @@ namespace http {
 			s << internalCSS;
 	}
 
+	// a page must never hang on a service that is stopped or busy: the task
+	// posted there would simply never run
+	const int HTTP_PAGE_WAIT_TIMEOUT = 3; // in seconds
 	const char HTTP_PAGE_TUNNELS[] = "tunnels";
 	const char HTTP_PAGE_TRANSIT_TUNNELS[] = "transit_tunnels";
 	const char HTTP_PAGE_TRANSPORTS[] = "transports";
@@ -615,7 +618,12 @@ namespace http {
 		auto numECIESx25519Tags = dest->GetNumIncomingECIESx25519Tags ();
 		if (numECIESx25519Tags > 0) {
 			s << "<b>ECIESx25519</b><br>\r\n" << tr("Incoming Tags") << ": <i>" << numECIESx25519Tags << "</i><br>\r\n";
-			auto eciesSessionsList = dest->GetECIESx25519SessionsList ().get ();
+			auto eciesSessions = dest->GetECIESx25519SessionsList ();
+			bool eciesReady = eciesSessions.wait_for (std::chrono::seconds (HTTP_PAGE_WAIT_TIMEOUT)) == std::future_status::ready;
+			if (!eciesReady)
+				s << tr("Sessions are not available") << "<br>\r\n";
+			auto eciesSessionsList = eciesReady ? eciesSessions.get () :
+				std::vector<i2p::garlic::ECIESX25519AEADRatchetSessionPtr> ();
 			if (!eciesSessionsList.empty ())
 			{
 				std::stringstream tmp_s; uint32_t ecies_sessions = 0;
@@ -1021,9 +1029,14 @@ namespace http {
 		if (ssu2Server)
 		{
 			i2p::transport::SSU2Server::SSU2Sessions sessions;
-			ssu2Server->GetSSU2Sessions (sessions).get ();
-			if (!sessions.empty ())
-				ShowTransportSessions (s, sessions, "SSU2");
+			auto ssu2SessionsReady = ssu2Server->GetSSU2Sessions (sessions);
+			if (ssu2SessionsReady.wait_for (std::chrono::seconds (HTTP_PAGE_WAIT_TIMEOUT)) == std::future_status::ready)
+			{
+				if (!sessions.empty ())
+					ShowTransportSessions (s, sessions, "SSU2");
+			}
+			else
+				s << "<b>SSU2</b>: " << tr("Sessions are not available") << "<br>\r\n";
 		}
 	}
 
