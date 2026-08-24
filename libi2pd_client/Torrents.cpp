@@ -1947,6 +1947,11 @@ namespace torrents
 	{
 		if (!torrent) return;
 		LogPrint (eLogDebug, "Torrents: Connecting to peer ", peer.ToBase32 () + ".b32.i2p");
+		if (peer == GetLocalDestination ()->GetIdentHash ())
+		{
+			LogPrint (eLogInfo, "Torrents: Can't connect to self");
+			return;
+		}
 		CreateStream ([this, torrent, peer](std::shared_ptr<i2p::stream::Stream> stream)
 			{
 				if (stream)
