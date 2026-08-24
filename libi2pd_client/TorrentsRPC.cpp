@@ -511,6 +511,18 @@ namespace torrents
 		m_Tunnels.emplace (rpcPath, tunnel);
 	}
 
+	std::pair<boost::asio::ip::tcp::endpoint, std::string> TorrentsRPCServer::GetTunnelEndpoint (std::shared_ptr<TorrentsTunnel> tunnel) const
+	{
+		for (const auto& [path, weakTunnel] : m_Tunnels)
+		{
+			if (auto t = weakTunnel.lock(); t == tunnel)
+			{
+				return { m_Acceptor.local_endpoint(), path };
+			}
+		}
+		return {};
+	}
+
 	std::shared_ptr<TorrentsTunnel> TorrentsRPCServer::GetTunnel (std::string_view path) const
 	{
 		auto it = m_Tunnels.find (path);

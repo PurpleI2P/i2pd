@@ -59,6 +59,10 @@ namespace torrents
 			void AddTunnel (std::string_view path, std::shared_ptr<TorrentsTunnel> tunnel);
 			std::shared_ptr<TorrentsTunnel> GetTunnel (std::string_view path) const;
 
+			std::pair<boost::asio::ip::tcp::endpoint, std::string> GetTunnelEndpoint (std::shared_ptr<TorrentsTunnel> tunnel) const;
+
+			const auto& GetTunnels() const { return m_Tunnels; }
+			const auto& GetAcceptor() const { return m_Acceptor; }
 		private:
 
 			void Accept ();
