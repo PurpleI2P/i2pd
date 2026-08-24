@@ -163,6 +163,11 @@ namespace client
 	void I2CPDestination::HandleDataMessage (const uint8_t * buf, size_t len,
 		i2p::garlic::ECIESX25519AEADRatchetSession * from)
 	{
+		if (len < 4)
+		{
+			LogPrint (eLogWarning, "I2CP: data message is too short ", len);
+			return;
+		}
 		uint32_t length = bufbe32toh (buf);
 		if (length > len - 4) length = len - 4;
 		if (m_Owner)
@@ -183,7 +188,7 @@ namespace client
 		}
 		m_ReadinessCheckTimer.cancel ();
 		auto pool = GetTunnelPool ();
-		if (!pool || pool->GetOutboundTunnels ().empty ())
+		if (!pool || !pool->HasOutboundTunnels ())
 		{
 			// try again later
 			m_ReadinessCheckTimer.expires_after (std::chrono::seconds(I2CP_DESTINATION_READINESS_CHECK_INTERVAL));
@@ -1193,7 +1198,10 @@ namespace client
 		m_Acceptor.cancel ();
 
 		decltype(m_Sessions) sessions;
-		m_Sessions.swap (sessions);
+		{
+			std::lock_guard<std::mutex> l(m_SessionsMutex);
+			m_Sessions.swap (sessions);
+		}
 		for (auto& it: sessions)
 			it.second->Stop ();
 
@@ -1233,6 +1241,7 @@ namespace client
 	bool I2CPServer::InsertSession (std::shared_ptr<I2CPSession> session)
 	{
 		if (!session) return false;
+		std::lock_guard<std::mutex> l(m_SessionsMutex);
 		if (!m_Sessions.insert({session->GetSessionID (), session}).second)
 		{
 			LogPrint (eLogError, "I2CP: Duplicate session id ", session->GetSessionID ());
@@ -1243,11 +1252,13 @@ namespace client
 
 	void I2CPServer::RemoveSession (uint16_t sessionID)
 	{
+		std::lock_guard<std::mutex> l(m_SessionsMutex);
 		m_Sessions.erase (sessionID);
 	}
 
 	std::shared_ptr<I2CPSession> I2CPServer::FindSessionByIdentHash (const i2p::data::IdentHash& ident) const
 	{
+		std::lock_guard<std::mutex> l(m_SessionsMutex);
 		for (const auto& it: m_Sessions)
 		{
 			if (it.second)

@@ -17,6 +17,8 @@
 #include <thread>
 #include <map>
 #include <unordered_map>
+#include <vector>
+#include <utility>
 #include <boost/asio.hpp>
 #include "util.h"
 #include "Destination.h"
@@ -247,6 +249,7 @@ namespace client
 
 			bool m_IsSingleThread;
 			I2CPMessageHandler m_MessagesHandlers[256];
+			mutable std::mutex m_SessionsMutex;
 			std::map<uint16_t, std::shared_ptr<I2CPSession> > m_Sessions;
 
 			boost::asio::ip::tcp::acceptor m_Acceptor;
@@ -255,8 +258,18 @@ namespace client
 
 			const decltype(m_MessagesHandlers)& GetMessagesHandlers () const { return m_MessagesHandlers; };
 
-			// for HTTP
-			const decltype(m_Sessions)& GetSessions () const { return m_Sessions; };
+			// for HTTP; thread-safe snapshot, safe to iterate without holding any lock
+			std::vector<std::pair<uint16_t, std::shared_ptr<I2CPSession> > > GetSessionsList () const
+			{
+				std::lock_guard<std::mutex> l(m_SessionsMutex);
+				return std::vector<std::pair<uint16_t, std::shared_ptr<I2CPSession> > > (m_Sessions.begin (), m_Sessions.end ());
+			}
+			std::shared_ptr<I2CPSession> FindSessionByID (uint16_t sessionID) const
+			{
+				std::lock_guard<std::mutex> l(m_SessionsMutex);
+				auto it = m_Sessions.find (sessionID);
+				return it != m_Sessions.end () ? it->second : nullptr;
+			}
 	};
 }
 }

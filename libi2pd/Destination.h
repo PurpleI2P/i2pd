@@ -19,6 +19,7 @@
 #include <unordered_set>
 #include <string>
 #include <functional>
+#include <future>
 #include <boost/asio.hpp>
 #include "Identity.h"
 #include "TunnelPool.h"
@@ -141,7 +142,7 @@ namespace client
 			LeaseSetDestination (boost::asio::io_context& service, bool isPublic, const i2p::util::Mapping * params = nullptr);
 			~LeaseSetDestination ();
 			const std::string& GetNickname () const { return m_Nickname; };
-			auto& GetService () { return m_Service; };
+			auto& GetService () const { return m_Service; };
 
 			virtual void Start ();
 			virtual void Stop ();
@@ -150,7 +151,7 @@ namespace client
 			virtual bool Reconfigure(const i2p::util::Mapping& i2cpOpts);
 
 			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () { return m_Pool; };
-			bool IsReady () const { return m_LeaseSet && !m_LeaseSet->IsExpired () && m_Pool->GetOutboundTunnels ().size () > 0; };
+			bool IsReady () const { return m_LeaseSet && !m_LeaseSet->IsExpired () && m_Pool->HasOutboundTunnels (); };
 			std::shared_ptr<i2p::data::LeaseSet> FindLeaseSet (const i2p::data::IdentHash& ident);
 			bool RequestDestination (const i2p::data::IdentHash& dest, RequestComplete requestComplete = nullptr);
 			bool RequestDestinationWithEncryptedLeaseSet (std::shared_ptr<const i2p::data::BlindedPublicKey> dest, RequestComplete requestComplete = nullptr);
@@ -234,8 +235,7 @@ namespace client
 		public:
 
 			// for HTTP only
-			int GetNumRemoteLeaseSets () const { return m_RemoteLeaseSets.size (); };
-			const decltype(m_RemoteLeaseSets)& GetLeaseSets () const { return m_RemoteLeaseSets; };
+			int GetNumRemoteLeaseSets () const { std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex); return m_RemoteLeaseSets.size (); };
 			// copy for other threads, unlike GetLeaseSets which hands out the container itself
 			std::vector<std::shared_ptr<i2p::data::LeaseSet> > GetLeaseSetsList () const
 			{
@@ -248,6 +248,11 @@ namespace client
 			}
 			bool IsEncryptedLeaseSet () const { return m_LeaseSetType == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2; };
 			bool IsPerClientAuth () const { return m_AuthType > 0; };
+			std::future<std::vector<i2p::garlic::ECIESX25519AEADRatchetSessionPtr> > GetECIESx25519SessionsList () const
+			{
+				return boost::asio::post (GetService (),
+					boost::asio::use_future ([this]() { return GetECIESx25519SessionsListSync (); }));
+			}
 	};
 
 	class ClientDestination: public LeaseSetDestination

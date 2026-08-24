@@ -11,6 +11,8 @@
 
 #include <map>
 #include <unordered_map>
+#include <vector>
+#include <utility>
 #include <mutex>
 #include <memory>
 #include <string_view>
@@ -154,7 +156,7 @@ namespace client
 
 		private:
 
-			std::mutex m_DestinationsMutex;
+			mutable std::mutex m_DestinationsMutex;
 			std::map<i2p::data::IdentHash, std::shared_ptr<ClientDestination> > m_Destinations;
 			std::shared_ptr<ClientDestination>  m_SharedLocalDestination;
 
@@ -182,8 +184,12 @@ namespace client
 
 		public:
 
-			// for HTTP
-			const decltype(m_Destinations)& GetDestinations () const { return m_Destinations; };
+			// for HTTP; thread-safe snapshot, safe to iterate without holding any lock
+			std::vector<std::pair<i2p::data::IdentHash, std::shared_ptr<ClientDestination> > > GetDestinationsList () const
+			{
+				std::lock_guard<std::mutex> l(m_DestinationsMutex);
+				return std::vector<std::pair<i2p::data::IdentHash, std::shared_ptr<ClientDestination> > > (m_Destinations.begin (), m_Destinations.end ());
+			}
 			const decltype(m_ClientTunnels)& GetClientTunnels () const { return m_ClientTunnels; };
 			const decltype(m_ServerTunnels)& GetServerTunnels () const { return m_ServerTunnels; };
 			const decltype(m_ClientForwards)& GetClientForwards () const { return m_ClientForwards; }
