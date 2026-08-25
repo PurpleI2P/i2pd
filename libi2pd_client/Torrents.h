@@ -76,7 +76,8 @@ namespace torrents
 		eMessageTypeRequest = 6,
 		eMessageTypePiece = 7,
 		eMessageTypeHaveAll = 14,
-		eMessageTypeHaveNone = 15
+		eMessageTypeHaveNone = 15,
+		eMessageTypeExtended = 20 // BEP10
 	};
 
 	struct PieceFileFragment // fragment to save to/load from file
@@ -262,6 +263,7 @@ namespace torrents
 			int GetLastRequestedPieceIndex () const { return m_LastRequestedPieceIndex; }
 			const boost::dynamic_bitset<>& GetRemoteBitfield () const  { return m_RemoteBitfield; }
 			const PeerID& GetRemotePeerID () const { return m_RemotePeerID; }
+			std::string_view GetRemoteName () const { return m_RemoteName; }
 
 			// stats
 			void ResetStats ();
@@ -307,6 +309,8 @@ namespace torrents
 			void SendUnchokeMsg ();
 			void SendChokeMsg ();
 			void HandleChokeMsg ();
+			void HandleExtendedMsg (const uint8_t * buf, size_t len);
+			void SendExtendedMsg ();
 
 			std::optional<RequestedBlock> GetNextBlockToRequest ();
 			bool RequestNextBlocks ();
@@ -319,6 +323,7 @@ namespace torrents
 			size_t m_ReceiveBufferOffset, m_NextMsgLength;
 			std::shared_ptr<Torrent> m_Torrent;
 			PeerID m_RemotePeerID;
+			std::string m_RemoteName; // from BEP10
 			boost::dynamic_bitset<> m_RemoteBitfield;
 			bool m_IsHandshakeSent, m_IsEstablished, m_IsChoked, m_IsRemoteChoked,
 				m_IsInterested, m_IsRemoteInterested;

@@ -368,7 +368,7 @@ namespace torrents
 				peer["address"] = identHashStr.substr (0, 4);
 				peer["port"] = TORRENT_PORT;
 				peer["identHash"] = identHashStr;
-				peer["clientName"] = RecognizeClientByPeerID (it->GetRemotePeerID ());
+				peer["clientName"] = it->GetRemoteName ().empty () ? RecognizeClientByPeerID (it->GetRemotePeerID ()) : it->GetRemoteName ();
 				peer["isDowloadingFrom"] = it->IsDownloading ();
 				peer["isUploading_to"] = it->IsUploading ();
 				peer["rateToClient"] = it->GetDownloadRate ();

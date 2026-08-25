@@ -13,10 +13,10 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
-#include <array>
 #include <functional>
 #include <set>
 #include <boost/algorithm/string.hpp>
+#include "version.h"
 #include "Log.h"
 #include "I2PEndian.h"
 #include "ClientContext.h"
@@ -138,6 +138,27 @@ namespace torrents
 				return l;
 			});
 		return { strings, len };
+	}
+
+	static std::string CreateByteString (std::string_view str)
+	{
+		if (str.empty ()) return "";
+		std::string ret (std::to_string (str.length ()));
+		ret += ":";  ret += str;
+		return ret;
+	}
+
+	static std::string CreateDictionary (const std::vector<std::pair<std::string_view, std::string_view> >& items)
+	{
+		std::stringstream s;
+		s << 'd';
+		for (const auto& [name, value]: items)
+			if (!name.empty () && !value.empty ())
+			{
+				s << name; s << value;
+			}
+		s << 'e';
+		return s.str ();
 	}
 
 //------------------------------------
@@ -385,9 +406,6 @@ namespace torrents
 
 	bool Torrent::IsSafeName (std::string_view name)
 	{
-		// names come from a torrent file, that is from a stranger. A component
-		// that is empty, a dot pair, absolute or separated would take the path
-		// out of the torrents folder, and some names are refused by Windows
 		if (name.empty () || name == "." || name == "..") return false;
 		if (name.back () == '.' || name.back () == ' ') return false; // Windows drops those
 		for (char ch: name)
@@ -1057,6 +1075,9 @@ namespace torrents
 				case eMessageTypeHaveNone:
 					HandleHaveNoneMsg ();
 				break;
+				case eMessageTypeExtended:
+					HandleExtendedMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
+				break;
 				default:
 					LogPrint (eLogWarning, "Torrents: Unexpected message type ", (int)m_ReceiveBuffer[offset], ". Ignored");
 			};
@@ -1094,9 +1115,11 @@ namespace torrents
 			return 0;
 		}
 		memcpy (m_RemotePeerID.data (), m_ReceiveBuffer + 48, m_RemotePeerID.size ());
-		// respond wiith handshake if incoming
+		// respond with handshake if incoming
 		if (!m_IsHandshakeSent)
 			SendHandshakeMsg ();
+		if (m_ReceiveBuffer[20 + 5] & 0x10) // bit 20 of reserved, BEP10
+			SendExtendedMsg (); // extended handshake if peer supports BEP10
 		// send bitfield if not empty
 		auto [bitfield, empty] = m_Torrent->CreateBitfield ();
 		if (!empty)
@@ -1110,7 +1133,8 @@ namespace torrents
 		if (!m_Torrent || !m_Stream) return;
 		uint8_t buf[HANDSHAKE_MSG_LENGTH];
 		buf[0] = 19; memcpy (buf + 1, "BitTorrent protocol", 19);
-		memset (buf + 20, 0, 8);
+		memset (buf + 20, 0, 8); // reserved
+		buf[20 + 5] |= 0x10; // bit 20 of reserved, BEP10
 		memcpy (buf + 28, m_Torrent->GetInfoHash ().data (), 20);
 		memset (buf + 48, '0', 20);
 		if (GetTorrentsTunnel ())
@@ -1482,6 +1506,36 @@ namespace torrents
 		if (m_Torrent && m_LastRequestedPieceIndex >= 0)
 			m_Torrent->GetPiece (m_LastRequestedPieceIndex).ClearAllRequests ();
 		m_LastRequestedPieceIndex = -1;
+	}
+
+	void PeerConnection::HandleExtendedMsg (const uint8_t * buf, size_t len)
+	{
+		if (len < 1) return;
+		if (!buf[0]) // Handshake
+		{
+			ParseDictionary (std::string_view ((const char *)(buf + 1), len -1),
+				[this](std::string_view key, std::string_view buf)->size_t
+				{
+					if (key == "v")
+					{
+						auto [v, l] = ExtractByteString (buf);
+						if (l) m_RemoteName = v;
+						return l;
+					}
+					return 0;
+				});
+		}
+	}
+
+	void PeerConnection::SendExtendedMsg ()
+	{
+		std::string payload = CreateDictionary ({{ CreateByteString ("v"), CreateByteString ("i2pd " + std::string (VERSION)) }});
+		std::vector<uint8_t> sendBuffer (payload.length () + 1 + 5);
+		htobe32buf (sendBuffer.data (), payload.length () + 1 + 1); // length
+		sendBuffer[4] = eMessageTypeExtended; // msg ID
+		sendBuffer[5] = 0; // handshake
+		memcpy (sendBuffer.data () + 6, payload.data (), payload.size ());
+		WriteToStream (sendBuffer.data (), sendBuffer.size ());
 	}
 
 	std::optional<RequestedBlock> PeerConnection::GetNextBlockToRequest ()
