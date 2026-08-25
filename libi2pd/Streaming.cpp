@@ -693,15 +693,19 @@ namespace stream
 			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 			if (m_LastACKSendTime != ts) // preventing multiple acks when reading m_SavedPackets
 			{
-				if (m_IsAckSendScheduled)
+				// schedule sending quick ack after all packets get processed
+				boost::asio::post (m_Service, [s = shared_from_this ()]()
 				{
-					SendQuickAck ();
-					auto ackTimeout = m_RTT/10;
-					if (ackTimeout > m_AckDelay) ackTimeout = m_AckDelay;
-					ScheduleAck (ackTimeout);
-				}
-				else
-					SendQuickAck ();
+					if (s->m_IsAckSendScheduled)
+					{
+						s->SendQuickAck ();
+						auto ackTimeout = s->m_RTT/10;
+						if (ackTimeout > s->m_AckDelay) ackTimeout = s->m_AckDelay;
+						s->ScheduleAck (ackTimeout);
+					}
+					else
+						s->SendQuickAck ();
+				});
 			}
 		}
 		return true;
