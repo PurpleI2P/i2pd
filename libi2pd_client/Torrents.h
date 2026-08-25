@@ -364,6 +364,7 @@ namespace torrents
 			auto& GetDiskIOService () { return m_DiskIOService.GetService (); };
 
 			const std::string& GetPeerID () const { return m_PeerID; }
+			const std::vector<std::string>& GetTrackers () const { return m_Trackers; }
 			std::shared_ptr<Torrent> FindTorrent (const Torrent::InfoHash& infoHash) const;
 			std::shared_ptr<Torrent> FindTorrentByID (int id) const;
 			std::vector<int> GetTorrentIDs () const;

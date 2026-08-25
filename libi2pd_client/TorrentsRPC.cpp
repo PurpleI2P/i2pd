@@ -7,7 +7,7 @@
 */
 
 #include <boost/version.hpp>
-#if BOOST_VERSION >= 108100 // boost::json since 1.75, we allow it since 1.81 due to std::string_view compatibility
+#if !defined(ANDROID) && (BOOST_VERSION >= 108100) // boost::json since 1.75, we allow it since 1.81 due to std::string_view compatibility
 #include <boost/json.hpp>
 #define JSON_SUPPORTED
 #endif
@@ -47,7 +47,8 @@ namespace torrents
 			std::string ErrorResponse (JSONRPCErrorCode errorCode, int64_t id, std::string_view message);
 			int64_t GetTag (boost::json::object& jsonRequest) const;
 			static boost::json::value GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent);
-			boost::json::array GetPeers (std::shared_ptr<Torrent> torrent);
+			boost::json::array GetPeers (std::shared_ptr<Torrent> torrent) const;
+			boost::json::array GetTrackers (std::shared_ptr<Torrent> torrent) const;
 			static std::string_view RecognizeClientByPeerID (const PeerConnection::PeerID& peerID);
 
 			std::string HandleTorrentAdd (boost::json::object&& jsonRequest);
@@ -225,6 +226,8 @@ namespace torrents
 						continue;
 					else if (field == "peers")
 						t["peers"] = GetPeers (torrent);
+					else if (field == "trackers")
+						t["trackers"] = GetTrackers (torrent);
 					else
 					{
 						auto fieldValue = GetFieldValue (field.as_string (), torrent);
@@ -257,10 +260,8 @@ namespace torrents
 			{ "totalSize", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetLength ()); } },
 			{ "percentDone", [](std::shared_ptr<Torrent> torrent)
 				{
-				 if(!torrent->GetLength()) return boost::json::value ( 100.0 );
-				 double left = torrent->GetLength () - torrent->GetLeft();
-				 double percent = (left*100)/torrent->GetLength();
-				 return boost::json::value(  percent  );
+					 if (!torrent->GetLength ()) return boost::json::value (1.0);
+					 return boost::json::value ((float)(torrent->GetLength () - torrent->GetLeft ())/(float)torrent->GetLength ());
 				}
 			},
 			{ "hashString", [](std::shared_ptr<Torrent> torrent)
@@ -329,7 +330,12 @@ namespace torrents
 				}
 			},
 			{ "error", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(0); } }, // no error
-			{ "eta", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(600); } }, // TODO:
+			{ "eta", [](std::shared_ptr<Torrent> torrent)
+				{
+					auto downloadRate = torrent->GetDownloadRate ();
+					return boost::json::value (downloadRate ? torrent->GetLeft ()/downloadRate : -2);
+				}
+			},
 			{ "uploadRatio", [](std::shared_ptr<Torrent> torrent)
 				{
 					float ratio = torrent->GetDownloaded () ? ((float)torrent->GetUploaded ())/((float)torrent->GetDownloaded ()) : 100.0;
@@ -346,7 +352,7 @@ namespace torrents
 		return boost::json::value ();
 	}
 
-	boost::json::array JSONRPCHandler::GetPeers (std::shared_ptr<Torrent> torrent)
+	boost::json::array JSONRPCHandler::GetPeers (std::shared_ptr<Torrent> torrent) const
 	{
 		boost::json::array peers;
 		std::list<std::shared_ptr<PeerConnection> > conns;
@@ -384,6 +390,21 @@ namespace torrents
 			}
 		}
 		return peers;
+	}
+
+	boost::json::array JSONRPCHandler::GetTrackers (std::shared_ptr<Torrent> torrent) const
+	{
+		boost::json::array trackers;
+		const auto& tunnelTrackers = m_Tunnel->GetTrackers ();
+		for (size_t i = 0; i < tunnelTrackers.size (); i++)
+		{
+			boost::json::object tracker;
+			tracker["id"] = std::to_string (i);
+			tracker["announce"] = tunnelTrackers[i];
+			tracker["tier"] = 0;
+			trackers.push_back (tracker);
+		}
+		return trackers;
 	}
 
 	std::string_view JSONRPCHandler::RecognizeClientByPeerID (const PeerConnection::PeerID& peerID)
