@@ -1599,6 +1599,13 @@ namespace torrents
 	{
 		i2p::client::I2PService::Start ();
 		m_DiskIOService.Start ();
+
+		auto dgramDest = GetLocalDestination ()->CreateDatagramDestination (false, i2p::datagram::eDatagramV3);
+		if (dgramDest)
+			dgramDest->SetRawReceiver (std::bind (&TorrentsTunnel::HandleRecvFromI2PRaw,
+				std::static_pointer_cast<TorrentsTunnel>(shared_from_this ()),
+				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+
 		Accept ();
 
 		if (!m_TorrentsDir.empty() && std::filesystem::exists (m_TorrentsDir) &&
@@ -1618,7 +1625,12 @@ namespace torrents
 	{
 		auto localDestination = GetLocalDestination ();
 		if (localDestination)
+		{
 			localDestination->StopAcceptingStreams ();
+			auto dgramDest = localDestination->GetDatagramDestination ();
+			if (dgramDest)
+				dgramDest->ResetRawReceiver ();
+		}
 		m_TrackerRequestsCheckTimer.cancel ();
 		m_KeepAliveCheckTimer.cancel ();
 		m_ReconnectCheckTimer.cancel ();
@@ -1987,7 +1999,11 @@ namespace torrents
 			LogPrint (eLogWarning, "Torrents: Non-I2P address ", reqURL.host, " for torrent ", torrent->GetName ());
 			return;
 		}
-
+		if (reqURL.schema == "udp")
+		{
+			ConnectToDatagramTracker (reqURL.host, reqURL.port);
+			return;
+		}
 		std::map<std::string, std::string> params;
 		params.emplace ("info_hash", torrent->GetHexStringInfoHash ());
 		params.emplace ("peer_id", m_PeerID);
@@ -2259,6 +2275,58 @@ namespace torrents
 					}
 				}
 			});
+	}
+
+	void TorrentsTunnel::HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
+	{
+		// response from tracker
+		if (len < 8) return;
+		uint32_t action = bufbe32toh (buf);
+		switch (action)
+		{
+			case eDatagramTrackerActionConnect:
+				LogPrint (eLogDebug, "Torrents: action connect");
+			break;
+			case eDatagramTrackerActionAnnounce:
+				LogPrint (eLogDebug, "Torrents: action announce");
+			break;
+			case eDatagramTrackerActionError:
+				LogPrint (eLogDebug, "Torrents: action error");
+			break;
+			default:
+				LogPrint (eLogInfo, "Torrents: Unexpected action ", action, " from tracker");
+		}
+	}
+
+	void TorrentsTunnel::ConnectToDatagramTracker (std::string_view dest, uint16_t port)
+	{
+		LogPrint (eLogDebug, "Torrents: Connecting to datagram tracker ", dest, ":", port);
+		auto address = i2p::client::context.GetAddressBook ().GetAddress (dest);
+		if (address && address->IsIdentHash ())
+		{
+			auto localDestination = GetLocalDestination ();
+			auto dgramDest = localDestination->GetDatagramDestination ();
+			if (dgramDest)
+			{
+				uint8_t connectRequest[16];
+				htobe64buf (connectRequest, 0x41727101980); // protocol_id
+				htobe32buf (connectRequest + 8, eDatagramTrackerActionConnect); // action
+				htobe32buf (connectRequest + 12, localDestination->GetRng()()); // transactionID
+				uint16_t fromPort = localDestination->GetRng()() % 1000 + 6000;
+				auto session = dgramDest->GetSession (address->identHash);
+				if (session)
+				{
+					session->SetVersion (i2p::datagram::eDatagramV2); // send datagram2
+					dgramDest->SendDatagram (session, connectRequest, 16, fromPort, port);
+				}
+				else
+					LogPrint (eLogInfo, "Torrents: Can't obtain datagram session to ", dest);
+			}
+			else
+				LogPrint (eLogError, "Torrents: Datagram destination is not avaliable");
+		}
+		else
+			LogPrint (eLogInfo, "Torrents: Tracker not found: ", dest);
 	}
 }
 }

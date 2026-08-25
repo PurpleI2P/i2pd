@@ -340,6 +340,13 @@ namespace torrents
 			size_t m_Downloaded, m_Uploaded; // bytes
 	};
 
+	enum DatagramTrackerAction
+	{
+		eDatagramTrackerActionConnect = 0,
+		eDatagramTrackerActionAnnounce = 1,
+		eDatagramTrackerActionError = 3
+	};
+
 	class TorrentsTunnel final: public i2p::client::I2PService
 	{
 		private:
@@ -407,6 +414,9 @@ namespace torrents
 			size_t ConnectToPeers (std::shared_ptr<Torrent> torrent);
 			void UpdatePeersPerPiece (std::shared_ptr<Torrent> torrent);
 			void UpdateStats ();
+
+			void HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
+			void ConnectToDatagramTracker (std::string_view dest, uint16_t port);
 
 		private:
 
