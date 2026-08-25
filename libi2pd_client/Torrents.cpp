@@ -16,7 +16,6 @@
 #include <functional>
 #include <set>
 #include <boost/algorithm/string.hpp>
-#include "version.h"
 #include "Log.h"
 #include "I2PEndian.h"
 #include "ClientContext.h"
@@ -412,16 +411,19 @@ namespace torrents
 			if (ch == '/' || ch == '\\' || ch == ':' || ch == '<' || ch == '>' ||
 				ch == '"' || ch == '|' || ch == '?' || ch == '*' || (unsigned char)ch < 0x20)
 				return false;
-		using namespace std::string_view_literals;
+#ifdef _WIN32
 		static constexpr std::array reserved
 		{
-			"CON"sv, "PRN"sv, "AUX"sv, "NUL"sv,
-			"COM1"sv, "COM2"sv, "COM3"sv, "COM4"sv, "COM5"sv, "COM6"sv, "COM7"sv, "COM8"sv, "COM9"sv,
-			"LPT1"sv, "LPT2"sv, "LPT3"sv, "LPT4"sv, "LPT5"sv, "LPT6"sv, "LPT7"sv, "LPT8"sv, "LPT9"sv
+			"CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5",
+			"COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4",
+			"LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
 		};
 		std::string stem (name.substr (0, name.find ('.')));
 		boost::to_upper (stem);
 		return std::find (reserved.begin (), reserved.end (), stem) == reserved.end ();
+#else
+		return true;
+#endif
 	}
 
 	size_t Torrent::ParseFiles (std::string_view buf)
@@ -505,7 +507,7 @@ namespace torrents
 				}
 				else if (key == "peers")
 					return ParsePeers (trackerID, buf);
-				else if (key == "Failure Reason")
+				else if (key == "failure reason")
 				{
 					auto [reason, l] = ExtractByteString (buf);
 					LogPrint (eLogError, "Torrents: Tracker error: ", reason);
@@ -1529,7 +1531,7 @@ namespace torrents
 
 	void PeerConnection::SendExtendedMsg ()
 	{
-		std::string payload = CreateDictionary ({{ CreateByteString ("v"), CreateByteString ("i2pd " + std::string (VERSION)) }});
+		std::string payload = CreateDictionary ({{ CreateByteString ("v"), CreateByteString ("i2pd") }});
 		std::vector<uint8_t> sendBuffer (payload.length () + 1 + 5);
 		htobe32buf (sendBuffer.data (), payload.length () + 1 + 1); // length
 		sendBuffer[4] = eMessageTypeExtended; // msg ID
