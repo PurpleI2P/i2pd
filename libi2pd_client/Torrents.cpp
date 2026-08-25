@@ -1602,6 +1602,13 @@ namespace torrents
 		else
 			LogPrint (eLogError, "Torrents: Can't open file ", torrentFilePath);
 
+		if (torrent && !torrent->IsValid ())
+		{
+			// a torrent whose parsing stopped, an unsafe name among the rest, must
+			// not be used even in part: it would leave stray files behind
+			LogPrint (eLogError, "Torrents: Invalid torrent file ", torrentFilePath, ". Skipped");
+			torrent = nullptr;
+		}
 		if (torrent)
 		{
 			torrent->SetFullPath (m_TorrentsDir/std::filesystem::path (torrent->GetName ()));

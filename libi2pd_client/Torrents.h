@@ -171,6 +171,7 @@ namespace torrents
 
 			std::string_view GetAnnounce () const { return m_Announce; }
 			std::string_view GetName () const { return m_Name; }
+			bool IsValid () const { return !m_Name.empty () && m_PieceLength && (m_Length || !m_Files.empty ()); }
 			const std::filesystem::path& GetFullPath () const { return m_FullPath; }
 			void SetFullPath (const std::filesystem::path& fullPath) { m_FullPath = fullPath; }
 			const std::list<std::pair<std::filesystem::path, size_t> >& GetFiles () const { return m_Files; }
