@@ -45,7 +45,7 @@ enum
 	C_OPENHTTP,
 	M_SHOWMAIN,
         M_CLOSETUNNEL
-};	
+};
 constexpr bigtime_t GRACEFUL_SHUTDOWN_UPDATE_INTERVAL = 1000*1100; // in microseconds, ~ 1 sec
 constexpr int GRACEFUL_SHUTDOWN_UPDATE_COUNT = 600; // 10 minutes
 constexpr bigtime_t MAIN_VIEW_UPDATE_INTERVAL = 5000*1000; // in miscroseconds, 5 secs
@@ -54,11 +54,11 @@ class MainWindow: public BWindow
 {
 	public:
 		MainWindow ();
-	
+
 	private:
-		void MessageReceived (BMessage * msg) override;	
+		void MessageReceived (BMessage * msg) override;
 		bool QuitRequested () override;
-		void GetInfoAboutTunnel(BMessage * msg);	
+		void GetInfoAboutTunnel(BMessage * msg);
 		void UpdateMainView ();
 		void OpenHTTPInterface(void);
 		void DrawTunnel(std::stringstream & s);
@@ -67,16 +67,16 @@ class MainWindow: public BWindow
 		BMessenger m_Messenger;
 		BTabView * m_tab_view;
 		BTextView * m_MainView;
-		std::unique_ptr<BMessageRunner> m_MainViewUpdateTimer, m_GracefulShutdownTimer;	
+		std::unique_ptr<BMessageRunner> m_MainViewUpdateTimer, m_GracefulShutdownTimer;
 		bool m_IsGracefulShutdownComplete = false;
 		bool m_IsDrawTunnel = false;
 		i2p::data::IdentHash m_IdentHash;
-};	
+};
 
 class I2PApp: public BApplication
 {
 	public:
-	
+
 		I2PApp ();
 		void CreateMainWindow ();
 };
@@ -84,7 +84,7 @@ class I2PApp: public BApplication
 MainWindow::MainWindow ():
 	BWindow (BRect(100, 100, 500, 400), "i2pd " VERSION, B_TITLED_WINDOW, B_QUIT_ON_WINDOW_CLOSE),
 	m_Messenger (nullptr, this)
-{	
+{
 	auto r = Bounds (); r.bottom = 20;
 	auto menuBar = new BMenuBar (r, "menubar");
 	AddChild (menuBar);
@@ -110,7 +110,7 @@ MainWindow::MainWindow ():
 		auto msg = new BMessage{M_SHOW_TUNNEL};
 		msg->AddString("tunnel_name", BString(it.second->GetName()));
 		msg->AddBool("is_client_tunnel", false);
-		tunnelsMenu->AddItem (new BMenuItem (it.second->GetName (), msg));	
+		tunnelsMenu->AddItem (new BMenuItem (it.second->GetName (), msg));
 	}
 	menuBar->AddItem (tunnelsMenu);
 
@@ -135,8 +135,8 @@ MainWindow::MainWindow ():
 
 	m_tab_view->AddTab(bview);
 	m_tab_view->TabAt(m_counter_streams)->SetLabel("Info");
-		
-	m_MainViewUpdateTimer = std::make_unique<BMessageRunner>(m_Messenger, 
+
+	m_MainViewUpdateTimer = std::make_unique<BMessageRunner>(m_Messenger,
 		BMessage (C_MAIN_VIEW_UPDATE), MAIN_VIEW_UPDATE_INTERVAL);
 }
 
@@ -147,22 +147,22 @@ void MainWindow::UpdateMainView ()
 	{
 	 i2p::util::PrintMainWindowText (s);
 	}
-	else 
+	else
 	{
 	  DrawTunnel(s);
         }
 	////std::cout << s.str() << std::endl;
 	m_MainView->SetText (s.str ().c_str ());
-}	
+}
 /*
  * Логика - создать вектор с streamID + vector dest.
- * не перерисовывать каждый раз а лишь добавлять которых нет 
+ * не перерисовывать каждый раз а лишь добавлять которых нет
  * и удалять те которые есть
  * кнопка close работает
  * */
 void MainWindow :: DrawTunnel(std::stringstream & s)
 {
-       
+
 	s << "\n";
 	s << "I2P Address: " << i2p::client::context.GetAddressBook().ToAddress(m_IdentHash) << "\n";
 	auto dest = i2p::client::context.FindLocalDestination (m_IdentHash);
@@ -182,7 +182,7 @@ void MainWindow :: DrawTunnel(std::stringstream & s)
 		{
 			i2p::data::BlindedPublicKey blinded (dest->GetIdentity (), dest->IsPerClientAuth ());
 			s << "B33 address: " << blinded.ToB33 () << ".b32.i2p\n";
-		}	
+		}
 		s << "Streams: \n";
 		for (auto stream : dest->GetAllStreams())
 		{
@@ -200,7 +200,7 @@ void MainWindow :: DrawTunnel(std::stringstream & s)
 			tunnel_view->MakeEditable (false);
 			tunnel_view->MakeSelectable (true);
 			tunnel_view->SetText (s1.str ().c_str ());
-			
+
 			BRect btnRect{10,10,90,35};//10+32,10+12);
 			auto msg = new BMessage(M_CLOSETUNNEL);
 			msg->AddUInt32("tunnel_val", stream->GetRecvStreamID());
@@ -210,7 +210,7 @@ void MainWindow :: DrawTunnel(std::stringstream & s)
 			bview->AddChild(closeButton);
 			bview->AddChild(tunnel_view);
 
-			
+
 			m_tab_view->AddTab(bview);
 			m_tab_view->TabAt(++m_counter_streams)->SetLabel(streamDestShort.c_str());
 
@@ -240,7 +240,7 @@ void MainWindow :: GetInfoAboutTunnel(BMessage * msg)
 	     		  auto & ident = it.second->GetLocalDestination()->GetIdentHash();
 			  m_IdentHash = ident;
 			  m_IsDrawTunnel = true;
-			  return UpdateMainView(); 
+			  return UpdateMainView();
 					   //TODO:
 			}
 		 }
@@ -255,7 +255,7 @@ void MainWindow :: GetInfoAboutTunnel(BMessage * msg)
 			  return UpdateMainView();
 						//TODO:
 			}
-		}	
+		}
 	}// if not client tunnel
 }
 
@@ -275,13 +275,13 @@ void MainWindow :: OpenHTTPInterface()
 	std::string com_s{com.str()};
 	std::thread ([com_s]() {
 		system(com_s.c_str());
-	}).detach();	
+	}).detach();
 }
 
 void MainWindow::MessageReceived (BMessage * msg)
 {
 	if (!msg) return;
-	uint32_t tunnel_val;// streamID (to method)
+	uint32 tunnel_val;// streamID (to method)
 	switch (msg->what)
 	{
 		// to method
@@ -290,7 +290,7 @@ void MainWindow::MessageReceived (BMessage * msg)
 		       msg->FindUInt32("tunnel_val", &tunnel_val);
 		       if(tunnel_val)
 		       {
-				auto dest = 
+				auto dest =
 				i2p::client::context.FindLocalDestination
 				(m_IdentHash);
 				if(dest)
@@ -321,31 +321,31 @@ void MainWindow::MessageReceived (BMessage * msg)
 				i2p::context.SetAcceptsTunnels (false);
 				Daemon.gracefulShutdownInterval = GRACEFUL_SHUTDOWN_UPDATE_COUNT;
 				m_MainViewUpdateTimer = nullptr;
-				m_GracefulShutdownTimer = std::make_unique<BMessageRunner>(m_Messenger, 
+				m_GracefulShutdownTimer = std::make_unique<BMessageRunner>(m_Messenger,
 					BMessage (C_GRACEFUL_SHUTDOWN_UPDATE), GRACEFUL_SHUTDOWN_UPDATE_INTERVAL);
-			}	
+			}
 		break;
 		case C_GRACEFUL_SHUTDOWN_UPDATE:
 			if (Daemon.gracefulShutdownInterval > 0)
 			{
 				UpdateMainView ();
 				Daemon.gracefulShutdownInterval--;
-			}	
+			}
 			if (!Daemon.gracefulShutdownInterval || i2p::tunnel::tunnels.CountTransitTunnels () <= 0)
 			{
 				m_GracefulShutdownTimer = nullptr;
 				Daemon.gracefulShutdownInterval = 0;
 				m_IsGracefulShutdownComplete = true;
 				m_Messenger.SendMessage (B_QUIT_REQUESTED);
-			}		
+			}
 		break;
 		case M_RUN_PEER_TEST:
 			i2p::transport::transports.PeerTest ();
-		break;	
+		break;
 		default:
 			BWindow::MessageReceived (msg);
-	}	
-}	
+	}
+}
 
 bool MainWindow::QuitRequested ()
 {
@@ -363,24 +363,24 @@ bool MainWindow::QuitRequested ()
 		m_GracefulShutdownTimer = nullptr;
 	}
 	return isQuit;
-}	
+}
 
 I2PApp::I2PApp (): BApplication("application/x-vnd.purplei2p-i2pd")
 {
-}	
+}
 
 void I2PApp::CreateMainWindow ()
 {
 	auto mainWindow = new MainWindow ();
 	mainWindow->Show ();
-}	
+}
 
 namespace i2p
 {
 namespace util
 {
 	bool DaemonHaiku::start ()
-	{	
+	{
 		I2PApp * app = nullptr;
 		if (!isDaemon)
 		{
@@ -391,10 +391,10 @@ namespace util
 						B_WIDTH_AS_USUAL, B_OFFSET_SPACING, B_STOP_ALERT);
 					alert->Go ();
 				});
-		}	
+		}
 		bool ret = false;
 		if (app)
-		{	
+		{
 			ret = Daemon_Singleton::start ();
 			if (ret)
 				app->CreateMainWindow ();
@@ -402,20 +402,20 @@ namespace util
 		else
 			ret = DaemonUnix::start ();
 		return ret;
-	}	
-	
+	}
+
 	void DaemonHaiku::run ()
 	{
 		if (be_app)
 		{
 			be_app->Run ();
 			delete be_app;
-		}		
+		}
 		else
 			DaemonUnix::run ();
-	}	
-}	
-}	
+	}
+}
+}
 
 #endif
 

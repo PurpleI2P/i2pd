@@ -7,7 +7,7 @@
 */
 
 #include <boost/version.hpp>
-#if BOOST_VERSION >= 108100 // boost::json since 1.75, we allow it since 1.81 due to std::string_view compatibility
+#if !defined(ANDROID) && (BOOST_VERSION >= 108100) // boost::json since 1.75, we allow it since 1.81 due to std::string_view compatibility
 #include <boost/json.hpp>
 #define JSON_SUPPORTED
 #endif
@@ -47,7 +47,8 @@ namespace torrents
 			std::string ErrorResponse (JSONRPCErrorCode errorCode, int64_t id, std::string_view message);
 			int64_t GetTag (boost::json::object& jsonRequest) const;
 			static boost::json::value GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent);
-			boost::json::array GetPeers (std::shared_ptr<Torrent> torrent);
+			boost::json::array GetPeers (std::shared_ptr<Torrent> torrent) const;
+			boost::json::array GetTrackers (std::shared_ptr<Torrent> torrent) const;
 			static std::string_view RecognizeClientByPeerID (const PeerConnection::PeerID& peerID);
 
 			std::string HandleTorrentAdd (boost::json::object&& jsonRequest);
@@ -225,6 +226,8 @@ namespace torrents
 						continue;
 					else if (field == "peers")
 						t["peers"] = GetPeers (torrent);
+					else if (field == "trackers")
+						t["trackers"] = GetTrackers (torrent);
 					else
 					{
 						auto fieldValue = GetFieldValue (field.as_string (), torrent);
@@ -257,10 +260,8 @@ namespace torrents
 			{ "totalSize", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetLength ()); } },
 			{ "percentDone", [](std::shared_ptr<Torrent> torrent)
 				{
-				 if(!torrent->GetLength()) return boost::json::value ( 100.0 );
-				 double left = torrent->GetLength () - torrent->GetLeft();
-				 double percent = (left*100)/torrent->GetLength();
-				 return boost::json::value(  percent  );
+					 if (!torrent->GetLength ()) return boost::json::value (1.0);
+					 return boost::json::value ((float)(torrent->GetLength () - torrent->GetLeft ())/(float)torrent->GetLength ());
 				}
 			},
 			{ "hashString", [](std::shared_ptr<Torrent> torrent)
@@ -329,7 +330,12 @@ namespace torrents
 				}
 			},
 			{ "error", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(0); } }, // no error
-			{ "eta", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(600); } }, // TODO:
+			{ "eta", [](std::shared_ptr<Torrent> torrent)
+				{
+					auto downloadRate = torrent->GetDownloadRate ();
+					return boost::json::value (downloadRate ? torrent->GetLeft ()/downloadRate : -2);
+				}
+			},
 			{ "uploadRatio", [](std::shared_ptr<Torrent> torrent)
 				{
 					float ratio = torrent->GetDownloaded () ? ((float)torrent->GetUploaded ())/((float)torrent->GetDownloaded ()) : 100.0;
@@ -346,7 +352,7 @@ namespace torrents
 		return boost::json::value ();
 	}
 
-	boost::json::array JSONRPCHandler::GetPeers (std::shared_ptr<Torrent> torrent)
+	boost::json::array JSONRPCHandler::GetPeers (std::shared_ptr<Torrent> torrent) const
 	{
 		boost::json::array peers;
 		std::list<std::shared_ptr<PeerConnection> > conns;
@@ -368,7 +374,7 @@ namespace torrents
 				peer["address"] = identHashStr.substr (0, 4);
 				peer["port"] = TORRENT_PORT;
 				peer["identHash"] = identHashStr;
-				peer["clientName"] = RecognizeClientByPeerID (it->GetRemotePeerID ());
+				peer["clientName"] = it->GetRemoteName ().empty () ? RecognizeClientByPeerID (it->GetRemotePeerID ()) : it->GetRemoteName ();
 				peer["isDowloadingFrom"] = it->IsDownloading ();
 				peer["isUploading_to"] = it->IsUploading ();
 				peer["rateToClient"] = it->GetDownloadRate ();
@@ -384,6 +390,21 @@ namespace torrents
 			}
 		}
 		return peers;
+	}
+
+	boost::json::array JSONRPCHandler::GetTrackers (std::shared_ptr<Torrent> torrent) const
+	{
+		boost::json::array trackers;
+		const auto& tunnelTrackers = m_Tunnel->GetTrackers ();
+		for (size_t i = 0; i < tunnelTrackers.size (); i++)
+		{
+			boost::json::object tracker;
+			tracker["id"] = std::to_string (i);
+			tracker["announce"] = tunnelTrackers[i];
+			tracker["tier"] = 0;
+			trackers.push_back (tracker);
+		}
+		return trackers;
 	}
 
 	std::string_view JSONRPCHandler::RecognizeClientByPeerID (const PeerConnection::PeerID& peerID)
@@ -431,31 +452,8 @@ namespace torrents
 	{
 		if (!ecode)
 		{
-			if (m_Request.method() == boost::beast::http::verb::options)
+			if (m_Request.method() == boost::beast::http::verb::post)
 			{
-				m_Response.version (11); // HTTP/1.1
-				m_Response.result (204);
-				m_Response.set (boost::beast::http::field::access_control_allow_origin, "*");
-				m_Response.set (boost::beast::http::field::access_control_allow_methods, "GET, POST, OPTIONS");
-				m_Response.set (boost::beast::http::field::access_control_allow_headers, "Content-Type, Authorization");
-
-				m_Response.keep_alive(m_Request.keep_alive());
-				m_Response.prepare_payload ();
-				boost::beast::http::async_write (m_Socket, m_Response,
-												 [s = shared_from_this ()](const boost::system::error_code& ecode, size_t bytes_transferred)
-												 {
-													 if (ecode)
-														 LogPrint (eLogWarning, "TorrentsRPC: Failed to send response: ", ecode.message ());
-												 });
-			}
-			else if (m_Request.method() == boost::beast::http::verb::post)
-			{
-				m_Response.set(
-					boost::beast::http::field::access_control_allow_origin,
-				   "*");
-				m_Response.set(
-					boost::beast::http::field::access_control_allow_headers,
-				   "Content-Type, Authorization");
 				auto path = m_Request.target ();
 				auto tunnel = m_Server.GetTunnel ( {path.data (), path.size ()}); // boost::beast::string_view to std::string_view
 				if (tunnel)
@@ -480,17 +478,24 @@ namespace torrents
 					SendResponse (boost::beast::http::status::not_found);
 				}
 			}
+			else if (m_Request.method() == boost::beast::http::verb::options)
+				SendResponse (boost::beast::http::status::no_content, "", true);
 			else
 				SendResponse (boost::beast::http::status::method_not_allowed);
 		}
 	}
 
-	void TorrentsRPCSession::SendResponse (boost::beast::http::status result, std::string_view data)
+	void TorrentsRPCSession::SendResponse (boost::beast::http::status result, std::string_view data, bool isOptions)
 	{
 		m_Response.version (11); // HTTP/1.1
 		m_Response.result (result);
 		m_Response.set (boost::beast::http::field::server, "i2pd torents RPC");
-		m_Response.set(boost::beast::http::field::content_type, (result == boost::beast::http::status::ok) ? "application/json; charset=UTF-8" : "text/plain");
+		m_Response.set (boost::beast::http::field::access_control_allow_origin, "*");
+		m_Response.set (boost::beast::http::field::access_control_allow_headers, "Content-Type, Authorization");
+		if (isOptions)
+			m_Response.set (boost::beast::http::field::access_control_allow_methods, "GET, POST, OPTIONS");
+		else
+			m_Response.set(boost::beast::http::field::content_type, (result == boost::beast::http::status::ok) ? "application/json; charset=UTF-8" : "text/plain");
 		m_Response.body () = data;
 		m_Response.prepare_payload ();
 		boost::beast::http::async_write (m_Socket, m_Response,
