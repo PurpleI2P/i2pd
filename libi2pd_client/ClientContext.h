@@ -25,7 +25,7 @@
 #include "BOB.h"
 #include "I2CP.h"
 #include "AddressBook.h"
-#include "Torrents.h"
+#include "TorrentsTunnel.h"
 #include "TorrentsRPC.h"
 #include "I18N_langs.h"
 

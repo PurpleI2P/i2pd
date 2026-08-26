@@ -1,0 +1,126 @@
+/*
+* Copyright (c) 2026, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
+#ifndef TORRENTS_TUNNEL_H__
+#define TORRENTS_TUNNEL_H__
+
+#include <string>
+#include <string_view>
+#include <memory>
+#include <filesystem>
+#include <vector>
+#include <list>
+#include <map>
+#include <unordered_set>
+#include <mutex>
+#include <boost/asio.hpp>
+#include <boost/beast.hpp>
+#include "I2PService.h"
+#include "util.h"
+#include "BoostStream.h"
+#include "Torrents.h"
+
+namespace i2p
+{
+namespace torrents
+{
+	enum DatagramTrackerAction
+	{
+		eDatagramTrackerActionConnect = 0,
+		eDatagramTrackerActionAnnounce = 1,
+		eDatagramTrackerActionError = 3
+	};
+
+	class TorrentsTunnel final: public i2p::client::I2PService
+	{
+		private:
+
+			class DiskIOService: private i2p::util::RunnableServiceWithWork
+			{
+				public:
+
+					DiskIOService (): RunnableServiceWithWork ("TDiskIO") {}
+					auto& GetService () { return GetIOService (); }
+					void Start () { StartIOService (); }
+					void Stop () { StopWorkAndFinishTasks (); }
+			};
+
+		public:
+
+			TorrentsTunnel (std::string_view name, std::shared_ptr<i2p::client::ClientDestination> localDestination,
+				std::string_view torrentsDir, std::string_view trackers = "");
+
+			void Start () override;
+			void Stop () override;
+			auto& GetDiskIOService () { return m_DiskIOService.GetService (); };
+
+			const std::string& GetPeerID () const { return m_PeerID; }
+			const std::vector<std::string>& GetTrackers () const { return m_Trackers; }
+			std::shared_ptr<Torrent> FindTorrent (const Torrent::InfoHash& infoHash) const;
+			std::shared_ptr<Torrent> FindTorrentByID (int id) const;
+			std::vector<int> GetTorrentIDs () const;
+			std::pair<std::shared_ptr<Torrent>, int> AddTorrent (std::string_view torrentFileContent); // (tunnel, id)
+			bool RemoveTorrent (int id, bool deleteFiles);
+			std::list<std::shared_ptr<PeerConnection> > GetTorrentConnections (std::shared_ptr<Torrent> torrent);
+
+			const char* GetName() const override { return m_Name.c_str (); }
+
+		private:
+
+
+			void Accept ();
+			void ReadTorrentFile (const std::filesystem::path& torrentFilePath);
+			void InitTorrentFiles (std::shared_ptr<Torrent> torrent);
+			int InsertTorrent (std::shared_ptr<Torrent> torrent); // returns id > 0 if success and 0 if failed
+			void RemoveTorrent (std::shared_ptr<Torrent> torrent, bool deleteFiles);
+			bool CreateAndReserveFile (const std::filesystem::path& filePath, size_t reserve);
+			void CompleteTorrent (std::shared_ptr<Torrent> torrent);
+			void RequestTracker (size_t trackerID, std::shared_ptr<Torrent> torrent, std::string_view event = "");
+			void RequestTorrentTrackers (std::shared_ptr<Torrent> torrent, std::string_view event = "");
+			void TrackerRequestSent (const boost::beast::error_code& ecode, size_t bytes_transferred,
+				std::shared_ptr<i2p::client::BoostAsyncStream> httpStream, std::shared_ptr<Torrent> torrent,
+				std::shared_ptr<boost::beast::http::request<boost::beast::http::string_body> > req, size_t trackerID);
+
+			void ScheduleTrackerRequestsCheck ();
+			void HandleTrackerRequestsCheckTimer (const boost::system::error_code& ecode);
+
+			void ScheduleKeepAliveCheck ();
+			void HandleKeepAliveCheckTimer (const boost::system::error_code& ecode);
+
+			void ScheduleReconnectCheck ();
+			void HandleReconnectCheckTimer (const boost::system::error_code& ecode);
+
+			void ScheduleStatusUpdate ();
+			void HandleTorrentsStatusUpdateTimer (const boost::system::error_code& ecode);
+
+			std::unordered_set<i2p::data::IdentHash> GetNonConnectedPeers (std::shared_ptr<Torrent> torrent);
+			void ConnectToPeer (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& peer);
+			size_t ConnectToPeers (std::shared_ptr<Torrent> torrent);
+			void UpdatePeersPerPiece (std::shared_ptr<Torrent> torrent);
+			void UpdateStats ();
+
+			void HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
+			void ConnectToDatagramTracker (std::string_view dest, uint16_t port);
+
+		private:
+
+			std::string m_Name, m_PeerID; // 20 characters
+			std::filesystem::path m_TorrentsDir;
+			std::vector<std::string> m_Trackers;
+			std::map<Torrent::InfoHash, std::shared_ptr<Torrent> > m_Torrents;
+			std::map<int, std::weak_ptr<Torrent> > m_TorrentsByID;
+			mutable std::mutex m_TorrentsMutex;
+			boost::asio::steady_timer m_TrackerRequestsCheckTimer, m_KeepAliveCheckTimer,
+				m_ReconnectCheckTimer, m_TorrentsStatusUpdateTimer;
+			DiskIOService m_DiskIOService;
+	};
+
+}
+}
+
+#endif
