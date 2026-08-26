@@ -1,0 +1,107 @@
+<fieldset>
+    <legend>Torrent Client</legend>
+    <div id="torrent-ui">
+        <h3 id="connection_status">_</h3>
+        <input type="file" id="torrentf" accept=".torrent" style="display:none">
+        <button onclick="document.getElementById('torrentf').click()">ADd torrent</button>
+        <ul id="torrents"></ul>
+    </div>
+</fieldset>
+
+<div id="torrent_details_modal" style="display:none;">
+    <h3 id="modal_torrent_title"></h3>
+    <h4>Files:</h4>
+    <ul id="modal_files_list"></ul>
+    <h4>Peers (<span id="peer_count">0</span>):</h4>
+    <ul id="modal_peers_list"></ul>
+    <button onclick="closeDetailsModal()">Close</button>
+</div>
+
+<script>
+    let currentTorrentsData = [];
+
+    setInterval(async () => {
+        const statusIndicator = document.getElementById('connection_status');
+        if (!window.tjs) return statusIndicator.textContent = 'STATUS: TJS_NOT_LOADED';
+
+        try {
+            const r = await window.tjs.getTorrents();
+            if (!r?.result?.torrents) return statusIndicator.textContent = 'STATUS: INVALID_RESPONSE';
+
+            statusIndicator.textContent = 'STATUS: Connected';
+            statusIndicator.style.color = '#00ff66';
+
+            const torrents = document.getElementById('torrents');
+            currentTorrentsData = r.result.torrents;
+
+            if (currentTorrentsData.length === 0) {
+                torrents.innerHTML = '<li>No downloads</li>';
+                return;
+            }
+
+            torrents.innerHTML = currentTorrentsData.map(el => {
+                const percent = el.percentDone ? (el.percentDone).toFixed(2) : 0.0;
+                const speed = window.tjs.formatBytes ? window.tjs.formatBytes(el.rateDownload) : `${el.rateDownload} B/s`;
+                const speedUp = window.tjs.formatBytes ? window.tjs.formatBytes(el.rateUpload) : `${el.rateUpload} B/s`;
+                const status = window.tjs.getStatusString ? window.tjs.getStatusString(el.status) : el.status;
+                const name = el.name || '|unknown name, maybe a bad torrent|';
+
+                return `<li>
+                    <span>${name} — ${percent}% [${status}] (⬇ ${speed} | ⬆ ${speedUp})</span>
+                    <button onclick="openTorrentDetails(${el.id})">Details</button>
+                    <button onclick="removeTorrent(${el.id})">✕</button>
+                </li>`;
+            }).join('');
+        } catch (err) {
+            statusIndicator.textContent = 'STATUS: ERROR_WITH_DATA (f12, check your console and write issue)';
+            statusIndicator.style.color = '#ff3333';
+        }
+    }, 1000);
+
+    document.getElementById('torrentf').onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = async () => {
+            const bytes = new Uint8Array(reader.result);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            const b64 = btoa(binary);
+            if (window.tjs) await window.tjs.addTorrent(b64);
+            e.target.value = '';
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
+    window.removeTorrent = async (id) => {
+        if (window.tjs) await window.tjs.removeTorrent(Number(id));
+    };
+
+    window.openTorrentDetails = (id) => {
+        const torrent = currentTorrentsData.find(t => String(t.id) === String(id));
+        if (!torrent) return;
+
+        document.getElementById('modal_torrent_title').textContent = `DETAILS: ${torrent.name} (#${torrent.id})`;
+
+        const filesList = document.getElementById('modal_files_list');
+        filesList.innerHTML = torrent.files?.length
+            ? torrent.files.map(f => `<li>${f.name} — ${(f.bytesCompleted / 1048576).toFixed(2)} / ${(f.length / 1048576).toFixed(2)} MB (${((f.bytesCompleted / f.length) * 100 || 0).toFixed(1)}%)</li>`).join('')
+            : '<li>NO_FILES</li>';
+
+        const peersList = document.getElementById('modal_peers_list');
+        document.getElementById('peer_count').textContent = torrent.peers ? torrent.peers.length : 0;
+        peersList.innerHTML = torrent.peers?.length
+            ? torrent.peers.map(p => `<li>${p.address}:${p.port} (${p.clientName || 'Unk'}) — ${p.rateToClient} B/s</li>`).join('')
+            : '<li>NO_PEERS</li>';
+
+        document.getElementById('torrent_details_modal').style.display = 'block';
+    };
+
+    window.closeDetailsModal = () => {
+        document.getElementById('torrent_details_modal').style.display = 'none';
+    };
+</script>
+
