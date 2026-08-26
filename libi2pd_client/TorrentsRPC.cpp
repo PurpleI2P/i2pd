@@ -17,6 +17,7 @@
 #include <functional>
 #include "Log.h"
 #include "Torrents.h"
+#include "TorrentsTunnel.h"
 #include "TorrentsRPC.h"
 
 namespace i2p
