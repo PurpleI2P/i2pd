@@ -3,18 +3,18 @@
     <div id="torrent-ui">
         <h3 id="connection_status">_</h3>
         <input type="file" id="torrentf" accept=".torrent" style="display:none">
-        <button onclick="document.getElementById('torrentf').click()">Добавить торрент</button>
+        <button onclick="document.getElementById('torrentf').click()">ADd torrent</button>
         <ul id="torrents"></ul>
     </div>
 </fieldset>
 
 <div id="torrent_details_modal" style="display:none;">
     <h3 id="modal_torrent_title"></h3>
-    <h4>Файлы:</h4>
+    <h4>Files:</h4>
     <ul id="modal_files_list"></ul>
-    <h4>Пиры (<span id="peer_count">0</span>):</h4>
+    <h4>Peers (<span id="peer_count">0</span>):</h4>
     <ul id="modal_peers_list"></ul>
-    <button onclick="closeDetailsModal()">Закрыть</button>
+    <button onclick="closeDetailsModal()">Close</button>
 </div>
 
 <script>
@@ -44,16 +44,16 @@
                 const speed = window.tjs.formatBytes ? window.tjs.formatBytes(el.rateDownload) : `${el.rateDownload} B/s`;
                 const speedUp = window.tjs.formatBytes ? window.tjs.formatBytes(el.rateUpload) : `${el.rateUpload} B/s`;
                 const status = window.tjs.getStatusString ? window.tjs.getStatusString(el.status) : el.status;
-                const name = el.name || 'UNNAMED_METADATA';
+                const name = el.name || '|unknown name, maybe a bad torrent|';
 
                 return `<li>
                     <span>${name} — ${percent}% [${status}] (⬇ ${speed} | ⬆ ${speedUp})</span>
-                    <button onclick="openTorrentDetails(${el.id})">Детали</button>
+                    <button onclick="openTorrentDetails(${el.id})">Details</button>
                     <button onclick="removeTorrent(${el.id})">✕</button>
                 </li>`;
             }).join('');
         } catch (err) {
-            statusIndicator.textContent = 'STATUS: ERROR_WITH_DATA';
+            statusIndicator.textContent = 'STATUS: ERROR_WITH_DATA (f12, check your console and write issue)';
             statusIndicator.style.color = '#ff3333';
         }
     }, 1000);
@@ -84,7 +84,7 @@
         const torrent = currentTorrentsData.find(t => String(t.id) === String(id));
         if (!torrent) return;
 
-        document.getElementById('modal_torrent_title').textContent = `DETAILS // ${torrent.name} (#${torrent.id})`;
+        document.getElementById('modal_torrent_title').textContent = `DETAILS: ${torrent.name} (#${torrent.id})`;
 
         const filesList = document.getElementById('modal_files_list');
         filesList.innerHTML = torrent.files?.length
