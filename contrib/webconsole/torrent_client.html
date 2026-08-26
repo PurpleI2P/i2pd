@@ -40,7 +40,7 @@
             }
 
             torrents.innerHTML = currentTorrentsData.map(el => {
-                const percent = el.percentDone ? (el.percentDone * 100).toFixed(1) : 0;
+                const percent = el.percentDone ? (el.percentDone).toFixed(2) : 0.0;
                 const speed = window.tjs.formatBytes ? window.tjs.formatBytes(el.rateDownload) : `${el.rateDownload} B/s`;
                 const speedUp = window.tjs.formatBytes ? window.tjs.formatBytes(el.rateUpload) : `${el.rateUpload} B/s`;
                 const status = window.tjs.getStatusString ? window.tjs.getStatusString(el.status) : el.status;
@@ -104,3 +104,4 @@
         document.getElementById('torrent_details_modal').style.display = 'none';
     };
 </script>
+
