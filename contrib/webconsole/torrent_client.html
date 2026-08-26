@@ -1,520 +1,106 @@
-<style>
-    :root {
-        --bg-color: #050b05;
-        --card-bg: #0a140a;
-        --border-color: #1b4d1b;
-        --primary: #00ff66;
-        --primary-hover: #00cc52;
-        --danger: #ff3333;
-        --danger-hover: #cc0000;
-        --text-main: #00ff66;
-        --text-muted: #33994d;
-        --radius: 4px;
-        --main-text-color: #359dff;
-    }
-
-    /* Эффект старого монитора со сканирующими линиями */
-    .torrent-wrapper {
-        background-color: var(--bg-color);
-        color: var(--text-main);
-        padding: 20px;
-        width: 100%;
-        box-sizing: border-box;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .torrent-wrapper::before {
-        content: " ";
-        display: block;
-        position: absolute;
-        top: 0; left: 0; bottom: 0; right: 0;
-        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-        z-index: 10;
-        background-size: 100% 3px, 3px 100%;
-        pointer-events: none;
-    }
-
-    .torrent-wrapper .container {
-        width: 100%;
-        max-width: none;
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-        position: relative;
-        z-index: 11;
-    }
-
-    .torrent-wrapper * {
-        box-sizing: border-box;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        text-shadow: 0 0 5px rgba(0, 255, 102, 0.4);
-    }
-
-    .torrent-wrapper header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 1px dashed var(--border-color);
-        padding-bottom: 15px;
-    }
-
-    .header-title-block {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-    }
-
-    /* Иконка пришельца в Base64 (мини SVG) */
-    .alien-icon {
-        width: 36px;
-        height: 36px;
-        filter: drop-shadow(0 0 4px var(--primary));
-    }
-
-    .torrent-wrapper header h1 {
-        margin: 0;
-        font-size: 1.25rem;
-        font-weight: 600;
-        letter-spacing: -0.025em;
-        color: var(--primary);
-    }
-
-    .torrent-wrapper .action-bar {
-        background: var(--card-bg);
-        border: 1px dashed var(--border-color);
-        border-radius: var(--radius);
-        padding: 20px;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-    .torrent-wrapper .action-bar:hover, .torrent-wrapper .action-bar.dragover {
-        border-color: var(--primary);
-        box-shadow: inset 0 0 10px rgba(0, 255, 102, 0.1);
-    }
-
-    .torrent-wrapper .table-container {
-        background: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius);
-        overflow: hidden;
-    }
-
-    .torrent-wrapper table {
-        width: 100%;
-        border-collapse: collapse;
-        text-align: left;
-        font-size: 0.875rem;
-    }
-
-    .torrent-wrapper th, .torrent-wrapper td {
-        padding: 12px 16px;
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .torrent-wrapper th {
-        background: rgba(0, 255, 102, 0.05);
-        color: var(--text-muted);
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-
-    .torrent-wrapper tr:last-child td {
-        border-bottom: none;
-    }
-
-    .torrent-wrapper tr.torrent-row {
-        cursor: pointer;
-        transition: background 0.15s ease;
-    }
-    .torrent-wrapper tr.torrent-row:hover {
-        background: rgba(0, 255, 102, 0.08);
-    }
-
-    .torrent-wrapper .progress-wrapper {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .torrent-wrapper .progress-bar {
-        flex-grow: 1;
-        background: #020802;
-        border-radius: 2px;
-        height: 6px;
-        overflow: hidden;
-        border: 1px solid var(--border-color);
-    }
-
-    .torrent-wrapper .progress-fill {
-        background: var(--primary);
-        height: 100%;
-        width: 0%;
-        box-shadow: 0 0 8px var(--primary);
-    }
-
-    .torrent-wrapper .empty-state {
-        text-align: center;
-        color: var(--text-muted);
-        padding: 30px;
-    }
-
-    .torrent-wrapper .btn {
-        background-color: transparent;
-        color: var(--primary);
-        border: 1px solid var(--primary);
-        padding: 6px 12px;
-        font-size: 0.75rem;
-        font-weight: 500;
-        border-radius: var(--radius);
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .torrent-wrapper .btn:hover {
-        background-color: var(--primary);
-        color: #000;
-        box-shadow: 0 0 8px var(--primary);
-    }
-
-    .torrent-wrapper .btn-secondary {
-        border-color: var(--text-muted);
-        color: var(--text-muted);
-        margin-right: 5px;
-    }
-    .torrent-wrapper .btn-secondary:hover {
-        background-color: var(--text-muted);
-        color: #000;
-        box-shadow: 0 0 8px var(--text-muted);
-    }
-
-    .torrent-wrapper .btn-danger {
-        border-color: var(--danger);
-        color: var(--danger);
-    }
-
-    .torrent-wrapper .btn-danger:hover {
-        background-color: var(--danger);
-        color: #fff;
-        box-shadow: 0 0 8px var(--danger);
-    }
-
-    /* Модальное окно */
-    .torrent-modal {
-        display: none;
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0, 5, 0, 0.85);
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-    }
-    .torrent-modal.active {
-        display: flex;
-    }
-    .modal-content {
-        background: var(--card-bg);
-        border: 1px solid var(--primary);
-        border-radius: var(--radius);
-        width: 800px;
-        max-width: 90%;
-        max-height: 85vh;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        box-shadow: 0 0 20px rgba(0, 255, 102, 0.2);
-    }
-    .modal-header {
-        padding: 15px 20px;
-        border-bottom: 1px solid var(--border-color);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: rgba(0, 255, 102, 0.03);
-    }
-    .modal-body {
-        padding: 20px;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-    }
-    .modal-section h3 {
-        margin: 0 0 10px 0;
-        font-size: 0.9rem;
-        color: var(--text-muted);
-        text-transform: uppercase;
-    }
-
-    .content {
-        max-width: 100em;
-    }
-
-    /* Мигающий курсор терминала */
-    .cursor-blink::after {
-        content: "_";
-        animation: blink 1s infinite;
-    }
-    @keyframes blink {
-        0%, 50% { opacity: 1; }
-        51%, 100% { opacity: 0; }
-    }
-</style>
-
-<div class="torrent-wrapper">
-    <div class="container">
-        <header>
-            <div class="header-title-block">
-                <!-- Чистый Inline SVG пришельца с неоновым свечением -->
-                <svg class="alien-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="var(--primary)">
-                    <path d="M12 2C6.48 2 2 6.48 2 12c0 4.84 3.44 8.88 8 9.82v-2.18C6.98 17.06 5 14.23 5 12c0-3.87 3.13-7 7-7s7 3.13 7 7c0 2.23-1.98 5.06-5 5.82v2.18c4.56-.28 8-4.3 8-8.82C22 6.48 17.52 2 12 2zm0 6c-1.65 0-3 1.35-3 3s1.35 3 3 3 3-1.35 3-3-1.35-3-3-3zm-4 6c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zm8 0c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zm-4 3c-2.33 0-4 2.67-4 4h8c0-1.33-1.67-4-4-4z"/>
-                </svg>
-                <h1>TORRENT_DAEMON_INTERFACE<span class="cursor-blink"></span></h1>
-            </div>
-            <div id="connection_status" style="font-size: 0.75rem; color: var(--text-muted);">CONNECTING...</div>
-        </header>
-
-        <div id="drop_zone" class="action-bar">
-            <span>[+] DROP_TORRENT_PAYLOAD_OR_<span style="color: var(--primary); text-decoration: underline;">BROWSE_FILE</span></span>
-            <input type="file" id="torrentf" accept=".torrent" style="display:none"/>
-        </div>
-
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th>Status</th>
-                        <th>Progress</th>
-                        <th>Download Rate</th>
-                        <th>Upload Rate</th>
-                        <th style="text-align: right;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="torrents_table_body">
-                    <tr>
-                        <td colspan="7" class="empty-state">NO_ACTIVE_TRANSFERS_DETECTED</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+<fieldset>
+    <legend>Torrent Client</legend>
+    <div id="torrent-ui">
+        <h3 id="connection_status">_</h3>
+        <input type="file" id="torrentf" accept=".torrent" style="display:none">
+        <button onclick="document.getElementById('torrentf').click()">ADd torrent</button>
+        <ul id="torrents"></ul>
     </div>
-</div>
+</fieldset>
 
-<!-- Модальное окно для файлов и пиров -->
-<div id="torrent_details_modal" class="torrent-modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2 id="modal_torrent_title" style="margin: 0; font-size: 1rem; color: var(--primary);">Details</h2>
-            <button class="btn btn-secondary" onclick="closeDetailsModal()">[X] CLOSE</button>
-        </div>
-        <div class="modal-body">
-            <div class="modal-section">
-                <h3>Files Manifest</h3>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>File Name</th>
-                                <th>Size</th>
-                                <th>Completed</th>
-                                <th>Progress</th>
-                            </tr>
-                        </thead>
-                        <tbody id="modal_files_body"></tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="modal-section">
-                <h3>Active Nodes / Peers (<span id="peer_count">0</span>)</h3>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Address</th>
-                                <th>Client</th>
-                                <th>Port</th>
-                                <th>Downloading</th>
-                                <th>Speed</th>
-                            </tr>
-                        </thead>
-                        <tbody id="modal_peers_body"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
+<div id="torrent_details_modal" style="display:none;">
+    <h3 id="modal_torrent_title"></h3>
+    <h4>Files:</h4>
+    <ul id="modal_files_list"></ul>
+    <h4>Peers (<span id="peer_count">0</span>):</h4>
+    <ul id="modal_peers_list"></ul>
+    <button onclick="closeDetailsModal()">Close</button>
 </div>
 
 <script>
     let currentTorrentsData = [];
 
-    (function() {
-        setInterval(async () => {
-            const statusIndicator = document.getElementById('connection_status');
-            if (!window.tjs) {
-                statusIndicator.textContent = 'STATUS: TJS_NOT_LOADED';
+    setInterval(async () => {
+        const statusIndicator = document.getElementById('connection_status');
+        if (!window.tjs) return statusIndicator.textContent = 'STATUS: TJS_NOT_LOADED';
+
+        try {
+            const r = await window.tjs.getTorrents();
+            if (!r?.result?.torrents) return statusIndicator.textContent = 'STATUS: INVALID_RESPONSE';
+
+            statusIndicator.textContent = 'STATUS: Connected';
+            statusIndicator.style.color = '#00ff66';
+
+            const torrents = document.getElementById('torrents');
+            currentTorrentsData = r.result.torrents;
+
+            if (currentTorrentsData.length === 0) {
+                torrents.innerHTML = '<li>No downloads</li>';
                 return;
             }
-            try {
-                const r = await window.tjs.getTorrents();
-                if (!r || !r.result || !r.result.torrents) {
-                    statusIndicator.textContent = 'STATUS: INVALID_RESPONSE';
-                    return;
-                }
 
-                statusIndicator.textContent = 'STATUS: SECURE_CONNECTED';
-                statusIndicator.style.color = '#00ff66';
+            torrents.innerHTML = currentTorrentsData.map(el => {
+                const percent = el.percentDone ? (el.percentDone * 100).toFixed(1) : 0;
+                const speed = window.tjs.formatBytes ? window.tjs.formatBytes(el.rateDownload) : `${el.rateDownload} B/s`;
+                const speedUp = window.tjs.formatBytes ? window.tjs.formatBytes(el.rateUpload) : `${el.rateUpload} B/s`;
+                const status = window.tjs.getStatusString ? window.tjs.getStatusString(el.status) : el.status;
+                const name = el.name || '|unknown name, maybe a bad torrent|';
 
-                const tbody = document.getElementById('torrents_table_body');
-                currentTorrentsData = r.result.torrents;
+                return `<li>
+                    <span>${name} — ${percent}% [${status}] (⬇ ${speed} | ⬆ ${speedUp})</span>
+                    <button onclick="openTorrentDetails(${el.id})">Details</button>
+                    <button onclick="removeTorrent(${el.id})">✕</button>
+                </li>`;
+            }).join('');
+        } catch (err) {
+            statusIndicator.textContent = 'STATUS: ERROR_WITH_DATA (f12, check your console and write issue)';
+            statusIndicator.style.color = '#ff3333';
+        }
+    }, 1000);
 
-                if (currentTorrentsData.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">NO_ACTIVE_TRANSFERS_DETECTED</td></tr>';
-                    return;
-                }
-
-                tbody.innerHTML = "";
-                currentTorrentsData.forEach((el) => {
-                    const percent = el.percentDone.toFixed(2)
-                    const speed = window.tjs.formatBytes ? window.tjs.formatBytes(el.rateDownload) : (el.rateDownload + ' B/s');
-                    const speed_upload = window.tjs.formatBytes ? window.tjs.formatBytes(el.rateUpload) : (el.rateUpload + ' B/s');
-                    const statusText = window.tjs.getStatusString ? window.tjs.getStatusString(el.status) : el.status;
-                    const name = el.name || 'UNNAMED_METADATA';
-
-                    const tr = document.createElement('tr');
-                    tr.className = 'torrent-row';
-                    tr.innerHTML = `
-                        <td>#${el.id}</td>
-                        <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${name}">${name}</td>
-                        <td>${statusText}</td>
-                        <td>
-                            <div class="progress-wrapper">
-                                <span style="min-width: 35px; text-align: right;">${percent}%</span>
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width: ${percent}%;"></div>
-                                </div>
-                            </div>
-                        </td>
-                        <td>${speed}</td>
-                        <td>${speed_upload}</td>
-                        <td style="text-align: right;" onclick="event.stopPropagation()">
-                            <button class="btn btn-secondary" onclick="openTorrentDetails(${el.id})">INFO</button>
-                            <button class="btn btn-danger" onclick="removeTorrent(${el.id})">KILL</button>
-                        </td>
-                    `;
-                    tr.onclick = () => openTorrentDetails(el.id);
-                    tbody.appendChild(tr);
-                });
-            } catch (err) {
-                statusIndicator.textContent = 'STATUS: CONNECTION_REFUSED';
-                statusIndicator.style.color = '#ff3333';
+    document.getElementById('torrentf').onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = async () => {
+            const bytes = new Uint8Array(reader.result);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
             }
-        }, 1000);
-
-        const fileInput = document.getElementById('torrentf');
-        const dropZone = document.getElementById('drop_zone');
-
-        dropZone.onclick = () => fileInput.click();
-
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                dropZone.classList.add('dragover');
-            }, false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                dropZone.classList.remove('dragover');
-            }, false);
-        });
-
-        dropZone.addEventListener('drop', (e) => {
-            const files = e.dataTransfer.files;
-            if (files.length) processFile(files[0]);
-        });
-
-        fileInput.onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) processFile(file);
+            const b64 = btoa(binary);
+            if (window.tjs) await window.tjs.addTorrent(b64);
+            e.target.value = '';
         };
+        reader.readAsArrayBuffer(file);
+    };
 
-        function processFile(file) {
-            const reader = new FileReader();
-            reader.onload = async () => {
-                const b64 = btoa(String.fromCharCode(...new Uint8Array(reader.result)));
-                if (window.tjs) await window.tjs.addTorrent(b64);
-                fileInput.value = '';
-            };
-            reader.readAsArrayBuffer(file);
-        }
+    window.removeTorrent = async (id) => {
+        if (window.tjs) await window.tjs.removeTorrent(Number(id));
+    };
 
-        window.removeTorrent = async function(id) {
-            if (window.tjs) await window.tjs.removeTorrent(id);
-        }
-    })();
-
-    window.openTorrentDetails = function(id) {
-        const torrent = currentTorrentsData.find(t => t.id === id);
+    window.openTorrentDetails = (id) => {
+        const torrent = currentTorrentsData.find(t => String(t.id) === String(id));
         if (!torrent) return;
 
-        document.getElementById('modal_torrent_title').textContent = `DETAILS // ${torrent.name} (#${torrent.id})`;
+        document.getElementById('modal_torrent_title').textContent = `DETAILS: ${torrent.name} (#${torrent.id})`;
 
-        const filesBody = document.getElementById('modal_files_body');
-        if (torrent.files && torrent.files.length > 0) {
-            filesBody.innerHTML = torrent.files.map(file => {
-                const fPercent = file.length > 0 ? ((file.bytesCompleted / file.length) * 100).toFixed(1) : 0;
-                const formatSize = (bytes) => (bytes / (1024 * 1024)).toFixed(2) + ' MB';
-                return `
-                    <tr>
-                        <td style="word-break: break-all;">${file.name}</td>
-                        <td>${formatSize(file.length)}</td>
-                        <td>${formatSize(file.bytesCompleted)}</td>
-                        <td>${fPercent}%</td>
-                    </tr>
-                `;
-            }).join('');
-        } else {
-            filesBody.innerHTML = '<tr><td colspan="4" class="empty-state">NO_FILES_DATA</td></tr>';
-        }
+        const filesList = document.getElementById('modal_files_list');
+        filesList.innerHTML = torrent.files?.length
+            ? torrent.files.map(f => `<li>${f.name} — ${(f.bytesCompleted / 1048576).toFixed(2)} / ${(f.length / 1048576).toFixed(2)} MB (${((f.bytesCompleted / f.length) * 100 || 0).toFixed(1)}%)</li>`).join('')
+            : '<li>NO_FILES</li>';
 
-        const peersBody = document.getElementById('modal_peers_body');
+        const peersList = document.getElementById('modal_peers_list');
         document.getElementById('peer_count').textContent = torrent.peers ? torrent.peers.length : 0;
+        peersList.innerHTML = torrent.peers?.length
+            ? torrent.peers.map(p => `<li>${p.address}:${p.port} (${p.clientName || 'Unk'}) — ${p.rateToClient} B/s</li>`).join('')
+            : '<li>NO_PEERS</li>';
 
-        if (torrent.peers && torrent.peers.length > 0) {
-            peersBody.innerHTML = torrent.peers.map(peer => {
-                const peerSpeed = window.tjs.formatBytes ? window.tjs.formatBytes(peer.rateToClient) : (peer.rateToClient + ' B/s');
-                return `
-                    <tr>
-                        <td>${peer.address}</td>
-                        <td>${peer.clientName || 'Unknown'}</td>
-                        <td>${peer.port}</td>
-                        <td>${peer.isDowloadingFrom ? 'YES' : 'NO'}</td>
-                        <td>${peerSpeed}</td>
-                    </tr>
-                `;
-            }).join('');
-        } else {
-            peersBody.innerHTML = '<tr><td colspan="5" class="empty-state">NO_ACTIVE_PEERS</td></tr>';
-        }
+        document.getElementById('torrent_details_modal').style.display = 'block';
+    };
 
-        document.getElementById('torrent_details_modal').classList.add('active');
-    }
-
-    window.closeDetailsModal = function() {
-        document.getElementById('torrent_details_modal').classList.remove('active');
-    }
-
-    window.onclick = function(event) {
-        const modal = document.getElementById('torrent_details_modal');
-        if (event.target === modal) {
-            closeDetailsModal();
-        }
-    }
+    window.closeDetailsModal = () => {
+        document.getElementById('torrent_details_modal').style.display = 'none';
+    };
 </script>
