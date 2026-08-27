@@ -380,7 +380,7 @@
 
                 tbody.innerHTML = "";
                 currentTorrentsData.forEach((el) => {
-                    const percent = el.percentDone.toFixed(2)
+                    const percent = (el.percentDone*100).toFixed(2)
                     const speed = window.tjs.formatBytes ? window.tjs.formatBytes(el.rateDownload) : (el.rateDownload + ' B/s');
                     const speed_upload = window.tjs.formatBytes ? window.tjs.formatBytes(el.rateUpload) : (el.rateUpload + ' B/s');
                     const statusText = window.tjs.getStatusString ? window.tjs.getStatusString(el.status) : el.status;
@@ -518,3 +518,4 @@
         }
     }
 </script>
+
