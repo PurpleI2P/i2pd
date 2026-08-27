@@ -47,7 +47,7 @@
                 const speedUp = window.tjs.formatBytes ? window.tjs.formatBytes(el.rateUpload) : `${el.rateUpload} B/s`;
                 const status = window.tjs.getStatusString ? window.tjs.getStatusString(el.status) : el.status;
 		const totalSize = el.totalSize; // bytes
-		let ETA = el.rateDownload ? (totalSize-(totalSize*el.percentDone)/el.rateDownload)/60.0 + "min" : 'downloaded'; // minutes
+		let ETA = el.rateDownload ? (totalSize-(totalSize*el.percentDone)/el.rateDownload)/60.0 + "min" : '-'; // minutes
                 const name = el.name || '|unknown name, maybe a bad torrent|';
 
                 return `<li>
