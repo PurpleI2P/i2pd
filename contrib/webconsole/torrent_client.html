@@ -14,6 +14,8 @@
     <ul id="modal_files_list"></ul>
     <h4>Peers (<span id="peer_count">0</span>):</h4>
     <ul id="modal_peers_list"></ul>
+    <h4>Trackers (<span id="trackers_count">0</span>):</h4>
+    <ul id="modal_trackers_list"></ul>
     <button onclick="closeDetailsModal()">Close</button>
 </div>
 
@@ -92,10 +94,17 @@
             : '<li>NO_FILES</li>';
 
         const peersList = document.getElementById('modal_peers_list');
+        const trackersList = document.getElementById('modal_trackers_list');
         document.getElementById('peer_count').textContent = torrent.peers ? torrent.peers.length : 0;
         peersList.innerHTML = torrent.peers?.length
             ? torrent.peers.map(p => `<li>${p.address}:${p.port} (${p.clientName || 'Unk'}) — ${p.rateToClient} B/s</li>`).join('')
             : '<li>NO_PEERS</li>';
+
+        trackersList.innerHTML = torrent.trackers?.length
+		    ? torrent.trackers.map(p => `<li>[id:${p.id}] announce: ${p.announce} ; tier - ${p.tier}</li>`).join('')
+            : '<li>NO_TRACKERS</li>';
+
+        document.getElementById('trackers_count').textContent = torrent.trackers ? torrent.trackers.length : -1;
 
         document.getElementById('torrent_details_modal').style.display = 'block';
     };
