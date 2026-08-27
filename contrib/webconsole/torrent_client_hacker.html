@@ -1,4 +1,45 @@
 <style>
+    @keyframes colorShift {
+        0%, 100% {
+            --primary: #00ff66;
+            --primary-hover: #00cc52;
+            --text-main: #00ff66;
+            --text-muted: #33994d;
+            --border-color: #1b4d1b;
+            --card-bg: #0a140a;
+        }
+        33% {
+            --primary: #ff0055;
+            --primary-hover: #cc0044;
+            --text-main: #ff0055;
+            --text-muted: #99334d;
+            --border-color: #4d1b28;
+            --card-bg: #140a0d;
+        }
+        66% {
+            --primary: #00ccff;
+            --primary-hover: #0099cc;
+            --text-main: #00ccff;
+            --text-muted: #337a99;
+            --border-color: #1b3d4d;
+            --card-bg: #0a1014;
+        }
+    }
+
+    @keyframes glitchBlink {
+        0%, 100% { opacity: 1; text-shadow: 0 0 8px var(--primary); }
+        50% { opacity: 0.2; text-shadow: -2px 0 10px #ff0055, 2px 0 10px #00ccff; }
+    }
+
+    @keyframes scanline {
+        0% { transform: translateY(-100%); }
+        100% { transform: translateY(100%); }
+    }
+
+    @keyframes shimmer {
+        0% { left: -100%; }
+        100% { left: 200%; }
+    }
     :root {
         --bg-color: #050b05;
         --card-bg: #0a140a;
@@ -10,11 +51,10 @@
         --text-main: #00ff66;
         --text-muted: #33994d;
         --radius: 4px;
-        --main-text-color: #359dff;
     }
 
-    /* Эффект старого монитора со сканирующими линиями */
     .torrent-wrapper {
+        animation: colorShift 60s infinite linear;
         background-color: var(--bg-color);
         color: var(--text-main);
         padding: 20px;
@@ -29,7 +69,7 @@
         display: block;
         position: absolute;
         top: 0; left: 0; bottom: 0; right: 0;
-        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.4) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
         z-index: 10;
         background-size: 100% 3px, 3px 100%;
         pointer-events: none;
@@ -37,7 +77,6 @@
 
     .torrent-wrapper .container {
         width: 100%;
-        max-width: none;
         display: flex;
         flex-direction: column;
         gap: 20px;
@@ -48,7 +87,7 @@
     .torrent-wrapper * {
         box-sizing: border-box;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        text-shadow: 0 0 5px rgba(0, 255, 102, 0.4);
+        text-shadow: 0 0 5px var(--primary);
     }
 
     .torrent-wrapper header {
@@ -65,11 +104,14 @@
         gap: 15px;
     }
 
-    /* Иконка пришельца в Base64 (мини SVG) */
     .alien-icon {
         width: 36px;
         height: 36px;
-        filter: drop-shadow(0 0 4px var(--primary));
+        filter: drop-shadow(0 0 6px var(--primary));
+        transition: transform 0.3s ease;
+    }
+    .alien-icon:hover {
+        transform: scale(1.2) rotate(10deg);
     }
 
     .torrent-wrapper header h1 {
@@ -80,6 +122,12 @@
         color: var(--primary);
     }
 
+    .last-letter-blink {
+        animation: glitchBlink 0.6s infinite alternate;
+        color: #fff;
+        display: inline-block;
+    }
+
     .torrent-wrapper .action-bar {
         background: var(--card-bg);
         border: 1px dashed var(--border-color);
@@ -87,12 +135,15 @@
         padding: 20px;
         text-align: center;
         cursor: pointer;
-        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
     .torrent-wrapper .action-bar:hover, .torrent-wrapper .action-bar.dragover {
         border-color: var(--primary);
-        box-shadow: inset 0 0 10px rgba(0, 255, 102, 0.1);
+        box-shadow: 0 0 15px var(--primary);
+        transform: translateY(-2px);
     }
 
     .torrent-wrapper .table-container {
@@ -100,6 +151,7 @@
         border: 1px solid var(--border-color);
         border-radius: var(--radius);
         overflow: hidden;
+        box-shadow: 0 0 10px rgba(0,0,0,0.5);
     }
 
     .torrent-wrapper table {
@@ -115,23 +167,22 @@
     }
 
     .torrent-wrapper th {
-        background: rgba(0, 255, 102, 0.05);
+        background: rgba(255, 255, 255, 0.02);
         color: var(--text-muted);
         font-size: 0.75rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
 
-    .torrent-wrapper tr:last-child td {
-        border-bottom: none;
-    }
-
     .torrent-wrapper tr.torrent-row {
         cursor: pointer;
-        transition: background 0.15s ease;
+        transition: all 0.2s ease;
     }
+
     .torrent-wrapper tr.torrent-row:hover {
-        background: rgba(0, 255, 102, 0.08);
+        background: rgba(255, 255, 255, 0.05);
+        transform: scale(1.002) translateX(4px);
+        box-shadow: inset 4px 0 0 var(--primary);
     }
 
     .torrent-wrapper .progress-wrapper {
@@ -142,9 +193,9 @@
 
     .torrent-wrapper .progress-bar {
         flex-grow: 1;
-        background: #020802;
+        background: #000;
         border-radius: 2px;
-        height: 6px;
+        height: 8px;
         overflow: hidden;
         border: 1px solid var(--border-color);
     }
@@ -153,7 +204,8 @@
         background: var(--primary);
         height: 100%;
         width: 0%;
-        box-shadow: 0 0 8px var(--primary);
+        box-shadow: 0 0 10px var(--primary);
+        transition: width 0.4s ease;
     }
 
     .torrent-wrapper .empty-state {
@@ -166,18 +218,34 @@
         background-color: transparent;
         color: var(--primary);
         border: 1px solid var(--primary);
-        padding: 6px 12px;
+        padding: 6px 14px;
         font-size: 0.75rem;
-        font-weight: 500;
+        font-weight: bold;
         border-radius: var(--radius);
         cursor: pointer;
-        transition: all 0.2s;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.2s ease;
+    }
+
+    .torrent-wrapper .btn::after {
+        content: "";
+        position: absolute;
+        top: 0; left: -100%; width: 50%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        transform: skewX(-20deg);
+    }
+
+    .torrent-wrapper .btn:hover::after {
+        animation: shimmer 0.6s ease;
     }
 
     .torrent-wrapper .btn:hover {
         background-color: var(--primary);
         color: #000;
-        box-shadow: 0 0 8px var(--primary);
+        transform: scale(1.1);
+        box-shadow: 0 0 12px var(--primary);
+        text-shadow: none;
     }
 
     .torrent-wrapper .btn-secondary {
@@ -185,10 +253,11 @@
         color: var(--text-muted);
         margin-right: 5px;
     }
+
     .torrent-wrapper .btn-secondary:hover {
         background-color: var(--text-muted);
         color: #000;
-        box-shadow: 0 0 8px var(--text-muted);
+        box-shadow: 0 0 12px var(--text-muted);
     }
 
     .torrent-wrapper .btn-danger {
@@ -199,7 +268,7 @@
     .torrent-wrapper .btn-danger:hover {
         background-color: var(--danger);
         color: #fff;
-        box-shadow: 0 0 8px var(--danger);
+        box-shadow: 0 0 12px var(--danger);
     }
 
     /* Модальное окно */
@@ -207,7 +276,8 @@
         display: none;
         position: fixed;
         top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0, 5, 0, 0.85);
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(4px);
         justify-content: center;
         align-items: center;
         z-index: 1000;
@@ -216,16 +286,17 @@
         display: flex;
     }
     .modal-content {
+        animation: colorShift 60s infinite linear;
         background: var(--card-bg);
         border: 1px solid var(--primary);
         border-radius: var(--radius);
-        width: 800px;
-        max-width: 90%;
+        width: 850px;
+        max-width: 95%;
         max-height: 85vh;
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        box-shadow: 0 0 20px rgba(0, 255, 102, 0.2);
+        box-shadow: 0 0 25px var(--primary);
     }
     .modal-header {
         padding: 15px 20px;
@@ -233,7 +304,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        background: rgba(0, 255, 102, 0.03);
+        background: rgba(0, 0, 0, 0.4);
     }
     .modal-body {
         padding: 20px;
@@ -244,19 +315,35 @@
     }
     .modal-section h3 {
         margin: 0 0 10px 0;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         color: var(--text-muted);
         text-transform: uppercase;
+        letter-spacing: 0.1em;
     }
 
-    .content {
-        max-width: 100em;
+    /* Фейковая хакерская консоль */
+    .hacker-console {
+        background: #000;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        padding: 10px 15px;
+        font-size: 0.75rem;
+        height: 80px;
+        overflow-y: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+    }
+    .hacker-console-line {
+        color: var(--primary);
+        white-space: nowrap;
+        opacity: 0.8;
     }
 
-    /* Мигающий курсор терминала */
     .cursor-blink::after {
         content: "_";
-        animation: blink 1s infinite;
+        animation: blink 0.8s infinite;
     }
     @keyframes blink {
         0%, 50% { opacity: 1; }
@@ -268,11 +355,10 @@
     <div class="container">
         <header>
             <div class="header-title-block">
-                <!-- Чистый Inline SVG пришельца с неоновым свечением -->
                 <svg class="alien-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="var(--primary)">
                     <path d="M12 2C6.48 2 2 6.48 2 12c0 4.84 3.44 8.88 8 9.82v-2.18C6.98 17.06 5 14.23 5 12c0-3.87 3.13-7 7-7s7 3.13 7 7c0 2.23-1.98 5.06-5 5.82v2.18c4.56-.28 8-4.3 8-8.82C22 6.48 17.52 2 12 2zm0 6c-1.65 0-3 1.35-3 3s1.35 3 3 3 3-1.35 3-3-1.35-3-3-3zm-4 6c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zm8 0c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zm-4 3c-2.33 0-4 2.67-4 4h8c0-1.33-1.67-4-4-4z"/>
                 </svg>
-                <h1>TORRENT_DAEMON_INTERFACE<span class="cursor-blink"></span></h1>
+                <h1 id="glitch-title">TORRENT_DAEMON_INTERFACE</h1>
             </div>
             <div id="connection_status" style="font-size: 0.75rem; color: var(--text-muted);">CONNECTING...</div>
         </header>
@@ -302,10 +388,16 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Консоль взлома -->
+        <div class="hacker-console" id="hacker_console">
+            <div class="hacker-console-line">> INITIALIZING QUANTUM CYBER DECRYPTOR...</div>
+            <div class="hacker-console-line">> ROUTING TRAFFIC THROUGH I2P MIXNET...</div>
+        </div>
     </div>
 </div>
 
-<!-- Модальное окно для файлов и пиров -->
+<!-- Модальное окно -->
 <div id="torrent_details_modal" class="torrent-modal">
     <div class="modal-content">
         <div class="modal-header">
@@ -329,6 +421,23 @@
                     </table>
                 </div>
             </div>
+
+            <div class="modal-section">
+                <h3>Active Trackers (<span id="trackers_count">0</span>)</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Announce URL</th>
+                                <th>Tier</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modal_trackers_body"></tbody>
+                    </table>
+                </div>
+            </div>
+
             <div class="modal-section">
                 <h3>Active Nodes / Peers (<span id="peer_count">0</span>)</h3>
                 <div class="table-container">
@@ -353,6 +462,46 @@
 <script>
     let currentTorrentsData = [];
 
+    // Эффект мигания последней буквы в словах заголовка
+    (function initTitleGlitch() {
+        const titleEl = document.getElementById('glitch-title');
+        if (!titleEl) return;
+        const text = titleEl.textContent;
+        const words = text.split(' ');
+        const processed = words.map(w => {
+            if (w.length < 2) return w;
+            const main = w.slice(0, -1);
+            const last = w.slice(-1);
+            return `${main}<span class="last-letter-blink">${last}</span>`;
+        }).join(' ');
+        titleEl.innerHTML = processed + '<span class="cursor-blink"></span>';
+    })();
+
+    // Фейковая хакерская консоль
+    (function initHackerConsole() {
+        const consoleEl = document.getElementById('hacker_console');
+        const logs = [
+            "BYPASSING PENTAGON FIREWALL LAYER 4...",
+            "INJECTING BASE64 PAYLOAD INTO MEMORY FRAME...",
+            "ESTABLISHING I2P TUNNEL: [OK]",
+            "DECRYPTING PEER HANDSHAKES...",
+            "SYNCHRONIZING DHT ROUTING TABLES...",
+            "SPOOFING MAC ADDRESS: DE:AD:BE:EF:FE:ED",
+            "OVERRIDING MAIN FRAME COUNTER-MEASURES..."
+        ];
+        setInterval(() => {
+            if (!consoleEl) return;
+            const line = document.createElement('div');
+            line.className = 'hacker-console-line';
+            const randomLog = logs[Math.floor(Math.random() * logs.length)];
+            line.textContent = `> ${new Date().toISOString().split('T')[1].slice(0,8)} ${randomLog}`;
+            consoleEl.appendChild(line);
+            if (consoleEl.children.length > 5) {
+                consoleEl.removeChild(consoleEl.children[0]);
+            }
+        }, 3000);
+    })();
+
     (function() {
         setInterval(async () => {
             const statusIndicator = document.getElementById('connection_status');
@@ -368,7 +517,7 @@
                 }
 
                 statusIndicator.textContent = 'STATUS: SECURE_CONNECTED';
-                statusIndicator.style.color = '#00ff66';
+                statusIndicator.style.color = 'var(--primary)';
 
                 const tbody = document.getElementById('torrents_table_body');
                 currentTorrentsData = r.result.torrents;
@@ -380,7 +529,7 @@
 
                 tbody.innerHTML = "";
                 currentTorrentsData.forEach((el) => {
-                    const percent = (el.percentDone*100).toFixed(2)
+                    const percent = (el.percentDone * 100).toFixed(2);
                     const speed = window.tjs.formatBytes ? window.tjs.formatBytes(el.rateDownload) : (el.rateDownload + ' B/s');
                     const speed_upload = window.tjs.formatBytes ? window.tjs.formatBytes(el.rateUpload) : (el.rateUpload + ' B/s');
                     const statusText = window.tjs.getStatusString ? window.tjs.getStatusString(el.status) : el.status;
@@ -412,7 +561,7 @@
                 });
             } catch (err) {
                 statusIndicator.textContent = 'STATUS: CONNECTION_REFUSED';
-                statusIndicator.style.color = '#ff3333';
+                statusIndicator.style.color = 'var(--danger)';
             }
         }, 1000);
 
@@ -466,6 +615,7 @@
 
         document.getElementById('modal_torrent_title').textContent = `DETAILS // ${torrent.name} (#${torrent.id})`;
 
+        // Отренденрить файлы
         const filesBody = document.getElementById('modal_files_body');
         if (torrent.files && torrent.files.length > 0) {
             filesBody.innerHTML = torrent.files.map(file => {
@@ -484,6 +634,24 @@
             filesBody.innerHTML = '<tr><td colspan="4" class="empty-state">NO_FILES_DATA</td></tr>';
         }
 
+        // Отренденрить трекеры
+        const trackersBody = document.getElementById('modal_trackers_body');
+        const trackersCountEl = document.getElementById('trackers_count');
+        if (torrent.trackers && torrent.trackers.length > 0) {
+            trackersCountEl.textContent = torrent.trackers.length;
+            trackersBody.innerHTML = torrent.trackers.map(tr => `
+                <tr>
+                    <td>#${tr.id !== undefined ? tr.id : '-'}</td>
+                    <td style="word-break: break-all;">${tr.announce}</td>
+                    <td>${tr.tier !== undefined ? tr.tier : 0}</td>
+                </tr>
+            `).join('');
+        } else {
+            trackersCountEl.textContent = '0';
+            trackersBody.innerHTML = '<tr><td colspan="3" class="empty-state">NO_TRACKERS_CONNECTED</td></tr>';
+        }
+
+        // Отренденрить пиры
         const peersBody = document.getElementById('modal_peers_body');
         document.getElementById('peer_count').textContent = torrent.peers ? torrent.peers.length : 0;
 
@@ -518,4 +686,8 @@
         }
     }
 </script>
-
+<style>
+    .content {
+		max-width:100em;/*fix interface*/
+    }
+</style>
