@@ -530,6 +530,24 @@ namespace torrents
 		return len;
 	}
 
+	void Torrent::HandleDatagramTrackerResponse (size_t trackerID, uint32_t interval, const uint8_t * hashes, size_t hashesLen)
+	{
+		if (trackerID >= m_TrackersInfo.size ())
+			m_TrackersInfo.resize (trackerID + 1, TrackerInfo{{}, MIN_TRACKER_REQUESTS_INTERVAL, 0});
+		auto& [peers, trackerRequestInterval, nextRequestTime] = m_TrackersInfo[trackerID];
+		trackerRequestInterval = interval*1000; // milliseconds
+		nextRequestTime = i2p::util::GetMonotonicMilliseconds () + trackerRequestInterval;
+		peers.clear ();
+		size_t offset = 0;
+		while (offset + i2p::data::IdentHash::len <= hashesLen)
+		{
+			i2p::data::IdentHash ident (hashes + offset);
+			if (ident.IsZero ()) break;
+			peers.emplace (std::move (ident));
+			offset += i2p::data::IdentHash::len;
+		}
+	}
+
 	std::pair<std::vector<uint8_t>, bool> Torrent::CreateBitfield () const
 	{
 		size_t numPieces = m_Pieces.size ();
