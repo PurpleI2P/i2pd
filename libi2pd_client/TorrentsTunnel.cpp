@@ -106,16 +106,16 @@ namespace torrents
 				delete[] buf;
 			}
 			else
-				LogPrint (eLogError, "Torrents: Empty file ", torrentFilePath);
+				LogPrint (eLogError, "TorrentsTunnel: Empty file ", torrentFilePath);
 		}
 		else
-			LogPrint (eLogError, "Torrents: Can't open file ", torrentFilePath);
+			LogPrint (eLogError, "TorrentsTunnel: Can't open file ", torrentFilePath);
 
 		if (torrent && !torrent->IsValid ())
 		{
 			// a torrent whose parsing stopped, an unsafe name among the rest, must
 			// not be used even in part: it would leave stray files behind
-			LogPrint (eLogError, "Torrents: Invalid torrent file ", torrentFilePath, ". Skipped");
+			LogPrint (eLogError, "TorrentsTunnel: Invalid torrent file ", torrentFilePath, ". Skipped");
 			torrent = nullptr;
 		}
 		if (torrent)
@@ -194,7 +194,7 @@ namespace torrents
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "Torrents: Can't create subdirs ", subdirs, " : ", ex.what());
+				LogPrint (eLogError, "TorrentsTunnel: Can't create subdirs ", subdirs, " : ", ex.what());
 				return false;
 			}
 		}
@@ -211,7 +211,7 @@ namespace torrents
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "Torrents: Can't resize file ", filePath, " to ", reserve, " : ", ex.what());
+				LogPrint (eLogError, "TorrentsTunnel: Can't resize file ", filePath, " to ", reserve, " : ", ex.what());
 				return false;
 			}
 		}
@@ -231,7 +231,7 @@ namespace torrents
 				if (!ec)
 					completed = true;
 				else
-					LogPrint (eLogError, "Torrents: Can't rename ", partFilePath);
+					LogPrint (eLogError, "TorrentsTunnel: Can't rename ", partFilePath);
 			}
 			else
 			{
@@ -244,7 +244,7 @@ namespace torrents
 					if (ec)
 					{
 						completed = false;
-						LogPrint (eLogError, "Torrents: Can't rename ", partFilePath);
+						LogPrint (eLogError, "TorrentsTunnel: Can't rename ", partFilePath);
 					}
 				}
 			}
@@ -253,8 +253,8 @@ namespace torrents
 				torrent->SetComplete ();
 				auto resumeFilePath = torrent->GetFullPath (); resumeFilePath += ".resume";
 				if (!std::filesystem::remove (resumeFilePath))
-					LogPrint (eLogError, "Torrents: Can't delete resume file ", resumeFilePath);
-				LogPrint (eLogInfo, "Torrents: Download complete ", torrent->GetFullPath ());
+					LogPrint (eLogError, "TorrentsTunnel: Can't delete resume file ", resumeFilePath);
+				LogPrint (eLogInfo, "TorrentsTunnel: Download complete ", torrent->GetFullPath ());
 
 				boost::asio::post (GetService (), [this, torrent]()
 					{
@@ -370,26 +370,26 @@ namespace torrents
 					std::error_code ec;
 					std::filesystem::remove (torrentFilePath, ec);
 					if (ec)
-						LogPrint (eLogError, "Torrents: Can't delete ", torrentFilePath);
+						LogPrint (eLogError, "TorrentsTunnel: Can't delete ", torrentFilePath);
 					auto resumeFilePath = fullPath; resumeFilePath += ".resume";
 					if (std::filesystem::exists (resumeFilePath))
 					{
 						std::filesystem::remove (resumeFilePath, ec);
 						if (ec)
-							LogPrint (eLogError, "Torrents: Can't delete ", resumeFilePath);
+							LogPrint (eLogError, "TorrentsTunnel: Can't delete ", resumeFilePath);
 					}
 					if (torrent->IsComplete () || !torrent->GetFiles ().empty ())
 					{
 						std::filesystem::remove_all (fullPath, ec);
 						if (ec)
-							LogPrint (eLogError, "Torrents: Can't delete ", fullPath);
+							LogPrint (eLogError, "TorrentsTunnel: Can't delete ", fullPath);
 					}
 					else
 					{
 						auto partFilePath = fullPath; partFilePath += ".part";
 						std::filesystem::remove (partFilePath, ec);
 						if (ec)
-							LogPrint (eLogError, "Torrents: Can't delete ", partFilePath);
+							LogPrint (eLogError, "TorrentsTunnel: Can't delete ", partFilePath);
 					}
 				});
 	}
@@ -411,7 +411,7 @@ namespace torrents
 					});
 		}
 		else
-			LogPrint (eLogError, "Torrents: Local destination not set");
+			LogPrint (eLogError, "TorrentsTunnel: Local destination not set");
 	}
 
 	void TorrentsTunnel::RequestTorrentTrackers (std::shared_ptr<Torrent> torrent, std::string_view event)
@@ -437,12 +437,12 @@ namespace torrents
 		if (reqURL.host.find(".i2p") == reqURL.host.npos)
 #endif
 		{
-			LogPrint (eLogWarning, "Torrents: Non-I2P address ", reqURL.host, " for torrent ", torrent->GetName ());
+			LogPrint (eLogWarning, "TorrentsTunnel: Non-I2P address ", reqURL.host, " for torrent ", torrent->GetName ());
 			return;
 		}
 		if (reqURL.schema == "udp")
 		{
-			ConnectToDatagramTracker (reqURL.host, reqURL.port);
+			ConnectToDatagramTracker (torrent, reqURL.host, reqURL.port);
 			return;
 		}
 		std::map<std::string, std::string> params;
@@ -497,7 +497,7 @@ namespace torrents
 							ScheduleReconnectCheck ();
 						}
 						else
-							LogPrint (eLogWarning, "Torrents: Tracker ", trackerID, " response code ", res->result_int());
+							LogPrint (eLogWarning, "TorrentsTunnel: Tracker ", trackerID, " response code ", res->result_int());
 					}
 				});
 		}
@@ -506,23 +506,23 @@ namespace torrents
 	void TorrentsTunnel::ConnectToPeer (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& peer)
 	{
 		if (!torrent) return;
-		LogPrint (eLogDebug, "Torrents: Connecting to peer ", peer.ToBase32 () + ".b32.i2p");
+		LogPrint (eLogDebug, "TorrentsTunnel: Connecting to peer ", peer.ToBase32 () + ".b32.i2p");
 		if (peer == GetLocalDestination ()->GetIdentHash ())
 		{
-			LogPrint (eLogInfo, "Torrents: Can't connect to self");
+			LogPrint (eLogInfo, "TorrentsTunnel: Can't connect to self");
 			return;
 		}
 		CreateStream ([this, torrent, peer](std::shared_ptr<i2p::stream::Stream> stream)
 			{
 				if (stream)
 				{
-					LogPrint (eLogDebug, "Torrents: Connected to peer ", peer.ToBase32 () + ".b32.i2p");
+					LogPrint (eLogDebug, "TorrentsTunnel: Connected to peer ", peer.ToBase32 () + ".b32.i2p");
 					auto connection = std::make_shared<PeerConnection>(shared_from_this (), stream, torrent);
 					AddHandler (connection);
 					connection->Connect ();
 				}
 				else
-					LogPrint (eLogInfo, "Torrents: Can't connect to peer ", peer.ToBase32 () + ".b32.i2p");
+					LogPrint (eLogInfo, "TorrentsTunnel: Can't connect to peer ", peer.ToBase32 () + ".b32.i2p");
 			}, std::make_shared<i2p::client::Address>(peer), TORRENT_PORT);
 	}
 
@@ -601,7 +601,7 @@ namespace torrents
 				{
 					auto numPeers = ConnectToPeers (it.second);
 					if (numPeers)
-						LogPrint (eLogDebug, "Torrents: Reconnecting to ", numPeers, " peers");
+						LogPrint (eLogDebug, "TorrentsTunnel: Reconnecting to ", numPeers, " peers");
 				}
 			}
 			ScheduleReconnectCheck ();
@@ -726,22 +726,30 @@ namespace torrents
 		switch (action)
 		{
 			case eDatagramTrackerActionConnect:
-				LogPrint (eLogDebug, "Torrents: action connect");
+				HandleConnectResponse (buf + 4, len - 4);
 			break;
 			case eDatagramTrackerActionAnnounce:
-				LogPrint (eLogDebug, "Torrents: action announce");
+				LogPrint (eLogDebug, "TorrentsTunnel: action announce");
 			break;
 			case eDatagramTrackerActionError:
-				LogPrint (eLogDebug, "Torrents: action error");
+				HandleErrorResponse (buf + 4, len - 4);
 			break;
 			default:
-				LogPrint (eLogInfo, "Torrents: Unexpected action ", action, " from tracker");
+				LogPrint (eLogInfo, "TorrentsTunnel: Unexpected action ", action, " from tracker");
 		}
 	}
 
-	void TorrentsTunnel::ConnectToDatagramTracker (std::string_view dest, uint16_t port)
+	void TorrentsTunnel::HandleErrorResponse (const uint8_t * buf, size_t len)
 	{
-		LogPrint (eLogDebug, "Torrents: Connecting to datagram tracker ", dest, ":", port);
+		LogPrint (eLogDebug, "TorrentsTunnel: action error response");
+		uint32_t transactionID = bufbe32toh (buf);
+		m_DatragramTrackerTransactions.erase (transactionID);
+		LogPrint (eLogInfo, "TorrentsTunnel: Datagram tracker error response: ", std::string_view ((const char *)(buf + 4), len - 4));
+	}
+
+	void TorrentsTunnel::ConnectToDatagramTracker (std::shared_ptr<Torrent> torrent, std::string_view dest, uint16_t port)
+	{
+		LogPrint (eLogDebug, "TorrentsTunnel: Connecting to datagram tracker ", dest, ":", port);
 		auto address = i2p::client::context.GetAddressBook ().GetAddress (dest);
 		if (address && address->IsIdentHash ())
 		{
@@ -752,22 +760,80 @@ namespace torrents
 				uint8_t connectRequest[16];
 				htobe64buf (connectRequest, 0x41727101980); // protocol_id
 				htobe32buf (connectRequest + 8, eDatagramTrackerActionConnect); // action
-				htobe32buf (connectRequest + 12, localDestination->GetRng()()); // transactionID
+				uint32_t transactionID = localDestination->GetRng()();
+				htobe32buf (connectRequest + 12, transactionID); // transactionID
 				uint16_t fromPort = localDestination->GetRng()() % 1000 + 6000;
 				auto session = dgramDest->GetSession (address->identHash);
 				if (session)
 				{
+					m_DatragramTrackerTransactions.emplace (transactionID, std::make_tuple (torrent, address->identHash, port, fromPort, 0));
 					session->SetVersion (i2p::datagram::eDatagramV2); // send datagram2
 					dgramDest->SendDatagram (session, connectRequest, 16, fromPort, port);
 				}
 				else
-					LogPrint (eLogInfo, "Torrents: Can't obtain datagram session to ", dest);
+					LogPrint (eLogInfo, "TorrentsTunnel: Can't obtain datagram session to ", dest);
 			}
 			else
-				LogPrint (eLogError, "Torrents: Datagram destination is not avaliable");
+				LogPrint (eLogError, "TorrentsTunnel: Datagram destination is not avaliable");
 		}
 		else
-			LogPrint (eLogInfo, "Torrents: Tracker not found: ", dest);
+			LogPrint (eLogInfo, "TorrentsTunnel: Tracker not found: ", dest);
+	}
+
+	void TorrentsTunnel::HandleConnectResponse (const uint8_t * buf, size_t len)
+	{
+		LogPrint (eLogDebug, "TorrentsTunnel: action connect response");
+		if (len < 12)
+		{
+			LogPrint (eLogInfo, "TorrentsTunnel: Unexpected connect response length ", len + 4);
+			return;
+		}
+		uint32_t transactionID = bufbe32toh (buf);
+		auto it = m_DatragramTrackerTransactions.find (transactionID);
+		if (it == m_DatragramTrackerTransactions.end ())
+		{
+			LogPrint (eLogInfo, "TorrentsTunnel: Datagram tracker transaction ", transactionID, " not found");
+			return;
+		}
+		uint64_t connectionID = bufbe64toh (buf + 4);
+		auto [torrent, ident, port, fromPort, ts] = it->second;
+		if (!torrent.expired ())
+			SendAnnounceToDatagramTracker (transactionID, connectionID, torrent.lock (), ident, port, fromPort);
+		else
+			m_DatragramTrackerTransactions.erase (it);
+	}
+
+	void TorrentsTunnel::SendAnnounceToDatagramTracker (uint32_t transactionID, uint64_t connectionID,
+		std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& ident, uint16_t port, uint16_t fromPort)
+	{
+		auto localDestination = GetLocalDestination ();
+		auto dgramDest = localDestination->GetDatagramDestination ();
+		if (dgramDest)
+		{
+			uint8_t announce[98];
+			htobe64buf (announce, connectionID); // connection_id
+			htobe32buf (announce + 8, eDatagramTrackerActionAnnounce); // action
+			htobe32buf (announce + 12, transactionID); // transaction_id
+			memcpy (announce + 16, torrent->GetInfoHash ().data (), 20); // info_hash
+			memcpy (announce + 36, m_PeerID.data (), 20); // peer_id
+			auto left = torrent->GetLeft ();
+			htobe64buf (announce + 56, torrent->GetLength () - left); // downloaded
+			htobe64buf (announce + 64, left); // left
+			htobe64buf (announce + 72, torrent->GetUploaded ()); // uploaded
+			htobe32buf (announce + 80, 0); // event 0:none
+			htobe32buf (announce + 84, 0); // IP address 0:not used
+			htobe32buf (announce + 88, 0); // key, ignored
+			htobe32buf (announce + 92, torrent->IsComplete () ? 0 : 25); // num_want
+			htobe16buf (announce + 96, fromPort); // from port
+			auto session = dgramDest->GetSession (ident);
+			if (session)
+			{
+				session->SetVersion (i2p::datagram::eDatagramV3); // send datagram3
+				dgramDest->SendDatagram (session, announce, 98, fromPort, port);
+			}
+			else
+				LogPrint (eLogInfo, "TorrentsTunnel: Can't obtain datagram session");
+		}
 	}
 }
 }
