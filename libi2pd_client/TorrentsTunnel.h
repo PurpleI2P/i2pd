@@ -45,6 +45,14 @@ namespace torrents
 		eDatagramTrackerActionError = 3
 	};
 
+	enum TrackerAnnounceEvent
+	{
+		eTrackerAnnounceEventNone = 0,
+		eTrackerAnnounceEventCompleted = 1,
+		eTrackerAnnounceEventStarted = 2,
+		eTrackerAnnounceEventStopped = 3
+	};
+
 	class TorrentsTunnel final: public i2p::client::I2PService
 	{
 		private:
@@ -114,12 +122,14 @@ namespace torrents
 			void UpdateStats ();
 
 			void HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
-			void ConnectToDatagramTracker (std::shared_ptr<Torrent> torrent, size_t trackerID, std::string_view dest, uint16_t port);
+			void ConnectToDatagramTracker (std::shared_ptr<Torrent> torrent, size_t trackerID,
+				std::string_view dest, uint16_t port, TrackerAnnounceEvent event);
 			void HandleConnectResponse (const uint8_t * buf, size_t len);
 			void HandleErrorResponse (const uint8_t * buf, size_t len);
 			void HandleAnnounceResponse (const uint8_t * buf, size_t len);
 			void SendAnnounceToDatagramTracker (uint32_t transactionID, uint64_t connectionID,
-				std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& ident, uint16_t port, uint16_t fromPort);
+				std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& ident,
+				uint16_t port, uint16_t fromPort, TrackerAnnounceEvent event);
 
 		private:
 
@@ -132,8 +142,9 @@ namespace torrents
 			boost::asio::steady_timer m_TrackerRequestsCheckTimer, m_KeepAliveCheckTimer,
 				m_ReconnectCheckTimer, m_TorrentsStatusUpdateTimer;
 			DiskIOService m_DiskIOService;
-			std::unordered_map<uint32_t, std::tuple<std::weak_ptr<Torrent>, size_t, i2p::data::IdentHash, uint16_t, uint16_t, uint64_t> >
-				m_DatragramTrackerTransactions; // transactionID->(torrent, trackerID, ident, port, fromPort, ts in monotonic seconds)
+			std::unordered_map<uint32_t, std::tuple<std::weak_ptr<Torrent>, size_t, i2p::data::IdentHash,
+				uint16_t, uint16_t, uint64_t, TrackerAnnounceEvent> > m_DatragramTrackerTransactions;
+			// transactionID->(torrent, trackerID, ident, port, fromPort, ts in monotonic seconds, event)
 	};
 
 }

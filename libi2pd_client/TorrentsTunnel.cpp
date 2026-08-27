@@ -442,7 +442,8 @@ namespace torrents
 		}
 		if (reqURL.schema == "udp")
 		{
-			ConnectToDatagramTracker (torrent, trackerID, reqURL.host, reqURL.port);
+			ConnectToDatagramTracker (torrent, trackerID, reqURL.host, reqURL.port,
+				(event == "completed") ? eTrackerAnnounceEventCompleted : eTrackerAnnounceEventNone);
 			return;
 		}
 		std::map<std::string, std::string> params;
@@ -760,7 +761,7 @@ namespace torrents
 	}
 
 	void TorrentsTunnel::ConnectToDatagramTracker (std::shared_ptr<Torrent> torrent,
-		size_t trackerID, std::string_view dest, uint16_t port)
+		size_t trackerID, std::string_view dest, uint16_t port, TrackerAnnounceEvent event)
 	{
 		LogPrint (eLogDebug, "TorrentsTunnel: Connecting to datagram tracker ", dest, ":", port);
 		auto address = i2p::client::context.GetAddressBook ().GetAddress (dest);
@@ -780,7 +781,7 @@ namespace torrents
 				if (session)
 				{
 					m_DatragramTrackerTransactions.emplace (transactionID, std::make_tuple (torrent,
-						trackerID, address->identHash, port, fromPort, i2p::util::GetMonotonicSeconds ()));
+						trackerID, address->identHash, port, fromPort, i2p::util::GetMonotonicSeconds (), event));
 					session->SetVersion (i2p::datagram::eDatagramV2); // send datagram2
 					dgramDest->SendDatagram (session, connectRequest, 16, fromPort, port);
 				}
@@ -810,15 +811,16 @@ namespace torrents
 			return;
 		}
 		uint64_t connectionID = bufbe64toh (buf + 4);
-		auto [torrent, trackerID, ident, port, fromPort, ts] = it->second;
+		auto [torrent, trackerID, ident, port, fromPort, ts, event] = it->second;
 		if (!torrent.expired ())
-			SendAnnounceToDatagramTracker (transactionID, connectionID, torrent.lock (), ident, port, fromPort);
+			SendAnnounceToDatagramTracker (transactionID, connectionID, torrent.lock (), ident, port, fromPort, event);
 		else
 			m_DatragramTrackerTransactions.erase (it);
 	}
 
-	void TorrentsTunnel::SendAnnounceToDatagramTracker (uint32_t transactionID, uint64_t connectionID,
-		std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& ident, uint16_t port, uint16_t fromPort)
+	void TorrentsTunnel::SendAnnounceToDatagramTracker (uint32_t transactionID,
+		uint64_t connectionID, std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& ident,
+		uint16_t port, uint16_t fromPort, TrackerAnnounceEvent event)
 	{
 		auto localDestination = GetLocalDestination ();
 		auto dgramDest = localDestination->GetDatagramDestination ();
@@ -834,7 +836,7 @@ namespace torrents
 			htobe64buf (announce + 56, torrent->GetLength () - left); // downloaded
 			htobe64buf (announce + 64, left); // left
 			htobe64buf (announce + 72, torrent->GetUploaded ()); // uploaded
-			htobe32buf (announce + 80, 0); // event 0:none
+			htobe32buf (announce + 80, event); // event
 			htobe32buf (announce + 84, 0); // IP address 0:not used
 			htobe32buf (announce + 88, 0); // key, ignored
 			htobe32buf (announce + 92, torrent->IsComplete () ? 0 : 25); // num_want
@@ -865,7 +867,7 @@ namespace torrents
 			LogPrint (eLogInfo, "TorrentsTunnel: Datagram tracker transaction ", transactionID, " not found");
 			return;
 		}
-		auto [torrent, trackerID, ident, port, fromPort, ts] = it->second;
+		auto [torrent, trackerID, ident, port, fromPort, ts, event] = it->second;
 		if (!torrent.expired ())
 		{
 			uint32_t interval = bufbe32toh (buf + 4);
