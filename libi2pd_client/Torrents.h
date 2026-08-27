@@ -33,20 +33,14 @@ namespace torrents
 {
 	constexpr size_t REQUEST_BLOCK_SIZE = 16384;
 	constexpr uint16_t TORRENT_PORT = 6881; //  not used by required by protocol
-	constexpr int TRACKER_RESPONSE_TIMEOUT = 8; // in seconds
-	constexpr int TRACKER_REQUESTS_CHECK_TIMEOUT = 1900; // in milliseconds
-	constexpr int RECONNECT_CHECK_INTERVAL = 70; // in seconds
 	constexpr int MIN_TRACKER_REQUESTS_INTERVAL = 15000; // in milliseconds
-	constexpr int TRACKER_REQUESTS_INTERVAL_VARIANCE = 3000; // in milliseconds
 	constexpr size_t PEER_CONNECTION_RECEIVE_BUFFER_SIZE = 65535;
 	constexpr int PEER_CONNECTION_MAX_IDLE = 3600; // in seconds
 	constexpr int PEER_KEEP_ALIVE_TIMEOUT = 120; // in seconds
 	constexpr int PEER_KEEP_SEND_INTERVAL = 95; // in seconds
-	constexpr int PEER_KEEP_ALIVE_CHECK_INTERVAL = 15; // in seconds
 	constexpr size_t MAX_NUM_REQUESTS = 12;
 	constexpr size_t MAX_NUM_PIECES = 6;
 	constexpr int PIECE_INACTIVITY_TIMEOUT = 60; // in seconds
-	constexpr int TORRENTS_STATUS_UPDATE_INTERVAL = 25; // in seconds
 	constexpr int HANDSHAKE_RECEIVE_TIMEOUT = 20; // in seconds
 	constexpr int BANDWIDTH_RATE_SAMPLING_INTERVAL = 20; // in milliseconds
 
@@ -159,6 +153,7 @@ namespace torrents
 
 			Torrent (std::string_view buf);
 			void ParseTrackerResponse (size_t trackerID, std::string_view buf);
+			void HandleDatagramTrackerResponse (size_t trackerID, uint32_t interval, const uint8_t * hashes, size_t hashesLen);
 
 			bool IsComplete () const { return m_IsComplete; }
 			void SetComplete ();

@@ -442,7 +442,7 @@ namespace torrents
 		}
 		if (reqURL.schema == "udp")
 		{
-			ConnectToDatagramTracker (torrent, reqURL.host, reqURL.port);
+			ConnectToDatagramTracker (torrent, trackerID, reqURL.host, reqURL.port);
 			return;
 		}
 		std::map<std::string, std::string> params;
@@ -550,6 +550,18 @@ namespace torrents
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			auto ts = i2p::util::GetMonotonicMilliseconds ();
+			if (!m_DatragramTrackerTransactions.empty ())
+			{
+				// cleanup  expired transactions
+				auto it = m_DatragramTrackerTransactions.begin ();
+				while (it != m_DatragramTrackerTransactions.end ())
+				{
+					if (ts > (std::get<5>(it->second) + DATAGRAM_TRACKER_TRANSACTION_TIMEOUT)*1000LL)
+						it = m_DatragramTrackerTransactions.erase (it);
+					else
+						it++;
+				}
+			}
 			for (auto it: m_Torrents)
 				for (size_t i = 0; i < m_Trackers.size (); i++)
 					if (ts > it.second->GetNextTrackerRequestTime (i))
@@ -729,7 +741,7 @@ namespace torrents
 				HandleConnectResponse (buf + 4, len - 4);
 			break;
 			case eDatagramTrackerActionAnnounce:
-				LogPrint (eLogDebug, "TorrentsTunnel: action announce");
+				HandleAnnounceResponse (buf + 4, len - 4);
 			break;
 			case eDatagramTrackerActionError:
 				HandleErrorResponse (buf + 4, len - 4);
@@ -741,13 +753,14 @@ namespace torrents
 
 	void TorrentsTunnel::HandleErrorResponse (const uint8_t * buf, size_t len)
 	{
-		LogPrint (eLogDebug, "TorrentsTunnel: action error response");
 		uint32_t transactionID = bufbe32toh (buf);
+		LogPrint (eLogDebug, "TorrentsTunnel: Datagram tracker action error response ", transactionID);
 		m_DatragramTrackerTransactions.erase (transactionID);
 		LogPrint (eLogInfo, "TorrentsTunnel: Datagram tracker error response: ", std::string_view ((const char *)(buf + 4), len - 4));
 	}
 
-	void TorrentsTunnel::ConnectToDatagramTracker (std::shared_ptr<Torrent> torrent, std::string_view dest, uint16_t port)
+	void TorrentsTunnel::ConnectToDatagramTracker (std::shared_ptr<Torrent> torrent,
+		size_t trackerID, std::string_view dest, uint16_t port)
 	{
 		LogPrint (eLogDebug, "TorrentsTunnel: Connecting to datagram tracker ", dest, ":", port);
 		auto address = i2p::client::context.GetAddressBook ().GetAddress (dest);
@@ -766,7 +779,8 @@ namespace torrents
 				auto session = dgramDest->GetSession (address->identHash);
 				if (session)
 				{
-					m_DatragramTrackerTransactions.emplace (transactionID, std::make_tuple (torrent, address->identHash, port, fromPort, 0));
+					m_DatragramTrackerTransactions.emplace (transactionID, std::make_tuple (torrent,
+						trackerID, address->identHash, port, fromPort, i2p::util::GetMonotonicSeconds ()));
 					session->SetVersion (i2p::datagram::eDatagramV2); // send datagram2
 					dgramDest->SendDatagram (session, connectRequest, 16, fromPort, port);
 				}
@@ -782,13 +796,13 @@ namespace torrents
 
 	void TorrentsTunnel::HandleConnectResponse (const uint8_t * buf, size_t len)
 	{
-		LogPrint (eLogDebug, "TorrentsTunnel: action connect response");
 		if (len < 12)
 		{
 			LogPrint (eLogInfo, "TorrentsTunnel: Unexpected connect response length ", len + 4);
 			return;
 		}
 		uint32_t transactionID = bufbe32toh (buf);
+		LogPrint (eLogDebug, "TorrentsTunnel: Datagram tracker action connect response ", transactionID);
 		auto it = m_DatragramTrackerTransactions.find (transactionID);
 		if (it == m_DatragramTrackerTransactions.end ())
 		{
@@ -796,7 +810,7 @@ namespace torrents
 			return;
 		}
 		uint64_t connectionID = bufbe64toh (buf + 4);
-		auto [torrent, ident, port, fromPort, ts] = it->second;
+		auto [torrent, trackerID, ident, port, fromPort, ts] = it->second;
 		if (!torrent.expired ())
 			SendAnnounceToDatagramTracker (transactionID, connectionID, torrent.lock (), ident, port, fromPort);
 		else
@@ -834,6 +848,30 @@ namespace torrents
 			else
 				LogPrint (eLogInfo, "TorrentsTunnel: Can't obtain datagram session");
 		}
+	}
+
+	void TorrentsTunnel::HandleAnnounceResponse (const uint8_t * buf, size_t len)
+	{
+		if (len < 16)
+		{
+			LogPrint (eLogInfo, "TorrentsTunnel: Unexpected announce response length ", len + 4);
+			return;
+		}
+		uint32_t transactionID = bufbe32toh (buf);
+		LogPrint (eLogDebug, "TorrentsTunnel: Datagram tracker action announce response ", transactionID);
+		auto it = m_DatragramTrackerTransactions.find (transactionID);
+		if (it == m_DatragramTrackerTransactions.end ())
+		{
+			LogPrint (eLogInfo, "TorrentsTunnel: Datagram tracker transaction ", transactionID, " not found");
+			return;
+		}
+		auto [torrent, trackerID, ident, port, fromPort, ts] = it->second;
+		if (!torrent.expired ())
+		{
+			uint32_t interval = bufbe32toh (buf + 4);
+			torrent.lock ()->HandleDatagramTrackerResponse (trackerID, interval, buf + 16, len - 16);
+		}
+		m_DatragramTrackerTransactions.erase (it);
 	}
 }
 }

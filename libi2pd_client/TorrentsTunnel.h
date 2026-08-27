@@ -30,6 +30,14 @@ namespace i2p
 {
 namespace torrents
 {
+	constexpr int TRACKER_RESPONSE_TIMEOUT = 8; // in seconds
+	constexpr int DATAGRAM_TRACKER_TRANSACTION_TIMEOUT = 60; // in seconds
+	constexpr int TRACKER_REQUESTS_CHECK_TIMEOUT = 1900; // in milliseconds
+	constexpr int RECONNECT_CHECK_INTERVAL = 70; // in seconds
+	constexpr int TRACKER_REQUESTS_INTERVAL_VARIANCE = 3000; // in milliseconds
+	constexpr int PEER_KEEP_ALIVE_CHECK_INTERVAL = 15; // in seconds
+	constexpr int TORRENTS_STATUS_UPDATE_INTERVAL = 25; // in seconds
+
 	enum DatagramTrackerAction
 	{
 		eDatagramTrackerActionConnect = 0,
@@ -106,9 +114,10 @@ namespace torrents
 			void UpdateStats ();
 
 			void HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
-			void ConnectToDatagramTracker (std::shared_ptr<Torrent> torrent, std::string_view dest, uint16_t port);
+			void ConnectToDatagramTracker (std::shared_ptr<Torrent> torrent, size_t trackerID, std::string_view dest, uint16_t port);
 			void HandleConnectResponse (const uint8_t * buf, size_t len);
 			void HandleErrorResponse (const uint8_t * buf, size_t len);
+			void HandleAnnounceResponse (const uint8_t * buf, size_t len);
 			void SendAnnounceToDatagramTracker (uint32_t transactionID, uint64_t connectionID,
 				std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& ident, uint16_t port, uint16_t fromPort);
 
@@ -123,8 +132,8 @@ namespace torrents
 			boost::asio::steady_timer m_TrackerRequestsCheckTimer, m_KeepAliveCheckTimer,
 				m_ReconnectCheckTimer, m_TorrentsStatusUpdateTimer;
 			DiskIOService m_DiskIOService;
-			std::unordered_map<uint32_t, std::tuple<std::weak_ptr<Torrent>, i2p::data::IdentHash, uint16_t, uint16_t, uint64_t> >
-				m_DatragramTrackerTransactions; // transactionID->(torrent, ident, port, fromPort, ts in monotonic seconds)
+			std::unordered_map<uint32_t, std::tuple<std::weak_ptr<Torrent>, size_t, i2p::data::IdentHash, uint16_t, uint16_t, uint64_t> >
+				m_DatragramTrackerTransactions; // transactionID->(torrent, trackerID, ident, port, fromPort, ts in monotonic seconds)
 	};
 
 }
