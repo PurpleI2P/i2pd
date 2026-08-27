@@ -46,10 +46,12 @@
                 const speed = window.tjs.formatBytes ? window.tjs.formatBytes(el.rateDownload) : `${el.rateDownload} B/s`;
                 const speedUp = window.tjs.formatBytes ? window.tjs.formatBytes(el.rateUpload) : `${el.rateUpload} B/s`;
                 const status = window.tjs.getStatusString ? window.tjs.getStatusString(el.status) : el.status;
+		const totalSize = el.totalSize; // bytes
+		let ETA = el.rateDownload ? (totalSize-(totalSize*el.percentDone)/el.rateDownload)/60.0 + "min" : 'downloaded'; // minutes
                 const name = el.name || '|unknown name, maybe a bad torrent|';
 
                 return `<li>
-                    <span>${name} — ${percent}% [${status}] (⬇ ${speed} | ⬆ ${speedUp})</span>
+		    <span>${name} — ${percent}% [${status}] (⬇ ${speed} | ⬆ ${speedUp}) ---- size = ${(totalSize/1024/1024).toFixed(2)}mb; ETA: ${ETA}</span>
                     <button onclick="openTorrentDetails(${el.id})">Details</button>
                     <button onclick="removeTorrent(${el.id})">✕</button>
                 </li>`;
