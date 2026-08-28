@@ -565,12 +565,20 @@ namespace torrents
 			}
 			for (auto it: m_Torrents)
 				for (size_t i = 0; i < m_Trackers.size (); i++)
-					if (ts > it.second->GetNextTrackerRequestTime (i))
+				{
+					if (!it.second->GetNextTrackerRequestTime (i)) // first time
+					{
+						auto initialInterval = GetLocalDestination ()->GetRng()() % TRACKER_INITIAL_REQUEST_INTERVAL_VARIANCE;
+						if (initialInterval <= TRACKER_REQUESTS_CHECK_TIMEOUT) initialInterval = 0; // request immeditely
+						it.second->SetNextTrackerRequestTime (i, ts + initialInterval);
+					}
+					if (ts >= it.second->GetNextTrackerRequestTime (i))
 					{
 						auto nextInterval = it.second->GetInterval (i) + GetLocalDestination ()->GetRng()() % TRACKER_REQUESTS_INTERVAL_VARIANCE;
 						it.second->SetNextTrackerRequestTime (i, ts + nextInterval);
 						RequestTracker (i, it.second);
 					}
+				}
 			ScheduleTrackerRequestsCheck ();
 		}
 	}

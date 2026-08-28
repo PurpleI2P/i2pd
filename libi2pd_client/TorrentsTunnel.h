@@ -13,6 +13,7 @@
 #include <string_view>
 #include <memory>
 #include <filesystem>
+#include <array>
 #include <vector>
 #include <list>
 #include <map>
@@ -35,6 +36,7 @@ namespace torrents
 	constexpr int TRACKER_REQUESTS_CHECK_TIMEOUT = 1900; // in milliseconds
 	constexpr int RECONNECT_CHECK_INTERVAL = 70; // in seconds
 	constexpr int TRACKER_REQUESTS_INTERVAL_VARIANCE = 3000; // in milliseconds
+	constexpr int TRACKER_INITIAL_REQUEST_INTERVAL_VARIANCE = 31000; // in milliseconds
 	constexpr int PEER_KEEP_ALIVE_CHECK_INTERVAL = 15; // in seconds
 	constexpr int TORRENTS_STATUS_UPDATE_INTERVAL = 25; // in seconds
 
@@ -50,7 +52,13 @@ namespace torrents
 		eTrackerAnnounceEventNone = 0,
 		eTrackerAnnounceEventCompleted = 1,
 		eTrackerAnnounceEventStarted = 2,
-		eTrackerAnnounceEventStopped = 3
+		eTrackerAnnounceEventStopped = 3,
+		eTrackerNumAnnounceEvents
+	};
+
+	constexpr std::array<std::string_view, eTrackerNumAnnounceEvents> TrackerAnnounceEventStr
+	{
+		"", "completed", "started", "stopped"
 	};
 
 	class TorrentsTunnel final: public i2p::client::I2PService
