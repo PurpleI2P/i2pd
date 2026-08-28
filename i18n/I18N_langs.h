@@ -62,7 +62,7 @@ namespace i18n
 		{ "finnish", {"Suomi", "fi", i2p::i18n::finnish::GetLocale} },
 		{ "french", {"Français", "fr", i2p::i18n::french::GetLocale} },
 		{ "german", {"Deutsch", "de", i2p::i18n::german::GetLocale} },
-		{ "hebrew", {"עִבְרִית‎", "he", i2p::i18n::hebrew::GetLocale} },
+		{ "hebrew", {"עִבְרִית", "he", i2p::i18n::hebrew::GetLocale} },
 		{ "hindi", {"हिन्दी", "hi", i2p::i18n::hindi::GetLocale} },
 		{ "italian", {"Italiano", "it", i2p::i18n::italian::GetLocale} },
 		{ "persian", {"فارسی", "fa", i2p::i18n::persian::GetLocale} },
