@@ -1,0 +1,6 @@
+set(libi2pd_INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include)
+set(libi2pd_LIBRARIES ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/libi2pd.a)
+set(libi2pdclient_INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include)
+set(libi2pdclient_LIBRARIES ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/libi2pdclient.a)
+set(libi2pdlang_INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include)
+set(libi2pdlang_LIBRARIES ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/libi2pdlang.a)

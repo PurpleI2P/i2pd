@@ -73,6 +73,11 @@ if(WITH_LIBRARY)
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     COMPONENT Libraries)
+
+  FILE(GLOB LIBI2PD_HEADERS ${LIBI2PD_SRC_DIR}/*.h*)
+  install(FILES ${LIBI2PD_HEADERS}
+    DESTINATION include/libi2pd
+    COMPONENT Libraries)
 endif()
 
 include_directories(${LIBI2PD_CLIENT_SRC_DIR})
@@ -86,6 +91,11 @@ if(WITH_LIBRARY)
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     COMPONENT Libraries)
+
+  FILE(GLOB LIBI2PD_CLIENT_HEADERS ${LIBI2PD_CLIENT_SRC_DIR}/*.h*)
+  install(FILES ${LIBI2PD_CLIENT_HEADERS}
+    DESTINATION include/libi2pdclient
+    COMPONENT Libraries)
 endif()
 
 include_directories(${LANG_SRC_DIR})
@@ -98,6 +108,11 @@ if(WITH_LIBRARY)
     EXPORT libi2pdlang
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    COMPONENT Libraries)
+
+  FILE(GLOB LANG_HEADERS ${LANG_SRC_DIR}/*.h*)
+  install(FILES ${LANG_HEADERS}
+    DESTINATION include/libi2pdlang
     COMPONENT Libraries)
 endif()
 
@@ -425,3 +440,21 @@ endif()
 if(BUILD_TESTING)
   add_subdirectory(${CMAKE_SOURCE_DIR}/tests ${CMAKE_CURRENT_BINARY_DIR}/tests)
 endif()
+
+if(WITH_LIBRARY)
+  include(CMakePackageConfigHelpers)
+  write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/i2pdConfigVersion.cmake"
+    VERSION ${Upstream_VERSION}
+    COMPATIBILITY AnyNewerVersion)
+
+  configure_file(cmake/i2pdConfig.cmake
+    "${CMAKE_CURRENT_BINARY_DIR}/i2pdConfig.cmake")
+
+  install(FILES
+      "${CMAKE_CURRENT_BINARY_DIR}/i2pdConfig.cmake"
+      "${CMAKE_CURRENT_BINARY_DIR}/i2pdConfigVersion.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/i2pd
+    COMPONENT Libraries)
+endif()
+
