@@ -20,6 +20,10 @@
 </div>
 
 <script>
+    // values below come from torrent files and from peers themselves, so they are
+    // put into the page as text, never as markup
+    const esc = v => String(v ?? '').replace(/[&<>"']/g,
+        c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
     let currentTorrentsData = [];
 
     setInterval(async () => {
@@ -51,7 +55,7 @@
                 const name = el.name || '|unknown name, maybe a bad torrent|';
 
                 return `<li>
-		    <span>${name} — ${percent}% [${status}] (⬇ ${speed} | ⬆ ${speedUp}) ---- size = ${(totalSize/1024/1024).toFixed(2)}mb; ETA: ${ETA}</span>
+		    <span>${esc(name)} — ${percent}% [${esc(status)}] (⬇ ${speed} | ⬆ ${speedUp}) ---- size = ${(totalSize/1024/1024).toFixed(2)}mb; ETA: ${ETA}</span>
                     <button onclick="openTorrentDetails(${el.id})">Details</button>
                     <button onclick="removeTorrent(${el.id})">✕</button>
                 </li>`;
@@ -92,18 +96,18 @@
 
         const filesList = document.getElementById('modal_files_list');
         filesList.innerHTML = torrent.files?.length
-            ? torrent.files.map(f => `<li>${f.name} — ${(f.bytesCompleted / 1048576).toFixed(2)} / ${(f.length / 1048576).toFixed(2)} MB (${((f.bytesCompleted / f.length) * 100 || 0).toFixed(1)}%)</li>`).join('')
+            ? torrent.files.map(f => `<li>${esc(f.name)} — ${(f.bytesCompleted / 1048576).toFixed(2)} / ${(f.length / 1048576).toFixed(2)} MB (${((f.bytesCompleted / f.length) * 100 || 0).toFixed(1)}%)</li>`).join('')
             : '<li>NO_FILES</li>';
 
         const peersList = document.getElementById('modal_peers_list');
         const trackersList = document.getElementById('modal_trackers_list');
         document.getElementById('peer_count').textContent = torrent.peers ? torrent.peers.length : 0;
         peersList.innerHTML = torrent.peers?.length
-            ? torrent.peers.map(p => `<li>${p.address} (${p.clientName || 'Unk'}) — ${(p.rateToClient/1024).toFixed(2)} KB/s — ${(p.rateToPeer/1024).toFixed(2)} KB/s</li>`).join('')
+            ? torrent.peers.map(p => `<li>${esc(p.address)} (${esc(p.clientName || 'Unk')}) — ${(p.rateToClient/1024).toFixed(2)} KB/s — ${(p.rateToPeer/1024).toFixed(2)} KB/s</li>`).join('')
             : '<li>NO_PEERS</li>';
 
         trackersList.innerHTML = torrent.trackers?.length
-		    ? torrent.trackers.map(p => `<li>[id:${p.id}] announce: ${p.announce} ; tier - ${p.tier}</li>`).join('')
+		    ? torrent.trackers.map(p => `<li>[id:${p.id}] announce: ${esc(p.announce)} ; tier - ${p.tier}</li>`).join('')
             : '<li>NO_TRACKERS</li>';
 
         document.getElementById('trackers_count').textContent = torrent.trackers ? torrent.trackers.length : -1;
