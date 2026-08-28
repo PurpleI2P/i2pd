@@ -105,8 +105,8 @@ namespace torrents
 			void RemoveTorrent (std::shared_ptr<Torrent> torrent, bool deleteFiles);
 			bool CreateAndReserveFile (const std::filesystem::path& filePath, size_t reserve);
 			void CompleteTorrent (std::shared_ptr<Torrent> torrent);
-			void RequestTracker (size_t trackerID, std::shared_ptr<Torrent> torrent, std::string_view event = "");
-			void RequestTorrentTrackers (std::shared_ptr<Torrent> torrent, std::string_view event = "");
+			void RequestTracker (size_t trackerID, std::shared_ptr<Torrent> torrent, TrackerAnnounceEvent event);
+			void RequestTorrentTrackers (std::shared_ptr<Torrent> torrent, TrackerAnnounceEvent event);
 			void TrackerRequestSent (const boost::beast::error_code& ecode, size_t bytes_transferred,
 				std::shared_ptr<i2p::client::BoostAsyncStream> httpStream, std::shared_ptr<Torrent> torrent,
 				std::shared_ptr<boost::beast::http::request<boost::beast::http::string_body> > req, size_t trackerID);

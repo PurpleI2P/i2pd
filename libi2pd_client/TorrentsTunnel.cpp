@@ -259,7 +259,7 @@ namespace torrents
 				boost::asio::post (GetService (), [this, torrent]()
 					{
 						// inform tracker that we are done
-						RequestTorrentTrackers (torrent, "completed");
+						RequestTorrentTrackers (torrent, eTrackerAnnounceEventCompleted);
 						// close connections with seeds and reset stats for remaining
 						auto conns = GetTorrentConnections (torrent);
 						for (auto it: conns)
@@ -414,7 +414,7 @@ namespace torrents
 			LogPrint (eLogError, "TorrentsTunnel: Local destination not set");
 	}
 
-	void TorrentsTunnel::RequestTorrentTrackers (std::shared_ptr<Torrent> torrent, std::string_view event)
+	void TorrentsTunnel::RequestTorrentTrackers (std::shared_ptr<Torrent> torrent, TrackerAnnounceEvent event)
 	{
 		if (!m_Trackers.empty ())
 			for (size_t i = 0; i < m_Trackers.size (); i++)
@@ -423,7 +423,7 @@ namespace torrents
 			RequestTracker (0, torrent, event); // from announce
 	}
 
-	void TorrentsTunnel::RequestTracker (size_t trackerID, std::shared_ptr<Torrent> torrent, std::string_view event)
+	void TorrentsTunnel::RequestTracker (size_t trackerID, std::shared_ptr<Torrent> torrent, TrackerAnnounceEvent event)
 	{
 		if (!torrent) return;
 		i2p::http::URL reqURL;
@@ -442,8 +442,7 @@ namespace torrents
 		}
 		if (reqURL.schema == "udp")
 		{
-			ConnectToDatagramTracker (torrent, trackerID, reqURL.host, reqURL.port,
-				(event == "completed") ? eTrackerAnnounceEventCompleted : eTrackerAnnounceEventNone);
+			ConnectToDatagramTracker (torrent, trackerID, reqURL.host, reqURL.port, event);
 			return;
 		}
 		std::map<std::string, std::string> params;
@@ -456,8 +455,8 @@ namespace torrents
 		params.emplace ("downloaded", std::to_string (torrent->GetLength () - torrent->GetLeft ()));
 		params.emplace ("left", std::to_string (torrent->GetLeft ()));
 		params.emplace ("numwant", torrent->IsComplete () ? "0" : "25"); // max num of peers, 0 if seeding
-		if (!event.empty ())
-			params.emplace ("event", event);
+		if (event != eTrackerAnnounceEventNone)
+			params.emplace ("event", TrackerAnnounceEventStr[event]);
 		reqURL.create_query (params);
 
 		auto req = std::make_shared<boost::beast::http::request<boost::beast::http::string_body> >(boost::beast::http::verb::get, reqURL.to_string (true), 11); // HTTP 1.1
@@ -576,7 +575,7 @@ namespace torrents
 					{
 						auto nextInterval = it.second->GetInterval (i) + GetLocalDestination ()->GetRng()() % TRACKER_REQUESTS_INTERVAL_VARIANCE;
 						it.second->SetNextTrackerRequestTime (i, ts + nextInterval);
-						RequestTracker (i, it.second);
+						RequestTracker (i, it.second, eTrackerAnnounceEventNone);
 					}
 				}
 			ScheduleTrackerRequestsCheck ();
