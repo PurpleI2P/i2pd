@@ -23,7 +23,7 @@
 #ifndef _WIN32
 #include <syslog.h>
 #endif
-
+#include"../daemon/HTTPServer.h"
 enum LogLevel
 {
 	eLogNone = 0,

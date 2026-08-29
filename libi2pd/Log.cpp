@@ -14,6 +14,7 @@
 //for std::transform
 #include <algorithm>
 
+
 namespace i2p {
 namespace log {
 	static Log logger;
@@ -173,7 +174,7 @@ namespace log {
 			if(i2p:http::http_stream_log.length() > webconsole_write_max)
 			{
 				//TODO: add обрезанную строку
-				i2p:http::http_stream_log.str("");
+				i2p::http::http_stream_log.str("");
 				i2p::http::http_stream_log.clear();
 			}
 			i2p:http::http_stream_log <<  TimeAsString(msg->timestamp)
