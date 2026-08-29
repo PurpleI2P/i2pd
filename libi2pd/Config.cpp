@@ -415,8 +415,8 @@ namespace config {
 #endif
 		options_description webconsole("webconsole options");
 		webconsole.add_options()
-		("webconsole.write_page", value<bool()->default_value(false), "a page in webconsole with logs")
-		("webconsole.write_page_maxsize", value<unsigned int()->default_value(10000), "a page in webconsole with logs")
+		("webconsole.write_page", value<bool>()->default_value(false), "a page in webconsole with logs")
+		("webconsole.write_page_maxsize", value<unsigned int>()->default_value(10000), "a page in webconsole with logs")
 		;
 		m_OptionsDesc
 			.add(general)
