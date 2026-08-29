@@ -96,6 +96,7 @@ namespace http {
 	const char HTTP_COMMAND_EXPIRELEASE[] = "expirelease";
 
 	const char OPENJS_TORRENT_CLIENT_PAGE[] = "torrent_client_open";
+	const char LOGS_PAGE[] = "logs_page";
 	static std::string ConvertTime (uint64_t time)
 	{
 		struct tm caltime;
@@ -1477,6 +1478,10 @@ namespace http {
 			ShowI2PTunnels (s);
 		else if (page == OPENJS_TORRENT_CLIENT_PAGE)
 			ShowTorrentsPage (s, params);
+		else if (page == LOGS_PAGE)
+		{
+			// TODO:
+		}
 		else if (page == HTTP_PAGE_LEASESETS)
 			ShowLeasesSets(s);
         	else {

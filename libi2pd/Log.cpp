@@ -166,6 +166,23 @@ namespace log {
 		std::hash<std::thread::id> hasher;
 		unsigned short short_tid;
 		short_tid = (short) (hasher(msg->tid) % 1000);
+		bool webconsole_write; i2p::config::GetOption("webconsole.write_page", webconsole_write);
+		unsigned  webconsole_write_max; i2p::config::GetOption("webconsole.write_page_maxsize", webconsole_write_max);
+		if (webconsole_write)
+		{
+			if(i2p:http::http_stream_log.length() > webconsole_write_max)
+			{
+				//TODO: add обрезанную строку
+				i2p:http::http_stream_log.str("");
+				i2p::http::http_stream_log.clear();
+			}
+			i2p:http::http_stream_log <<  TimeAsString(msg->timestamp)
+				<< "@" << short_tid
+				<< "/" << g_LogLevelStr[msg->level]
+				<< " - " << msg->text << std::endl;
+
+
+		}
 		switch (m_Destination) {
 #ifndef _WIN32
 			case eLogSyslog:
