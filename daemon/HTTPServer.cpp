@@ -1481,9 +1481,8 @@ namespace http {
 		else if (page == LOGS_PAGE)
 		{
 			// TODO:
-			auto lines = i2p:http::http_stream_log.str();
+			auto lines = i2p::http::http_stream_log.str();
 			s << lines;
-
 		}
 		else if (page == HTTP_PAGE_LEASESETS)
 			ShowLeasesSets(s);

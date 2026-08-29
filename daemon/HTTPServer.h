@@ -21,7 +21,7 @@ namespace i2p
 {
 namespace http
 {
-	std::ostringstream http_stream_log;
+	inline std::ostringstream http_stream_log;
 	const size_t HTTP_CONNECTION_BUFFER_SIZE = 8192;
 	const int TOKEN_EXPIRATION_TIMEOUT = 30; // in seconds
 	const int COMMAND_REDIRECT_TIMEOUT = 5; // in seconds
