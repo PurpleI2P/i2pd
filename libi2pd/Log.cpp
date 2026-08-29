@@ -13,7 +13,7 @@
 
 //for std::transform
 #include <algorithm>
-
+#include "Config.h"
 
 namespace i2p {
 namespace log {
@@ -171,7 +171,7 @@ namespace log {
 		unsigned  webconsole_write_max; i2p::config::GetOption("webconsole.write_page_maxsize", webconsole_write_max);
 		if (webconsole_write)
 		{
-			if(i2p:http::http_stream_log.length() > webconsole_write_max)
+			if(i2p::http::http_stream_log.str().size() > webconsole_write_max)
 			{
 				//TODO: add обрезанную строку
 				i2p::http::http_stream_log.str("");
