@@ -37,11 +37,11 @@
             currentTorrentsData = r.result.torrents;
 
             if (currentTorrentsData.length === 0) {
-                torrents.innerHTML = '<li>No downloads</li>';
+                torrents.textContent = '<li>No downloads</li>';
                 return;
             }
 
-            torrents.innerHTML = currentTorrentsData.map(el => {
+            torrents.textContent = currentTorrentsData.map(el => {
                 const percent = el.percentDone ? (el.percentDone*100).toFixed(2) : 0.0;
                 const speed = window.tjs.formatBytes ? window.tjs.formatBytes(el.rateDownload) : `${el.rateDownload} B/s`;
                 const speedUp = window.tjs.formatBytes ? window.tjs.formatBytes(el.rateUpload) : `${el.rateUpload} B/s`;
@@ -91,18 +91,18 @@
         document.getElementById('modal_torrent_title').textContent = `DETAILS: ${torrent.name} (#${torrent.id})`;
 
         const filesList = document.getElementById('modal_files_list');
-        filesList.innerHTML = torrent.files?.length
+        filesList.textContent = torrent.files?.length
             ? torrent.files.map(f => `<li>${f.name} — ${(f.bytesCompleted / 1048576).toFixed(2)} / ${(f.length / 1048576).toFixed(2)} MB (${((f.bytesCompleted / f.length) * 100 || 0).toFixed(1)}%)</li>`).join('')
             : '<li>NO_FILES</li>';
 
         const peersList = document.getElementById('modal_peers_list');
         const trackersList = document.getElementById('modal_trackers_list');
         document.getElementById('peer_count').textContent = torrent.peers ? torrent.peers.length : 0;
-        peersList.innerHTML = torrent.peers?.length
+        peersList.textContent = torrent.peers?.length
             ? torrent.peers.map(p => `<li>${p.address} (${p.clientName || 'Unk'}) — ${(p.rateToClient/1024).toFixed(2)} KB/s — ${(p.rateToPeer/1024).toFixed(2)} KB/s</li>`).join('')
             : '<li>NO_PEERS</li>';
 
-        trackersList.innerHTML = torrent.trackers?.length
+        trackersList.textContent = torrent.trackers?.length
 		    ? torrent.trackers.map(p => `<li>[id:${p.id}] announce: ${p.announce} ; tier - ${p.tier}</li>`).join('')
             : '<li>NO_TRACKERS</li>';
 
