@@ -76,7 +76,7 @@ if(WITH_LIBRARY)
 
   FILE(GLOB LIBI2PD_HEADERS ${LIBI2PD_SRC_DIR}/*.h*)
   install(FILES ${LIBI2PD_HEADERS}
-    DESTINATION include/libi2pd
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libi2pd
     COMPONENT Libraries)
 endif()
 
@@ -94,7 +94,7 @@ if(WITH_LIBRARY)
 
   FILE(GLOB LIBI2PD_CLIENT_HEADERS ${LIBI2PD_CLIENT_SRC_DIR}/*.h*)
   install(FILES ${LIBI2PD_CLIENT_HEADERS}
-    DESTINATION include/libi2pdclient
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libi2pdclient
     COMPONENT Libraries)
 endif()
 
@@ -112,7 +112,7 @@ if(WITH_LIBRARY)
 
   FILE(GLOB LANG_HEADERS ${LANG_SRC_DIR}/*.h*)
   install(FILES ${LANG_HEADERS}
-    DESTINATION include/libi2pdlang
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libi2pdlang
     COMPONENT Libraries)
 endif()
 
