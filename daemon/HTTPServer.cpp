@@ -1482,7 +1482,24 @@ namespace http {
 		{
 			// TODO:
 			auto lines = i2p::http::http_stream_log.str();
-			s << "<pre>" << lines << "</pre>";
+			s << "<style>"
+			<< "  pre.console-log {"
+			<< "    background-color: #0d1117;"
+			<< "    color: #c9d1d9;"
+			<< "    font-family: 'ui-monospace', 'SFMono-Regular', 'SF Mono', 'Consolas', 'Liberation Mono', monospace;"
+			<< "    font-size: 13px;"
+			<< "    line-height: 1.6;"
+			<< "    padding: 16px;"
+			<< "    border-radius: 8px;"
+			<< "    border: 1px solid #30363d;"
+			<< "    max-height: 70vh;"
+			<< "    overflow-y: auto;"
+			<< "    white-space: pre-wrap;"
+			<< "    word-break: break-word;"
+			<< "  }"
+			<< "</style>"
+			<< "<pre class='console-log'>" << lines << "</pre>";
+
 		}
 		else if (page == HTTP_PAGE_LEASESETS)
 			ShowLeasesSets(s);
