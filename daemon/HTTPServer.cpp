@@ -1482,7 +1482,7 @@ namespace http {
 		{
 			// TODO:
 			auto lines = i2p::http::http_stream_log.str();
-			s << lines;
+			s << "<pre>" << lines << "</pre>";
 		}
 		else if (page == HTTP_PAGE_LEASESETS)
 			ShowLeasesSets(s);
