@@ -41,7 +41,8 @@
                 return;
             }
 
-            torrents.textContent = currentTorrentsData.map(el => {
+	    torrents.innerHTML="";
+            currentTorrentsData.map(el => {
                 const percent = el.percentDone ? (el.percentDone*100).toFixed(2) : 0.0;
                 const speed = window.tjs.formatBytes ? window.tjs.formatBytes(el.rateDownload) : `${el.rateDownload} B/s`;
                 const speedUp = window.tjs.formatBytes ? window.tjs.formatBytes(el.rateUpload) : `${el.rateUpload} B/s`;
@@ -49,12 +50,28 @@
 		const totalSize = el.totalSize; // bytes
 		const ETA = el.rateDownload  ? (((totalSize * (1 - el.percentDone)) / el.rateDownload) / 60).toFixed(1) + " min"  : "-";
                 const name = el.name || '|unknown name, maybe a bad torrent|';
+		//torrents.textContent = 
+                //return `<li>
+		//    <span></span>
+                //    <button onclick="openTorrentDetails(${el.id})">Details</button>
+                //    <button onclick="removeTorrent(${el.id})">✕</button>
+                //</li>`;
+		const li = document.createElement('li');
+		const span = document.createElement('span')
+		span.textContent = `${name} — ${percent}% [${status}] (⬇ ${speed} | ⬆ ${speedUp}) ---- size = ${(totalSize/1024/1024).toFixed(2)}mb; ETA: ${ETA}`
+		li.appendChild(span)
+		    //
+		const butDetails = document.createElement('button');
+		butDetails.textContent = 'Details';
+		butDetails.onclick = () => openTorrentDetails(el.id);
+		li.appendChild(butDetails);
+		    //
+		const butRemove = document.createElement('button');
+		butRemove.textContent = '✕';
+		butRemove.onclick = () => removeTorrent(el.id);
+		li.appendChild(butRemove);
+		torrents.appendChild(li)
 
-                return `<li>
-		    <span>${name} — ${percent}% [${status}] (⬇ ${speed} | ⬆ ${speedUp}) ---- size = ${(totalSize/1024/1024).toFixed(2)}mb; ETA: ${ETA}</span>
-                    <button onclick="openTorrentDetails(${el.id})">Details</button>
-                    <button onclick="removeTorrent(${el.id})">✕</button>
-                </li>`;
             }).join('');
         } catch (err) {
             statusIndicator.textContent = 'STATUS: ERROR_WITH_DATA (f12, check your console and write issue)';
