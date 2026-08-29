@@ -16,6 +16,8 @@
 #include <array>
 #include <functional>
 #include "Log.h"
+#include "HTTP.h"
+#include "Timestamp.h"
 #include "Torrents.h"
 #include "TorrentsTunnel.h"
 #include "TorrentsRPC.h"
@@ -51,6 +53,7 @@ namespace torrents
 			static boost::json::value GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent);
 			boost::json::array GetPeers (std::shared_ptr<Torrent> torrent) const;
 			boost::json::array GetTrackers (std::shared_ptr<Torrent> torrent) const;
+			boost::json::array GetTrackerStats (std::shared_ptr<Torrent> torrent) const;
 			static std::string_view RecognizeClientByPeerID (const PeerConnection::PeerID& peerID);
 
 			std::string HandleTorrentAdd (boost::json::object&& jsonRequest);
@@ -239,6 +242,8 @@ namespace torrents
 						t["peers"] = GetPeers (torrent);
 					else if (field == "trackers")
 						t["trackers"] = GetTrackers (torrent);
+					else if (field == "trackerStats")
+						t["trackerStats"] = GetTrackerStats (torrent);
 					else
 					{
 						auto fieldValue = GetFieldValue (field.as_string (), torrent);
@@ -410,9 +415,49 @@ namespace torrents
 		for (size_t i = 0; i < tunnelTrackers.size (); i++)
 		{
 			boost::json::object tracker;
-			tracker["id"] = std::to_string (i);
+			tracker["id"] = i;
 			tracker["announce"] = tunnelTrackers[i];
 			tracker["tier"] = 0;
+			trackers.push_back (tracker);
+		}
+		return trackers;
+	}
+
+	boost::json::array JSONRPCHandler::GetTrackerStats (std::shared_ptr<Torrent> torrent) const
+	{
+		boost::json::array trackers;
+		const auto& tunnelTrackers = m_Tunnel->GetTrackers ();
+		for (size_t i = 0; i < tunnelTrackers.size (); i++)
+		{
+			boost::json::object tracker;
+			tracker["id"] = i;
+			tracker["announce"] = tunnelTrackers[i];
+			i2p::http::URL announceURL;
+			announceURL.parse (tunnelTrackers[i]);
+			tracker["host"]= announceURL.host;
+			tracker["announceState"] = 1;
+			tracker["scrapeState"] = 0;
+			tracker["hasAnnounced"] = true; // TODO:
+            tracker["hasScraped"] = false;
+            tracker["isBackup"] = false;
+			tracker["downloadCount"] = -1;
+			tracker["tier"] = 0;
+			tracker["seederCount"] = torrent->GetNumSeeders (i);
+			tracker["leecherCount"] = torrent->GetNumLeechers (i);
+			tracker["lastAnnouncePeerCount"] = torrent->GetNumPeers (i);
+			tracker["lastAnnounceResult"] = "Success"; // TODO:
+			tracker["lastAnnounceSucceeded"] = true; // TODO:
+			tracker["lastAnnounceTimedOut"] = false; // TODO:
+			tracker["nextAnnounceTime"] = (torrent->GetNextTrackerRequestTime (i) -
+				i2p::util::GetMonotonicMilliseconds () + i2p::util::GetMillisecondsSinceEpoch ())/1000;
+			tracker["lastAnnounceTime"] = i2p::util::GetSecondsSinceEpoch (); // TODO:
+			tracker["lastAnnounceStartTime"] = i2p::util::GetSecondsSinceEpoch (); // TODO:
+			tracker["lastScrapeTime"] = 0;
+			tracker["lastScrapeStartTime"] = 0;
+			tracker["nextScrapeTime"] = 0;
+			tracker["lastScrapeResult"]= "";
+			tracker["lastScrapeTimedOut"]= false;
+			tracker["lastScrapeSucceeded"]= true;
 			trackers.push_back (tracker);
 		}
 		return trackers;

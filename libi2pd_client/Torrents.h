@@ -149,11 +149,13 @@ namespace torrents
 		public:
 
 			using InfoHash = std::array<uint8_t, 20>;
-			using TrackerInfo = std::tuple<std::unordered_set<i2p::data::IdentHash>, int, uint64_t>; // (peers, interval, next tracker request time in monotonic milliseconds)
+			using TrackerInfo = std::tuple<std::unordered_set<i2p::data::IdentHash>, int, uint64_t, int, int>;
+			// (peers, interval, next tracker request time in monotonic milliseconds, seeders, leechers)
 
 			Torrent (std::string_view buf);
 			void ParseTrackerResponse (size_t trackerID, std::string_view buf);
-			void HandleDatagramTrackerResponse (size_t trackerID, uint32_t interval, const uint8_t * hashes, size_t hashesLen);
+			void HandleDatagramTrackerResponse (size_t trackerID, uint32_t interval,
+				const uint8_t * hashes, size_t hashesLen, int numSeeders, int numLeechers);
 
 			bool IsComplete () const { return m_IsComplete; }
 			void SetComplete ();
@@ -206,6 +208,10 @@ namespace torrents
 			void SetNumDownloadingFromPeers (int numDownloadingFromPeers) { m_NumDownloadingFromPeers = numDownloadingFromPeers; }
 			int GetNumUploadingToPeers () const { return m_NumUploadingToPeers; }
 			void SetNumUploadingToPeers (int numUploadingToPeers) { m_NumUploadingToPeers = numUploadingToPeers; }
+
+			int GetNumSeeders (size_t trackerID) const { return (trackerID < m_TrackersInfo.size ()) ? std::get<3>(m_TrackersInfo[trackerID]) : 0; }
+			int GetNumLeechers (size_t trackerID) const { return (trackerID < m_TrackersInfo.size ()) ? std::get<4>(m_TrackersInfo[trackerID]) : 0; }
+			int GetNumPeers (size_t trackerID) const { return (trackerID < m_TrackersInfo.size ()) ? std::get<0>(m_TrackersInfo[trackerID]).size () : 0; }
 
 		private:
 

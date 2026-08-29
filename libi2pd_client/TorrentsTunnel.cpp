@@ -934,7 +934,9 @@ namespace torrents
 		if (!torrent.expired ())
 		{
 			uint32_t interval = bufbe32toh (buf + 4);
-			torrent.lock ()->HandleDatagramTrackerResponse (trackerID, interval, buf + 16, len - 16);
+			uint32_t leechers = bufbe32toh (buf + 8);
+			uint32_t seeders = bufbe32toh (buf + 12);
+			torrent.lock ()->HandleDatagramTrackerResponse (trackerID, interval, buf + 16, len - 16, seeders, leechers);
 		}
 		m_DatragramTrackerTransactions.erase (it);
 	}
