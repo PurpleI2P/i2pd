@@ -258,7 +258,7 @@ namespace torrents
 
 				boost::asio::post (GetService (), [this, torrent]()
 					{
-						// inform tracker that we are done
+						// inform trackers that we are done
 						RequestTorrentTrackers (torrent, eTrackerAnnounceEventCompleted);
 						// close connections with seeds and reset stats for remaining
 						auto conns = GetTorrentConnections (torrent);
@@ -358,10 +358,7 @@ namespace torrents
 	void TorrentsTunnel::RemoveTorrent (std::shared_ptr<Torrent> torrent, bool deleteFiles)
 	{
 		if (!torrent) return;
-		auto connections = GetTorrentConnections (torrent);
-		// close connections
-		for (auto it: connections)
-			it->Close ();
+		StopTorrent (torrent);
 		if (deleteFiles)
 			boost::asio::post (GetDiskIOService (), [torrent]()
 				{
@@ -392,6 +389,54 @@ namespace torrents
 							LogPrint (eLogError, "TorrentsTunnel: Can't delete ", partFilePath);
 					}
 				});
+	}
+
+	bool TorrentsTunnel::StopTorrent (int id)
+	{
+		std::shared_ptr<Torrent> torrent;
+		{
+			std::lock_guard<std::mutex> l(m_TorrentsMutex);
+			auto it = m_TorrentsByID.find (id);
+			if (it == m_TorrentsByID.end ()) return false;
+			torrent = it->second.lock ();
+			if (!torrent) return false;
+		}
+		boost::asio::post (GetService (), [this, torrent]()
+			{
+				StopTorrent (torrent);
+			});
+		return true;
+	}
+
+	void TorrentsTunnel::StopTorrent (std::shared_ptr<Torrent> torrent)
+	{
+		if (!torrent) return;
+		torrent->SetStopped (true);
+		// inform trackers that we stopped
+		RequestTorrentTrackers (torrent, eTrackerAnnounceEventStopped);
+		// close connections
+		auto connections = GetTorrentConnections (torrent);
+		for (auto it: connections)
+			it->Close ();
+	}
+
+	bool TorrentsTunnel::StartTorrent (int id)
+	{
+		std::shared_ptr<Torrent> torrent;
+		{
+			std::lock_guard<std::mutex> l(m_TorrentsMutex);
+			auto it = m_TorrentsByID.find (id);
+			if (it == m_TorrentsByID.end ()) return false;
+			auto torrent = it->second.lock ();
+			if (!torrent) return false;
+		}
+		boost::asio::post (GetService (), [this, torrent]()
+			{
+				torrent->SetStopped (false);
+				// inform trackers that we started
+				RequestTorrentTrackers (torrent, eTrackerAnnounceEventStarted);
+			});
+		return true;
 	}
 
 	void TorrentsTunnel::Accept ()
@@ -566,21 +611,26 @@ namespace torrents
 				}
 			}
 			for (auto it: m_Torrents)
-				for (size_t i = 0; i < m_Trackers.size (); i++)
+			{
+				if (!it.second->IsStopped ())
 				{
-					if (!it.second->GetNextTrackerRequestTime (i)) // first time
+					for (size_t i = 0; i < m_Trackers.size (); i++)
 					{
-						auto initialInterval = GetLocalDestination ()->GetRng()() % TRACKER_INITIAL_REQUEST_INTERVAL_VARIANCE;
-						if (initialInterval <= TRACKER_REQUESTS_CHECK_TIMEOUT) initialInterval = 0; // request immeditely
-						it.second->SetNextTrackerRequestTime (i, ts + initialInterval);
-					}
-					if (ts >= it.second->GetNextTrackerRequestTime (i))
-					{
-						auto nextInterval = it.second->GetInterval (i) + GetLocalDestination ()->GetRng()() % TRACKER_REQUESTS_INTERVAL_VARIANCE;
-						it.second->SetNextTrackerRequestTime (i, ts + nextInterval);
-						RequestTracker (i, it.second, eTrackerAnnounceEventNone);
+						if (!it.second->GetNextTrackerRequestTime (i)) // first time
+						{
+							auto initialInterval = GetLocalDestination ()->GetRng()() % TRACKER_INITIAL_REQUEST_INTERVAL_VARIANCE;
+							if (initialInterval <= TRACKER_REQUESTS_CHECK_TIMEOUT) initialInterval = 0; // request immeditely
+							it.second->SetNextTrackerRequestTime (i, ts + initialInterval);
+						}
+						if (ts >= it.second->GetNextTrackerRequestTime (i))
+						{
+							auto nextInterval = it.second->GetInterval (i) + GetLocalDestination ()->GetRng()() % TRACKER_REQUESTS_INTERVAL_VARIANCE;
+							it.second->SetNextTrackerRequestTime (i, ts + nextInterval);
+							RequestTracker (i, it.second, eTrackerAnnounceEventNone);
+						}
 					}
 				}
+			}
 			ScheduleTrackerRequestsCheck ();
 		}
 	}
@@ -620,7 +670,7 @@ namespace torrents
 		{
 			for (auto it: m_Torrents)
 			{
-				if (!it.second->IsComplete ())
+				if (!it.second->IsComplete () && !it.second->IsStopped ())
 				{
 					auto numPeers = ConnectToPeers (it.second);
 					if (numPeers)
@@ -646,7 +696,7 @@ namespace torrents
 			auto ts = i2p::util::GetMonotonicSeconds ();
 			for (auto it: m_Torrents)
 			{
-				if (!it.second->IsComplete ())
+				if (!it.second->IsComplete () &&!it.second->IsStopped ())
 				{
 					if (it.second->UpdateStatus (ts))
 						CompleteTorrent (it.second);

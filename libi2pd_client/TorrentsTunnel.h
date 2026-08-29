@@ -92,6 +92,8 @@ namespace torrents
 			std::vector<int> GetTorrentIDs () const;
 			std::pair<std::shared_ptr<Torrent>, int> AddTorrent (std::string_view torrentFileContent); // (tunnel, id)
 			bool RemoveTorrent (int id, bool deleteFiles);
+			bool StopTorrent (int id);
+			bool StartTorrent (int id);
 			std::list<std::shared_ptr<PeerConnection> > GetTorrentConnections (std::shared_ptr<Torrent> torrent);
 
 			const char* GetName() const override { return m_Name.c_str (); }
@@ -106,6 +108,7 @@ namespace torrents
 			void RemoveTorrent (std::shared_ptr<Torrent> torrent, bool deleteFiles);
 			bool CreateAndReserveFile (const std::filesystem::path& filePath, size_t reserve);
 			void CompleteTorrent (std::shared_ptr<Torrent> torrent);
+			void StopTorrent (std::shared_ptr<Torrent> torrent);
 			void RequestTracker (size_t trackerID, std::shared_ptr<Torrent> torrent, TrackerAnnounceEvent event);
 			void RequestTorrentTrackers (std::shared_ptr<Torrent> torrent, TrackerAnnounceEvent event);
 			void TrackerRequestSent (const boost::beast::error_code& ecode, size_t bytes_transferred,

@@ -323,7 +323,7 @@ namespace torrents
 	}
 
 	Torrent::Torrent (std::string_view buf):
-		m_Length (0), m_PieceLength (0), m_IsComplete (false),
+		m_Length (0), m_PieceLength (0), m_IsComplete (false), m_IsStopped (false),
 		m_Uploaded (0), m_Downloaded (0)
 	{
 		ResetStats ();
@@ -794,6 +794,13 @@ namespace torrents
 		if (trackerID >= m_TrackersInfo.size ())
 			m_TrackersInfo.resize (trackerID + 1, TrackerInfo{{}, MIN_TRACKER_REQUESTS_INTERVAL, 0});
 		std::get<2>(m_TrackersInfo[trackerID]) = ts;
+	}
+
+	TorrentStatus Torrent::GetStatus () const
+	{
+		if (m_IsStopped) return eTorrentStatusStopped;
+		if (m_IsComplete) return eTorrentStatusSeeding;
+		return eTorrentStatusDownloading;
 	}
 
 	PeerConnection::PeerConnection (std::shared_ptr<i2p::client::I2PService> owner,

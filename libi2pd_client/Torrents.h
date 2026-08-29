@@ -157,7 +157,9 @@ namespace torrents
 
 			bool IsComplete () const { return m_IsComplete; }
 			void SetComplete ();
-			TorrentStatus GetStatus () const { return m_IsComplete ? eTorrentStatusSeeding : eTorrentStatusDownloading; };
+			bool IsStopped () const { return m_IsStopped; }
+			void SetStopped (bool stopped) { m_IsStopped = stopped; }
+			TorrentStatus GetStatus () const;
 
 			std::string_view GetAnnounce () const { return m_Announce; }
 			std::string_view GetName () const { return m_Name; }
@@ -221,7 +223,7 @@ namespace torrents
 			InfoHash m_InfoHash; // SHA1
 			std::vector<Piece> m_Pieces;
 			std::vector<TrackerInfo> m_TrackersInfo;
-			bool m_IsComplete;
+			bool m_IsComplete, m_IsStopped;
 			std::list<std::pair<std::filesystem::path, size_t> > m_Files; // list of (path, length)
 			size_t m_Uploaded, m_Downloaded;
 			// stats
