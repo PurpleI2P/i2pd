@@ -427,7 +427,7 @@ namespace torrents
 			std::lock_guard<std::mutex> l(m_TorrentsMutex);
 			auto it = m_TorrentsByID.find (id);
 			if (it == m_TorrentsByID.end ()) return false;
-			auto torrent = it->second.lock ();
+			torrent = it->second.lock ();
 			if (!torrent) return false;
 		}
 		boost::asio::post (GetService (), [this, torrent]()
