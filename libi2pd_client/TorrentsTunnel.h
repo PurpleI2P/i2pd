@@ -39,6 +39,7 @@ namespace torrents
 	constexpr int TRACKER_INITIAL_REQUEST_INTERVAL_VARIANCE = 31000; // in milliseconds
 	constexpr int PEER_KEEP_ALIVE_CHECK_INTERVAL = 15; // in seconds
 	constexpr int TORRENTS_STATUS_UPDATE_INTERVAL = 25; // in seconds
+	constexpr int TRACKER_MAX_NUM_WANT = 25;
 
 	enum DatagramTrackerAction
 	{

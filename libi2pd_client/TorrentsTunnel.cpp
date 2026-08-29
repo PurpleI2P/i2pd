@@ -454,7 +454,10 @@ namespace torrents
 		params.emplace ("uploaded", std::to_string (torrent->GetUploaded ()));
 		params.emplace ("downloaded", std::to_string (torrent->GetLength () - torrent->GetLeft ()));
 		params.emplace ("left", std::to_string (torrent->GetLeft ()));
-		params.emplace ("numwant", torrent->IsComplete () ? "0" : "25"); // max num of peers, 0 if seeding
+		int numWant = 0;
+		if (!torrent->IsComplete () && (event == eTrackerAnnounceEventNone || event == eTrackerAnnounceEventStarted))
+			numWant = TRACKER_MAX_NUM_WANT;
+		params.emplace ("numwant", std::to_string (numWant));
 		if (event != eTrackerAnnounceEventNone)
 			params.emplace ("event", TrackerAnnounceEventStr[event]);
 		reqURL.create_query (params);
@@ -846,7 +849,10 @@ namespace torrents
 			htobe32buf (announce + 80, event); // event
 			htobe32buf (announce + 84, 0); // IP address 0:not used
 			htobe32buf (announce + 88, 0); // key, ignored
-			htobe32buf (announce + 92, torrent->IsComplete () ? 0 : 25); // num_want
+			int numWant = 0;
+			if (!torrent->IsComplete () && (event == eTrackerAnnounceEventNone || event == eTrackerAnnounceEventStarted))
+				numWant = TRACKER_MAX_NUM_WANT;
+			htobe32buf (announce + 92, numWant); // num_want
 			htobe16buf (announce + 96, fromPort); // from port
 			auto session = dgramDest->GetSession (ident);
 			if (session)
