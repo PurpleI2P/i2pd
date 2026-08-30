@@ -98,10 +98,10 @@ namespace datagram
 				{
 					constexpr uint8_t flags[] = { 0x00, 0x02 }; // datagram2, no options
 					// signature
-					std::vector<uint8_t> signedData (len + m_From.size () + 2);
-					memcpy (signedData.data (), m_From.data (), m_From.size ());
-					memcpy (signedData.data () + m_From.size (), flags, 2);
-					memcpy (signedData.data () + m_From.size () + 2, payload, len);
+					std::vector<uint8_t> signedData (len + 32 + 2);
+					memcpy (signedData.data (), session->GetRemoteIdent (), 32);
+					memcpy (signedData.data () + 32, flags, 2);
+					memcpy (signedData.data () + 32 + 2, payload, len);
 					m_Owner->Sign (signedData.data (), signedData.size (), m_Signature.data ());
 					// TODO: offline signatures and options
 					msg = CreateDataMessage ({{m_From.data (), m_From.size ()}, {flags, 2}, {payload, len},

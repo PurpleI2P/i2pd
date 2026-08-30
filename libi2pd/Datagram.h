@@ -80,6 +80,7 @@ namespace datagram
 			bool IsRatchets () const { return m_RoutingSession && m_RoutingSession->IsRatchets (); }
 			void SetRemoteLeaseSet (std::shared_ptr<const i2p::data::LeaseSet> ls) { m_RemoteLeaseSet = ls; }
 			std::shared_ptr<const i2p::data::LeaseSet> GetRemoteLeaseSet () const { return m_RemoteLeaseSet; }
+			const i2p::data::IdentHash& GetRemoteIdent () const { return m_RemoteIdent; }
 
 			DatagramVersion GetVersion () const { return m_Version; }
 			void SetVersion (DatagramVersion version) { m_Version = version; }
