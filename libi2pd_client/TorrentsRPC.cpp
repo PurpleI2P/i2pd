@@ -411,12 +411,11 @@ namespace torrents
 	boost::json::array JSONRPCHandler::GetTrackers (std::shared_ptr<Torrent> torrent) const
 	{
 		boost::json::array trackers;
-		const auto& tunnelTrackers = m_Tunnel->GetTrackers ();
-		for (size_t i = 0; i < tunnelTrackers.size (); i++)
+		for (size_t i = 0; i < m_Tunnel->GetNumTrackers (); i++)
 		{
 			boost::json::object tracker;
 			tracker["id"] = i;
-			tracker["announce"] = tunnelTrackers[i];
+			tracker["announce"] = m_Tunnel->GetTrackerAnnounce (i);
 			tracker["tier"] = 0;
 			trackers.push_back (tracker);
 		}
@@ -426,14 +425,13 @@ namespace torrents
 	boost::json::array JSONRPCHandler::GetTrackerStats (std::shared_ptr<Torrent> torrent) const
 	{
 		boost::json::array trackers;
-		const auto& tunnelTrackers = m_Tunnel->GetTrackers ();
-		for (size_t i = 0; i < tunnelTrackers.size (); i++)
+		for (size_t i = 0; i < m_Tunnel->GetNumTrackers (); i++)
 		{
 			boost::json::object tracker;
 			tracker["id"] = i;
-			tracker["announce"] = tunnelTrackers[i];
+			tracker["announce"] = m_Tunnel->GetTrackerAnnounce (i);
 			i2p::http::URL announceURL;
-			announceURL.parse (tunnelTrackers[i]);
+			announceURL.parse (m_Tunnel->GetTrackerAnnounce (i));
 			tracker["host"]= announceURL.host;
 			tracker["announceState"] = 1;
 			tracker["scrapeState"] = 0;
