@@ -409,6 +409,12 @@ namespace data
 
 				uint8_t * compressed = new uint8_t[compressedSize];
 				s.read ((char *)compressed, compressedSize);
+				if (!s.good ())
+				{
+					LogPrint (eLogError, "Reseed: Truncated zip file data");
+					delete[] compressed;
+					return numFiles;
+				}
 				if (compressionMethod) // we assume Deflate
 				{
 					z_stream inflator;
@@ -490,7 +496,7 @@ namespace data
 	bool Reseeder::FindZipDataDescriptor (std::istream& s)
 	{
 		size_t nextInd = 0;
-		while (!s.eof ())
+		while (s.good ()) // a broken stream never reaches eof, see ProcessZIPStream
 		{
 			uint8_t nextByte;
 			s.read ((char *)&nextByte, 1);
