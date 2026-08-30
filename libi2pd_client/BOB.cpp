@@ -507,7 +507,7 @@ namespace client
 				case TunnelType::SOCKS:
 					try
 					{
-						auto SocksProxy = std::make_unique<i2p::proxy::SOCKSProxy>(m_Nickname, m_InHost, m_InPort,
+						auto SocksProxy = std::make_shared<i2p::proxy::SOCKSProxy>(m_Nickname, m_InHost, m_InPort,
 							false, m_OutHost, m_OutPort, m_CurrentDestination->GetLocalDestination());
 						SocksProxy->Start();
 						m_Owner.SetProxy(m_Nickname, std::move(SocksProxy));
@@ -521,7 +521,7 @@ namespace client
 				case TunnelType::HTTP_PROXY:
 					try
 					{
-						auto HttpProxy = std::make_unique<i2p::proxy::HTTPProxy>(m_Nickname, m_InHost, m_InPort,
+						auto HttpProxy = std::make_shared<i2p::proxy::HTTPProxy>(m_Nickname, m_InHost, m_InPort,
 							m_OutHost, true, true, m_CurrentDestination->GetLocalDestination());
 						HttpProxy->Start();
 						m_Owner.SetProxy(m_Nickname, std::move(HttpProxy));
@@ -1113,7 +1113,7 @@ namespace client
 		return nullptr;
 	}
 
-	void BOBCommandChannel::SetProxy (const std::string& name, std::unique_ptr<I2PService> proxy)
+	void BOBCommandChannel::SetProxy (const std::string& name, std::shared_ptr<I2PService> proxy)
 	{
 		m_proxy[name] = std::move(proxy);
 	}

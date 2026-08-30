@@ -299,7 +299,7 @@ namespace client
 			void AddDestination (const std::string& name, std::shared_ptr<BOBDestination> dest);
 			void DeleteDestination (const std::string& name);
 			std::shared_ptr<BOBDestination> FindDestination (const std::string& name);
-			void SetProxy (const std::string& name, std::unique_ptr<I2PService> proxy);
+			void SetProxy (const std::string& name, std::shared_ptr<I2PService> proxy);
 			const I2PService* GetProxy(const std::string& name) const;
 			void RemoveProxy(const std::string& name);
 
@@ -314,7 +314,8 @@ namespace client
 			std::map<std::string, std::shared_ptr<BOBDestination> > m_Destinations;
 			std::map<std::string_view, BOBCommandHandler> m_CommandHandlers;
 			std::map<std::string_view, std::string_view> m_HelpStrings;
-			std::map<std::string, std::unique_ptr<I2PService>> m_proxy;
+			// shared, a proxy takes a reference to itself when it accepts a connection
+			std::map<std::string, std::shared_ptr<I2PService>> m_proxy;
 
 		public:
 
