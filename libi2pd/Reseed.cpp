@@ -330,7 +330,9 @@ namespace data
 	{
 		int numFiles = 0;
 		size_t contentPos = s.tellg ();
-		while (!s.eof ())
+		// not !eof: seekg clears eofbit, so a stream broken in the middle of a
+		// header stays not-eof forever and the loop never ends
+		while (s.good ())
 		{
 			uint32_t signature;
 			s.read ((char *)&signature, 4);
@@ -357,13 +359,18 @@ namespace data
 				uint16_t fileNameLength, extraFieldLength;
 				s.read ((char *)&fileNameLength, 2);
 				fileNameLength = le16toh (fileNameLength);
+				s.read ((char *)&extraFieldLength, 2);
+				extraFieldLength = le16toh (extraFieldLength);
+				if (!s.good ())
+				{
+					LogPrint (eLogError, "Reseed: Truncated zip local file header");
+					return numFiles;
+				}
 				if ( fileNameLength >= 255 ) {
 					// too big
 					LogPrint(eLogError, "Reseed: SU3 fileNameLength too large: ", fileNameLength);
 					return numFiles;
 				}
-				s.read ((char *)&extraFieldLength, 2);
-				extraFieldLength = le16toh (extraFieldLength);
 				char localFileName[255];
 				s.read (localFileName, fileNameLength);
 				localFileName[fileNameLength] = 0;
