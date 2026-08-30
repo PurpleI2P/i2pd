@@ -470,11 +470,15 @@ namespace client
 		m_IsUniqueLocal (true), m_Name (name), m_LocalAddress (localAddress),
 		m_RemoteEndpoint (forwardTo), m_LocalDest (localDestination), m_inPort(inPort), m_Gzip (gzip)
 	{
+		// without a reference the destination counts as unused and a config reload
+		// stops it, leaving the tunnel with a destination that receives nothing
+		if (m_LocalDest) m_LocalDest->Acquire ();
 	}
 
 	I2PUDPServerTunnel::~I2PUDPServerTunnel ()
 	{
 		Stop ();
+		if (m_LocalDest) m_LocalDest->Release ();
 	}
 
 	void I2PUDPServerTunnel::Start ()
@@ -594,11 +598,13 @@ namespace client
 		m_ResolveThread (nullptr), m_LocalSocket (nullptr), RemotePort (remotePort),
 		m_LastPort (0), m_cancel_resolve (false), m_Gzip (gzip), m_DatagramVersion (datagramVersion)
 	{
+		if (m_LocalDest) m_LocalDest->Acquire ();
 	}
 
 	I2PUDPClientTunnel::~I2PUDPClientTunnel ()
 	{
 		Stop ();
+		if (m_LocalDest) m_LocalDest->Release ();
 	}
 
 	void I2PUDPClientTunnel::Start ()
