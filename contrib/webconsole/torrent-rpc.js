@@ -56,12 +56,37 @@ class TorrentClient {
             method: "POST",
             body: JSON.stringify({
                 'method': 'torrent-get',
-                'arguments': { "fields": ["id", "name", "status", "rateDownload", "rateUpload", "totalSize", "percentDone", "files", "peers", "trackers"] }
+                'arguments': { "fields": ["id", "name", "status", "rateDownload", "rateUpload", "totalSize", "percentDone", "files", "peers", "trackers", "trackerStats"] }
             }),
             headers: { 'Content-Type': 'application/json' }
         });
         return res.json();
     }
+   async stopTorrent(ids = []) {
+    const res = await fetch(this.getEndpoint(), {
+        method: "POST",
+        body: JSON.stringify({
+            'method': 'torrent-stop', 
+            'arguments': ids.length ? { ids } : {}, 
+            'tag': 666
+        }),
+        headers: { 'Content-Type': 'application/json' }
+    });
+    return res.json();
+}
+
+async startTorrent(ids = []) {
+    const res = await fetch(this.getEndpoint(), {
+        method: "POST",
+        body: JSON.stringify({
+            'method': 'torrent-start',
+            'arguments': ids.length ? { ids } : {}, 
+            'tag': 666
+        }),
+        headers: { 'Content-Type': 'application/json' }
+    });
+    return res.json();
+} 
 }
 
 //window.tjs = new TorrentClient();

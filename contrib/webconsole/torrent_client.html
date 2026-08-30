@@ -4,7 +4,13 @@
     <h3 id="connection_status">_</h3>
     <input type="file" id="torrentf" accept=".torrent" style="display: none" />
     <button onclick="document.getElementById('torrentf').click()">
-      ADd torrent
+      Add torrent
+    </button>
+    <button onclick="stopAll()">
+      stopAll
+    </button>
+    <button onclick="startAll()">
+      startAll
     </button>
     <ul id="torrents"></ul>
   </div>
@@ -18,12 +24,44 @@
   <ul id="modal_peers_list"></ul>
   <h4>Trackers (<span id="trackers_count">0</span>):</h4>
   <ul id="modal_trackers_list"></ul>
+  <h4>trackerStats:</h4>
+  <pre id="modal_tracker_stats"></pre>
   <button onclick="closeDetailsModal()">Close</button>
 </div>
 
 <script>
   let currentTorrentsData = [];
-
+  async function stopAll()
+  {
+	const conf = confirm("Are sure to stop all torrents?");
+	 // console.log(conf)
+	  if(conf && window.tjs)
+	  {
+		const r = await window.tjs.getTorrents()
+		//console.log(`torrents: ${r}`)
+      		if (!r?.result?.torrents) return;
+		r.result.torrents.forEach(async (t) => {
+			 console.log(`stop torrent => ${t.id}`)
+			 await window.tjs.stopTorrent([t.id]);
+		});
+	  }
+          //if (window.tjs && conf) await window.tjs.stopTorrent();
+  }
+  async function startAll()
+  {
+	const conf = confirm("Are sure to start all torrents?");
+	  if(conf && window.tjs)
+	  {
+		const r = await window.tjs.getTorrents()
+		//console.log(`torrents: ${r}`)
+      		if (!r?.result?.torrents) return;
+		r.result.torrents.forEach( async (t) =>{
+			 console.log(`start torrent => ${t.id}`)
+			 await window.tjs.startTorrent([t.id]);
+		});
+	  }
+          //if (window.tjs && conf) await window.tjs.startTorrent();
+  }
   setInterval(async () => {
     const statusIndicator = document.getElementById("connection_status");
     if (!window.tjs)
@@ -41,57 +79,65 @@
       currentTorrentsData = r.result.torrents;
 
       if (currentTorrentsData.length === 0) {
-        torrents.textContent = "<li>No downloads</li>";
+        torrents.innerHTML = "<li>No downloads</li>";
         return;
       }
 
       torrents.innerHTML = "";
-      currentTorrentsData
-        .map((el) => {
-          const percent = el.percentDone
-            ? (el.percentDone * 100).toFixed(2)
-            : 0.0;
-          const speed = window.tjs.formatBytes
-            ? window.tjs.formatBytes(el.rateDownload)
-            : `${el.rateDownload} B/s`;
-          const speedUp = window.tjs.formatBytes
-            ? window.tjs.formatBytes(el.rateUpload)
-            : `${el.rateUpload} B/s`;
-          const status = window.tjs.getStatusString
-            ? window.tjs.getStatusString(el.status)
-            : el.status;
-          const totalSize = el.totalSize; // bytes
-          const ETA = el.rateDownload
-            ? (
-                (totalSize * (1 - el.percentDone)) /
-                el.rateDownload /
-                60
-              ).toFixed(1) + " min"
-            : "-";
-          const name = el.name || "|unknown name, maybe a bad torrent|";
-          //torrents.textContent =
-          //return `<li>
-          //    <span></span>
-          //    <button onclick="openTorrentDetails(${el.id})">Details</button>
-          //    <button onclick="removeTorrent(${el.id})">✕</button>
-          //</li>`;
-          const li = document.createElement("li");
-          const span = document.createElement("span");
-          span.textContent = `${name} — ${percent}% [${status}] (⬇ ${speed} | ⬆ ${speedUp}) ---- size = ${(totalSize / 1024 / 1024).toFixed(2)}mb; ETA: ${ETA}`;
-          li.appendChild(span);
-          //
-          const butDetails = document.createElement("button");
-          butDetails.textContent = "Details";
-          butDetails.onclick = () => openTorrentDetails(el.id);
-          li.appendChild(butDetails);
-          //
-          const butRemove = document.createElement("button");
-          butRemove.textContent = "✕";
-          butRemove.onclick = () => removeTorrent(el.id);
-          li.appendChild(butRemove);
-          torrents.appendChild(li);
-        })
-        .join("");
+      currentTorrentsData.forEach((el) => {
+        const percent = el.percentDone
+          ? (el.percentDone * 100).toFixed(2)
+          : "0.00";
+        const speed = window.tjs.formatBytes
+          ? window.tjs.formatBytes(el.rateDownload)
+          : `${el.rateDownload} B/s`;
+        const speedUp = window.tjs.formatBytes
+          ? window.tjs.formatBytes(el.rateUpload)
+          : `${el.rateUpload} B/s`;
+        const status = window.tjs.getStatusString
+          ? window.tjs.getStatusString(el.status)
+          : el.status;
+        const totalSize = el.totalSize || 0; // bytes
+        const ETA = el.rateDownload
+          ? (
+              (totalSize * (1 - el.percentDone)) /
+              el.rateDownload /
+              60
+            ).toFixed(1) + " min"
+          : "-";
+        const name = el.name || "|unknown name, maybe a bad torrent|";
+
+        const li = document.createElement("li");
+        const span = document.createElement("span");
+        span.textContent = `${name} — ${percent}% [${status}] (⬇ ${speed} | ⬆ ${speedUp}) ---- size = ${(totalSize / 1024 / 1024).toFixed(2)}mb; ETA: ${ETA} `;
+        li.appendChild(span);
+
+        const butDetails = document.createElement("button");
+        butDetails.textContent = "Details";
+        butDetails.onclick = () => openTorrentDetails(el.id);
+        li.appendChild(butDetails);
+
+        const butStop = document.createElement("button");
+        butStop.textContent = "Stop";
+        butStop.onclick = async () => {
+          if (window.tjs) await window.tjs.stopTorrent([el.id]);
+        };
+        li.appendChild(butStop);
+
+        const butStart = document.createElement("button");
+        butStart.textContent = "Start";
+        butStart.onclick = async () => {
+          if (window.tjs) await window.tjs.startTorrent([el.id]);
+        };
+        li.appendChild(butStart);
+
+        const butRemove = document.createElement("button");
+        butRemove.textContent = "✕";
+        butRemove.onclick = () => removeTorrent(el.id);
+        li.appendChild(butRemove);
+
+        torrents.appendChild(li);
+      });
     } catch (err) {
       statusIndicator.textContent =
         "STATUS: ERROR_WITH_DATA (f12, check your console and write issue)";
@@ -118,7 +164,8 @@
   };
 
   window.removeTorrent = async (id) => {
-    if (window.tjs) await window.tjs.removeTorrent(Number(id));
+    const confirmed = confirm(`Drop the torrent with id ${id}?`);
+    if (confirmed && window.tjs) await window.tjs.removeTorrent(Number(id));
   };
 
   window.openTorrentDetails = (id) => {
@@ -148,6 +195,7 @@
       li.textContent = "NO_FILES";
       filesList.appendChild(li);
     }
+
     const peersList = document.getElementById("modal_peers_list");
     const trackersList = document.getElementById("modal_trackers_list");
 
@@ -191,7 +239,29 @@
 
     document.getElementById("trackers_count").textContent = torrent.trackers
       ? torrent.trackers.length
-      : -1;
+      : 0;
+
+    const modal_TrackerStats = document.getElementById("modal_tracker_stats");
+    const tstats = torrent.trackerStats;
+    /*
+    To convert a Unix timestamp to a human-readable date in JavaScript, multiply the timestamp by 1000 and pass it into the new Date() constructor. JavaScript requires milliseconds, while standard Unix timestamps are measured in second
+    (so, for js we need ms)
+    */
+    modal_TrackerStats.textContent = tstats
+      ? tstats
+          .map(
+		  (tr) => {
+const leachers = tr.leecherCount >= 0 ? tr.leecherCount : '?'; // TODO: why so big value
+return `
+Host: ${tr.host}
+Announce: ${tr.announce}
+Status: ${tr.lastAnnounceResult} (${tr.lastAnnounceSucceeded ? "OK" : "Fail"})
+Peers: ${tr.lastAnnouncePeerCount} | Seeders: ${tr.seederCount} | Leechers: ${leachers}
+Last Announce: ${new Date(tr.lastAnnounceTime * 1000).toLocaleString()}
+Next Announce: ${new Date(tr.nextAnnounceTime * 1000).toLocaleString()}
+`}).join("\n" + "-".repeat(40) + "<hr/>\n") : "-";
+
+
     document.getElementById("torrent_details_modal").style.display = "block";
   };
 
