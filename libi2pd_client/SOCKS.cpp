@@ -175,7 +175,7 @@ namespace proxy
 			const bool m_UseUpstreamProxy; // do we want to use the upstream proxy for non i2p addresses?
 			const std::string m_UpstreamProxyAddress;
 			const uint16_t m_UpstreamProxyPort;
-			std::unique_ptr<i2p::client::I2PUDPClientTunnel> m_UDPTunnel;
+			std::shared_ptr<i2p::client::I2PUDPClientTunnel> m_UDPTunnel; // shared, the tunnel takes references to itself
 
 		public:
 
@@ -710,7 +710,7 @@ namespace proxy
 							LogPrint (eLogInfo, "SOCKS: New UDP associate connection");
 							auto owner = GetOwner ();
 							if (!owner) { Terminate (); return; }
-							m_UDPTunnel = std::make_unique<i2p::client::I2PUDPClientTunnel>("", addr,
+							m_UDPTunnel = std::make_shared<i2p::client::I2PUDPClientTunnel>("", addr,
 								GetServer ()->GetNextLocalUDPEndpoint (),
 							    owner->GetLocalDestination (), m_port, false, i2p::datagram::eDatagramV3);
 							boost::asio::post (owner->GetService (), [this](void)
