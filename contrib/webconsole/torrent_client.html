@@ -6,8 +6,12 @@
     <button onclick="document.getElementById('torrentf').click()">
       Add torrent
     </button>
-    <button onclick="stopAll()">stopAll</button>
-    <button onclick="startAll()">startAll</button>
+    <button onclick="stopAll()">
+      stopAll
+    </button>
+    <button onclick="startAll()">
+      startAll
+    </button>
     <ul id="torrents"></ul>
   </div>
 </fieldset>
@@ -27,14 +31,36 @@
 
 <script>
   let currentTorrentsData = [];
-  async function stopAll() {
-    const conf = confirm("Are sure to stop all torrents?");
-
-    if (window.tjs && conf) await window.tjs.stopTorrent();
+  async function stopAll()
+  {
+	const conf = confirm("Are sure to stop all torrents?");
+	 // console.log(conf)
+	  if(conf && window.tjs)
+	  {
+		const r = await window.tjs.getTorrents()
+		//console.log(`torrents: ${r}`)
+      		if (!r?.result?.torrents) return;
+		r.result.torrents.forEach(async (t) => {
+			 console.log(`stop torrent => ${t.id}`)
+			 await window.tjs.stopTorrent([t.id]);
+		});
+	  }
+          //if (window.tjs && conf) await window.tjs.stopTorrent();
   }
-  async function startAll() {
-    const conf = confirm("Are sure to start all torrents?");
-    if (window.tjs && conf) await window.tjs.startTorrent();
+  async function startAll()
+  {
+	const conf = confirm("Are sure to start all torrents?");
+	  if(conf && window.tjs)
+	  {
+		const r = await window.tjs.getTorrents()
+		//console.log(`torrents: ${r}`)
+      		if (!r?.result?.torrents) return;
+		r.result.torrents.forEach( async (t) =>{
+			 console.log(`start torrent => ${t.id}`)
+			 await window.tjs.startTorrent([t.id]);
+		});
+	  }
+          //if (window.tjs && conf) await window.tjs.startTorrent();
   }
   setInterval(async () => {
     const statusIndicator = document.getElementById("connection_status");
@@ -73,9 +99,11 @@
           : el.status;
         const totalSize = el.totalSize || 0; // bytes
         const ETA = el.rateDownload
-          ? ((totalSize * (1 - el.percentDone)) / el.rateDownload / 60).toFixed(
-              1,
-            ) + " min"
+          ? (
+              (totalSize * (1 - el.percentDone)) /
+              el.rateDownload /
+              60
+            ).toFixed(1) + " min"
           : "-";
         const name = el.name || "|unknown name, maybe a bad torrent|";
 
