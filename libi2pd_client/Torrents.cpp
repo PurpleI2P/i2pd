@@ -491,7 +491,8 @@ namespace torrents
 	void Torrent::ParseTrackerResponse (size_t trackerID, std::string_view buf)
 	{
 		if (trackerID >= m_TrackersInfo.size ())
-			m_TrackersInfo.resize (trackerID + 1, TrackerInfo{{}, MIN_TRACKER_REQUESTS_INTERVAL, 0, 0, 0});
+			m_TrackersInfo.resize (trackerID + 1, TrackerInfo{{}, MIN_TRACKER_REQUESTS_INTERVAL,
+				0, 0, 0, i2p::util::GetSecondsSinceEpoch ()});
 		ParseDictionary (buf, [this, trackerID](std::string_view key, std::string_view buf)->size_t
 			{
 				if (key == "interval")
@@ -527,6 +528,7 @@ namespace torrents
 				}
 				return 0;
 			});
+		std::get<4>(m_TrackersInfo[trackerID]) = i2p::util::GetSecondsSinceEpoch ();
 	}
 
 	size_t Torrent::ParsePeers (size_t trackerID, std::string_view buf)
@@ -546,12 +548,14 @@ namespace torrents
 		const uint8_t * hashes, size_t hashesLen, int numSeeders, int numLeechers)
 	{
 		if (trackerID >= m_TrackersInfo.size ())
-			m_TrackersInfo.resize (trackerID + 1, TrackerInfo{{}, MIN_TRACKER_REQUESTS_INTERVAL, 0, 0, 0});
-		auto& [peers, trackerRequestInterval, nextRequestTime, seeders, leechers] = m_TrackersInfo[trackerID];
+			m_TrackersInfo.resize (trackerID + 1, TrackerInfo{{}, MIN_TRACKER_REQUESTS_INTERVAL,
+				0, 0, 0, i2p::util::GetSecondsSinceEpoch () });
+		auto& [peers, trackerRequestInterval, nextRequestTime, seeders, leechers, lastUpdateTime] = m_TrackersInfo[trackerID];
 		trackerRequestInterval = interval*1000; // milliseconds
 		nextRequestTime = i2p::util::GetMonotonicMilliseconds () + trackerRequestInterval;
 		seeders = numSeeders;
 		leechers = numLeechers;
+		lastUpdateTime = i2p::util::GetSecondsSinceEpoch ();
 		peers.clear ();
 		size_t offset = 0;
 		while (offset + i2p::data::IdentHash::len <= hashesLen)
@@ -807,7 +811,8 @@ namespace torrents
 	void Torrent::SetNextTrackerRequestTime (size_t trackerID, uint64_t ts)
 	{
 		if (trackerID >= m_TrackersInfo.size ())
-			m_TrackersInfo.resize (trackerID + 1, TrackerInfo{{}, MIN_TRACKER_REQUESTS_INTERVAL, 0, 0, 0});
+			m_TrackersInfo.resize (trackerID + 1, TrackerInfo{{}, MIN_TRACKER_REQUESTS_INTERVAL,
+				0, 0, 0, i2p::util::GetSecondsSinceEpoch ()});
 		std::get<2>(m_TrackersInfo[trackerID]) = ts;
 	}
 

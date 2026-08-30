@@ -450,8 +450,8 @@ namespace torrents
 			tracker["lastAnnounceTimedOut"] = false; // TODO:
 			tracker["nextAnnounceTime"] = (torrent->GetNextTrackerRequestTime (i) -
 				i2p::util::GetMonotonicMilliseconds () + i2p::util::GetMillisecondsSinceEpoch ())/1000;
-			tracker["lastAnnounceTime"] = i2p::util::GetSecondsSinceEpoch (); // TODO:
-			tracker["lastAnnounceStartTime"] = i2p::util::GetSecondsSinceEpoch (); // TODO:
+			tracker["lastAnnounceTime"] = torrent->GetLastTrackerUpdateTime (i);
+			tracker["lastAnnounceStartTime"] = torrent->GetLastTrackerUpdateTime (i); // TODO:
 			tracker["lastScrapeTime"] = 0;
 			tracker["lastScrapeStartTime"] = 0;
 			tracker["nextScrapeTime"] = 0;
