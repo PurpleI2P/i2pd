@@ -243,21 +243,24 @@
 
     const modal_TrackerStats = document.getElementById("modal_tracker_stats");
     const tstats = torrent.trackerStats;
-
+    /*
+    To convert a Unix timestamp to a human-readable date in JavaScript, multiply the timestamp by 1000 and pass it into the new Date() constructor. JavaScript requires milliseconds, while standard Unix timestamps are measured in second
+    (so, for js we need ms)
+    */
     modal_TrackerStats.textContent = tstats
       ? tstats
           .map(
-            (tr) => `
+		  (tr) => {
+const leachers = tr.leecherCount >= 0 ? tr.leecherCount : '?'; // TODO: why so big value
+return `
 Host: ${tr.host}
 Announce: ${tr.announce}
 Status: ${tr.lastAnnounceResult} (${tr.lastAnnounceSucceeded ? "OK" : "Fail"})
-Peers: ${tr.lastAnnouncePeerCount} | Seeders: ${tr.seederCount} | Leechers: ${tr.leecherCount}
+Peers: ${tr.lastAnnouncePeerCount} | Seeders: ${tr.seederCount} | Leechers: ${leachers}
 Last Announce: ${new Date(tr.lastAnnounceTime * 1000).toLocaleString()}
 Next Announce: ${new Date(tr.nextAnnounceTime * 1000).toLocaleString()}
-`,
-          )
-          .join("\n" + "-".repeat(40) + "\n")
-      : "-";
+`}).join("\n" + "-".repeat(40) + "<hr/>\n") : "-";
+
 
     document.getElementById("torrent_details_modal").style.display = "block";
   };
