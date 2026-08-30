@@ -524,6 +524,10 @@ namespace torrents
 				{
 					auto [reason, l] = ExtractByteString (buf);
 					LogPrint (eLogError, "Torrents: Tracker error: ", reason);
+					// double interval if tracker failure
+					int interval = std::max (MIN_TRACKER_REQUESTS_INTERVAL, std::get<1>(m_TrackersInfo[trackerID])*2);
+					std::get<1>(m_TrackersInfo[trackerID]) = interval;
+					std::get<2>(m_TrackersInfo[trackerID]) = i2p::util::GetMonotonicMilliseconds () + interval;
 					return l;
 				}
 				return 0;
@@ -1275,6 +1279,13 @@ namespace torrents
 		size_t numPieces = m_Torrent->GetNumPieces ();
 		m_RemoteBitfield.resize (numPieces);
 		m_RemoteBitfield.set ();
+		if (!m_Torrent->IsComplete ())
+		{
+			m_IsInterested = true;
+			SendInterestedMsg ();
+		}
+		else
+			Terminate (); // we don't need this connection
 	}
 
 	void PeerConnection::HandleHaveNoneMsg ()
@@ -1572,6 +1583,8 @@ namespace torrents
 					return 0;
 				});
 		}
+		else
+			LogPrint (eLogInfo, "Torrents: Unexecpetd extended message type ", (int)buf[0], " received");
 	}
 
 	void PeerConnection::SendExtendedMsg ()
