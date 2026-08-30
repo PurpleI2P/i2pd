@@ -1201,6 +1201,8 @@ namespace torrents
 	void PeerConnection::HandleHaveMsg (const uint8_t * buf, size_t len)
 	{
 		if (len < 4) return;
+		if (m_RemoteBitfield.empty ()) // bitfield was not received before because was empty
+			m_RemoteBitfield.resize (m_Torrent->GetNumPieces ());
 		uint32_t index = bufbe32toh (buf);
 		if (index < m_RemoteBitfield.size ())
 		{
