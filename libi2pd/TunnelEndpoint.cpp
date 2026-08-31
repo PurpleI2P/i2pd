@@ -322,6 +322,12 @@ namespace tunnel
 			LogPrint (eLogInfo, "TunnelMessage: Message expired");
 			return;
 		}
+		if (msg.data->GetLength () < I2NP_HEADER_SIZE)
+		{
+			// GetPayloadLength subtracts the header size, a shorter message wraps it around
+			LogPrint (eLogError, "TunnelMessage: Message of ", msg.data->GetLength (), " bytes is shorter than I2NP header, dropped");
+			return;
+		}
 		uint8_t typeID = msg.data->GetTypeID ();
 		LogPrint (eLogDebug, "TunnelMessage: Handle fragment of ", msg.data->GetLength (), " bytes, msg type ", (int)typeID);
 
