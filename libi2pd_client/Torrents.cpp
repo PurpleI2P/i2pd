@@ -1588,7 +1588,17 @@ namespace torrents
 			ParseDictionary (std::string_view ((const char *)(buf + 1), len -1),
 				[this](std::string_view key, std::string_view buf)->size_t
 				{
-					if (key == "v")
+					if (key == "m")
+					{
+						return ParseDictionary (buf, [this](std::string_view msg, std::string_view msgID)->size_t
+							{
+								auto [id, l] = ExtractInteger (msgID);
+								if (l)
+									AddExtendedMsgHandler (msg, id);
+								return l;
+							});
+					}
+					else if (key == "v")
 					{
 						auto [v, l] = ExtractByteString (buf);
 						if (l) m_RemoteName = v;
@@ -1598,7 +1608,19 @@ namespace torrents
 				});
 		}
 		else
-			LogPrint (eLogInfo, "Torrents: Unexecpetd extended message type ", (int)buf[0], " received");
+		{
+			auto it = m_ExtendedMessageHandlers.find (buf[0]);
+			if (it != m_ExtendedMessageHandlers.end ())
+				(this->*(it->second))(buf + 1, len - 1);
+			else
+				LogPrint (eLogInfo, "Torrents: Unexecpetd extended message type ", (int)buf[0], " received");
+		}
+	}
+
+	void PeerConnection::AddExtendedMsgHandler (std::string_view extensionName, int64_t msgID)
+	{
+		if (extensionName == "ut_metadata")
+			m_ExtendedMessageHandlers.emplace (msgID, &PeerConnection::HandleUtMetadataExtension);
 	}
 
 	void PeerConnection::SendExtendedMsg ()
@@ -1610,6 +1632,11 @@ namespace torrents
 		sendBuffer[5] = 0; // handshake
 		memcpy (sendBuffer.data () + 6, payload.data (), payload.size ());
 		WriteToStream (sendBuffer.data (), sendBuffer.size ());
+	}
+
+	void PeerConnection::HandleUtMetadataExtension (const uint8_t * buf, size_t len)
+	{
+		// TODO:
 	}
 
 	std::optional<RequestedBlock> PeerConnection::GetNextBlockToRequest ()

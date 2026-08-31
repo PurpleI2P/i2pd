@@ -246,6 +246,8 @@ namespace torrents
 	class TorrentsTunnel;
 	class PeerConnection: public i2p::client::I2PServiceHandler, public std::enable_shared_from_this<PeerConnection>
 	{
+		using ExtendedMessageHandler = void (PeerConnection::*)(const uint8_t * buf, size_t len);
+
 		public:
 
 			using PeerID = std::array<uint8_t, 20>;
@@ -315,6 +317,8 @@ namespace torrents
 			void HandleChokeMsg ();
 			void HandleExtendedMsg (const uint8_t * buf, size_t len);
 			void SendExtendedMsg ();
+			void AddExtendedMsgHandler (std::string_view extensionName, int64_t msgID);
+			void HandleUtMetadataExtension (const uint8_t * buf, size_t len); // BEP9
 
 			std::optional<RequestedBlock> GetNextBlockToRequest ();
 			bool RequestNextBlocks ();
@@ -336,6 +340,7 @@ namespace torrents
 			std::list<RequestedBlock> m_IncomingRequestsQueue;
 			int m_LastRequestedPieceIndex;
 			std::unique_ptr<boost::asio::steady_timer> m_HandshakeReceiveTimer;
+			std::unordered_map<uint8_t, PeerConnection::ExtendedMessageHandler> m_ExtendedMessageHandlers;
 			// stats
 			uint64_t m_DownloadRate, m_UploadRate; // B/sec
 			uint64_t m_LastBlockDownloadTimestamp, m_LastBlockUploadTimestamp; // monotonic milliseconds
