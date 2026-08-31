@@ -887,12 +887,18 @@ namespace torrents
 			return;
 		}
 		uint64_t connectionID = bufbe64toh (buf + 4);
+		int lifetime = DATAGRAM_TRACKER_CONNECTION_EXPIRATION;
+		if (len >= 14)
+		{
+			lifetime = std::max (bufbe16toh (buf + 12)*1000, DATAGRAM_TRACKER_CONNECTION_EXPIRATION);
+			LogPrint (eLogDebug, "TorrentsTunnel: Datagram tracker connection lifetime set to ", lifetime/1000, " seconds");
+		}
 		auto [trackerID, fromPort, torrent, ts] = it->second;
 		if (trackerID < m_Trackers.size ())
 		{
 			auto& [announce, connID, connExpiration, connFromPort] = m_Trackers[trackerID];
 			connID = connectionID;
-			connExpiration = i2p::util::GetMonotonicMilliseconds () + DATAGRAM_TRACKER_CONNECTION_EXPIRATION;
+			connExpiration = i2p::util::GetMonotonicMilliseconds () + lifetime;
 			connFromPort = fromPort;
 		}
 		m_DatragramTrackerTransactions.erase (it);
