@@ -378,7 +378,7 @@ namespace data
 				// take care about data descriptor if presented
 				if (bitFlag & ZIP_BIT_FLAG_DATA_DESCRIPTOR)
 				{
-					size_t pos = s.tellg ();
+					auto pos = s.tellg ();
 					if (!FindZipDataDescriptor (s))
 					{
 						LogPrint (eLogError, "Reseed: SU3 archive data descriptor not found");
