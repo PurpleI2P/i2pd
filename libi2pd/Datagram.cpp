@@ -267,7 +267,7 @@ namespace datagram
 				return;
 			}
 			std::vector<uint8_t> signedData (len + 32 - identityLen - signatureLen);
-			memcpy (signedData.data (), identity.GetIdentHash (), 32);
+			memcpy (signedData.data (), m_Owner->GetIdentity ()->GetIdentHash (), 32);
 			memcpy (signedData.data () + 32, buf + identityLen, signedData.size () - 32);
 			verified = transientVerifier ? transientVerifier->Verify (signedData.data (), signedData.size (), buf + len - signatureLen) :
 				identity.Verify (signedData.data (), signedData.size (), buf + len - signatureLen);
