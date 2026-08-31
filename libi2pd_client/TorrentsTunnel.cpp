@@ -501,6 +501,7 @@ namespace torrents
 			{
 				if (!expiration || ts >= expiration) // don't connect if pending connection
 				{
+					connectionID = 0;
 					expiration = ts + DATAGRAM_TRACKER_TRANSACTION_TIMEOUT;
 					ConnectToDatagramTracker (trackerID, reqURL.host, reqURL.port);
 				}
