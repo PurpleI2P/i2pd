@@ -133,6 +133,7 @@ namespace http
 			}
 
 			/* hostname[:port][/path] */
+			if (pos_p >= url.length ()) return false; /* nothing left after schema or user part */
 			if (url.at(pos_p) == '[') // ipv6
 			{
 				auto pos_b = url.find(']', pos_p);

@@ -125,6 +125,12 @@ int main() {
   assert(url->frag == "frag");
   delete url;
 
+  /* nothing after the schema or the user part: must not throw */
+  url = new URL;
+  assert(url->parse("http://") == false);
+  assert(url->parse("http://user@") == false);
+  delete url;
+
   return 0;
 }
 
