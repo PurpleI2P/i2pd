@@ -616,6 +616,11 @@ namespace http
 				return false; /* too large chunk */
 			char * buf = new char[len];
 			in.read (buf, len);
+			if (in.gcount () != len) /* chunk is shorter than announced */
+			{
+				delete[] buf;
+				return false;
+			}
 			out.write (buf, len);
 			delete[] buf;
 			std::getline (in, hexLen); // read \r\n after chunk

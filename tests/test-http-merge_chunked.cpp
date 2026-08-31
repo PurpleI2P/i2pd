@@ -21,5 +21,11 @@ int main() {
   assert(MergeChunkedResponse(in, out) == true);
   assert(out.str() == "HTTP response with \r\nchunks.");
 
+  /* a chunk that promises more bytes than the response carries */
+  std::stringstream truncated("20\r\nshort\r\n");
+  std::stringstream out2;
+
+  assert(MergeChunkedResponse(truncated, out2) == false);
+
   return 0;
 }
