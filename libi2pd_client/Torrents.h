@@ -175,6 +175,7 @@ namespace torrents
 			size_t GetLength () const { return m_Length; }
 			size_t GetPieceLength () const { return m_PieceLength; }
 			int GetInterval (size_t trackerID) const { return (trackerID < m_TrackerStats.size ()) ? std::get<1>(m_TrackerStats[trackerID]) : MIN_TRACKER_REQUESTS_INTERVAL; }
+			const std::vector<uint8_t> GetInfo () const { return m_Info; }
 			const InfoHash& GetInfoHash () const { return m_InfoHash; }
 			size_t GetLeft () const;
 			std::string GetHexStringInfoHash () const; // in url format
@@ -232,6 +233,7 @@ namespace torrents
 			std::string m_Name, m_Announce;
 			std::filesystem::path m_FullPath;
 			size_t m_Length, m_PieceLength;
+			std::vector<uint8_t> m_Info; // for BEP9
 			InfoHash m_InfoHash; // SHA1
 			std::vector<Piece> m_Pieces;
 			std::vector<TrackerStats> m_TrackerStats;
@@ -316,7 +318,7 @@ namespace torrents
 			void SendChokeMsg ();
 			void HandleChokeMsg ();
 			void HandleExtendedMsg (const uint8_t * buf, size_t len);
-			void SendExtendedMsg ();
+			void SendExtendedMsg (uint8_t extendedMsgID = 0, std::string_view payload = "", std::string_view data = "");
 			void AddExtendedMsgHandler (std::string_view extensionName, int64_t msgID);
 			void HandleUtMetadataExtension (const uint8_t * buf, size_t len); // BEP9
 

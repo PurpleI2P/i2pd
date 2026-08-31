@@ -147,6 +147,13 @@ namespace torrents
 		return ret;
 	}
 
+	static std::string CreateInteger (int64_t v)
+	{
+		std::string ret ("i");
+		ret += std::to_string (v); ret += "e";
+		return ret;
+	}
+
 	static std::string CreateDictionary (const std::vector<std::pair<std::string_view, std::string_view> >& items)
 	{
 		std::stringstream s;
@@ -398,8 +405,11 @@ namespace torrents
 				return 0;
 			});
 		if (!len) return 0;
+		// save info
+		m_Info.resize (len);
+		memcpy (m_Info.data (), (const uint8_t *)buf.data (), len);
 		// calculate info hash
-		SHA1 ((const uint8_t *)buf.data (), len, m_InfoHash.data ());
+		SHA1 (m_Info.data (), len, m_InfoHash.data ());
 		return len;
 	}
 
@@ -1613,7 +1623,7 @@ namespace torrents
 			if (it != m_ExtendedMessageHandlers.end ())
 				(this->*(it->second))(buf + 1, len - 1);
 			else
-				LogPrint (eLogInfo, "Torrents: Unexecpetd extended message type ", (int)buf[0], " received");
+				LogPrint (eLogInfo, "Torrents: Unexpected extended message type ", (int)buf[0], " received");
 		}
 	}
 
@@ -1623,20 +1633,68 @@ namespace torrents
 			m_ExtendedMessageHandlers.emplace (msgID, &PeerConnection::HandleUtMetadataExtension);
 	}
 
-	void PeerConnection::SendExtendedMsg ()
+	void PeerConnection::SendExtendedMsg (uint8_t extendedMsgID, std::string_view payload, std::string_view data)
 	{
-		std::string payload = CreateDictionary ({{ CreateByteString ("v"), CreateByteString ("i2pd") }});
-		std::vector<uint8_t> sendBuffer (payload.length () + 1 + 5);
-		htobe32buf (sendBuffer.data (), payload.length () + 1 + 1); // length
+		std::string str;
+		if (!extendedMsgID) // handshake
+		{
+			str = CreateDictionary ({{ CreateByteString ("v"), CreateByteString ("i2pd") }});
+			payload = str;
+		}
+		std::vector<uint8_t> sendBuffer (payload.length () + data.length () + 1 + 5);
+		htobe32buf (sendBuffer.data (), payload.length () + data.length () + 1 + 1); // length
 		sendBuffer[4] = eMessageTypeExtended; // msg ID
-		sendBuffer[5] = 0; // handshake
+		sendBuffer[5] = extendedMsgID;
 		memcpy (sendBuffer.data () + 6, payload.data (), payload.size ());
+		if (!data.empty ())
+			memcpy (sendBuffer.data () + 6 + payload.size (), data.data (), data.size ());
 		WriteToStream (sendBuffer.data (), sendBuffer.size ());
 	}
 
 	void PeerConnection::HandleUtMetadataExtension (const uint8_t * buf, size_t len)
 	{
-		// TODO:
+		if (!m_Torrent) return;
+		int msgType = -1, piece = -1;
+		ParseDictionary (std::string_view ((const char *)buf, len),
+			[&msgType, &piece](std::string_view key, std::string_view buf)->size_t
+			{
+				if (key == "msg_type")
+				{
+					auto [value, l] = ExtractInteger (buf);
+					if (!l) msgType = value;
+					return l;
+				}
+				else if (key == "piece")
+				{
+					auto [value, l] = ExtractInteger (buf);
+					if (!l) piece = value;
+					return l;
+				}
+				return 0;
+			});
+		if (msgType >=0 && piece >= 0)
+		{
+			switch (msgType)
+			{
+				case 0:
+				{
+					auto& info = m_Torrent->GetInfo ();
+					size_t offset = piece*REQUEST_BLOCK_SIZE;
+					if (offset < info.size ())
+					{
+						size_t totalSize = std::min (info.size () - offset, REQUEST_BLOCK_SIZE);
+						SendExtendedMsg (3, // TODO: msgID from table
+							CreateDictionary ({{ CreateByteString ("msg_type"), CreateInteger (1) },
+								{ CreateByteString ("piece"), CreateInteger (piece) },
+								{ CreateByteString ("total_size"), CreateInteger (totalSize) } }),
+							std::string_view ((const char *)info.data () + offset, totalSize));
+					}
+					break;
+				}
+				default:
+					LogPrint (eLogInfo, "Torrents: ut_metadata msg_type ", msgType, " is not supported");
+			}
+		}
 	}
 
 	std::optional<RequestedBlock> PeerConnection::GetNextBlockToRequest ()
