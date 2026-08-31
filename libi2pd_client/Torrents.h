@@ -146,9 +146,10 @@ namespace torrents
 	using RequestedBlock = std::tuple<uint32_t, uint32_t, uint32_t>; // (index, offset, len)
 	class Torrent final
 	{
-		using TrackerStats = std::tuple<std::unordered_set<i2p::data::IdentHash>, int, uint64_t, int, int, uint64_t>;
+		using TrackerStats = std::tuple<std::unordered_set<i2p::data::IdentHash>,
+			int, uint64_t, int, int, uint64_t, std::string>;
 			// (peers, interval, next tracker request time in monotonic milliseconds,
-			//  seeders, leechers, last update time in seconds since epoch)
+			//  seeders, leechers, last update time in seconds since epoch, error)
 		public:
 
 			using InfoHash = std::array<uint8_t, 20>;
@@ -214,6 +215,8 @@ namespace torrents
 			int GetNumLeechers (size_t trackerID) const { return (trackerID < m_TrackerStats.size ()) ? std::get<4>(m_TrackerStats[trackerID]) : 0; }
 			int GetNumPeers (size_t trackerID) const { return (trackerID < m_TrackerStats.size ()) ? std::get<0>(m_TrackerStats[trackerID]).size () : 0; }
 			uint64_t GetLastTrackerUpdateTime (size_t trackerID) const { return (trackerID < m_TrackerStats.size ()) ? std::get<5>(m_TrackerStats[trackerID]) : 0; }
+			std::string GetTrackerError (size_t trackerID) const { return (trackerID < m_TrackerStats.size ()) ? std::get<6>(m_TrackerStats[trackerID]) : ""; }
+			void SetTrackerError (size_t trackerID, std::string_view error);
 
 		private:
 
@@ -222,6 +225,7 @@ namespace torrents
 			size_t ParsePeers (size_t trackerID, std::string_view buf);
 			size_t ParseFiles (std::string_view buf);
 			static bool IsSafeName (std::string_view name); // a name from a torrent file before it becomes a path
+			void CheckTrackerStatsSize (size_t trackerID);
 
 		private:
 

@@ -834,8 +834,18 @@ namespace torrents
 	{
 		uint32_t transactionID = bufbe32toh (buf);
 		LogPrint (eLogDebug, "TorrentsTunnel: Datagram tracker action error response ", transactionID);
-		m_DatragramTrackerTransactions.erase (transactionID);
-		LogPrint (eLogInfo, "TorrentsTunnel: Datagram tracker error response: ", std::string_view ((const char *)(buf + 4), len - 4));
+		auto it = m_DatragramTrackerTransactions.find (transactionID);
+		if (it == m_DatragramTrackerTransactions.end ())
+		{
+			LogPrint (eLogInfo, "TorrentsTunnel: Datagram tracker transaction ", transactionID, " not found");
+			return;
+		}
+		std::string_view error ((const char *)(buf + 4), len - 4);
+		LogPrint (eLogInfo, "TorrentsTunnel: Datagram tracker error response: ", error);
+		auto [trackerID, fromPort, torrent, ts] = it->second;
+		if (!torrent.expired ()) // response to announce
+			torrent.lock ()->SetTrackerError (trackerID, error);
+		m_DatragramTrackerTransactions.erase (it);
 	}
 
 	void TorrentsTunnel::ConnectToDatagramTracker (size_t trackerID, std::string_view dest, uint16_t port)

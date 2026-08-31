@@ -443,8 +443,17 @@ namespace torrents
 			tracker["seederCount"] = torrent->GetNumSeeders (i);
 			tracker["leecherCount"] = torrent->GetNumLeechers (i);
 			tracker["lastAnnouncePeerCount"] = torrent->GetNumPeers (i);
-			tracker["lastAnnounceResult"] = "Success"; // TODO:
-			tracker["lastAnnounceSucceeded"] = true; // TODO:
+			auto trackerError = torrent->GetTrackerError (i);
+			if (trackerError.empty ())
+			{
+				tracker["lastAnnounceResult"] = "Success";
+				tracker["lastAnnounceSucceeded"] = true;
+			}
+			else
+			{
+				tracker["lastAnnounceResult"] = trackerError;
+				tracker["lastAnnounceSucceeded"] = false;
+			}
 			tracker["lastAnnounceTimedOut"] = false; // TODO:
 			tracker["nextAnnounceTime"] = (torrent->GetNextTrackerRequestTime (i) -
 				i2p::util::GetMonotonicMilliseconds () + i2p::util::GetMillisecondsSinceEpoch ())/1000;

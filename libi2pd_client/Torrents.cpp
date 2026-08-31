@@ -490,9 +490,8 @@ namespace torrents
 
 	void Torrent::ParseTrackerResponse (size_t trackerID, std::string_view buf)
 	{
-		if (trackerID >= m_TrackerStats.size ())
-			m_TrackerStats.resize (trackerID + 1, TrackerStats{{}, MIN_TRACKER_REQUESTS_INTERVAL,
-				0, 0, 0, i2p::util::GetSecondsSinceEpoch ()});
+		CheckTrackerStatsSize (trackerID);
+		std::get<6>(m_TrackerStats[trackerID]) = ""; // clear error
 		ParseDictionary (buf, [this, trackerID](std::string_view key, std::string_view buf)->size_t
 			{
 				if (key == "interval")
@@ -524,6 +523,7 @@ namespace torrents
 				{
 					auto [reason, l] = ExtractByteString (buf);
 					LogPrint (eLogError, "Torrents: Tracker error: ", reason);
+					std::get<6>(m_TrackerStats[trackerID]) = reason;
 					// double interval if tracker failure
 					int interval = std::max (MIN_TRACKER_REQUESTS_INTERVAL, std::get<1>(m_TrackerStats[trackerID])*2);
 					std::get<1>(m_TrackerStats[trackerID]) = interval;
@@ -551,10 +551,9 @@ namespace torrents
 	void Torrent::HandleDatagramTrackerResponse (size_t trackerID, uint32_t interval,
 		const uint8_t * hashes, size_t hashesLen, int numSeeders, int numLeechers)
 	{
-		if (trackerID >= m_TrackerStats.size ())
-			m_TrackerStats.resize (trackerID + 1, TrackerStats{{}, MIN_TRACKER_REQUESTS_INTERVAL,
-				0, 0, 0, i2p::util::GetSecondsSinceEpoch () });
-		auto& [peers, trackerRequestInterval, nextRequestTime, seeders, leechers, lastUpdateTime] = m_TrackerStats[trackerID];
+		CheckTrackerStatsSize (trackerID);
+		auto& [peers, trackerRequestInterval, nextRequestTime, seeders, leechers,
+			lastUpdateTime, error] = m_TrackerStats[trackerID];
 		trackerRequestInterval = interval*1000; // milliseconds
 		nextRequestTime = i2p::util::GetMonotonicMilliseconds () + trackerRequestInterval;
 		seeders = numSeeders;
@@ -569,6 +568,19 @@ namespace torrents
 			peers.emplace (std::move (ident));
 			offset += i2p::data::IdentHash::len;
 		}
+	}
+
+	void Torrent::SetTrackerError (size_t trackerID, std::string_view error)
+	{
+		CheckTrackerStatsSize (trackerID);
+		std::get<6>(m_TrackerStats[trackerID]) = error;
+	}
+
+	void Torrent::CheckTrackerStatsSize (size_t trackerID)
+	{
+		if (trackerID >= m_TrackerStats.size ())
+			m_TrackerStats.resize (trackerID + 1, TrackerStats{{}, MIN_TRACKER_REQUESTS_INTERVAL,
+				0, 0, 0, i2p::util::GetSecondsSinceEpoch (), ""});
 	}
 
 	std::pair<std::vector<uint8_t>, bool> Torrent::CreateBitfield () const
@@ -816,7 +828,7 @@ namespace torrents
 	{
 		if (trackerID >= m_TrackerStats.size ())
 			m_TrackerStats.resize (trackerID + 1, TrackerStats{{}, MIN_TRACKER_REQUESTS_INTERVAL,
-				0, 0, 0, i2p::util::GetSecondsSinceEpoch ()});
+				0, 0, 0, i2p::util::GetSecondsSinceEpoch (), ""});
 		std::get<2>(m_TrackerStats[trackerID]) = ts;
 	}
 
