@@ -533,6 +533,7 @@ namespace torrents
 	{
 		if (!ecode)
 		{
+#ifdef JSON_SUPPORTED
 			if (m_Request.method() == boost::beast::http::verb::post)
 			{
 				auto path = m_Request.target ();
@@ -547,19 +548,17 @@ namespace torrents
 #endif
 						m_Request[boost::beast::http::field::content_type] == "application/x-www-form-urlencoded")
 					{
-#ifdef JSON_SUPPORTED
+
 						JSONRPCHandler jsonHandler (tunnel);
 						auto response = jsonHandler.HandleRequest (m_Request.body ());
 						if (!response.empty ())
 							SendResponse (boost::beast::http::status::ok, response);
-#else
-						SendResponse (boost::beast::http::status::not_implemented, std::string ("Your boost version ") + BOOST_LIB_VERSION + " is too old");
-#endif
 					}
 					else
 						SendResponse (boost::beast::http::status::no_content);
 				}
-				else {
+				else
+				{
 					LogPrint(eLogDebug, "TorrentRPC ", path, " not found ", tunnel);
 					SendResponse (boost::beast::http::status::not_found);
 				}
@@ -568,6 +567,9 @@ namespace torrents
 				SendResponse (boost::beast::http::status::no_content, "", true);
 			else
 				SendResponse (boost::beast::http::status::method_not_allowed);
+#else
+			SendResponse (boost::beast::http::status::not_implemented, std::string ("Your boost version ") + BOOST_LIB_VERSION + " is too old");
+#endif
 		}
 	}
 
