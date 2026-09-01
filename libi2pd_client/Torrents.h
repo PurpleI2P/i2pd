@@ -53,6 +53,10 @@ namespace torrents
 	constexpr size_t REQUEST_MSG_LENGTH = REQUEST_MSG_PAYLOAD_LENGTH + 5;
 	constexpr size_t HAVE_MSG_PAYLOAD_LENGTH = 4;
 
+	// extensions
+	constexpr std::string_view EXTENSION_NAME_UT_METADATA { "ut_metadata" };
+	constexpr uint8_t EXTENSION_MSGID_UT_METADATA = 1;
+
 	enum MessageType
 	{
 		eMessageTypeChoke = 0,

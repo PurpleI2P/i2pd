@@ -161,7 +161,7 @@ namespace torrents
 		for (const auto& [name, value]: items)
 			if (!name.empty () && !value.empty ())
 			{
-				s << name; s << value;
+				s << CreateByteString (name); s << value;
 			}
 		s << 'e';
 		return s.str ();
@@ -1629,7 +1629,7 @@ namespace torrents
 
 	void PeerConnection::AddExtendedMsgHandler (std::string_view extensionName, int64_t msgID)
 	{
-		if (extensionName == "ut_metadata")
+		if (extensionName == EXTENSION_NAME_UT_METADATA)
 			m_ExtendedMessageHandlers.emplace (msgID, &PeerConnection::HandleUtMetadataExtension);
 	}
 
@@ -1638,7 +1638,13 @@ namespace torrents
 		std::string str;
 		if (!extendedMsgID) // handshake
 		{
-			str = CreateDictionary ({{ CreateByteString ("v"), CreateByteString ("i2pd") }});
+			str = CreateDictionary ({
+				{ "m", CreateDictionary ({
+					{ EXTENSION_NAME_UT_METADATA, CreateInteger (EXTENSION_MSGID_UT_METADATA) }
+										  }) },
+				{ "metadata_size",  CreateInteger (m_Torrent->GetInfo ().size ()) },
+				{ "v", CreateByteString ("i2pd") }
+									});
 			payload = str;
 		}
 		std::vector<uint8_t> sendBuffer (payload.length () + data.length () + 1 + 5);
@@ -1683,10 +1689,10 @@ namespace torrents
 					if (offset < info.size ())
 					{
 						size_t totalSize = std::min (info.size () - offset, REQUEST_BLOCK_SIZE);
-						SendExtendedMsg (3, // TODO: msgID from table
-							CreateDictionary ({{ CreateByteString ("msg_type"), CreateInteger (1) },
-								{ CreateByteString ("piece"), CreateInteger (piece) },
-								{ CreateByteString ("total_size"), CreateInteger (totalSize) } }),
+						SendExtendedMsg (EXTENSION_MSGID_UT_METADATA,
+							CreateDictionary ({{ "msg_type", CreateInteger (1) },
+								{ "piece", CreateInteger (piece) },
+								{ "total_size", CreateInteger (totalSize) } }),
 							std::string_view ((const char *)info.data () + offset, totalSize));
 					}
 					break;
