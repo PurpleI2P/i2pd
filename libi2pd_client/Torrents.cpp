@@ -854,7 +854,7 @@ namespace torrents
 		m_Stream (stream), m_ReceiveBufferOffset (0), m_NextMsgLength (0),
 		m_IsHandshakeSent (false), m_IsEstablished (false), m_IsChoked (true), m_IsRemoteChoked (true),
 		m_IsInterested (false), m_IsRemoteInterested (false), m_LastReceiveTime (0), m_LastSendTime (0),
-		m_NumRequests (0), m_NumPieces (0), m_LastRequestedPieceIndex (-1),
+		m_NumRequests (0), m_NumPieces (0), m_LastRequestedPieceIndex (-1), m_RemoteMetadataSize (0),
 		m_Downloaded (0), m_Uploaded (0)
 	{
 		ResetStats ();
@@ -1608,6 +1608,12 @@ namespace torrents
 								return l;
 							});
 					}
+					else if (key == "metadata_size")
+					{
+						auto [s, l] = ExtractInteger (buf);
+						if (l) m_RemoteMetadataSize = s;
+						return l;
+					}
 					else if (key == "v")
 					{
 						auto [v, l] = ExtractByteString (buf);
@@ -1661,8 +1667,9 @@ namespace torrents
 	{
 		if (!m_Torrent) return;
 		int msgType = -1, piece = -1;
-		ParseDictionary (std::string_view ((const char *)buf, len),
-			[&msgType, &piece](std::string_view key, std::string_view buf)->size_t
+		size_t size = 0;
+		auto payloadLen = ParseDictionary (std::string_view ((const char *)buf, len),
+			[&msgType, &piece, &size](std::string_view key, std::string_view buf)->size_t
 			{
 				if (key == "msg_type")
 				{
@@ -1676,13 +1683,19 @@ namespace torrents
 					if (!l) piece = value;
 					return l;
 				}
+				else if (key == "total_size")
+				{
+					auto [s, l] = ExtractInteger (buf);
+					if (!l) size = s;
+					return l;
+				}
 				return 0;
 			});
 		if (msgType >=0 && piece >= 0)
 		{
 			switch (msgType)
 			{
-				case 0:
+				case 0: // request
 				{
 					auto& info = m_Torrent->GetInfo ();
 					size_t offset = piece*REQUEST_BLOCK_SIZE;
@@ -1695,8 +1708,36 @@ namespace torrents
 								{ "total_size", CreateInteger (totalSize) } }),
 							std::string_view ((const char *)info.data () + offset, totalSize));
 					}
+					else
+						SendExtendedMsg (EXTENSION_MSGID_UT_METADATA, CreateDictionary ({{ "msg_type", CreateInteger (2) }, { "piece", CreateInteger (piece) }}));
 					break;
 				}
+				case 1: // data
+				{
+					if (payloadLen + size > len) break;
+					size_t offset = piece*REQUEST_BLOCK_SIZE;
+					if (offset == m_RemoteMetadata.size () && size)
+					{
+						m_RemoteMetadata.resize (m_RemoteMetadata.size () + size);
+						memcpy (m_RemoteMetadata.data () + offset,buf + payloadLen, size);
+						if (m_RemoteMetadata.size () < m_RemoteMetadataSize)
+							// request next piece
+							SendExtendedMsg (EXTENSION_MSGID_UT_METADATA, CreateDictionary ({{ "msg_type", CreateInteger (0) }, { "piece", CreateInteger (piece + 1) }}));
+						else
+						{
+							// all info received
+							LogPrint (eLogDebug, "Torrents: ut_metadata ", m_RemoteMetadataSize, " bytes of info received");
+							// TODO: update torrent
+							// cleanup
+							std::vector<uint8_t> tmp;
+							m_RemoteMetadata.swap (tmp);
+						}
+					}
+					break;
+				}
+				case 2: // reject
+					LogPrint (eLogError, "Torrents: ut_metadata piece ", piece, " request rejected");
+				break;
 				default:
 					LogPrint (eLogInfo, "Torrents: ut_metadata msg_type ", msgType, " is not supported");
 			}

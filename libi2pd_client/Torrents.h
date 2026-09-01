@@ -347,6 +347,9 @@ namespace torrents
 			int m_LastRequestedPieceIndex;
 			std::unique_ptr<boost::asio::steady_timer> m_HandshakeReceiveTimer;
 			std::unordered_map<uint8_t, PeerConnection::ExtendedMessageHandler> m_ExtendedMessageHandlers;
+			// BEP9
+			size_t m_RemoteMetadataSize;
+			std::vector<uint8_t> m_RemoteMetadata;
 			// stats
 			uint64_t m_DownloadRate, m_UploadRate; // B/sec
 			uint64_t m_LastBlockDownloadTimestamp, m_LastBlockUploadTimestamp; // monotonic milliseconds
