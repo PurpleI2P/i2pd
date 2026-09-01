@@ -90,6 +90,7 @@ namespace torrents
 			auto& GetDiskIOService () { return m_DiskIOService.GetService (); };
 
 			const std::string& GetPeerID () const { return m_PeerID; }
+			const std::filesystem::path& GetTorrentsDir () const { return m_TorrentsDir; }
 			std::string GetTrackerAnnounce (size_t id) const { return (id < m_Trackers.size ()) ? std::get<0>(m_Trackers[id]) : ""; }
 			size_t GetNumTrackers () const { return m_Trackers.size (); }
 			std::shared_ptr<Torrent> FindTorrent (const Torrent::InfoHash& infoHash) const;

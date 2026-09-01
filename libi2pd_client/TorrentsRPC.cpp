@@ -54,6 +54,7 @@ namespace torrents
 			boost::json::array GetPeers (std::shared_ptr<Torrent> torrent) const;
 			boost::json::array GetTrackers (std::shared_ptr<Torrent> torrent) const;
 			boost::json::array GetTrackerStats (std::shared_ptr<Torrent> torrent) const;
+			boost::json::array GetFiles (std::shared_ptr<Torrent> torrent) const;
 			static std::string_view RecognizeClientByPeerID (const PeerConnection::PeerID& peerID);
 
 			std::string HandleTorrentAdd (boost::json::object&& jsonRequest);
@@ -244,6 +245,8 @@ namespace torrents
 						t["trackers"] = GetTrackers (torrent);
 					else if (field == "trackerStats")
 						t["trackerStats"] = GetTrackerStats (torrent);
+					else if (field == "files")
+						t["files"] = GetFiles (torrent);
 					else
 					{
 						auto fieldValue = GetFieldValue (field.as_string (), torrent);
@@ -294,35 +297,6 @@ namespace torrents
 					b64pieces.resize (boost::beast::detail::base64::encoded_size (bitfield.size()));
 					boost::beast::detail::base64::encode (b64pieces.data (), bitfield.data(), bitfield.size());
 					return boost::json::value(b64pieces);
-				}
-			},
-			{ "files", [](std::shared_ptr<Torrent> torrent)
-				{
-					boost::json::array files;
-					const auto& torrentFiles = torrent->GetFiles ();
-					if (torrentFiles.empty ())
-					{
-						boost::json::object file;
-						file["name"] = torrent->GetFullPath ().string ();
-						file["length"] = torrent->GetLength ();
-						file["bytesCompleted"] = torrent->GetLength () - torrent->GetLeft ();
-						files.push_back (file);
-					}
-					else
-					{
-						auto filesCompleted = torrent->GetFilesCompleted ();
-						size_t ind = 0;
-						for (const auto& [filePath, fileSize]: torrentFiles)
-						{
-							boost::json::object file;
-							file["name"] = filePath.string ();
-							file["length"] = fileSize;
-							file["bytesCompleted"] = (ind < filesCompleted.size ()) ? filesCompleted[ind] : 0;
-							files.push_back (file);
-							ind++;
-						}
-					}
-					return files;
 				}
 			},
 			{ "wanted", [](std::shared_ptr<Torrent> torrent)
@@ -468,6 +442,36 @@ namespace torrents
 			trackers.push_back (tracker);
 		}
 		return trackers;
+	}
+
+	boost::json::array JSONRPCHandler::GetFiles (std::shared_ptr<Torrent> torrent) const
+	{
+		boost::json::array files;
+		const auto& torrentFiles = torrent->GetFiles ();
+		if (torrentFiles.empty ())
+		{
+			boost::json::object file;
+			file["name"] = torrent->GetName ();
+			file["length"] = torrent->GetLength ();
+			file["bytesCompleted"] = torrent->GetLength () - torrent->GetLeft ();
+			files.push_back (file);
+		}
+		else
+		{
+			const auto& torrentsDir = m_Tunnel->GetTorrentsDir ();
+			auto filesCompleted = torrent->GetFilesCompleted ();
+			size_t ind = 0;
+			for (const auto& [filePath, fileSize]: torrentFiles)
+			{
+				boost::json::object file;
+				file["name"] = std::filesystem::relative (filePath, torrentsDir).string ();
+				file["length"] = fileSize;
+				file["bytesCompleted"] = (ind < filesCompleted.size ()) ? filesCompleted[ind] : 0;
+				files.push_back (file);
+				ind++;
+			}
+		}
+		return files;
 	}
 
 	std::string_view JSONRPCHandler::RecognizeClientByPeerID (const PeerConnection::PeerID& peerID)
