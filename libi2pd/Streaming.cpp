@@ -1531,6 +1531,9 @@ namespace stream
 
 	void Stream::SendPackets (const std::list<Packet *>& packets)
 	{
+		// the local destination is a reference and it can be gone already: a handler
+		// queued before the destination was stopped runs after it
+		if (m_Status == eStreamStatusTerminated) return;
 		if (!m_RemoteLeaseSet)
 		{
 			CancelRemoteLeaseChange ();
