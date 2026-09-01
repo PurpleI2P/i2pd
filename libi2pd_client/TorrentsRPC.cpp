@@ -539,7 +539,8 @@ namespace torrents
 				auto tunnel = m_Server.GetTunnel ( {path.data (), path.size ()}); // boost::beast::string_view to std::string_view
 				if (tunnel)
 				{
-					if (m_Request[boost::beast::http::field::content_type] == "application/json" ||
+					static constexpr std::string_view appjson { "application/json" };
+					if (m_Request[boost::beast::http::field::content_type].compare (0, appjson.size (), appjson) || // starts with
 						m_Request[boost::beast::http::field::content_type] == "application/x-www-form-urlencoded")
 					{
 #ifdef JSON_SUPPORTED
@@ -616,7 +617,10 @@ namespace torrents
 		std::string rpcPath ("/");
 		if (!path.empty ())
 			rpcPath += std::string (path) + "/";
-		rpcPath += "rpc/";
+		// insert both pathes rpc and rpc/
+		rpcPath += "rpc";
+		m_Tunnels.emplace (rpcPath, tunnel);
+		rpcPath += "/";
 		m_Tunnels.emplace (rpcPath, tunnel);
 	}
 
