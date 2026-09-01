@@ -540,7 +540,11 @@ namespace torrents
 				if (tunnel)
 				{
 					static constexpr std::string_view appjson { "application/json" };
-					if (m_Request[boost::beast::http::field::content_type].compare (0, appjson.size (), appjson) || // starts with
+#if __cplusplus >= 202002L // C++20
+					if (m_Request[boost::beast::http::field::content_type].starts_with (appjson) || // starts with
+#else
+					if (m_Request[boost::beast::http::field::content_type].substr (0, appjson.size ()) == appjson || // starts with
+#endif
 						m_Request[boost::beast::http::field::content_type] == "application/x-www-form-urlencoded")
 					{
 #ifdef JSON_SUPPORTED
