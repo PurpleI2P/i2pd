@@ -46,7 +46,7 @@ namespace torrents
 		i2p::client::I2PService::Start ();
 		m_DiskIOService.Start ();
 
-		auto dgramDest = GetLocalDestination ()->CreateDatagramDestination (false, i2p::datagram::eDatagramV3);
+		auto dgramDest = GetLocalDestination ()->CreateDatagramDestination (true, i2p::datagram::eDatagramV3);
 		if (dgramDest)
 			dgramDest->SetRawReceiver (std::bind (&TorrentsTunnel::HandleRecvFromI2PRaw,
 				std::static_pointer_cast<TorrentsTunnel>(shared_from_this ()),
@@ -871,6 +871,7 @@ namespace torrents
 						trackerID, fromPort, std::shared_ptr<Torrent>(nullptr), i2p::util::GetMonotonicMilliseconds ()));
 					session->SetVersion (i2p::datagram::eDatagramV2); // send datagram2
 					dgramDest->SendDatagram (session, connectRequest, 16, fromPort, port);
+					dgramDest->FlushSendQueue (session);
 				}
 				else
 					LogPrint (eLogInfo, "TorrentsTunnel: Can't obtain datagram session to ", dest);
@@ -953,6 +954,7 @@ namespace torrents
 						trackerID, fromPort, torrent, i2p::util::GetMonotonicMilliseconds ()));
 					session->SetVersion (i2p::datagram::eDatagramV3); // send datagram3
 					dgramDest->SendDatagram (session, announce, 98, fromPort, port);
+					dgramDest->FlushSendQueue (session);
 				}
 				else
 					LogPrint (eLogInfo, "TorrentsTunnel: Can't obtain datagram session");
