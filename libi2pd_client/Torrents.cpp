@@ -1674,19 +1674,19 @@ namespace torrents
 				if (key == "msg_type")
 				{
 					auto [value, l] = ExtractInteger (buf);
-					if (!l) msgType = value;
+					if (l) msgType = value;
 					return l;
 				}
 				else if (key == "piece")
 				{
 					auto [value, l] = ExtractInteger (buf);
-					if (!l) piece = value;
+					if (l) piece = value;
 					return l;
 				}
 				else if (key == "total_size")
 				{
 					auto [s, l] = ExtractInteger (buf);
-					if (!l) size = s;
+					if (l) size = s;
 					return l;
 				}
 				return 0;
