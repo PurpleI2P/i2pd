@@ -6,6 +6,8 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#ifndef NO_TORRENTS
+
 #include <boost/version.hpp>
 #if !defined(ANDROID) && (BOOST_VERSION >= 108100) // boost::json since 1.75, we allow it since 1.81 due to std::string_view compatibility
 #include <boost/json.hpp>
@@ -670,3 +672,5 @@ namespace torrents
 	}
 }
 }
+
+#endif

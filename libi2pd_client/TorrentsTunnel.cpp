@@ -6,6 +6,8 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#ifndef NO_TORRENTS
+
 #include <fstream>
 #include <boost/algorithm/string.hpp>
 #include <boost/asio.hpp>
@@ -991,3 +993,5 @@ namespace torrents
 	}
 }
 }
+
+#endif // NO_TORRENTS

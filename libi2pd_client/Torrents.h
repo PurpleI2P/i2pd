@@ -9,6 +9,8 @@
 #ifndef TORRENTS_H__
 #define TORRENTS_H__
 
+#ifndef NO_TORRENTS
+
 #include <inttypes.h>
 #include <openssl/sha.h>
 #include <boost/asio.hpp>
@@ -360,4 +362,7 @@ namespace torrents
 	};
 }
 }
+
+#endif // NO_TORRENTS
+
 #endif

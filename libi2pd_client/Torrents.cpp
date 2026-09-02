@@ -6,6 +6,8 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#ifndef NO_TORRENTS
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -1798,3 +1800,5 @@ namespace torrents
 	}
 }
 }
+
+#endif // NO_TORRENTS

@@ -117,9 +117,11 @@ namespace client
 
 		m_AddressBook.StartResolvers ();
 
+#ifndef NO_TORRENTS
 		// start torrents RPC server
 		for (auto& it: m_TorrentsRPCServers)
 			it.second->Start ();
+#endif
 	}
 
 	std::shared_ptr<I2PService> ClientContext::DetachHttpProxy ()
@@ -168,6 +170,7 @@ namespace client
 		}
 		m_ServerTunnels.clear ();
 
+#ifndef NO_TORRENTS
 		// start torrents RPC server
 		for (auto& it: m_TorrentsRPCServers)
 			it.second->Stop ();
@@ -178,6 +181,7 @@ namespace client
 			it.second->Stop ();
 		}
 		m_TorrentsTunnels.clear ();
+#endif
 
 		if (m_SamBridge)
 		{
@@ -980,7 +984,7 @@ namespace client
 				}
 				else if (type == I2P_TUNNELS_SECTION_TYPE_TORRENTS)
 				{
-
+#ifndef NO_TORRENTS
 					// mandatory params
 					std::string torrentsDir = section.second.get<std::string> (TORRENTS_TUNNEL_TORRENTS_DIR);
 					// optional params
@@ -1038,6 +1042,9 @@ namespace client
 					}
 					else
 						LogPrint (eLogError, "Clients: Failed to create torrents tunnel ", name, ". Duplicate keys ", keys);
+#else
+					LogPrint (eLogError, "Clients: Torrents tunnels are not supported. Comppile without NO_TORRENTS");
+#endif
 				}
 				else
 					LogPrint (eLogError, "Clients: Unknown section type = ", type, " of ", name, " in ", tunConf);
@@ -1216,6 +1223,7 @@ namespace client
 		}
 	}
 
+#ifndef NO_TORRENTS
 	std::shared_ptr<i2p::torrents::TorrentsRPCServer> ClientContext::CreateTorrentsRPCServer (
 		std::string_view address, uint16_t port)
 	{
@@ -1238,5 +1246,6 @@ namespace client
 		}
 		return nullptr;
 	}
+#endif
 }
 }

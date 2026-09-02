@@ -6,6 +6,8 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#ifndef NO_TORRENTS
+
 #ifndef TORRENTS_TUNNEL_H__
 #define TORRENTS_TUNNEL_H__
 
@@ -167,3 +169,5 @@ namespace torrents
 }
 
 #endif
+
+#endif // NO_TORRENTS
