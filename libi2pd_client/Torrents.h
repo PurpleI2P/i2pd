@@ -156,9 +156,10 @@ namespace torrents
 			//  seeders, leechers, last update time in seconds since epoch, error)
 		public:
 
-			using InfoHash = std::array<uint8_t, 20>;
+			using InfoHash = std::array<uint8_t, SHA_DIGEST_LENGTH>;
 
 			Torrent (std::string_view buf);
+			Torrent (const InfoHash& infoHash);
 			void ParseTrackerResponse (size_t trackerID, std::string_view buf);
 			void HandleDatagramTrackerResponse (size_t trackerID, uint32_t interval,
 				const uint8_t * hashes, size_t hashesLen, int numSeeders, int numLeechers);
@@ -225,6 +226,7 @@ namespace torrents
 
 		private:
 
+			Torrent ();
 			size_t ParsePieces (std::string_view buf);
 			size_t ParseInfo (std::string_view buf);
 			size_t ParsePeers (size_t trackerID, std::string_view buf);

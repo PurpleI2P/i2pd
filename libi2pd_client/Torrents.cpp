@@ -329,11 +329,15 @@ namespace torrents
 		}
 	}
 
-	Torrent::Torrent (std::string_view buf):
+	Torrent::Torrent ():
 		m_Length (0), m_PieceLength (0), m_IsComplete (false), m_IsStopped (false),
 		m_Uploaded (0), m_Downloaded (0)
 	{
 		ResetStats ();
+	}
+
+	Torrent::Torrent (std::string_view buf): Torrent ()
+	{
 		ParseDictionary (buf, [this](std::string_view key, std::string_view buf)->size_t
 			{
 				if (key == "announce")
@@ -348,6 +352,10 @@ namespace torrents
 			});
 	}
 
+	Torrent::Torrent (const InfoHash& infoHash): Torrent ()
+	{
+		m_InfoHash = infoHash;
+	}
 
 	size_t Torrent::ParsePieces (std::string_view buf)
 	{
@@ -1727,6 +1735,10 @@ namespace torrents
 						{
 							// all info received
 							LogPrint (eLogDebug, "Torrents: ut_metadata ", m_RemoteMetadataSize, " bytes of info received");
+							uint8_t digest[SHA_DIGEST_LENGTH];
+							SHA1 (m_RemoteMetadata.data (), m_RemoteMetadata.size (), digest);
+							if (memcmp (m_Torrent->GetInfoHash ().data (), digest, SHA_DIGEST_LENGTH))
+								LogPrint (eLogError, "Torrents: ut_metadata info doesn't match infoHash");
 							// TODO: update torrent
 							// cleanup
 							std::vector<uint8_t> tmp;
