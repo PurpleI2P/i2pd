@@ -483,6 +483,7 @@ namespace client
 
 	void I2PUDPServerTunnel::Start ()
 	{
+		m_IsStarted = true;
 		m_LocalDest->Start ();
 
 		auto dgram = m_LocalDest->CreateDatagramDestination (m_Gzip);
@@ -553,6 +554,11 @@ namespace client
 
 	void I2PUDPServerTunnel::Stop ()
 	{
+		// a config reload builds a second tunnel object and drops it when the same
+		// one is already there. Its destructor must not reset the receiver of the
+		// live tunnel: they share the datagram destination
+		if (!m_IsStarted) return;
+		m_IsStarted = false;
 		if (m_StatsTimer) m_StatsTimer->cancel ();
 		if (m_CleanupTimer) m_CleanupTimer->cancel ();
 		auto dgram = m_LocalDest->GetDatagramDestination ();
@@ -609,6 +615,7 @@ namespace client
 
 	void I2PUDPClientTunnel::Start ()
 	{
+		m_IsStarted = true;
 		UDPConnection::Start ();
 		// Reset flag in case of tunnel reload
 		if (m_cancel_resolve) m_cancel_resolve = false;
@@ -643,6 +650,8 @@ namespace client
 
 	void I2PUDPClientTunnel::Stop ()
 	{
+		if (!m_IsStarted) return; // see the comment in I2PUDPServerTunnel::Stop
+		m_IsStarted = false;
 		if (m_KeepAliveTimer) m_KeepAliveTimer->cancel ();
 		if (m_StatsTimer) m_StatsTimer->cancel ();
 
