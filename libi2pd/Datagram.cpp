@@ -488,10 +488,10 @@ namespace datagram
 
 	void DatagramDestination::CleanUp ()
 	{
-		if (m_Sessions.empty ()) return;
 		auto now = i2p::util::GetMillisecondsSinceEpoch();
-		LogPrint(eLogDebug, "DatagramDestination: clean up sessions");
 		std::unique_lock<std::mutex> lock(m_SessionsMutex);
+		if (m_Sessions.empty ()) return;
+		LogPrint(eLogDebug, "DatagramDestination: clean up sessions");
 		// for each session ...
 		for (auto it = m_Sessions.begin (); it != m_Sessions.end (); )
 		{
