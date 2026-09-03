@@ -814,10 +814,18 @@ namespace torrents
 				}
 				else
 				{
-					if (piece.IsComplete ()) currentCompletedSize += (filesIT->second - currentSize);
+					size_t leftoverSize = filesIT->second - currentSize;
+					if (piece.IsComplete ()) currentCompletedSize += leftoverSize;
 					completed.push_back (currentCompletedSize);
-					currentSize = 0; currentCompletedSize = 0;
+					currentSize = m_PieceLength - leftoverSize;
 					filesIT++;
+					while (filesIT != m_Files.end () && filesIT->second <= currentSize)
+					{
+						completed.push_back (filesIT->second);
+						currentSize -= filesIT->second;
+						filesIT++;
+					}
+					currentCompletedSize = piece.IsComplete () ?  currentSize : 0;
 					if (filesIT == m_Files.end ()) break;
 				}
 			}
