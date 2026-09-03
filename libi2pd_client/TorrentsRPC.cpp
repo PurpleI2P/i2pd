@@ -48,7 +48,7 @@ namespace torrents
 		private:
 
 			std::string SuccessResponse (int64_t id, boost::json::object&& arguments);
-			std::string ResultResponse (int64_t id, boost::json::object&& result);
+			std::string ResultResponse (int64_t id, boost::json::value&& result);
 			std::string ErrorResponse (JSONRPCErrorCode errorCode, int64_t id, std::string_view message);
 			static int64_t GetTag (boost::json::object& jsonRequest);
 			static std::vector<int> GetTorrentIds (boost::json::object& arguments);
@@ -79,7 +79,7 @@ namespace torrents
 		return boost::json::serialize(response);
 	}
 
-	std::string JSONRPCHandler::ResultResponse (int64_t id, boost::json::object&& result)
+	std::string JSONRPCHandler::ResultResponse (int64_t id, boost::json::value&& result)
 	{
 		boost::json::object response;
 		response["jsonrpc"] = "2.0";
@@ -169,32 +169,40 @@ namespace torrents
 	std::string JSONRPCHandler::HandleTorrentAdd (boost::json::object&& jsonRequest)
 	{
 		auto arguments = jsonRequest.at ("arguments").as_object ();
-		auto b64torrent = arguments.at ("metainfo").as_string ();
-		std::string torrentFileContent;
-		torrentFileContent.resize (boost::beast::detail::base64::decoded_size (b64torrent.size ()));
-		boost::beast::detail::base64::decode (torrentFileContent.data (), b64torrent.data (), b64torrent.size ());
-		auto [torrent, id] = m_Tunnel->AddTorrent (torrentFileContent);
+		std::shared_ptr<Torrent> torrent; int id = 0;
+		if (arguments.contains ("metainfo"))
+		{
+			auto b64torrent = arguments.at ("metainfo").as_string ();
+			std::string torrentFileContent;
+			torrentFileContent.resize (boost::beast::detail::base64::decoded_size (b64torrent.size ()));
+			boost::beast::detail::base64::decode (torrentFileContent.data (), b64torrent.data (), b64torrent.size ());
+			std::tie (torrent, id) = m_Tunnel->AddTorrent (torrentFileContent);
+		}
+		else if (arguments.contains ("filename"))
+			std::tie (torrent, id) = m_Tunnel->AddMagnet (arguments.at ("filename").as_string ());
 
-		boost::json::object response, torrentInfo;
 		if (torrent)
 		{
+			boost::json::object response, torrentInfo;
 			std::string hexHash;
 			boost::algorithm::hex (torrent->GetInfoHash ().begin(), torrent->GetInfoHash ().end(), std::back_inserter(hexHash));
 			torrentInfo["id"] = id;
 			torrentInfo["hashString"] = hexHash;
 			torrentInfo["name"] = torrent->GetName ();
-		}
-		if (id)
-		{
-			response["torrent-added"] = torrentInfo;
-			LogPrint (eLogDebug, "TorrentsRPC: torrent added ", torrentInfo["name"].as_string ());
+			if (id)
+			{
+				response["torrent-added"] = torrentInfo;
+				LogPrint (eLogDebug, "TorrentsRPC: torrent added ", torrentInfo["name"].as_string ());
+			}
+			else
+			{
+				response["torrent-duplicate"] = torrentInfo;
+				LogPrint (eLogDebug, "TorrentsRPC: duplicate torrent ", torrentInfo["name"].as_string ());
+			}
+			return SuccessResponse (GetTag (jsonRequest), std::move (response));
 		}
 		else
-		{
-			response["torrent-duplicate"] = torrentInfo;
-			LogPrint (eLogDebug, "TorrentsRPC: duplicate torrent ", torrentInfo["name"].as_string ());
-		}
-		return SuccessResponse (GetTag (jsonRequest), std::move (response));
+			return ResultResponse (GetTag (jsonRequest), boost::json::string ("invalid or corrupt torrent file"));
 	}
 
 	std::string JSONRPCHandler::HandleTorrentRemove (boost::json::object&& jsonRequest)

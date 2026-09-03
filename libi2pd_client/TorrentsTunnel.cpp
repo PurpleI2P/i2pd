@@ -10,6 +10,7 @@
 
 #include <fstream>
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/hex.hpp>
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include "Log.h"
@@ -326,6 +327,61 @@ namespace torrents
 			return { torrent, InsertTorrent (torrent) };
 		}
 		return { torrent, 0 };
+	}
+
+	std::pair<std::shared_ptr<Torrent>, int> TorrentsTunnel::AddMagnet (std::string_view magnet)
+	{
+		// magnet:?xt=urn:btih:<hash>&dn=<name>&tr=<tracker>
+		static constexpr std::string_view magnetPrefix { "magnet:?" };
+#if __cplusplus >= 202002L // C++20
+		if (magnet.starts_with (magnetPrefix))
+#else
+		if (magnet.substr (0, magnetPrefix.size ()) == magnetPrefix)
+#endif
+		{
+			Torrent::InfoHash infoHash;
+			bool isInfoHashFound = false;
+			magnet = magnet.substr (magnetPrefix.size ());
+			while (!magnet.empty())
+			{
+				auto pos = magnet.find ('&');
+				std::string_view param;
+				if (pos != std::string::npos)
+				{
+					param = magnet.substr (0, pos - 1);
+					magnet = magnet.substr (pos + 1);
+				}
+				else
+				{
+					param = magnet;
+					magnet = "";
+				}
+				static constexpr std::string_view hashPrefix { "xt=urn:btih:" };
+#if __cplusplus >= 202002L // C++20
+				if (param.starts_with (hashPrefix))
+#else
+				if (param.substr (0, hashPrefix.size ()) == hashPrefix)
+#endif
+				{
+					std::string_view hexStr = param.substr (hashPrefix.size ());
+					try
+					{
+						boost::algorithm::unhex (hexStr.begin(), hexStr.end(), infoHash.begin());
+						isInfoHashFound = true;
+					}
+					catch (std::exception& ex)
+					{
+						LogPrint (eLogInfo, "TorentsTunnel: Can't unhex magnet hash ", hexStr);
+					}
+				}
+			}
+			if (isInfoHashFound && m_Torrents.find (infoHash) == m_Torrents.end ())
+			{
+				auto torrent = std::make_shared<Torrent> (infoHash);
+				return { torrent, InsertTorrent (torrent) };
+			}
+		}
+		return { nullptr, 0 };
 	}
 
 	int TorrentsTunnel::InsertTorrent (std::shared_ptr<Torrent> torrent)

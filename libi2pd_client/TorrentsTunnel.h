@@ -98,7 +98,8 @@ namespace torrents
 			std::shared_ptr<Torrent> FindTorrent (const Torrent::InfoHash& infoHash) const;
 			std::shared_ptr<Torrent> FindTorrentByID (int id) const;
 			std::vector<int> GetTorrentIDs () const;
-			std::pair<std::shared_ptr<Torrent>, int> AddTorrent (std::string_view torrentFileContent); // (tunnel, id)
+			std::pair<std::shared_ptr<Torrent>, int> AddTorrent (std::string_view torrentFileContent); // retrun (torrent, id)
+			std::pair<std::shared_ptr<Torrent>, int> AddMagnet (std::string_view magnet); // return (torrent, id)
 			bool RemoveTorrent (int id, bool deleteFiles);
 			bool StopTorrent (int id);
 			bool StartTorrent (int id);
