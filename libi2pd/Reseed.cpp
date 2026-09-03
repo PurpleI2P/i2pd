@@ -717,12 +717,17 @@ namespace data
 					bool supported = false;
 					if (!ep.address ().is_unspecified ())
 					{
-						if (ep.address ().is_v4 ())
+						if (ep.address ().is_v4 ()) {
 							supported = i2p::context.SupportsV4 ();
-						else if (ep.address ().is_v6 ())
+    					    if(!supported) LogPrint(eLogWarning, "Reseed: not i2p::context.SupportsV4 ()");
+                        }
+						else if (ep.address ().is_v6 ()) {
 							supported = i2p::util::net::IsYggdrasilAddress (ep.address ()) ?
 								i2p::context.SupportsMesh () : i2p::context.SupportsV6 ();
-					}
+    					    if(!supported) LogPrint(eLogWarning, "Reseed: is_v6 and not supported", ep.address ());
+                        }
+					    else LogPrint(eLogWarning, "Reseed: endpoint.address () is neither v4 nor v6", ep.address ());
+					}else LogPrint(eLogWarning, "Reseed: endpoint.address ().is_unspecified () == true", ep.address ());
 					if (supported)
 					{
 						s.lowest_layer().async_connect (ep,
@@ -738,8 +743,8 @@ namespace data
 							LogPrint (eLogDebug, "Reseed: Connected to ", ep.address ());
 							connected = true;
 							break;
-						}
-					}
+						}else LogPrint(eLogWarning, "Reseed: Failed to connect to ", ep.address (), ", the error is ", ecode.message());
+					}else LogPrint(eLogWarning, "Reseed: Unsupported endpoint (see v4/v6/meshnets supported config values for i2pd) ", ep.address ());
 				}
 				if (!connected)
 				{
