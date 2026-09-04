@@ -373,7 +373,6 @@ namespace torrents
 		return len;
 	}
 
-
 	size_t Torrent::ParseInfo (std::string_view buf)
 	{
 		size_t len = ParseDictionary (buf, [this](std::string_view key, std::string_view buf)->size_t
@@ -421,6 +420,12 @@ namespace torrents
 		// calculate info hash
 		SHA1 (m_Info.data (), len, m_InfoHash.data ());
 		return len;
+	}
+
+	std::string Torrent::CreateTorrentFileContent () const
+	{
+		if (m_Info.empty ()) return "";
+		return CreateDictionary ( {{ "info", std::string_view ((const char *)m_Info.data (), m_Info.size ()) }} );
 	}
 
 	bool Torrent::IsSafeName (std::string_view name)
@@ -1279,7 +1284,7 @@ namespace torrents
 
 	void PeerConnection::HandleBitfieldMsg (const uint8_t * buf, size_t len)
 	{
-		if (!m_Torrent) return;
+		if (!m_Torrent || !m_Torrent->GetLength ()) return; // we are magnet and don't have torrent info yet
 		m_IsInterested = false;
 		size_t numPieces = m_Torrent->GetNumPieces ();
 		m_RemoteBitfield.resize (numPieces);
@@ -1640,6 +1645,9 @@ namespace torrents
 					}
 					return 0;
 				});
+			if (!m_Torrent->GetLength () && m_RemoteMetadataSize) // torrent is magnet and peer supports BEP9
+				// request first piece of info
+				SendExtendedMsg (EXTENSION_MSGID_UT_METADATA, CreateDictionary ({{ "msg_type", CreateInteger (0) }, { "piece", CreateInteger (0) }}));
 		}
 		else
 		{
@@ -1748,11 +1756,10 @@ namespace torrents
 							uint8_t digest[SHA_DIGEST_LENGTH];
 							SHA1 (m_RemoteMetadata.data (), m_RemoteMetadata.size (), digest);
 							if (memcmp (m_Torrent->GetInfoHash ().data (), digest, SHA_DIGEST_LENGTH))
+								GetTorrentsTunnel ()->UpdateTorrentInfo (m_Torrent, std::string_view ((const char *)m_RemoteMetadata.data (), m_RemoteMetadata.size ()));
+							else
 								LogPrint (eLogError, "Torrents: ut_metadata info doesn't match infoHash");
-							// TODO: update torrent
-							// cleanup
-							std::vector<uint8_t> tmp;
-							m_RemoteMetadata.swap (tmp);
+							Close (); // we need to reconnect to receive bitfield
 						}
 					}
 					break;

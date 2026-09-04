@@ -100,6 +100,7 @@ namespace torrents
 			std::vector<int> GetTorrentIDs () const;
 			std::pair<std::shared_ptr<Torrent>, int> AddTorrent (std::string_view torrentFileContent); // retrun (torrent, id)
 			std::pair<std::shared_ptr<Torrent>, int> AddMagnet (std::string_view magnet); // return (torrent, id)
+			void UpdateTorrentInfo (std::shared_ptr<Torrent> torrent, std::string_view info); // magnet
 			bool RemoveTorrent (int id, bool deleteFiles);
 			bool StopTorrent (int id);
 			bool StartTorrent (int id);
@@ -112,6 +113,7 @@ namespace torrents
 
 			void Accept ();
 			void ReadTorrentFile (const std::filesystem::path& torrentFilePath);
+			void SaveTorrentFile (std::shared_ptr<Torrent> torrent);
 			void InitTorrentFiles (std::shared_ptr<Torrent> torrent);
 			int InsertTorrent (std::shared_ptr<Torrent> torrent); // returns id > 0 if success and 0 if failed
 			void RemoveTorrent (std::shared_ptr<Torrent> torrent, bool deleteFiles);

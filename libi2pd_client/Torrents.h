@@ -162,6 +162,8 @@ namespace torrents
 
 			Torrent (std::string_view buf);
 			Torrent (const InfoHash& infoHash);
+			size_t ParseInfo (std::string_view buf);
+			std::string CreateTorrentFileContent () const;
 			void ParseTrackerResponse (size_t trackerID, std::string_view buf);
 			void HandleDatagramTrackerResponse (size_t trackerID, uint32_t interval,
 				const uint8_t * hashes, size_t hashesLen, int numSeeders, int numLeechers);
@@ -230,7 +232,6 @@ namespace torrents
 
 			Torrent ();
 			size_t ParsePieces (std::string_view buf);
-			size_t ParseInfo (std::string_view buf);
 			size_t ParsePeers (size_t trackerID, std::string_view buf);
 			size_t ParseFiles (std::string_view buf);
 			static bool IsSafeName (std::string_view name); // a name from a torrent file before it becomes a path

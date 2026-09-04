@@ -134,6 +134,20 @@ namespace torrents
 		}
 	}
 
+	void TorrentsTunnel::SaveTorrentFile (std::shared_ptr<Torrent> torrent)
+	{
+		if (!torrent) return;
+		auto torrentFilePath = torrent->GetFullPath (); torrentFilePath += ".torrent";
+		std::ofstream f(torrentFilePath, std::ofstream::binary);
+		if (f)
+		{
+			auto content = torrent->CreateTorrentFileContent ();
+			f.write (content.data (), content.size ());
+		}
+		else
+			LogPrint (eLogError, "TorrentsTunnel: Can't open ", torrentFilePath);
+	}
+
 	void TorrentsTunnel::InitTorrentFiles (std::shared_ptr<Torrent> torrent)
 	{
 		if (!torrent) return;
@@ -315,15 +329,20 @@ namespace torrents
 		if (m_Torrents.find (torrent->GetInfoHash ()) == m_Torrents.end ())
 		{
 			torrent->SetFullPath (m_TorrentsDir/std::filesystem::path (torrent->GetName ()));
-			{
-				auto torrentFilePath = torrent->GetFullPath ();  torrentFilePath += ".torrent";
-				std::ofstream f(torrentFilePath, std::ofstream::binary);
-				if (f)
-					f.write (torrentFileContent.data (), torrentFileContent.size ());
-				else
-					return { torrent, 0 };
-			}
-			InitTorrentFiles (torrent);
+			std::string content (torrentFileContent);
+			boost::asio::post (GetDiskIOService (), [this, torrent, content]()
+				{
+					auto torrentFilePath = torrent->GetFullPath ();  torrentFilePath += ".torrent";
+					{
+						// TODO: replace by SaveTorrentFile
+						std::ofstream f(torrentFilePath, std::ofstream::binary);
+						if (f)
+							f.write (content.data (), content.size ());
+						else
+							LogPrint (eLogError, "TorrentsTunnel: Can't open ", torrentFilePath);
+					}
+					InitTorrentFiles (torrent);
+				});
 			return { torrent, InsertTorrent (torrent) };
 		}
 		return { torrent, 0 };
@@ -500,6 +519,18 @@ namespace torrents
 				RequestTorrentTrackers (torrent, eTrackerAnnounceEventStarted);
 			});
 		return true;
+	}
+
+	void TorrentsTunnel::UpdateTorrentInfo (std::shared_ptr<Torrent> torrent, std::string_view info)
+	{
+		if (!torrent) return;
+		torrent->ParseInfo (info);
+		torrent->SetFullPath (m_TorrentsDir/std::filesystem::path (torrent->GetName ()));
+		boost::asio::post (GetDiskIOService (), [this, torrent]()
+			{
+				SaveTorrentFile (torrent);
+				InitTorrentFiles (torrent);
+			});
 	}
 
 	void TorrentsTunnel::Accept ()
