@@ -385,7 +385,8 @@ namespace torrents
 				peer["clientIsIntersted"] = it->IsInterested ();
 				peer["peerIsInterested"] = it->IsRemoteInterested ();
 				peer["flagStr"] = flags;
-				peer["progress"] = torrent->GetLength () ? ((float)it->GetDownloaded ())/(float)(torrent->GetLength ()) : 1.0;
+				const auto& remoteBitfield = it->GetRemoteBitfield ();
+				peer["progress"] = remoteBitfield.size () ? ((float)remoteBitfield.count ())/((float)remoteBitfield.size ()) : 0.0;
 				peers.push_back (peer);
 			}
 		}
