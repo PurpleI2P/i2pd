@@ -1752,7 +1752,7 @@ namespace torrents
 							LogPrint (eLogDebug, "Torrents: ut_metadata ", m_RemoteMetadataSize, " bytes of info received");
 							uint8_t digest[SHA_DIGEST_LENGTH];
 							SHA1 (m_RemoteMetadata.data (), m_RemoteMetadata.size (), digest);
-							if (memcmp (m_Torrent->GetInfoHash ().data (), digest, SHA_DIGEST_LENGTH))
+							if (!memcmp (m_Torrent->GetInfoHash ().data (), digest, SHA_DIGEST_LENGTH))
 								GetTorrentsTunnel ()->UpdateTorrentInfo (m_Torrent, std::string_view ((const char *)m_RemoteMetadata.data (), m_RemoteMetadata.size ()));
 							else
 								LogPrint (eLogError, "Torrents: ut_metadata info doesn't match infoHash");
