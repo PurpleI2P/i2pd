@@ -27,7 +27,7 @@
 <fieldset>
   <legend>Torrent Client</legend>
   <div id="torrent-ui">
-    <label for='torrent_manet_url'>Your torrent link: <input  id='torrent_manet_url' type='text' id='torrent_manet_url'/><button id='btn_magnet'>download</button>
+    <label for='torrent_manet_url'>Your a torrent magnet link (only magnet): <input  id='torrent_manet_url' type='text' id='torrent_manet_url'/><button id='btn_magnet'>download</button>
     <h3 id="connection_status">_</h3>
     <input type="file" id="torrentf" accept=".torrent" style="display: none" />
     <button onclick="document.getElementById('torrentf').click()">
@@ -287,7 +287,7 @@ Status: ${tr.lastAnnounceResult} (${tr.lastAnnounceSucceeded ? "OK" : "Fail"})
 Peers: ${tr.lastAnnouncePeerCount} | Seeders: ${tr.seederCount} | Leechers: ${leachers}
 Last Announce: ${new Date(tr.lastAnnounceTime * 1000).toLocaleString()}
 Next Announce: ${new Date(tr.nextAnnounceTime * 1000).toLocaleString()}
-`}).join("\n" + "-".repeat(40) + "<hr/>\n") : "-";
+`}).join("\n" + "-".repeat(40)) : "-";
 
 
     document.getElementById("torrent_details_modal").style.display = "block";
