@@ -120,11 +120,13 @@ namespace client
 	{
 		public:
 
-			typedef boost::asio::ip::tcp::socket Socket_t;
+			typedef boost::asio::generic::stream_protocol::socket Socket_t;
 			SAMSocket (SAMBridge& owner);
 			~SAMSocket ();
 
 			Socket_t& GetSocket () { return m_Socket; };
+			std::string GetRemoteEndpointStr () { return m_RemoteEndpointStr; };
+			void GenerateRemoteEndpointStr (boost::system::error_code& ec);
 			void ReceiveHandshake ();
 			void SetSocketType (SAMSocketType socketType) { m_SocketType = socketType; };
 			SAMSocketType GetSocketType () const { return m_SocketType; };
@@ -196,6 +198,7 @@ namespace client
 			uint8_t m_StreamBuffer[SAM_STREAM_BUFFER_SIZE];
 			SAMSocketType m_SocketType;
 			std::string m_ID; // nickname
+			std::string m_RemoteEndpointStr;
 			bool m_IsSilent;
 			bool m_IsAccepting; // for eSAMSocketTypeAcceptor only
 			bool m_IsReceiving; // for eSAMSocketTypeStream only
@@ -267,6 +270,7 @@ namespace client
 		void StopLocalDestination ();
 	};
 
+	class SAMAcceptor;
 	class SAMBridge: private i2p::util::RunnableService
 	{
 		public:
@@ -309,9 +313,9 @@ namespace client
 		private:
 
 			bool m_IsSingleThread;
-			boost::asio::ip::tcp::acceptor m_Acceptor;
-			boost::asio::ip::udp::endpoint m_DatagramEndpoint, m_SenderEndpoint;
-			boost::asio::ip::udp::socket m_DatagramSocket;
+			std::unique_ptr<SAMAcceptor> m_Acceptor;
+			std::shared_ptr<boost::asio::ip::udp::endpoint> m_DatagramEndpoint, m_SenderEndpoint;
+			std::unique_ptr<boost::asio::ip::udp::socket> m_DatagramSocket;
 			mutable std::mutex m_SessionsMutex;
 			std::map<std::string, std::shared_ptr<SAMSession>, std::less<>> m_Sessions;
 			mutable std::mutex m_OpenSocketsMutex;
@@ -327,6 +331,73 @@ namespace client
 				std::unique_lock<std::mutex> l(m_SessionsMutex);
 				return std::vector<std::pair<std::string, std::shared_ptr<SAMSession> > > (m_Sessions.begin (), m_Sessions.end ());
 			}
+	};
+
+	class SAMAcceptor
+	{
+
+		public:
+
+			virtual ~SAMAcceptor() = default;
+
+			virtual void Stop () = 0;
+
+			virtual void start_async_accept(SAMSocket::Socket_t& socket,
+				boost::asio::any_completion_handler<void(boost::system::error_code)>&& handler) = 0;
+	};
+
+	class TCPAcceptor : public SAMAcceptor
+	{
+
+		public:
+
+			TCPAcceptor(boost::asio::io_context& ioctx, const boost::asio::ip::tcp::endpoint& ep)
+			: m_Acceptor(ioctx, ep)
+			{
+			}
+
+			void Stop() override
+			{
+				m_Acceptor.cancel();
+			}
+
+			void start_async_accept(SAMSocket::Socket_t& socket,
+				boost::asio::any_completion_handler<void(boost::system::error_code)>&& handler) override
+			{
+				m_Acceptor.async_accept(socket, std::move(handler));
+			}
+
+		private:
+
+			boost::asio::ip::tcp::acceptor m_Acceptor;
+	};
+
+	class LocalAcceptor : public SAMAcceptor
+	{
+
+		public:
+
+			LocalAcceptor(boost::asio::io_context& ioctx, const boost::asio::local::stream_protocol::endpoint ep)
+			: m_Acceptor(ioctx, ep)
+			{
+			}
+
+			void Stop() override
+			{
+				auto path = m_Acceptor.local_endpoint().path();
+				m_Acceptor.cancel();
+				std::remove(path.c_str());
+			}
+
+			void start_async_accept(SAMSocket::Socket_t& socket,
+				boost::asio::any_completion_handler<void(boost::system::error_code)>&& handler) override
+			{
+				m_Acceptor.async_accept(socket, std::move(handler));
+			}
+
+		private:
+
+			boost::asio::local::stream_protocol::acceptor m_Acceptor;
 	};
 }
 }
