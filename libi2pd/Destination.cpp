@@ -243,6 +243,8 @@ namespace client
 			{
 				LogPrint (eLogWarning, "Destination: Remote LeaseSet expired");
 				std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
+				if (remoteLS->IsPublishedEncrypted ())
+					RememberBlindedKey (ident, remoteLS->GetIdentity ());
 				m_RemoteLeaseSets.erase (ident);
 				return nullptr;
 			}
@@ -481,6 +483,7 @@ namespace client
 						{
 							LogPrint (eLogDebug, "Destination: New remote LeaseSet added");
 							m_RemoteLeaseSets.insert_or_assign (key, leaseSet);
+							m_RemoteBlindedKeys.erase (key); // the LeaseSet itself is here now
 							if (from)
 								from->SetDestination (key);
 						}
@@ -513,6 +516,7 @@ namespace client
 							std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
 							m_RemoteLeaseSets[ls2->GetIdentHash ()] = ls2; // ident is not key
 							m_RemoteLeaseSets[key] = ls2; // also store as key for next lookup
+							m_RemoteBlindedKeys.erase (ls2->GetIdentHash ()); // the LeaseSet itself is here now
 						}
 						else
 							LogPrint (eLogError, "Destination: New remote encrypted LeaseSet2 failed");
@@ -794,6 +798,18 @@ namespace client
 				boost::asio::post (m_Service, [requestComplete](void){requestComplete (nullptr);});
 			return false;
 		}
+		std::shared_ptr<const i2p::data::BlindedPublicKey> blindedKey;
+		{
+			std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
+			auto it = m_RemoteBlindedKeys.find (dest);
+			if (it != m_RemoteBlindedKeys.end ())
+			{
+				blindedKey = it->second.first;
+				it->second.second = i2p::util::GetSecondsSinceEpoch ();
+			}
+		}
+		if (blindedKey)
+			return RequestDestinationWithEncryptedLeaseSet (blindedKey, requestComplete);
 		boost::asio::post (m_Service, std::bind (&LeaseSetDestination::RequestLeaseSet, shared_from_this (), dest, requestComplete, nullptr));
 		return true;
 	}
@@ -996,15 +1012,33 @@ namespace client
 		}
 	}
 
+	void LeaseSetDestination::RememberBlindedKey (const i2p::data::IdentHash& ident, std::shared_ptr<const i2p::data::IdentityEx> identity)
+	{
+		// a destination published as encrypted is not stored by its ident hash, so once its
+		// LeaseSet is gone the only way to ask for a new one is the blinded key
+		if (identity)
+			m_RemoteBlindedKeys.insert_or_assign (ident,
+				std::make_pair (std::make_shared<i2p::data::BlindedPublicKey>(identity), i2p::util::GetSecondsSinceEpoch ()));
+	}
+
 	void LeaseSetDestination::CleanupRemoteLeaseSets ()
 	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
+		for (auto it = m_RemoteBlindedKeys.begin (); it != m_RemoteBlindedKeys.end ();)
+		{
+			if (ts/1000 > it->second.second + REMOTE_BLINDED_KEY_KEEP_TIME) // destination is gone for good
+				it = m_RemoteBlindedKeys.erase (it);
+			else
+				++it;
+		}
 		for (auto it = m_RemoteLeaseSets.begin (); it != m_RemoteLeaseSets.end ();)
 		{
 			if (it->second->IsEmpty () || ts > it->second->GetExpirationTime ()) // leaseset expired
 			{
 				LogPrint (eLogDebug, "Destination: Remote LeaseSet ", it->second->GetIdentHash ().ToBase64 (), " expired");
+				if (it->second->IsPublishedEncrypted ())
+					RememberBlindedKey (it->first, it->second->GetIdentity ());
 				it = m_RemoteLeaseSets.erase (it);
 			}
 			else

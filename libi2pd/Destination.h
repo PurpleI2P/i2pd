@@ -49,6 +49,7 @@ namespace client
 	const int STOP_ON_SERVICE_TIMEOUT = 10; // in seconds, how long Stop waits for the destination's thread
 	const int LEASESET_REQUEST_TIMEOUT = 1200; // in milliseconds
 	const int MAX_LEASESET_REQUEST_TIMEOUT = 17000; // in milliseconds
+	const int REMOTE_BLINDED_KEY_KEEP_TIME = 600; // in seconds after the LeaseSet expired
 	const int DESTINATION_CLEANUP_TIMEOUT = 44; // in seconds
 	const int DESTINATION_CLEANUP_TIMEOUT_VARIANCE = 30; // in seconds
 	const unsigned int MAX_NUM_FLOODFILLS_PER_REQUEST = 7;
@@ -208,12 +209,17 @@ namespace client
 			void HandleRequestTimoutTimer (const boost::system::error_code& ecode, const i2p::data::IdentHash& dest, uint64_t requestLeaseSetTimeout);
 			void HandleCleanupTimer (const boost::system::error_code& ecode);
 			void CleanupRemoteLeaseSets ();
+			void RememberBlindedKey (const i2p::data::IdentHash& ident, std::shared_ptr<const i2p::data::IdentityEx> identity); // m_RemoteLeaseSetsMutex must be locked
 
 		private:
 
 			boost::asio::io_context& m_Service;
 			mutable std::mutex m_RemoteLeaseSetsMutex;
 			std::unordered_map<i2p::data::IdentHash, std::shared_ptr<i2p::data::LeaseSet> > m_RemoteLeaseSets;
+			// blinded keys of remote destinations published as encrypted, to request them again when
+			// expired, with the time of last use, so that a key of a gone destination doesn't stay forever
+			std::unordered_map<i2p::data::IdentHash,
+				std::pair<std::shared_ptr<const i2p::data::BlindedPublicKey>, uint64_t> > m_RemoteBlindedKeys;
 			std::unordered_map<i2p::data::IdentHash, std::shared_ptr<LeaseSetRequest> > m_LeaseSetRequests;
 
 			std::list<std::shared_ptr<I2NPMessage> > m_IncomingMsgsQueue;
