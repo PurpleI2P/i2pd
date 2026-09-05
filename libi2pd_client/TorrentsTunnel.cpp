@@ -329,18 +329,9 @@ namespace torrents
 		if (m_Torrents.find (torrent->GetInfoHash ()) == m_Torrents.end ())
 		{
 			torrent->SetFullPath (m_TorrentsDir/std::filesystem::path (torrent->GetName ()));
-			std::string content (torrentFileContent);
-			boost::asio::post (GetDiskIOService (), [this, torrent, content]()
+			boost::asio::post (GetDiskIOService (), [this, torrent]()
 				{
-					auto torrentFilePath = torrent->GetFullPath ();  torrentFilePath += ".torrent";
-					{
-						// TODO: replace by SaveTorrentFile
-						std::ofstream f(torrentFilePath, std::ofstream::binary);
-						if (f)
-							f.write (content.data (), content.size ());
-						else
-							LogPrint (eLogError, "TorrentsTunnel: Can't open ", torrentFilePath);
-					}
+					SaveTorrentFile (torrent);
 					InitTorrentFiles (torrent);
 				});
 			return { torrent, InsertTorrent (torrent) };

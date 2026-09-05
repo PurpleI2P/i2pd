@@ -425,7 +425,8 @@ namespace torrents
 	std::string Torrent::CreateTorrentFileContent () const
 	{
 		if (m_Info.empty ()) return "";
-		return CreateDictionary ( {{ "info", std::string_view ((const char *)m_Info.data (), m_Info.size ()) }} );
+		return CreateDictionary ({ { "announce", CreateByteString (m_Announce) },
+			{ "info", std::string_view ((const char *)m_Info.data (), m_Info.size ()) } });
 	}
 
 	bool Torrent::IsSafeName (std::string_view name)
