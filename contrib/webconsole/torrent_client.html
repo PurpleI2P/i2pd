@@ -1,6 +1,33 @@
+<style>
+/*todo: more 2000 design*/
+#torrent-ui button {
+       border-radius: 6.66px;
+       padding: 0.1vw;
+       margin: 2px;
+       text-decoration: underline;
+       color: black;
+       background: aquamarine;
+       text-transform: uppercase;
+}
+#torrent-ui button:hover {
+       cursor:pointer;
+       background-color: yellow;
+       transition: background-color 0.5s ease 0.1s;
+}
+#torrent-ui {
+ display: flex;
+ flex-direction: column;
+ gap: 2.5px;
+}
+#torrents li {
+       border-bottom: 2px solid #333333; 
+} 
+
+</style>
 <fieldset>
   <legend>Torrent Client</legend>
   <div id="torrent-ui">
+    <label for='torrent_manet_url'>Your torrent link: <input  id='torrent_manet_url' type='text' id='torrent_manet_url'/><button id='btn_magnet'>download</button>
     <h3 id="connection_status">_</h3>
     <input type="file" id="torrentf" accept=".torrent" style="display: none" />
     <button onclick="document.getElementById('torrentf').click()">
@@ -30,6 +57,7 @@
 </div>
 
 <script>
+
   let currentTorrentsData = [];
   async function stopAll()
   {
@@ -73,7 +101,7 @@
         return (statusIndicator.textContent = "STATUS: INVALID_RESPONSE");
 
       statusIndicator.textContent = "STATUS: Connected";
-      statusIndicator.style.color = "#00ff66";
+      statusIndicator.style.color = "rgb(77, 91, 83)";
 
       const torrents = document.getElementById("torrents");
       currentTorrentsData = r.result.torrents;
@@ -268,4 +296,9 @@ Next Announce: ${new Date(tr.nextAnnounceTime * 1000).toLocaleString()}
   window.closeDetailsModal = () => {
     document.getElementById("torrent_details_modal").style.display = "none";
   };
+  const btn_magnet = document.getElementById('btn_magnet')
+  btn_magnet.onclick = async () => {
+    const r = await window.tjs.addTorrentByMagnet(document.getElementById('torrent_manet_url').value)
+    if(!r) alert("Not correct magnet link");
+  }
 </script>

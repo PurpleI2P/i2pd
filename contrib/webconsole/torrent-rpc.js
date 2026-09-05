@@ -33,6 +33,19 @@ class TorrentClient {
         return (bytesPerSec / 1024).toFixed(2) + ' KB/s';
     }
 
+    async addTorrentByMagnet(magnet)
+    {
+        // TODO: check link
+        const magnetRegex = /^magnet:\?xt=urn:btih:[a-f0-9]{40}(&.+)?$/i;
+        if(!magnetRegex.test(magnet)) return false;
+        const res = await fetch(this.getEndpoint(), {
+            method: "POST",
+            body: JSON.stringify({ 'method': 'torrent-add', 'arguments': { 'filename': magnet } }),
+                                headers: { 'Content-Type': 'application/json' }
+        });
+        return res.json();
+
+    }
     async addTorrent(b64metainfo) {
         const res = await fetch(this.getEndpoint(), {
             method: "POST",
