@@ -1693,9 +1693,8 @@ namespace torrents
 	{
 		if (!m_Torrent) return;
 		int msgType = -1, piece = -1;
-		size_t size = 0;
 		auto payloadLen = ParseDictionary (std::string_view ((const char *)buf, len),
-			[&msgType, &piece, &size](std::string_view key, std::string_view buf)->size_t
+			[&msgType, &piece](std::string_view key, std::string_view buf)->size_t
 			{
 				if (key == "msg_type")
 				{
@@ -1709,12 +1708,7 @@ namespace torrents
 					if (l) piece = value;
 					return l;
 				}
-				else if (key == "total_size")
-				{
-					auto [s, l] = ExtractInteger (buf);
-					if (l) size = s;
-					return l;
-				}
+				// ignore total_szie
 				return 0;
 			});
 		if (msgType >=0 && piece >= 0)
@@ -1731,7 +1725,7 @@ namespace torrents
 						SendExtendedMsg (EXTENSION_MSGID_UT_METADATA,
 							CreateDictionary ({{ "msg_type", CreateInteger (1) },
 								{ "piece", CreateInteger (piece) },
-								{ "total_size", CreateInteger (totalSize) } }),
+								{ "total_size", CreateInteger (m_Torrent->GetInfo ().size ()) } }),
 							std::string_view ((const char *)info.data () + offset, totalSize));
 					}
 					else
@@ -1740,12 +1734,15 @@ namespace torrents
 				}
 				case 1: // data
 				{
-					if (payloadLen + size > len) break;
 					size_t offset = piece*REQUEST_BLOCK_SIZE;
+					if (offset > m_RemoteMetadataSize) break;
+					size_t size = m_RemoteMetadataSize - offset;
+					if (size > REQUEST_BLOCK_SIZE) size = REQUEST_BLOCK_SIZE;
+					if (payloadLen + size > len) break;
 					if (offset == m_RemoteMetadata.size () && size)
 					{
 						m_RemoteMetadata.resize (m_RemoteMetadata.size () + size);
-						memcpy (m_RemoteMetadata.data () + offset,buf + payloadLen, size);
+						memcpy (m_RemoteMetadata.data () + offset, buf + payloadLen, size);
 						if (m_RemoteMetadata.size () < m_RemoteMetadataSize)
 							// request next piece
 							SendExtendedMsg (EXTENSION_MSGID_UT_METADATA, CreateDictionary ({{ "msg_type", CreateInteger (0) }, { "piece", CreateInteger (piece + 1) }}));

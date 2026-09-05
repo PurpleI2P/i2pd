@@ -367,7 +367,7 @@ namespace torrents
 				std::string_view param;
 				if (pos != std::string::npos)
 				{
-					param = magnet.substr (0, pos - 1);
+					param = magnet.substr (0, pos);
 					magnet = magnet.substr (pos + 1);
 				}
 				else
@@ -382,7 +382,7 @@ namespace torrents
 				if (param.substr (0, hashPrefix.size ()) == hashPrefix)
 #endif
 				{
-					std::string_view hexStr = param.substr (hashPrefix.size ());
+					std::string_view hexStr = param.substr (hashPrefix.size (), infoHash.size ()*2);
 					try
 					{
 						boost::algorithm::unhex (hexStr.begin(), hexStr.end(), infoHash.begin());
