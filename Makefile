@@ -32,6 +32,7 @@ include filelist.mk
 USE_STATIC      := $(or $(USE_STATIC),no)
 USE_UPNP        := $(or $(USE_UPNP),no)
 DEBUG           := $(or $(DEBUG),yes)
+TORRENTS        := $(or $(DEBUG),yes)
 
 # for debugging purposes only, when commit hash needed in trunk builds in i2pd version string
 USE_GIT_VERSION := $(or $(USE_GIT_VERSION),no)
