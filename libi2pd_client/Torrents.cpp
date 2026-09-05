@@ -307,6 +307,16 @@ namespace torrents
 				it = BlockStatus::Missing;
 	}
 
+	void Piece::ClearRequest (size_t offset)
+	{
+		if (m_Blocks)
+		{
+			auto block = offset/REQUEST_BLOCK_SIZE;
+			if (block < m_Blocks->size () && (*m_Blocks)[block] == BlockStatus::Requested)
+				(*m_Blocks)[block] = BlockStatus::Missing;
+		}
+	}
+
 	void Piece::InvalidateAllBlocks ()
 	{
 		m_Blocks = nullptr;
@@ -1176,10 +1186,10 @@ namespace torrents
 					HandleExtendedMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
 				break;
 				case eMessageTypeSuggestPiece:
-					LogPrint (eLogDebug, "Torrents: suggest piece msg received");
+					HandleSuggestPieceMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
 				break;
 				case eMessageTypeRejectRequest:
-					LogPrint (eLogDebug, "Torrents: reject request msg received");
+					HandleRejectRequestMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
 				break;
 				case eMessageTypeAllowedFast:
 					LogPrint (eLogDebug, "Torrents: allowed fast msg received");
@@ -1503,6 +1513,18 @@ namespace torrents
 		m_Torrent->AddUploaded (len);
 	}
 
+	void PeerConnection::HandleRejectRequestMsg (const uint8_t * buf, size_t len)
+	{
+		if (len < 8 || !m_Torrent) return;
+		uint32_t index = bufbe32toh (buf);
+		uint32_t offset = bufbe32toh (buf + 4);
+		LogPrint (eLogDebug, "Torrents: Reject request msg received index ", index, " offset ", offset);
+		if (index < m_Torrent->GetNumPieces ())
+			m_Torrent->GetPiece (index).ClearRequest (offset);
+		if (m_NumRequests > 0) m_NumRequests--;
+		RequestNextBlocks ();
+	}
+
 	void PeerConnection::SendRejectRequestMsg (uint32_t index, uint32_t offset, uint32_t len)
 	{
 		uint8_t buf[REJECT_REQUEST_MSG_LENGTH];
@@ -1674,6 +1696,14 @@ namespace torrents
 		if (m_Torrent && m_LastRequestedPieceIndex >= 0)
 			m_Torrent->GetPiece (m_LastRequestedPieceIndex).ClearAllRequests ();
 		m_LastRequestedPieceIndex = -1;
+	}
+
+	void PeerConnection::HandleSuggestPieceMsg (const uint8_t * buf, size_t len)
+	{
+		if (len < 4 || !m_Torrent) return;
+		uint32_t index = bufbe32toh (buf);
+		LogPrint (eLogDebug, "Torrents: suggest piece msg received ", index);
+		// TODO:
 	}
 
 	void PeerConnection::HandleExtendedMsg (const uint8_t * buf, size_t len)

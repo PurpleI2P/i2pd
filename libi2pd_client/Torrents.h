@@ -129,6 +129,7 @@ namespace torrents
 			bool HasBlock (size_t offset) const;
 			std::pair<size_t, size_t> GetNextBlockToRequest (); // return (offset, len) of next buffer, len = 0 if no next buffer
 			void ClearAllRequests ();
+			void ClearRequest (size_t offset);
 			void InvalidateAllBlocks ();
 			void Reset ();
 
@@ -329,6 +330,7 @@ namespace torrents
 			void SendHaveNoneMsg ();
 			void HandlePieceMsg (const uint8_t * buf, size_t len);
 			void SendPieceMsg (uint32_t index, uint32_t offset, const uint8_t * data, size_t len);
+			void HandleRejectRequestMsg (const uint8_t * buf, size_t len);
 			void SendRejectRequestMsg (uint32_t index, uint32_t offset, uint32_t len);
 			void HandleRequestMsg (const uint8_t * buf, size_t len);
 			void SendRequestMsg (uint32_t index, uint32_t offset, uint32_t len);
@@ -338,6 +340,7 @@ namespace torrents
 			void SendUnchokeMsg ();
 			void SendChokeMsg ();
 			void HandleChokeMsg ();
+			void HandleSuggestPieceMsg (const uint8_t * buf, size_t len);
 			void HandleExtendedMsg (const uint8_t * buf, size_t len);
 			void SendExtendedMsg (uint8_t extendedMsgID = 0, std::string_view payload = "", std::string_view data = "");
 			void AddExtendedMsgHandler (std::string_view extensionName, int64_t msgID);
