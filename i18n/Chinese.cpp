@@ -134,7 +134,7 @@ namespace chinese // language namespace
 		{"Start graceful shutdown", "平滑关闭"},
 		{"Force shutdown", "强制停止"},
 		{"Reload external CSS styles", "重载外部 CSS 样式"},
-		{"<b>Note:</b> any action done here are not persistent and not changes your config files.", "<b>注意：</b> 此处完成的任何操作都不是永久的，不会更改您的配置文件。"},
+		{"<b>Note:</b> any action performed here is not persistent and does not change your config files.", "<b>注意：</b> 此处完成的任何操作都不是永久的，不会更改您的配置文件。"},
 		{"Logging level", "日志级别"},
 		{"Transit tunnels limit", "中转隧道限制"},
 		{"Change", "修改"},

@@ -134,7 +134,7 @@ namespace spanish // language namespace
 		{"Start graceful shutdown", "Iniciar apagado con gracia"},
 		{"Force shutdown", "Forzar apagado"},
 		{"Reload external CSS styles", "Recargar estilos CSS externos"},
-		{"<b>Note:</b> any action done here are not persistent and not changes your config files.", "<b>Nota:</b> cualquier acción hecha aquí no es persistente y no cambia tus archivos de configuración."},
+		{"<b>Note:</b> any action performed here is not persistent and does not change your config files.", "<b>Nota:</b> cualquier acción hecha aquí no es persistente y no cambia tus archivos de configuración."},
 		{"Logging level", "Nivel de registro de errores"},
 		{"Transit tunnels limit", "Límite de túneles de tránsito"},
 		{"Change", "Cambiar"},
