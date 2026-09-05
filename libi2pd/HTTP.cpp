@@ -133,6 +133,7 @@ namespace http
 			}
 
 			/* hostname[:port][/path] */
+			if (pos_p >= url.length ()) return false; /* nothing left after schema or user part */
 			if (url.at(pos_p) == '[') // ipv6
 			{
 				auto pos_b = url.find(']', pos_p);
@@ -616,6 +617,11 @@ namespace http
 				return false; /* too large chunk */
 			char * buf = new char[len];
 			in.read (buf, len);
+			if (in.gcount () != len) /* chunk is shorter than announced */
+			{
+				delete[] buf;
+				return false;
+			}
 			out.write (buf, len);
 			delete[] buf;
 			std::getline (in, hexLen); // read \r\n after chunk

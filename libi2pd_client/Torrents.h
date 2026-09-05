@@ -9,6 +9,8 @@
 #ifndef TORRENTS_H__
 #define TORRENTS_H__
 
+#ifndef NO_TORRENTS
+
 #include <inttypes.h>
 #include <openssl/sha.h>
 #include <boost/asio.hpp>
@@ -52,6 +54,10 @@ namespace torrents
 	constexpr size_t REQUEST_MSG_PAYLOAD_LENGTH = 12;
 	constexpr size_t REQUEST_MSG_LENGTH = REQUEST_MSG_PAYLOAD_LENGTH + 5;
 	constexpr size_t HAVE_MSG_PAYLOAD_LENGTH = 4;
+
+	// extensions
+	constexpr std::string_view EXTENSION_NAME_UT_METADATA { "ut_metadata" };
+	constexpr uint8_t EXTENSION_MSGID_UT_METADATA = 1;
 
 	enum MessageType
 	{
@@ -146,14 +152,18 @@ namespace torrents
 	using RequestedBlock = std::tuple<uint32_t, uint32_t, uint32_t>; // (index, offset, len)
 	class Torrent final
 	{
+		using TrackerStats = std::tuple<std::unordered_set<i2p::data::IdentHash>,
+			int, uint64_t, int, int, uint64_t, std::string>;
+			// (peers, interval, next tracker request time in monotonic milliseconds,
+			//  seeders, leechers, last update time in seconds since epoch, error)
 		public:
 
-			using InfoHash = std::array<uint8_t, 20>;
-			using TrackerInfo = std::tuple<std::unordered_set<i2p::data::IdentHash>, int, uint64_t, int, int, uint64_t>;
-			// (peers, interval, next tracker request time in monotonic milliseconds,
-			//  seeders, leechers, last update time in seconds since epoch)
+			using InfoHash = std::array<uint8_t, SHA_DIGEST_LENGTH>;
 
 			Torrent (std::string_view buf);
+			Torrent (const InfoHash& infoHash);
+			size_t ParseInfo (std::string_view buf);
+			std::string CreateTorrentFileContent () const;
 			void ParseTrackerResponse (size_t trackerID, std::string_view buf);
 			void HandleDatagramTrackerResponse (size_t trackerID, uint32_t interval,
 				const uint8_t * hashes, size_t hashesLen, int numSeeders, int numLeechers);
@@ -173,7 +183,8 @@ namespace torrents
 			std::list<std::pair<std::filesystem::path, size_t> >& GetFiles () { return m_Files; }
 			size_t GetLength () const { return m_Length; }
 			size_t GetPieceLength () const { return m_PieceLength; }
-			int GetInterval (size_t trackerID) const { return (trackerID < m_TrackersInfo.size ()) ? std::get<1>(m_TrackersInfo[trackerID]) : MIN_TRACKER_REQUESTS_INTERVAL; }
+			int GetInterval (size_t trackerID) const { return (trackerID < m_TrackerStats.size ()) ? std::get<1>(m_TrackerStats[trackerID]) : MIN_TRACKER_REQUESTS_INTERVAL; }
+			const std::vector<uint8_t> GetInfo () const { return m_Info; }
 			const InfoHash& GetInfoHash () const { return m_InfoHash; }
 			size_t GetLeft () const;
 			std::string GetHexStringInfoHash () const; // in url format
@@ -210,27 +221,31 @@ namespace torrents
 			int GetNumUploadingToPeers () const { return m_NumUploadingToPeers; }
 			void SetNumUploadingToPeers (int numUploadingToPeers) { m_NumUploadingToPeers = numUploadingToPeers; }
 
-			int GetNumSeeders (size_t trackerID) const { return (trackerID < m_TrackersInfo.size ()) ? std::get<3>(m_TrackersInfo[trackerID]) : 0; }
-			int GetNumLeechers (size_t trackerID) const { return (trackerID < m_TrackersInfo.size ()) ? std::get<4>(m_TrackersInfo[trackerID]) : 0; }
-			int GetNumPeers (size_t trackerID) const { return (trackerID < m_TrackersInfo.size ()) ? std::get<0>(m_TrackersInfo[trackerID]).size () : 0; }
-			uint64_t GetLastTrackerUpdateTime (size_t trackerID) const { return (trackerID < m_TrackersInfo.size ()) ? std::get<5>(m_TrackersInfo[trackerID]) : 0; }
+			int GetNumSeeders (size_t trackerID) const { return (trackerID < m_TrackerStats.size ()) ? std::get<3>(m_TrackerStats[trackerID]) : 0; }
+			int GetNumLeechers (size_t trackerID) const { return (trackerID < m_TrackerStats.size ()) ? std::get<4>(m_TrackerStats[trackerID]) : 0; }
+			int GetNumPeers (size_t trackerID) const { return (trackerID < m_TrackerStats.size ()) ? std::get<0>(m_TrackerStats[trackerID]).size () : 0; }
+			uint64_t GetLastTrackerUpdateTime (size_t trackerID) const { return (trackerID < m_TrackerStats.size ()) ? std::get<5>(m_TrackerStats[trackerID]) : 0; }
+			std::string GetTrackerError (size_t trackerID) const { return (trackerID < m_TrackerStats.size ()) ? std::get<6>(m_TrackerStats[trackerID]) : ""; }
+			void SetTrackerError (size_t trackerID, std::string_view error);
 
 		private:
 
+			Torrent ();
 			size_t ParsePieces (std::string_view buf);
-			size_t ParseInfo (std::string_view buf);
 			size_t ParsePeers (size_t trackerID, std::string_view buf);
 			size_t ParseFiles (std::string_view buf);
 			static bool IsSafeName (std::string_view name); // a name from a torrent file before it becomes a path
+			void CheckTrackerStatsSize (size_t trackerID);
 
 		private:
 
 			std::string m_Name, m_Announce;
 			std::filesystem::path m_FullPath;
 			size_t m_Length, m_PieceLength;
+			std::vector<uint8_t> m_Info; // for BEP9
 			InfoHash m_InfoHash; // SHA1
 			std::vector<Piece> m_Pieces;
-			std::vector<TrackerInfo> m_TrackersInfo;
+			std::vector<TrackerStats> m_TrackerStats;
 			bool m_IsComplete, m_IsStopped;
 			std::list<std::pair<std::filesystem::path, size_t> > m_Files; // list of (path, length)
 			size_t m_Uploaded, m_Downloaded;
@@ -242,6 +257,8 @@ namespace torrents
 	class TorrentsTunnel;
 	class PeerConnection: public i2p::client::I2PServiceHandler, public std::enable_shared_from_this<PeerConnection>
 	{
+		using ExtendedMessageHandler = void (PeerConnection::*)(const uint8_t * buf, size_t len);
+
 		public:
 
 			using PeerID = std::array<uint8_t, 20>;
@@ -310,7 +327,9 @@ namespace torrents
 			void SendChokeMsg ();
 			void HandleChokeMsg ();
 			void HandleExtendedMsg (const uint8_t * buf, size_t len);
-			void SendExtendedMsg ();
+			void SendExtendedMsg (uint8_t extendedMsgID = 0, std::string_view payload = "", std::string_view data = "");
+			void AddExtendedMsgHandler (std::string_view extensionName, int64_t msgID);
+			void HandleUtMetadataExtension (const uint8_t * buf, size_t len); // BEP9
 
 			std::optional<RequestedBlock> GetNextBlockToRequest ();
 			bool RequestNextBlocks ();
@@ -332,6 +351,10 @@ namespace torrents
 			std::list<RequestedBlock> m_IncomingRequestsQueue;
 			int m_LastRequestedPieceIndex;
 			std::unique_ptr<boost::asio::steady_timer> m_HandshakeReceiveTimer;
+			std::unordered_map<uint8_t, PeerConnection::ExtendedMessageHandler> m_ExtendedMessageHandlers;
+			// BEP9
+			size_t m_RemoteMetadataSize;
+			std::vector<uint8_t> m_RemoteMetadata;
 			// stats
 			uint64_t m_DownloadRate, m_UploadRate; // B/sec
 			uint64_t m_LastBlockDownloadTimestamp, m_LastBlockUploadTimestamp; // monotonic milliseconds
@@ -340,4 +363,7 @@ namespace torrents
 	};
 }
 }
+
+#endif // NO_TORRENTS
+
 #endif

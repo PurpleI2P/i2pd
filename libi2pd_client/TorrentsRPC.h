@@ -9,6 +9,8 @@
 #ifndef TORRENTS_RPC_H__
 #define TORRENTS_RPC_H__
 
+#ifndef NO_TORRENTS
+
 #include <inttypes.h>
 #include <memory>
 #include <string>
@@ -74,5 +76,7 @@ namespace torrents
 	};
 }
 }
+
+#endif
 
 #endif

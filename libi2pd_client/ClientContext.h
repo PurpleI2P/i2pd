@@ -152,7 +152,9 @@ namespace client
 			void CreateNewSharedLocalDestination ();
 			void AddLocalDestination (std::shared_ptr<ClientDestination> localDestination);
 
+#ifndef NO_TORRENTS
 			std::shared_ptr<i2p::torrents::TorrentsRPCServer> CreateTorrentsRPCServer (std::string_view address, uint16_t port);
+#endif
 
 		private:
 
@@ -171,8 +173,10 @@ namespace client
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<I2PUDPClientTunnel> > m_ClientForwards; // local endpoint -> udp tunnel
 			std::map<std::pair<i2p::data::IdentHash, int>, std::shared_ptr<I2PUDPServerTunnel> > m_ServerForwards; // <destination,port> -> udp tunnel
 
+#ifndef NO_TORRENTS
 			std::unordered_map<i2p::data::IdentHash, std::shared_ptr<i2p::torrents::TorrentsTunnel> > m_TorrentsTunnels; // local destination -> torrents tunnel
 			std::unordered_map<uint16_t, std::shared_ptr<i2p::torrents::TorrentsRPCServer> > m_TorrentsRPCServers;
+#endif
 
 			SAMBridge * m_SamBridge;
 			BOBCommandChannel * m_BOBCommandChannel;
@@ -194,8 +198,10 @@ namespace client
 			const decltype(m_ServerTunnels)& GetServerTunnels () const { return m_ServerTunnels; };
 			const decltype(m_ClientForwards)& GetClientForwards () const { return m_ClientForwards; }
 			const decltype(m_ServerForwards)& GetServerForwards () const { return m_ServerForwards; }
+#ifndef NO_TORRENTS
 			const decltype(m_TorrentsTunnels)& GetTorrentsTunnels () const { return m_TorrentsTunnels; }
 			const decltype(m_TorrentsRPCServers)& GetTorrentsRPCServers () const { return m_TorrentsRPCServers; }
+#endif
 			std::shared_ptr<const I2PService> GetHttpProxy () const
 			{
 				std::lock_guard<std::mutex> l(m_ProxyMutex);

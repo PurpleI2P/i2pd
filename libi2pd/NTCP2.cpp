@@ -1283,8 +1283,14 @@ namespace transport
 			LogPrint (eLogDebug, "NTCP2: Block type ", (int)blk, " of size ", size);
 			if (offset + size > len)
 			{
-				LogPrint (eLogError, "NTCP2: Unexpected block length ", size);
-				break;
+				if (blk == eNTCP2BlkPadding)
+					// padding is always last block and we set size up to end of frame
+					size = len - offset;
+				else
+				{
+					LogPrint (eLogError, "NTCP2: Unexpected block length ", size, " of type ", (int)blk);
+					break;
+				}
 			}
 			switch (blk)
 			{

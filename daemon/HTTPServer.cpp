@@ -1206,6 +1206,7 @@ namespace http {
 			}
 			s << "</div>\r\n<br>\r\n";
 		}
+#ifndef NO_TORRENTS
 		auto& torrentsTunnels = i2p::client::context.GetTorrentsTunnels ();
 		if (!torrentsTunnels.empty ())
 		{
@@ -1223,10 +1224,12 @@ namespace http {
 			}
 			s << "</div>\r\n<br>\r\n";
 		}
+#endif
 	}
 
 	static void ShowTorrentsPage (std::stringstream& s, std::map<std::string, std::string>& params)
 	{
+#ifndef NO_TORRENTS
 		bool js; i2p::config::GetOption("http.javascript", js);
 		if (!js)
 		{
@@ -1284,6 +1287,9 @@ namespace http {
 		}
 		else
 			s << "<h1 style='color:red'>Not found rpc tunnel " << tunnelname << "</h1>\r\n";
+#else
+		s << "<h1 style='color:red'>Torrents are not supported</h1>\r\n";
+#endif
 	}
 
 	HTTPConnection::HTTPConnection (std::string hostname, std::shared_ptr<boost::asio::ip::tcp::socket> socket):

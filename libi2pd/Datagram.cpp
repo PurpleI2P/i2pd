@@ -98,10 +98,10 @@ namespace datagram
 				{
 					constexpr uint8_t flags[] = { 0x00, 0x02 }; // datagram2, no options
 					// signature
-					std::vector<uint8_t> signedData (len + m_From.size () + 2);
-					memcpy (signedData.data (), m_From.data (), m_From.size ());
-					memcpy (signedData.data () + m_From.size (), flags, 2);
-					memcpy (signedData.data () + m_From.size () + 2, payload, len);
+					std::vector<uint8_t> signedData (len + 32 + 2);
+					memcpy (signedData.data (), session->GetRemoteIdent (), 32);
+					memcpy (signedData.data () + 32, flags, 2);
+					memcpy (signedData.data () + 32 + 2, payload, len);
 					m_Owner->Sign (signedData.data (), signedData.size (), m_Signature.data ());
 					// TODO: offline signatures and options
 					msg = CreateDataMessage ({{m_From.data (), m_From.size ()}, {flags, 2}, {payload, len},
@@ -267,7 +267,7 @@ namespace datagram
 				return;
 			}
 			std::vector<uint8_t> signedData (len + 32 - identityLen - signatureLen);
-			memcpy (signedData.data (), identity.GetIdentHash (), 32);
+			memcpy (signedData.data (), m_Owner->GetIdentity ()->GetIdentHash (), 32);
 			memcpy (signedData.data () + 32, buf + identityLen, signedData.size () - 32);
 			verified = transientVerifier ? transientVerifier->Verify (signedData.data (), signedData.size (), buf + len - signatureLen) :
 				identity.Verify (signedData.data (), signedData.size (), buf + len - signatureLen);
@@ -488,10 +488,10 @@ namespace datagram
 
 	void DatagramDestination::CleanUp ()
 	{
-		if (m_Sessions.empty ()) return;
 		auto now = i2p::util::GetMillisecondsSinceEpoch();
-		LogPrint(eLogDebug, "DatagramDestination: clean up sessions");
 		std::unique_lock<std::mutex> lock(m_SessionsMutex);
+		if (m_Sessions.empty ()) return;
+		LogPrint(eLogDebug, "DatagramDestination: clean up sessions");
 		// for each session ...
 		for (auto it = m_Sessions.begin (); it != m_Sessions.end (); )
 		{
