@@ -51,8 +51,12 @@ namespace torrents
 	constexpr size_t NOTINTERESTED_MSG_LENGTH = 5;
 	constexpr size_t CHOKE_MSG_LENGTH = 5;
 	constexpr size_t UNCHOKE_MSG_LENGTH = 5;
+	constexpr size_t HAVE_ALL_MSG_LENGTH = 5;
+	constexpr size_t HAVE_NONE_MSG_LENGTH = 5;
 	constexpr size_t REQUEST_MSG_PAYLOAD_LENGTH = 12;
 	constexpr size_t REQUEST_MSG_LENGTH = REQUEST_MSG_PAYLOAD_LENGTH + 5;
+	constexpr size_t REJECT_REQUEST_MSG_PAYLOAD_LENGTH = 12;
+	constexpr size_t REJECT_REQUEST_MSG_LENGTH = REJECT_REQUEST_MSG_PAYLOAD_LENGTH + 5;
 	constexpr size_t HAVE_MSG_PAYLOAD_LENGTH = 4;
 
 	// extensions
@@ -69,9 +73,14 @@ namespace torrents
 		eMessageTypeBitfield = 5,
 		eMessageTypeRequest = 6,
 		eMessageTypePiece = 7,
+		// BEP6
+		eMessageTypeSuggestPiece = 13,
 		eMessageTypeHaveAll = 14,
 		eMessageTypeHaveNone = 15,
-		eMessageTypeExtended = 20 // BEP10
+		eMessageTypeRejectRequest = 16,
+		eMessageTypeAllowedFast = 17,
+		// BEP10
+		eMessageTypeExtended = 20
 	};
 
 	struct PieceFileFragment // fragment to save to/load from file
@@ -315,9 +324,12 @@ namespace torrents
 			void HandleBitfieldMsg (const uint8_t * buf, size_t len);
 			void SendBitfieldMsg (const uint8_t * bitfield, size_t bitfieldLen);
 			void HandleHaveAllMsg ();
+			void SendHaveAllMsg ();
 			void HandleHaveNoneMsg ();
+			void SendHaveNoneMsg ();
 			void HandlePieceMsg (const uint8_t * buf, size_t len);
 			void SendPieceMsg (uint32_t index, uint32_t offset, const uint8_t * data, size_t len);
+			void SendRejectRequestMsg (uint32_t index, uint32_t offset, uint32_t len);
 			void HandleRequestMsg (const uint8_t * buf, size_t len);
 			void SendRequestMsg (uint32_t index, uint32_t offset, uint32_t len);
 			size_t FillRequestMsg (uint8_t * buf, uint32_t index, uint32_t offset, uint32_t len);
@@ -355,6 +367,8 @@ namespace torrents
 			// BEP9
 			size_t m_RemoteMetadataSize;
 			std::vector<uint8_t> m_RemoteMetadata;
+			// BEP6
+			bool m_IsFast;
 			// stats
 			uint64_t m_DownloadRate, m_UploadRate; // B/sec
 			uint64_t m_LastBlockDownloadTimestamp, m_LastBlockUploadTimestamp; // monotonic milliseconds

@@ -879,7 +879,7 @@ namespace torrents
 		m_IsHandshakeSent (false), m_IsEstablished (false), m_IsChoked (true), m_IsRemoteChoked (true),
 		m_IsInterested (false), m_IsRemoteInterested (false), m_LastReceiveTime (0), m_LastSendTime (0),
 		m_NumRequests (0), m_NumPieces (0), m_LastRequestedPieceIndex (-1), m_RemoteMetadataSize (0),
-		m_Downloaded (0), m_Uploaded (0)
+		m_IsFast (false), m_Downloaded (0), m_Uploaded (0)
 	{
 		ResetStats ();
 	}
@@ -1175,6 +1175,15 @@ namespace torrents
 				case eMessageTypeExtended:
 					HandleExtendedMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
 				break;
+				case eMessageTypeSuggestPiece:
+					LogPrint (eLogDebug, "Torrents: suggest piece msg received");
+				break;
+				case eMessageTypeRejectRequest:
+					LogPrint (eLogDebug, "Torrents: reject request msg received");
+				break;
+				case eMessageTypeAllowedFast:
+					LogPrint (eLogDebug, "Torrents: allowed fast msg received");
+				break;
 				default:
 					LogPrint (eLogWarning, "Torrents: Unexpected message type ", (int)m_ReceiveBuffer[offset], ". Ignored");
 			};
@@ -1215,7 +1224,8 @@ namespace torrents
 		// respond with handshake if incoming
 		if (!m_IsHandshakeSent)
 			SendHandshakeMsg ();
-		if (m_ReceiveBuffer[20 + 5] & 0x10) // bit 20 of reserved, BEP10
+		// BEP10
+		if (m_ReceiveBuffer[20 + 5] & 0x10) // bit 20 of reserved
 			SendExtendedMsg (); // extended handshake if peer supports BEP10
 		else if (!m_Torrent->GetLength ()) // we are magnet without info
 		{
@@ -1223,10 +1233,20 @@ namespace torrents
 			Terminate ();
 			return 0;
 		}
-		// send bitfield if not empty
+		// BEP6
+		if (m_ReceiveBuffer[20 + 7] & 0x04) // bit 61 of reserved
+			m_IsFast = true;
+		// send bitfield, have all or have none
 		auto [bitfield, empty] = m_Torrent->CreateBitfield ();
 		if (!empty)
-			SendBitfieldMsg (bitfield.data (), bitfield.size ());
+		{
+			if (m_IsFast && m_Torrent->IsComplete ())
+				SendHaveAllMsg ();
+			else
+				SendBitfieldMsg (bitfield.data (), bitfield.size ());
+		}
+		else if (m_IsFast)
+			SendHaveNoneMsg ();
 		m_IsEstablished = true;
 		return HANDSHAKE_MSG_LENGTH;
 	}
@@ -1238,6 +1258,7 @@ namespace torrents
 		buf[0] = 19; memcpy (buf + 1, "BitTorrent protocol", 19);
 		memset (buf + 20, 0, 8); // reserved
 		buf[20 + 5] |= 0x10; // bit 20 of reserved, BEP10
+		buf[20 + 7] |= 0x04; // bit 61 of reserved, BEP6
 		memcpy (buf + 28, m_Torrent->GetInfoHash ().data (), 20);
 		memset (buf + 48, '0', 20);
 		if (GetTorrentsTunnel ())
@@ -1342,12 +1363,28 @@ namespace torrents
 			Terminate (); // we don't need this connection
 	}
 
+	void PeerConnection::SendHaveAllMsg ()
+	{
+		uint8_t buf[HAVE_ALL_MSG_LENGTH];
+		htobe32buf (buf, 1);
+		buf[4] = eMessageTypeHaveAll;
+		WriteToStream (buf, HAVE_ALL_MSG_LENGTH);
+	}
+
 	void PeerConnection::HandleHaveNoneMsg ()
 	{
 		if (!m_Torrent) return;
 		size_t numPieces = m_Torrent->GetNumPieces ();
 		m_RemoteBitfield.resize (numPieces);
 		m_RemoteBitfield.reset ();
+	}
+
+	void PeerConnection::SendHaveNoneMsg ()
+	{
+		uint8_t buf[HAVE_NONE_MSG_LENGTH];
+		htobe32buf (buf, 1);
+		buf[4] = eMessageTypeHaveNone;
+		WriteToStream (buf, HAVE_NONE_MSG_LENGTH);
 	}
 
 	void PeerConnection::HandlePieceMsg (const uint8_t * buf, size_t len)
@@ -1466,6 +1503,17 @@ namespace torrents
 		m_Torrent->AddUploaded (len);
 	}
 
+	void PeerConnection::SendRejectRequestMsg (uint32_t index, uint32_t offset, uint32_t len)
+	{
+		uint8_t buf[REJECT_REQUEST_MSG_LENGTH];
+		htobe32buf (buf, REJECT_REQUEST_MSG_PAYLOAD_LENGTH + 1); // msg length
+		buf[4] = eMessageTypeRejectRequest; // msg ID
+		htobe32buf (buf + 5, index); // index
+		htobe32buf (buf + 9, offset); // offset
+		htobe32buf (buf + 13, len); // length
+		WriteToStream (buf, REJECT_REQUEST_MSG_LENGTH);
+	}
+
 	void PeerConnection::HandleRequestMsg (const uint8_t * buf, size_t len)
 	{
 		if (!m_Torrent) return;
@@ -1541,10 +1589,18 @@ namespace torrents
 				}
 			}
 			else
+			{
 				LogPrint (eLogWarning, "Torrents: Requested block (", index, ",", offset, ") is not available");
+				if (m_IsFast)
+					SendRejectRequestMsg (index, offset, length);
+			}
 		}
 		else
+		{
 			LogPrint (eLogWarning, "Torrents: Requested index ", index, "exceeds number of pieces", m_Torrent->GetNumPieces ());
+			if (m_IsFast)
+				SendRejectRequestMsg (index, offset, length);
+		}
 	}
 
 	bool PeerConnection::SendRequestedBlock (const RequestedBlock& requestedBlock)
