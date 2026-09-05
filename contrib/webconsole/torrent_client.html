@@ -27,6 +27,7 @@
 <fieldset>
   <legend>Torrent Client</legend>
   <div id="torrent-ui">
+    <label for='torrent_manet_url'>Your torrent link: <input  id='torrent_manet_url' type='text' id='torrent_manet_url'/><button id='btn_magnet'>download</button>
     <h3 id="connection_status">_</h3>
     <input type="file" id="torrentf" accept=".torrent" style="display: none" />
     <button onclick="document.getElementById('torrentf').click()">
@@ -56,6 +57,7 @@
 </div>
 
 <script>
+
   let currentTorrentsData = [];
   async function stopAll()
   {
@@ -294,4 +296,9 @@ Next Announce: ${new Date(tr.nextAnnounceTime * 1000).toLocaleString()}
   window.closeDetailsModal = () => {
     document.getElementById("torrent_details_modal").style.display = "none";
   };
+  const btn_magnet = document.getElementById('btn_magnet')
+  btn_magnet.onclick = async () => {
+    const r = await window.tjs.addTorrentByMagnet(document.getElementById('torrent_manet_url').value)
+    if(!r) alert("Not correct magnet link");
+  }
 </script>
