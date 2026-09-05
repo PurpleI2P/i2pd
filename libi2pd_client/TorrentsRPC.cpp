@@ -341,7 +341,8 @@ namespace torrents
 					float ratio = torrent->GetDownloaded () ? ((float)torrent->GetUploaded ())/((float)torrent->GetDownloaded ()) : 100.0;
 					return boost::json::value (ratio);
 				}
-			}
+			},
+			{ "metadataPercentComplete", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetLength () ? 1.0 : 0.0); } }
 		};
 		if (torrent)
 		{
