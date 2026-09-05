@@ -1216,6 +1216,12 @@ namespace torrents
 			SendHandshakeMsg ();
 		if (m_ReceiveBuffer[20 + 5] & 0x10) // bit 20 of reserved, BEP10
 			SendExtendedMsg (); // extended handshake if peer supports BEP10
+		else if (!m_Torrent->GetLength ()) // we are magnet without info
+		{
+			LogPrint (eLogInfo, "Torrents: Magnet doesn't have info yet, but BEP10 is not supported by this peer");
+			Terminate ();
+			return 0;
+		}
 		// send bitfield if not empty
 		auto [bitfield, empty] = m_Torrent->CreateBitfield ();
 		if (!empty)
@@ -1645,9 +1651,17 @@ namespace torrents
 					}
 					return 0;
 				});
-			if (!m_Torrent->GetLength () && m_RemoteMetadataSize) // torrent is magnet and peer supports BEP9
-				// request first piece of info
-				SendExtendedMsg (EXTENSION_MSGID_UT_METADATA, CreateDictionary ({{ "msg_type", CreateInteger (0) }, { "piece", CreateInteger (0) }}));
+			if (!m_Torrent->GetLength ()) // magnet without info
+			{
+				if (m_RemoteMetadataSize) // peer supports BEP9
+					// request first piece of info
+					SendExtendedMsg (EXTENSION_MSGID_UT_METADATA, CreateDictionary ({{ "msg_type", CreateInteger (0) }, { "piece", CreateInteger (0) }}));
+				else
+				{
+					LogPrint (eLogInfo, "Torrents: Magnet doesn't have info yet, but BEP9 is not supported by this peer");
+					Close ();
+				}
+			}
 		}
 		else
 		{
