@@ -707,6 +707,7 @@ namespace torrents
 
 	bool Torrent::UpdateStatus (uint64_t ts)
 	{
+		if (!m_Length) return false; // non ready magnet
 		bool complete = true;
 		for (auto& it: m_Pieces)
 		{
