@@ -411,6 +411,8 @@ namespace torrents
 	boost::json::array JSONRPCHandler::GetTrackerStats (std::shared_ptr<Torrent> torrent) const
 	{
 		boost::json::array trackers;
+		auto ts = i2p::util::GetMonotonicMilliseconds ();
+		auto tsSinceEpoch = i2p::util::GetMillisecondsSinceEpoch ();
 		for (size_t i = 0; i < m_Tunnel->GetNumTrackers (); i++)
 		{
 			boost::json::object tracker;
@@ -442,8 +444,7 @@ namespace torrents
 			}
 			tracker["lastAnnounceTimedOut"] = false; // TODO:
 			auto nextRequestTime = torrent->GetNextTrackerRequestTime (i);
-			tracker["nextAnnounceTime"] = ((nextRequestTime ? torrent->GetNextTrackerRequestTime (i) -
-				i2p::util::GetMonotonicMilliseconds () : 0) + i2p::util::GetMillisecondsSinceEpoch ())/1000;
+			tracker["nextAnnounceTime"] = ((nextRequestTime && nextRequestTime > ts ? nextRequestTime - ts : 0) + tsSinceEpoch)/1000;
 			tracker["lastAnnounceTime"] = torrent->GetLastTrackerUpdateTime (i);
 			tracker["lastAnnounceStartTime"] = torrent->GetLastTrackerUpdateTime (i); // TODO:
 			tracker["lastScrapeTime"] = 0;
