@@ -84,15 +84,16 @@ namespace torrents
 		m_KeepAliveCheckTimer.cancel ();
 		m_ReconnectCheckTimer.cancel ();
 		m_TorrentsStatusUpdateTimer.cancel ();
-		m_Torrents.clear ();
 		for (auto it: m_Torrents)
 		{
+			RequestTorrentTrackers (it.second, eTrackerAnnounceEventStopped);
 			auto fullPath = it.second->GetFullPath (); fullPath += ".resume";
 			boost::asio::post (m_DiskIOService.GetService (),  [torrent = it.second, fullPath]()
 				{
 					torrent->SaveTorrentResumeFile (fullPath);
 				});
 		}
+		m_Torrents.clear ();
 		m_DiskIOService.Stop ();
 		i2p::client::I2PService::Stop ();
 	}
