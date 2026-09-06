@@ -129,7 +129,6 @@ namespace torrents
 			bool HasBlock (size_t offset) const;
 			std::pair<size_t, size_t> GetNextBlockToRequest (); // return (offset, len) of next buffer, len = 0 if no next buffer
 			void ClearAllRequests ();
-			void ClearRequest (size_t offset);
 			void InvalidateAllBlocks ();
 			void Reset ();
 
@@ -288,6 +287,7 @@ namespace torrents
 			std::shared_ptr<i2p::stream::Stream> GetStream () const { return m_Stream; }
 			std::shared_ptr<Torrent> GetTorrent () const { return m_Torrent; }
 			int GetLastRequestedPieceIndex () const { return m_LastRequestedPieceIndex; }
+			int ResetSuggestedPieceIndex () { auto index = m_SuggestedPieceIndex; m_SuggestedPieceIndex = -1; return index; }
 			const boost::dynamic_bitset<>& GetRemoteBitfield () const  { return m_RemoteBitfield; }
 			const PeerID& GetRemotePeerID () const { return m_RemotePeerID; }
 			std::string_view GetRemoteName () const { return m_RemoteName; }
@@ -372,6 +372,7 @@ namespace torrents
 			std::vector<uint8_t> m_RemoteMetadata;
 			// BEP6
 			bool m_IsFast;
+			int m_SuggestedPieceIndex;
 			// stats
 			uint64_t m_DownloadRate, m_UploadRate; // B/sec
 			uint64_t m_LastBlockDownloadTimestamp, m_LastBlockUploadTimestamp; // monotonic milliseconds

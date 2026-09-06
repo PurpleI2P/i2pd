@@ -301,20 +301,11 @@ namespace torrents
 
 	void Piece::ClearAllRequests ()
 	{
+		m_IsRequested = false;
 		if (!m_Blocks) return;
 		for (auto& it: *m_Blocks)
 			if (it == BlockStatus::Requested)
 				it = BlockStatus::Missing;
-	}
-
-	void Piece::ClearRequest (size_t offset)
-	{
-		if (m_Blocks)
-		{
-			auto block = offset/REQUEST_BLOCK_SIZE;
-			if (block < m_Blocks->size () && (*m_Blocks)[block] == BlockStatus::Requested)
-				(*m_Blocks)[block] = BlockStatus::Missing;
-		}
 	}
 
 	void Piece::InvalidateAllBlocks ()
@@ -330,10 +321,7 @@ namespace torrents
 	void Piece::Reset ()
 	{
 		if (m_Blocks)
-		{
 			ClearAllRequests ();
-			m_IsRequested = false;
-		}
 		else if (m_Data && !m_IsSending)
 		{
 			delete[] m_Data; m_Data = nullptr;
@@ -680,6 +668,18 @@ namespace torrents
 				if (len > 0)
 					return { (uint32_t)lastIndex, offset, len };
 			}
+			// try suggested piece
+			int suggestedIndex = conn->ResetSuggestedPieceIndex ();
+			if (suggestedIndex >= 0)
+			{
+				Piece& piece = m_Pieces[suggestedIndex];
+				if (!piece.IsComplete () && !piece.IsRequested ())
+				{
+					auto [offset, len] = piece.GetNextBlockToRequest ();
+					if (len > 0)
+						return { (uint32_t)suggestedIndex, offset, len };
+				}
+			}
 			// try another piece if not current piece or no more blocks in current piece
 			std::set<std::pair<uint32_t, size_t>, std::function<bool(const std::pair<uint32_t, size_t>&, const std::pair<uint32_t, size_t>&)> >
 				sortedByNumPeers ([](const std::pair<uint32_t, size_t>& p1, const std::pair<uint32_t, size_t>& p2)->bool
@@ -889,7 +889,7 @@ namespace torrents
 		m_IsHandshakeSent (false), m_IsEstablished (false), m_IsChoked (true), m_IsRemoteChoked (true),
 		m_IsInterested (false), m_IsRemoteInterested (false), m_LastReceiveTime (0), m_LastSendTime (0),
 		m_NumRequests (0), m_NumPieces (0), m_LastRequestedPieceIndex (-1), m_RemoteMetadataSize (0),
-		m_IsFast (false), m_Downloaded (0), m_Uploaded (0)
+		m_IsFast (false), m_SuggestedPieceIndex (-1), m_Downloaded (0), m_Uploaded (0)
 	{
 		ResetStats ();
 	}
@@ -1519,8 +1519,6 @@ namespace torrents
 		uint32_t index = bufbe32toh (buf);
 		uint32_t offset = bufbe32toh (buf + 4);
 		LogPrint (eLogDebug, "Torrents: Reject request msg received index ", index, " offset ", offset);
-		if (index < m_Torrent->GetNumPieces ())
-			m_Torrent->GetPiece (index).ClearRequest (offset);
 		if (m_NumRequests > 0) m_NumRequests--;
 		RequestNextBlocks ();
 	}
@@ -1700,10 +1698,11 @@ namespace torrents
 
 	void PeerConnection::HandleSuggestPieceMsg (const uint8_t * buf, size_t len)
 	{
-		if (len < 4 || !m_Torrent) return;
+		if (len < 4) return;
 		uint32_t index = bufbe32toh (buf);
 		LogPrint (eLogDebug, "Torrents: suggest piece msg received ", index);
-		// TODO:
+		if (IsPieceAvailable (index))
+			m_SuggestedPieceIndex = index;
 	}
 
 	void PeerConnection::HandleExtendedMsg (const uint8_t * buf, size_t len)
