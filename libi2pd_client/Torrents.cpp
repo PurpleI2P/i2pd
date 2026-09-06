@@ -403,6 +403,10 @@ namespace torrents
 				}
 				else if (key == "pieces")
 				{
+					{
+						std::vector<Piece> tmp;
+						m_Pieces.swap (tmp);
+					}
 					if (m_PieceLength > 0 && m_Length > 0)
 						m_Pieces.reserve (m_Length/m_PieceLength + 1);
 					return ParsePieces (buf);
@@ -879,7 +883,7 @@ namespace torrents
 
 	TorrentStatus Torrent::GetStatus () const
 	{
-		if (m_IsStopped) return eTorrentStatusStopped;
+		if (m_IsStopped || !m_Length) return eTorrentStatusStopped;
 		if (m_IsComplete) return eTorrentStatusSeeding;
 		return eTorrentStatusDownloading;
 	}
@@ -913,7 +917,7 @@ namespace torrents
 		{
 			auto& piece = m_Torrent->GetPiece (m_LastRequestedPieceIndex);
 			if (piece.IsRequested ())
-				piece.Reset (); // piece can be requested by other connections
+				piece.ClearAllRequests (); // piece can be requested by other connections
 		}
 		if (m_Stream)
 		{
@@ -1874,7 +1878,7 @@ namespace torrents
 								GetTorrentsTunnel ()->UpdateTorrentInfo (m_Torrent, std::string_view ((const char *)m_RemoteMetadata.data (), m_RemoteMetadata.size ()));
 							else
 								LogPrint (eLogError, "Torrents: ut_metadata info doesn't match infoHash");
-							Close (); // we need to reconnect to receive bitfield
+							Terminate (); // we need to reconnect to receive bitfield
 						}
 					}
 					break;

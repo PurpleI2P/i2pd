@@ -113,7 +113,7 @@ namespace torrents
 			~Piece ();
 
 			bool IsComplete () const { return !m_Blocks; }
-			void Complete () { m_Blocks = nullptr; }
+			void Complete () { m_Blocks = nullptr; m_IsRequested = false; }
 			bool VerifyHash () const;
 			void SetIsSending (bool isSending);
 			uint64_t GetLastActivityTimestamp () const { return m_LastActivityTimestamp; }
