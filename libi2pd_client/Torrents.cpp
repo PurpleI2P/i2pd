@@ -1192,7 +1192,7 @@ namespace torrents
 					HandleRejectRequestMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
 				break;
 				case eMessageTypeAllowedFast:
-					LogPrint (eLogDebug, "Torrents: allowed fast msg received");
+					HandleAllowedFastMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
 				break;
 				default:
 					LogPrint (eLogWarning, "Torrents: Unexpected message type ", (int)m_ReceiveBuffer[offset], ". Ignored");
@@ -1703,6 +1703,23 @@ namespace torrents
 		LogPrint (eLogDebug, "Torrents: suggest piece msg received ", index);
 		if (IsPieceAvailable (index))
 			m_SuggestedPieceIndex = index;
+	}
+
+	void PeerConnection::HandleAllowedFastMsg (const uint8_t * buf, size_t len)
+	{
+		if (len < 4 || !m_Torrent) return;
+		uint32_t index = bufbe32toh (buf);
+		LogPrint (eLogDebug, "Torrents: allowed fast msg received");
+		if (m_IsChoked && index < m_Torrent->GetNumPieces ())
+		{
+			Piece& piece = m_Torrent->GetPiece (index);
+			if (!piece.IsComplete () && !piece.IsRequested ())
+			{
+				uint32_t offset = 0, len = 0;
+				while (std::tie (offset, len) = piece.GetNextBlockToRequest (), len > 0)
+					SendRequestedBlock ({index, offset, len});
+			}
+		}
 	}
 
 	void PeerConnection::HandleExtendedMsg (const uint8_t * buf, size_t len)

@@ -341,6 +341,7 @@ namespace torrents
 			void SendChokeMsg ();
 			void HandleChokeMsg ();
 			void HandleSuggestPieceMsg (const uint8_t * buf, size_t len);
+			void HandleAllowedFastMsg (const uint8_t * buf, size_t len);
 			void HandleExtendedMsg (const uint8_t * buf, size_t len);
 			void SendExtendedMsg (uint8_t extendedMsgID = 0, std::string_view payload = "", std::string_view data = "");
 			void AddExtendedMsgHandler (std::string_view extensionName, int64_t msgID);
