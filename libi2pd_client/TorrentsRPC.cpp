@@ -229,8 +229,10 @@ namespace torrents
 			if (ids.is_array ())
 				for (const auto& it: ids.as_array ())
 					torrentIds.push_back (it.as_int64 ());
-			else
+			else if (ids.is_int64 ())
 				torrentIds.push_back (ids.as_int64 ());
+			else
+				torrentIds = m_Tunnel->GetTorrentIDs ();
 		}
 		else
 			torrentIds = m_Tunnel->GetTorrentIDs ();
