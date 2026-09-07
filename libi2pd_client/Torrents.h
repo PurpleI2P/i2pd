@@ -40,8 +40,10 @@ namespace torrents
 	constexpr int PEER_CONNECTION_MAX_IDLE = 3600; // in seconds
 	constexpr int PEER_KEEP_ALIVE_TIMEOUT = 120; // in seconds
 	constexpr int PEER_KEEP_SEND_INTERVAL = 95; // in seconds
-	constexpr size_t MAX_NUM_REQUESTS = 12;
+	constexpr size_t MIN_NUM_REQUESTS = 8;
+	constexpr size_t MAX_NUM_REQUESTS = 24;
 	constexpr size_t MAX_NUM_PIECES = 6;
+	constexpr size_t MAX_INCOMING_REQUESTS_QUEUE_SIZE = 32;
 	constexpr int PIECE_INACTIVITY_TIMEOUT = 60; // in seconds
 	constexpr int HANDSHAKE_RECEIVE_TIMEOUT = 20; // in seconds
 	constexpr int BANDWIDTH_RATE_SAMPLING_INTERVAL = 20; // in milliseconds
@@ -360,6 +362,7 @@ namespace torrents
 			std::shared_ptr<Torrent> m_Torrent;
 			PeerID m_RemotePeerID;
 			std::string m_RemoteName; // from BEP10
+			size_t m_MaxNumRequests; // min or from BEP10
 			boost::dynamic_bitset<> m_RemoteBitfield;
 			bool m_IsHandshakeSent, m_IsEstablished, m_IsChoked, m_IsRemoteChoked,
 				m_IsInterested, m_IsRemoteInterested;

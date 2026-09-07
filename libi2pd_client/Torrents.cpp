@@ -459,9 +459,8 @@ namespace torrents
 		std::string stem (name.substr (0, name.find ('.')));
 		boost::to_upper (stem);
 		if (std::find (reserved.begin (), reserved.end (), stem) != reserved.end ()) return "";
-#else
-		return adjustedName;
 #endif
+		return adjustedName;
 	}
 
 	size_t Torrent::ParseFiles (std::string_view buf)
@@ -905,7 +904,7 @@ namespace torrents
 
 	PeerConnection::PeerConnection (std::shared_ptr<i2p::client::I2PService> owner,
 		std::shared_ptr<i2p::stream::Stream> stream): i2p::client::I2PServiceHandler (owner),
-		m_Stream (stream), m_ReceiveBufferOffset (0), m_NextMsgLength (0),
+		m_Stream (stream), m_ReceiveBufferOffset (0), m_NextMsgLength (0), m_MaxNumRequests (MIN_NUM_REQUESTS),
 		m_IsHandshakeSent (false), m_IsEstablished (false), m_IsChoked (true), m_IsRemoteChoked (true),
 		m_IsInterested (false), m_IsRemoteInterested (false), m_LastReceiveTime (0), m_LastSendTime (0),
 		m_NumRequests (0), m_NumPieces (0), m_LastRequestedPieceIndex (-1), m_RemoteMetadataSize (0),
@@ -1456,7 +1455,7 @@ namespace torrents
 			}
 		}
 		if (m_NumRequests > 0) m_NumRequests--;
-		if (m_NumRequests <= MAX_NUM_REQUESTS*2/3)
+		if (m_NumRequests <= m_MaxNumRequests*2/3)
 			RequestNextBlocks ();
 		// update stats
 		m_Downloaded += REQUEST_BLOCK_SIZE;
@@ -1729,19 +1728,8 @@ namespace torrents
 
 	void PeerConnection::HandleAllowedFastMsg (const uint8_t * buf, size_t len)
 	{
-		if (len < 4 || !m_Torrent) return;
-		uint32_t index = bufbe32toh (buf);
 		LogPrint (eLogDebug, "Torrents: allowed fast msg received");
-		if (m_IsChoked && index < m_Torrent->GetNumPieces ())
-		{
-			Piece& piece = m_Torrent->GetPiece (index);
-			if (!piece.IsComplete () && !piece.IsRequested ())
-			{
-				uint32_t offset = 0, len = 0;
-				while (std::tie (offset, len) = piece.GetNextBlockToRequest (), len > 0)
-					SendRequestedBlock ({index, offset, len});
-			}
-		}
+		// ignore for now
 	}
 
 	void PeerConnection::HandleExtendedMsg (const uint8_t * buf, size_t len)
@@ -1766,6 +1754,13 @@ namespace torrents
 					{
 						auto [s, l] = ExtractInteger (buf);
 						if (l) m_RemoteMetadataSize = s;
+						return l;
+					}
+					else if (key == "reqq")
+					{
+						auto [q, l] = ExtractInteger (buf);
+						if (l) m_MaxNumRequests = std::clamp ((size_t)q, MIN_NUM_REQUESTS, MAX_NUM_REQUESTS);
+						LogPrint (eLogDebug, "Torrents: max num requests ", m_MaxNumRequests);
 						return l;
 					}
 					else if (key == "v")
@@ -1814,6 +1809,7 @@ namespace torrents
 					{ EXTENSION_NAME_UT_METADATA, CreateInteger (EXTENSION_MSGID_UT_METADATA) }
 										  }) },
 				{ "metadata_size",  CreateInteger (m_Torrent->GetInfo ().size ()) },
+				{ "reqq", CreateInteger (MAX_INCOMING_REQUESTS_QUEUE_SIZE) },
 				{ "v", CreateByteString ("i2pd") }
 									});
 			payload = str;
@@ -1931,11 +1927,11 @@ namespace torrents
 	bool PeerConnection::RequestNextBlocks ()
 	{
 		if (m_IsChoked || !m_Torrent || m_Torrent->IsComplete ()) return false;
-		if (m_NumRequests >= MAX_NUM_REQUESTS) return false;
+		if (m_NumRequests >= m_MaxNumRequests) return false;
 		std::vector<uint8_t> buf;
-		buf.reserve (REQUEST_MSG_LENGTH*(MAX_NUM_REQUESTS - m_NumRequests));
+		buf.reserve (REQUEST_MSG_LENGTH*(m_MaxNumRequests - m_NumRequests));
 		size_t bufOffset = 0;
-		while (m_NumRequests < MAX_NUM_REQUESTS)
+		while (m_NumRequests < m_MaxNumRequests)
 		{
 			auto nextBlock = GetNextBlockToRequest ();
 			if (!nextBlock) break;
