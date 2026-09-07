@@ -85,14 +85,7 @@ namespace torrents
 		m_ReconnectCheckTimer.cancel ();
 		m_TorrentsStatusUpdateTimer.cancel ();
 		for (auto it: m_Torrents)
-		{
 			RequestTorrentTrackers (it.second, eTrackerAnnounceEventStopped);
-			auto fullPath = it.second->GetFullPath (); fullPath += ".resume";
-			boost::asio::post (m_DiskIOService.GetService (),  [torrent = it.second, fullPath]()
-				{
-					torrent->SaveTorrentResumeFile (fullPath);
-				});
-		}
 		m_Torrents.clear ();
 		m_DiskIOService.Stop ();
 		i2p::client::I2PService::Stop ();
@@ -352,6 +345,7 @@ namespace torrents
 		{
 			Torrent::InfoHash infoHash;
 			bool isInfoHashFound = false;
+			std::string_view announce;
 			magnet = magnet.substr (magnetPrefix.size ());
 			while (!magnet.empty())
 			{
@@ -368,6 +362,7 @@ namespace torrents
 					magnet = "";
 				}
 				static constexpr std::string_view hashPrefix { "xt=urn:btih:" };
+				static constexpr std::string_view trackerPrefix { "tr=" };
 #if __cplusplus >= 202002L // C++20
 				if (param.starts_with (hashPrefix))
 #else
@@ -385,10 +380,17 @@ namespace torrents
 						LogPrint (eLogInfo, "TorentsTunnel: Can't unhex magnet hash ", hexStr);
 					}
 				}
+#if __cplusplus >= 202002L // C++20
+				else if (param.starts_with (trackerPrefix))
+#else
+				else if (param.substr (0, trackerPrefix.size ()) == trackerPrefix)
+#endif
+					announce = param.substr (trackerPrefix.size ());
 			}
 			if (isInfoHashFound && m_Torrents.find (infoHash) == m_Torrents.end ())
 			{
 				auto torrent = std::make_shared<Torrent> (infoHash);
+				if (!announce.empty ()) torrent->SetAnnounce (announce);
 				return { torrent, InsertTorrent (torrent) };
 			}
 		}
