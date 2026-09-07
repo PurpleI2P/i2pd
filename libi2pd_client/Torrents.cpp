@@ -1579,13 +1579,16 @@ namespace torrents
 			{
 				if (m_NumPieces >= MAX_NUM_PIECES)
 				{
-					 m_IncomingRequestsQueue.emplace_back (index, offset, length);
-					 if (!m_IsRemoteChoked && m_IncomingRequestsQueue.size () > 5*MAX_NUM_PIECES)
-					 {
+					if (m_IncomingRequestsQueue.size () < MAX_INCOMING_REQUESTS_QUEUE_SIZE)
+						m_IncomingRequestsQueue.emplace_back (index, offset, length);
+					else if (m_IsFast)
+						SendRejectRequestMsg (index, offset, length);
+					else if (!m_IsRemoteChoked)
+					{
 						LogPrint (eLogDebug, "Torrents: Choke");
 						m_IsRemoteChoked = true;
 						SendChokeMsg ();
-					 }
+					}
 				}
 				else if (!SendRequestedBlock ({index, offset, length})) // block was not sent
 				{
@@ -1760,7 +1763,6 @@ namespace torrents
 					{
 						auto [q, l] = ExtractInteger (buf);
 						if (l) m_MaxNumRequests = std::clamp ((size_t)q, MIN_NUM_REQUESTS, MAX_NUM_REQUESTS);
-						LogPrint (eLogDebug, "Torrents: max num requests ", m_MaxNumRequests);
 						return l;
 					}
 					else if (key == "v")
