@@ -436,7 +436,7 @@ namespace torrents
 	{
 		if (name.empty () || name == "." || name == "..") return "";
 #ifdef _WIN32
-		if (name.back () == '.' || name.back () == ' ') return false; // Windows drops those
+		if (name.back () == '.' || name.back () == ' ') return ""; // Windows drops those
 #endif
 		std::string adjustedName;
 		for (char ch: name)
@@ -448,6 +448,7 @@ namespace torrents
 			else
 				adjustedName.push_back (ch);
 		}
+
 #ifdef _WIN32
 		static constexpr std::array reserved
 		{
