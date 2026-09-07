@@ -685,25 +685,29 @@ namespace torrents
 				}
 			}
 			// try another piece if not current piece or no more blocks in current piece
-			std::set<std::pair<uint32_t, size_t>, std::function<bool(const std::pair<uint32_t, size_t>&, const std::pair<uint32_t, size_t>&)> >
-				sortedByNumPeers ([](const std::pair<uint32_t, size_t>& p1, const std::pair<uint32_t, size_t>& p2)->bool
+			using PieceNumPeers = std::tuple<uint32_t, size_t, uint_fast32_t>; // (index, num peers, random value)
+			std::set<PieceNumPeers, std::function<bool(const PieceNumPeers&, const PieceNumPeers&)> >
+				sortedByNumPeers ([](const PieceNumPeers& p1, const PieceNumPeers& p2)->bool
 				{
-					if (p1.second != p2.second) return p1.second < p2.second;
-					return p1.first < p2.first;
+					if (std::get<1>(p1) != std::get<1>(p2)) return std::get<1>(p1) < std::get<1>(p2);
+					if (std::get<2>(p1) != std::get<2>(p2)) return std::get<2>(p1) < std::get<2>(p2);
+					return std::get<0>(p1) < std::get<0>(p2);
 				});
 			// sort eligible pieces by num peers
+			std::mt19937 rng (i2p::util::GetRngSeed ());
 			uint32_t ind = 0;
 			for (auto& it: m_Pieces)
 			{
 				if (!it.IsComplete () && conn->IsPieceAvailable (ind) && (!skipRequested || !it.IsRequested ()))
-					sortedByNumPeers.emplace (ind, it.GetNumPeers ());
+					sortedByNumPeers.emplace (ind, it.GetNumPeers (), rng ());
 				ind++;
 			}
 			for (const auto& it: sortedByNumPeers)
 			{
-				auto [offset, len] = m_Pieces[it.first].GetNextBlockToRequest ();
+				uint32_t ind = std::get<0>(it);
+				auto [offset, len] = m_Pieces[ind].GetNextBlockToRequest ();
 				if (len > 0)
-					return { it.first, offset, len };
+					return { ind, offset, len };
 			}
 		}
 		return { 0, 0, 0 };
