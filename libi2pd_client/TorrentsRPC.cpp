@@ -54,6 +54,7 @@ namespace torrents
 			static std::vector<int> GetTorrentIds (boost::json::object& arguments);
 			static boost::json::value GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent);
 			boost::json::array GetPeers (std::shared_ptr<Torrent> torrent) const;
+			boost::json::value GetPeersConnected (std::shared_ptr<Torrent> torrent) const;
 			boost::json::array GetTrackers (std::shared_ptr<Torrent> torrent) const;
 			boost::json::array GetTrackerStats (std::shared_ptr<Torrent> torrent) const;
 			boost::json::array GetFiles (std::shared_ptr<Torrent> torrent) const;
@@ -251,6 +252,8 @@ namespace torrents
 						continue;
 					else if (field == "peers")
 						t["peers"] = GetPeers (torrent);
+					else if (field == "peersConnected")
+						t["peersConnected"] = GetPeersConnected (torrent);
 					else if (field == "trackers")
 						t["trackers"] = GetTrackers (torrent);
 					else if (field == "trackerStats")
@@ -338,11 +341,14 @@ namespace torrents
 			},
 			{ "uploadRatio", [](std::shared_ptr<Torrent> torrent)
 				{
-					float ratio = torrent->GetDownloaded () ? ((float)torrent->GetUploaded ())/((float)torrent->GetDownloaded ()) : 100.0;
+					float ratio = torrent->GetDownloaded () ? ((float)torrent->GetUploaded ())/((float)torrent->GetDownloaded ()) : 1.0;
 					return boost::json::value (ratio);
 				}
 			},
-			{ "metadataPercentComplete", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetLength () ? 1.0 : 0.0); } }
+			{ "metadataPercentComplete", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetLength () ? 1.0 : 0.0); } },
+			{ "haveValid", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetLength () - torrent->GetLeft ()); } },
+			{ "uploadedEver", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetUploaded ()); } },
+			{ "downloadedEver", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetDownloaded ()); } }
 		};
 		if (torrent)
 		{
@@ -377,7 +383,7 @@ namespace torrents
 				peer["identHash"] = identHashStr;
 				peer["clientName"] = it->GetRemoteName ().empty () ? RecognizeClientByPeerID (it->GetRemotePeerID ()) : it->GetRemoteName ();
 				peer["isDowloadingFrom"] = it->IsDownloading ();
-				peer["isUploading_to"] = it->IsUploading ();
+				peer["isUploadingTo"] = it->IsUploading ();
 				peer["rateToClient"] = it->GetDownloadRate ();
 				peer["rateToPeer"] = it->GetUploadRate ();
 				peer["isIncoming"] = isIncoming;
@@ -392,6 +398,17 @@ namespace torrents
 			}
 		}
 		return peers;
+	}
+
+	boost::json::value JSONRPCHandler::GetPeersConnected (std::shared_ptr<Torrent> torrent) const
+	{
+		std::list<std::shared_ptr<PeerConnection> > conns;
+		boost::asio::post (m_Tunnel->GetService (),
+			boost::asio::use_future ([tunnel = m_Tunnel, torrent, &conns]()
+			{
+				conns = tunnel->GetTorrentConnections (torrent);
+			})).wait ();
+		return boost::json::value(conns.size ());
 	}
 
 	boost::json::array JSONRPCHandler::GetTrackers (std::shared_ptr<Torrent> torrent) const

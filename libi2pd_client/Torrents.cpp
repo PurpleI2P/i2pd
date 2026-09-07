@@ -883,7 +883,7 @@ namespace torrents
 
 	TorrentStatus Torrent::GetStatus () const
 	{
-		if (m_IsStopped || !m_Length) return eTorrentStatusStopped;
+		if (m_IsStopped) return eTorrentStatusStopped;
 		if (m_IsComplete) return eTorrentStatusSeeding;
 		return eTorrentStatusDownloading;
 	}
