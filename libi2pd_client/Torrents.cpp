@@ -18,6 +18,7 @@
 #include <functional>
 #include <set>
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/hex.hpp>
 #include "Log.h"
 #include "I2PEndian.h"
 #include "Timestamp.h"
@@ -386,12 +387,12 @@ namespace torrents
 					auto [name, l] = ExtractByteString (buf);
 					if (l)
 					{
-						if (!IsSafeName (name))
+						m_Name = AdjustName (name);
+						if (m_Name.empty () && !name.empty ())
 						{
 							LogPrint (eLogError, "Torrents: Unsafe name in torrent: ", name);
 							return 0;
 						}
-						m_Name = name;
 					}
 					return l;
 				}
@@ -431,14 +432,22 @@ namespace torrents
 			{ "info", std::string_view ((const char *)m_Info.data (), m_Info.size ()) } });
 	}
 
-	bool Torrent::IsSafeName (std::string_view name)
+	std::string Torrent::AdjustName (std::string_view name)
 	{
-		if (name.empty () || name == "." || name == "..") return false;
+		if (name.empty () || name == "." || name == "..") return "";
+#ifdef _WIN32
 		if (name.back () == '.' || name.back () == ' ') return false; // Windows drops those
+#endif
+		std::string adjustedName;
 		for (char ch: name)
+		{
+			if ((unsigned char)ch < 0x20) return "";
 			if (ch == '/' || ch == '\\' || ch == ':' || ch == '<' || ch == '>' ||
-				ch == '"' || ch == '|' || ch == '?' || ch == '*' || (unsigned char)ch < 0x20)
-				return false;
+				ch == '"' || ch == '|' || ch == '?' || ch == '*')
+				adjustedName.push_back ('_');
+			else
+				adjustedName.push_back (ch);
+		}
 #ifdef _WIN32
 		static constexpr std::array reserved
 		{
@@ -448,9 +457,9 @@ namespace torrents
 		};
 		std::string stem (name.substr (0, name.find ('.')));
 		boost::to_upper (stem);
-		return std::find (reserved.begin (), reserved.end (), stem) == reserved.end ();
+		if (std::find (reserved.begin (), reserved.end (), stem) != reserved.end ()) return "";
 #else
-		return true;
+		return adjustedName;
 #endif
 	}
 
@@ -468,12 +477,13 @@ namespace torrents
 							if (l)
 								for (const auto& it: subdirs)
 								{
-									if (!IsSafeName (it))
+									auto name = AdjustName (it);
+									if (name.empty ())
 									{
 										LogPrint (eLogError, "Torrents: Unsafe path component in torrent: ", it);
 										return 0;
 									}
-									filePath /= it;
+									filePath /= name;
 								}
 							return l;
 						}
@@ -1232,12 +1242,14 @@ namespace torrents
 			Torrent::InfoHash infoHash;
 			memcpy (infoHash.data (), m_ReceiveBuffer + 28, 20);
 			m_Torrent = GetTorrentsTunnel ()->FindTorrent (infoHash);
-		}
-		if (!m_Torrent)
-		{
-			LogPrint (eLogError, "Torrents: Torrent with InfoHash not found");
-			Terminate ();
-			return 0;
+			if (!m_Torrent)
+			{
+				std::string hexHash;
+				boost::algorithm::hex (infoHash.begin(), infoHash.end(), std::back_inserter(hexHash));
+				LogPrint (eLogWarning, "Torrents: Torrent with InfoHash ", hexHash, " not found");
+				Terminate ();
+				return 0;
+			}
 		}
 		memcpy (m_RemotePeerID.data (), m_ReceiveBuffer + 48, m_RemotePeerID.size ());
 		// respond with handshake if incoming
@@ -1847,12 +1859,12 @@ namespace torrents
 					size_t offset = piece*REQUEST_BLOCK_SIZE;
 					if (offset < info.size ())
 					{
-						size_t totalSize = std::min (info.size () - offset, REQUEST_BLOCK_SIZE);
+						size_t pieceSize = std::min (info.size () - offset, REQUEST_BLOCK_SIZE);
 						SendExtendedMsg (EXTENSION_MSGID_UT_METADATA,
 							CreateDictionary ({{ "msg_type", CreateInteger (1) },
 								{ "piece", CreateInteger (piece) },
 								{ "total_size", CreateInteger (m_Torrent->GetInfo ().size ()) } }),
-							std::string_view ((const char *)info.data () + offset, totalSize));
+							std::string_view ((const char *)info.data () + offset, pieceSize));
 					}
 					else
 						SendExtendedMsg (EXTENSION_MSGID_UT_METADATA, CreateDictionary ({{ "msg_type", CreateInteger (2) }, { "piece", CreateInteger (piece) }}));

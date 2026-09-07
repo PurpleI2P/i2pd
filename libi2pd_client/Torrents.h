@@ -244,7 +244,7 @@ namespace torrents
 			size_t ParsePieces (std::string_view buf);
 			size_t ParsePeers (size_t trackerID, std::string_view buf);
 			size_t ParseFiles (std::string_view buf);
-			static bool IsSafeName (std::string_view name); // a name from a torrent file before it becomes a path
+			static std::string AdjustName (std::string_view name); // name field from torrent file before to become file path
 			void CheckTrackerStatsSize (size_t trackerID);
 
 		private:
