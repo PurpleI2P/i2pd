@@ -348,6 +348,7 @@ namespace transport
 			i2p::crypto::AEADChaCha20Poly1305Decryptor m_Decryptor;
 
 			int m_Version;
+			bool m_IsReady;
 
 		public:
 

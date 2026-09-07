@@ -1739,7 +1739,7 @@ namespace transport
 	NTCP2Server::NTCP2Server ():
 		RunnableServiceWithWork ("NTCP2"), m_TerminationTimer (GetService ()),
 		m_ProxyType(eNoProxy), m_Resolver(GetService ()), m_Rng(i2p::util::GetRngSeed ()),
-		m_EstablisherService (m_Rng ()), m_Version (2)
+		m_EstablisherService (m_Rng ()), m_Version (2), m_IsReady (false)
 	{
 	}
 
@@ -1841,10 +1841,12 @@ namespace transport
 			}
 			ScheduleTermination ();
 		}
+		m_IsReady = true;
 	}
 
 	void NTCP2Server::Stop ()
 	{
+		m_IsReady = false;
 		m_EstablisherService.Stop ();
 		{
 			// we have to copy it because Terminate changes m_NTCP2Sessions
@@ -1918,6 +1920,7 @@ namespace transport
 
 	void NTCP2Server::Connect(std::shared_ptr<NTCP2Session> conn)
 	{
+		if (!m_IsReady) return;
 		if (!conn || conn->GetRemoteEndpoint ().address ().is_unspecified ())
 		{
 			LogPrint (eLogError, "NTCP2: Can't connect to unspecified address");
@@ -1988,7 +1991,7 @@ namespace transport
 
 	void NTCP2Server::HandleAccept (std::shared_ptr<NTCP2Session> conn, const boost::system::error_code& error)
 	{
-		if (!error && conn)
+		if (!error && conn && m_IsReady)
 		{
 			boost::system::error_code ec;
 			auto ep = conn->GetSocket ().remote_endpoint(ec);
