@@ -1920,7 +1920,6 @@ namespace transport
 
 	void NTCP2Server::Connect(std::shared_ptr<NTCP2Session> conn)
 	{
-		if (!m_IsReady) return;
 		if (!conn || conn->GetRemoteEndpoint ().address ().is_unspecified ())
 		{
 			LogPrint (eLogError, "NTCP2: Can't connect to unspecified address");
@@ -1930,7 +1929,8 @@ namespace transport
 			" (", i2p::data::GetIdentHashAbbreviation (conn->GetRemoteIdentity ()->GetIdentHash ()), ")");
 		boost::asio::post (GetService (), [this, conn]()
 			{
-				if (this->AddNTCP2Session (conn))
+				if (!m_IsReady) return;
+				if (AddNTCP2Session (conn))
 				{
 					auto timer = std::make_shared<boost::asio::steady_timer>(GetService ());
 					auto timeout = NTCP2_CONNECT_TIMEOUT * 5;
