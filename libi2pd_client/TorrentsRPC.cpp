@@ -66,6 +66,8 @@ namespace torrents
 			std::string HandleTorrentStop (boost::json::object&& jsonRequest);
 			std::string HandleTorrentStart (boost::json::object&& jsonRequest);
 			std::string HandleSessionGet (boost::json::object&& jsonRequest); // for transmission-rpc library
+			std::string HandleSessionStats (boost::json::object&& jsonRequest);
+
 		private:
 
 			std::shared_ptr<TorrentsTunnel> m_Tunnel;
@@ -74,6 +76,7 @@ namespace torrents
 	std::string JSONRPCHandler::SuccessResponse (int64_t id, boost::json::object&& arguments)
 	{
 		boost::json::object response;
+		response["jsonrpc"] = "2.0";
 		response["result"] = "success";
 		response["arguments"] = arguments;
 		if (id) response["id"] = id;
@@ -141,6 +144,8 @@ namespace torrents
 				return HandleTorrentStart (std::move (jsonRequest));
 			else if (method == "session-get")
 				return HandleSessionGet (std::move (jsonRequest));
+			else if (method == "session-stats")
+				return HandleSessionStats (std::move (jsonRequest));
 			else
 			{
 				LogPrint (eLogInfo, "TorrentsRPC: Method not found ", method);
@@ -239,7 +244,6 @@ namespace torrents
 		auto fields = arguments.at ("fields").as_array ();
 
 		boost::json::object response;
-		response["jsonrpc"] = "2.0";
 		boost::json::array torrents;
 		for (auto id: torrentIds)
 		{
@@ -551,6 +555,37 @@ namespace torrents
 		for (auto id: GetTorrentIds (arguments))
  			m_Tunnel->StartTorrent (id);
 		boost::json::object response; // always empty
+		return SuccessResponse (GetTag (jsonRequest), std::move (response));
+	}
+
+	std::string JSONRPCHandler::HandleSessionStats (boost::json::object&& jsonRequest)
+	{
+		boost::json::object response, stats;
+		auto torrents = m_Tunnel->GetTorrents ();
+		size_t downloaded = 0, uploaded = 0;
+		uint64_t downloadRate = 0, uploadRate = 0;
+		int numStoppedTorrents = 0;
+		for (auto it: torrents)
+		{
+			downloaded += it->GetDownloaded ();
+			uploaded += it->GetUploaded ();
+			downloadRate += it->GetDownloadRate ();
+			uploadRate += it->GetUploadRate ();
+			if (it->IsStopped ())
+				numStoppedTorrents++;
+		}
+		stats["downloadedBytes"] = downloaded;
+		stats["uploadedBytes"] = uploaded;
+		stats["downloadSpeed"] = downloadRate;
+		stats["uploadSpeed"] = uploadRate;
+		stats["sessionCount"] = 1;
+		stats["filesAdded"] = 0; // TODO:
+		stats["secondsActive"] = 0; // TODO:
+		response["torrentCount"] = torrents.size ();
+		response["pausedTorrentCount"] = numStoppedTorrents;
+		response["activeTorrentCount"] = torrents.size () - numStoppedTorrents;
+		response["current-stats"] = stats;
+		response["cumulative-stats"] = stats;
 		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}
 

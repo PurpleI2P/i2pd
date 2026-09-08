@@ -317,6 +317,15 @@ namespace torrents
 		return ids;
 	}
 
+	std::list<std::shared_ptr<Torrent> > TorrentsTunnel:: GetTorrents () const
+	{
+		std::list<std::shared_ptr<Torrent> > torrents;
+		std::lock_guard<std::mutex> l(m_TorrentsMutex);
+		for (const auto& it: m_Torrents)
+			torrents.push_back (it.second);
+		return torrents;
+	}
+
 	std::pair<std::shared_ptr<Torrent>, int> TorrentsTunnel::AddTorrent (std::string_view torrentFileContent)
 	{
 		auto torrent = std::make_shared<Torrent> (torrentFileContent);
