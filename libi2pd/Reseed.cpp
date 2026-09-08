@@ -10,6 +10,7 @@
 #include <random>
 #include <fstream>
 #include <sstream>
+#include <utility> // for C++20 with boost < 1.81
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/algorithm/string.hpp>

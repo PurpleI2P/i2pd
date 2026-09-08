@@ -13,6 +13,7 @@
 #include <memory>
 #include <regex>
 
+#include <utility> // for C++20 with boost < 1.81
 #include <boost/asio.hpp>
 #include <boost/algorithm/string.hpp>
 

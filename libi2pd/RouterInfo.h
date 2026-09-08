@@ -18,6 +18,7 @@
 #include <array>
 #include <iostream>
 #include <memory>
+#include <utility> // for C++20 with boost < 1.81
 #include <boost/asio.hpp>
 #ifndef __cpp_lib_atomic_shared_ptr
 #include <boost/shared_ptr.hpp>
