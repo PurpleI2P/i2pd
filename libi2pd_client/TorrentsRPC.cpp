@@ -516,7 +516,8 @@ namespace torrents
 			{ "XD", "XD"},
 			{ "BI", "BiglyBT" },
 			{ "AZ", "Vuze" },
-			{ "LT", "libtorrent" }
+			{ "LT", "libtorrent" },
+			{ "IO", "insulaocculta" }
 		};
 
 		if (peerID.size () >= i2psnark.size () && !memcmp (peerID.data (), i2psnark.data (), i2psnark.size ()))
