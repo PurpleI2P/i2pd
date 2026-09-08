@@ -345,7 +345,7 @@ namespace torrents
 		{
 			Torrent::InfoHash infoHash;
 			bool isInfoHashFound = false;
-			std::string_view announce;
+			std::string_view announce, name;
 			magnet = magnet.substr (magnetPrefix.size ());
 			while (!magnet.empty())
 			{
@@ -363,6 +363,7 @@ namespace torrents
 				}
 				static constexpr std::string_view hashPrefix { "xt=urn:btih:" };
 				static constexpr std::string_view trackerPrefix { "tr=" };
+				static constexpr std::string_view namePrefix { "dn=" };
 #if __cplusplus >= 202002L // C++20
 				if (param.starts_with (hashPrefix))
 #else
@@ -386,11 +387,18 @@ namespace torrents
 				else if (param.substr (0, trackerPrefix.size ()) == trackerPrefix)
 #endif
 					announce = param.substr (trackerPrefix.size ());
+#if __cplusplus >= 202002L // C++20
+				else if (param.starts_with (namePrefix))
+#else
+				else if (param.substr (0, namePrefix.size ()) == namePrefix)
+#endif
+					name = param.substr (namePrefix.size ());
 			}
 			if (isInfoHashFound && m_Torrents.find (infoHash) == m_Torrents.end ())
 			{
 				auto torrent = std::make_shared<Torrent> (infoHash);
 				if (!announce.empty ()) torrent->SetAnnounce (announce);
+				if (!name.empty ()) torrent->SetName (name);
 				return { torrent, InsertTorrent (torrent) };
 			}
 		}
