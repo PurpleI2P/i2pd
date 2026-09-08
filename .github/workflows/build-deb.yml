@@ -28,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        dist: ['bookworm']
+        dist: ['bookworm','trixie']
 
     steps:
     - name: Checkout
@@ -41,6 +41,8 @@ jobs:
       uses: prompt/actions-commit-hash@v3.0.0
 
     - name: Build package
+      env:
+        MAKEFLAGS: "TORRENTS=N"
       uses: jtdor/build-deb-action@v1
       with:
         docker-image: debian:${{ matrix.dist }}-slim
