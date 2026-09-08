@@ -28,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        dist: ['trixie']
+        dist: ['bookworm','trixie']
 
     steps:
     - name: Checkout
