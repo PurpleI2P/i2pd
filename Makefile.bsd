@@ -14,9 +14,9 @@ LDLIBS = -lssl -lcrypto -lz -lpthread -lboost_program_options -lboost_json
 CXXVER := $(shell $(CXX) -dumpversion|cut -c 1-2)
 ifeq (${CXXVER}, "4.") # older clang always returned 4.2.1
 	$(error Compiler too old)
-else ifeq (${CXXVER}, ${filter ${CXXVER},16 17 18 19})  # clang 16 - 19
-	NEEDED_CXXFLAGS = -std=c++20
+else ifeq (${CXXVER}, ${filter ${CXXVER},20 21 22 23})  # clang 20 - 23
+	NEEDED_CXXFLAGS = -std=c++23
 else
-	NEEDED_CXXFLAGS = -std=c++17
+	NEEDED_CXXFLAGS = -std=c++20
 endif
 
