@@ -47,7 +47,8 @@ jobs:
         buildpackage-opts: --build=binary --no-sign
         before-build-hook: debchange --controlmaint --local "+${{ steps.commit.outputs.short }}~${{ matrix.dist }}" -b --distribution ${{ matrix.dist }} "CI build"
         extra-build-deps: devscripts git
-
+        env: 
+          DEB_BUILD_OPTIONS: "TORRENTS=no"
     - name: Upload package
       uses: actions/upload-artifact@v4
       with:
