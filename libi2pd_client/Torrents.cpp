@@ -907,8 +907,9 @@ namespace torrents
 		m_Stream (stream), m_ReceiveBufferOffset (0), m_NextMsgLength (0), m_MaxNumRequests (MIN_NUM_REQUESTS),
 		m_IsHandshakeSent (false), m_IsEstablished (false), m_IsChoked (true), m_IsRemoteChoked (true),
 		m_IsInterested (false), m_IsRemoteInterested (false), m_LastReceiveTime (0), m_LastSendTime (0),
-		m_NumRequests (0), m_NumPieces (0), m_LastRequestedPieceIndex (-1), m_RemoteMetadataSize (0),
-		m_IsFast (false), m_SuggestedPieceIndex (-1), m_Downloaded (0), m_Uploaded (0)
+		m_NumRequests (0), m_NumPieces (0), m_LastRequestedPieceIndex (-1),
+		m_RemoteMsgIDUtMetadata (0), m_RemoteMetadataSize (0), m_IsFast (false),
+		m_SuggestedPieceIndex (-1), m_Downloaded (0), m_Uploaded (0)
 	{
 		ResetStats ();
 	}
@@ -1775,9 +1776,9 @@ namespace torrents
 				});
 			if (!m_Torrent->GetLength ()) // magnet without info
 			{
-				if (m_RemoteMetadataSize) // peer supports BEP9
+				if (m_RemoteMsgIDUtMetadata && m_RemoteMetadataSize) // peer supports BEP9
 					// request first piece of info
-					SendExtendedMsg (EXTENSION_MSGID_UT_METADATA, CreateDictionary ({{ "msg_type", CreateInteger (0) }, { "piece", CreateInteger (0) }}));
+					SendExtendedMsg (m_RemoteMsgIDUtMetadata, CreateDictionary ({{ "msg_type", CreateInteger (0) }, { "piece", CreateInteger (0) }}));
 				else
 				{
 					LogPrint (eLogInfo, "Torrents: Magnet doesn't have info yet, but BEP9 is not supported by this peer");
@@ -1798,7 +1799,10 @@ namespace torrents
 	void PeerConnection::AddExtendedMsgHandler (std::string_view extensionName, int64_t msgID)
 	{
 		if (extensionName == EXTENSION_NAME_UT_METADATA)
-			m_ExtendedMessageHandlers.emplace (msgID, &PeerConnection::HandleUtMetadataExtension);
+		{
+			m_ExtendedMessageHandlers.emplace (EXTENSION_MSGID_UT_METADATA, &PeerConnection::HandleUtMetadataExtension);
+			m_RemoteMsgIDUtMetadata = msgID;
+		}
 	}
 
 	void PeerConnection::SendExtendedMsg (uint8_t extendedMsgID, std::string_view payload, std::string_view data)
@@ -1859,14 +1863,14 @@ namespace torrents
 					if (offset < info.size ())
 					{
 						size_t pieceSize = std::min (info.size () - offset, REQUEST_BLOCK_SIZE);
-						SendExtendedMsg (EXTENSION_MSGID_UT_METADATA,
+						SendExtendedMsg (m_RemoteMsgIDUtMetadata,
 							CreateDictionary ({{ "msg_type", CreateInteger (1) },
 								{ "piece", CreateInteger (piece) },
 								{ "total_size", CreateInteger (m_Torrent->GetInfo ().size ()) } }),
 							std::string_view ((const char *)info.data () + offset, pieceSize));
 					}
 					else
-						SendExtendedMsg (EXTENSION_MSGID_UT_METADATA, CreateDictionary ({{ "msg_type", CreateInteger (2) }, { "piece", CreateInteger (piece) }}));
+						SendExtendedMsg (m_RemoteMsgIDUtMetadata, CreateDictionary ({{ "msg_type", CreateInteger (2) }, { "piece", CreateInteger (piece) }}));
 					break;
 				}
 				case 1: // data
@@ -1882,7 +1886,7 @@ namespace torrents
 						memcpy (m_RemoteMetadata.data () + offset, buf + payloadLen, size);
 						if (m_RemoteMetadata.size () < m_RemoteMetadataSize)
 							// request next piece
-							SendExtendedMsg (EXTENSION_MSGID_UT_METADATA, CreateDictionary ({{ "msg_type", CreateInteger (0) }, { "piece", CreateInteger (piece + 1) }}));
+							SendExtendedMsg (m_RemoteMsgIDUtMetadata, CreateDictionary ({{ "msg_type", CreateInteger (0) }, { "piece", CreateInteger (piece + 1) }}));
 						else
 						{
 							// all info received

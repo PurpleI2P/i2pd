@@ -372,7 +372,9 @@ namespace torrents
 			std::list<RequestedBlock> m_IncomingRequestsQueue;
 			int m_LastRequestedPieceIndex;
 			std::unique_ptr<boost::asio::steady_timer> m_HandshakeReceiveTimer;
+			// BEP10
 			std::unordered_map<uint8_t, PeerConnection::ExtendedMessageHandler> m_ExtendedMessageHandlers;
+			uint8_t m_RemoteMsgIDUtMetadata;
 			// BEP9
 			size_t m_RemoteMetadataSize;
 			std::vector<uint8_t> m_RemoteMetadata;
