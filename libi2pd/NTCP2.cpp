@@ -1868,7 +1868,7 @@ namespace transport
 
 	bool NTCP2Server::AddNTCP2Session (std::shared_ptr<NTCP2Session> session, bool incoming)
 	{
-		if (!session) return false;
+		if (!session || !m_IsReady) return false;
 		if (incoming)
 			m_PendingIncomingSessions.erase (session->GetRemoteEndpoint ().address ());
 		if (!session->GetRemoteIdentity ())
