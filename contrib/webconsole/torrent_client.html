@@ -67,8 +67,8 @@
 	  {
 		const r = await window.tjs.getTorrents()
 		//console.log(`torrents: ${r}`)
-      		if (!r?.result?.torrents) return;
-		r.result.torrents.forEach(async (t) => {
+      		if (!r?.arguments?.torrents) return;
+		r.arguments.torrents.forEach(async (t) => {
 			 console.log(`stop torrent => ${t.id}`)
 			 await window.tjs.stopTorrent([t.id]);
 		});
@@ -82,8 +82,8 @@
 	  {
 		const r = await window.tjs.getTorrents()
 		//console.log(`torrents: ${r}`)
-      		if (!r?.result?.torrents) return;
-		r.result.torrents.forEach( async (t) =>{
+      		if (!r?.arguments?.torrents) return;
+		r.arguments.torrents.forEach( async (t) =>{
 			 console.log(`start torrent => ${t.id}`)
 			 await window.tjs.startTorrent([t.id]);
 		});
@@ -97,14 +97,14 @@
 
     try {
       const r = await window.tjs.getTorrents();
-      if (!r?.result?.torrents)
+      if (!r?.arguments?.torrents)
         return (statusIndicator.textContent = "STATUS: INVALID_RESPONSE");
 
       statusIndicator.textContent = "STATUS: Connected";
       statusIndicator.style.color = "rgb(77, 91, 83)";
 
       const torrents = document.getElementById("torrents");
-      currentTorrentsData = r.result.torrents;
+      currentTorrentsData = r.arguments.torrents;
 
       if (currentTorrentsData.length === 0) {
         torrents.innerHTML = "<li>No downloads</li>";
@@ -167,6 +167,7 @@
         torrents.appendChild(li);
       });
     } catch (err) {
+      console.log(err)
       statusIndicator.textContent =
         "STATUS: ERROR_WITH_DATA (f12, check your console and write issue)";
       statusIndicator.style.color = "#ff3333";
@@ -200,6 +201,7 @@
     const torrent = currentTorrentsData.find(
       (t) => String(t.id) === String(id),
     );
+
     if (!torrent) return;
 
     document.getElementById("modal_torrent_title").textContent =
@@ -289,7 +291,6 @@ Last Announce: ${new Date(tr.lastAnnounceTime * 1000).toLocaleString()}
 Next Announce: ${new Date(tr.nextAnnounceTime * 1000).toLocaleString()}
 `}).join("\n" + "-".repeat(40)) : "-";
 
-
     document.getElementById("torrent_details_modal").style.display = "block";
   };
 
@@ -302,3 +303,4 @@ Next Announce: ${new Date(tr.nextAnnounceTime * 1000).toLocaleString()}
     if(!r) alert("Not correct magnet link");
   }
 </script>
+

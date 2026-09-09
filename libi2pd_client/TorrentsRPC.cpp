@@ -30,13 +30,6 @@ namespace torrents
 {
 #ifdef JSON_SUPPORTED
 
-	enum JSONRPCErrorCode
-	{
-		eMethodNotFound = -32601,
-		eInvalidParam = -32602,
-		eParseError = -32700
-	};
-
 	class JSONRPCHandler
 	{
 		public:
@@ -47,9 +40,8 @@ namespace torrents
 
 		private:
 
-			std::string SuccessResponse (int64_t id, boost::json::object&& arguments);
-			std::string ResultResponse (int64_t id, boost::json::value&& result);
-			std::string ErrorResponse (JSONRPCErrorCode errorCode, int64_t id, std::string_view message);
+			std::string SuccessResponse (int64_t tag, boost::json::object&& arguments);
+			std::string ErrorResponse (int64_t tag, std::string_view message);
 			static int64_t GetTag (boost::json::object& jsonRequest);
 			static std::vector<int> GetTorrentIds (boost::json::object& arguments);
 			static boost::json::value GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent);
@@ -73,34 +65,21 @@ namespace torrents
 			std::shared_ptr<TorrentsTunnel> m_Tunnel;
 	};
 
-	std::string JSONRPCHandler::SuccessResponse (int64_t id, boost::json::object&& arguments)
+	std::string JSONRPCHandler::SuccessResponse (int64_t tag, boost::json::object&& arguments)
 	{
 		boost::json::object response;
-		response["jsonrpc"] = "2.0";
 		response["result"] = "success";
 		response["arguments"] = arguments;
-		if (id) response["id"] = id;
+		if (tag) response["tag"] = tag;
 		return boost::json::serialize(response);
 	}
 
-	std::string JSONRPCHandler::ResultResponse (int64_t id, boost::json::value&& result)
+	std::string JSONRPCHandler::ErrorResponse (int64_t tag, std::string_view message)
 	{
-		boost::json::object response;
-		response["jsonrpc"] = "2.0";
-		response["result"] = result;
-		if (id) response["id"] = id;
-		return boost::json::serialize(response);
-	}
-
-	std::string JSONRPCHandler::ErrorResponse (JSONRPCErrorCode errorCode, int64_t id, std::string_view message)
-	{
-		boost::json::object response;
-		response["jsonrpc"] = "2.0";
-		if (id) response["id"] = id;
-		boost::json::object error;
-		error["code"] = errorCode;
-		error["message"] = message;
-		response["error"] = error;
+		boost::json::object response, arguments;
+		if (tag) response["tag"] = tag;
+		response["arguments"] = arguments;
+		response["result"] = message;
 		return boost::json::serialize(response);
 	}
 
@@ -149,13 +128,13 @@ namespace torrents
 			else
 			{
 				LogPrint (eLogInfo, "TorrentsRPC: Method not found ", method);
-				return ErrorResponse (eMethodNotFound, jsonRequest.at ("tag").as_int64 (), "Method not found");
+				return ErrorResponse (GetTag (jsonRequest), "Method not found");
 			}
 		}
 		catch (const std::exception& ex)
 		{
 			LogPrint (eLogInfo, "TorrentsRPC: Failed to parse JSON: ", ex.what ());
-			return ErrorResponse (eParseError, 0, "Parse error");
+			return ErrorResponse (0, "Parse error");
 		}
 		return "";
 	}
@@ -164,8 +143,9 @@ namespace torrents
 	{
 		boost::json::object response, arguments;
 		response["result"] = "success";
-		response["version"] = "4.0.0";
-		response["rpc-version"] = 17;
+		arguments["rpc-version"] = 17;
+		arguments["rpc-version-minimum"] = 14;
+		arguments["rpc-version-semver"] = "5.3.0";
 		arguments["version"] = "4.0.0";
 		response["arguments"] = arguments;
 		response["tag"] = 0;
@@ -208,7 +188,7 @@ namespace torrents
 			return SuccessResponse (GetTag (jsonRequest), std::move (response));
 		}
 		else
-			return ResultResponse (GetTag (jsonRequest), boost::json::string ("invalid or corrupt torrent file"));
+			return ErrorResponse (GetTag (jsonRequest), "invalid or corrupt torrent file");
 	}
 
 	std::string JSONRPCHandler::HandleTorrentRemove (boost::json::object&& jsonRequest)
@@ -277,7 +257,7 @@ namespace torrents
 			}
 		}
 		response["torrents"] = torrents;
-		return ResultResponse (GetTag (jsonRequest), std::move (response));
+		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}
 
 	boost::json::value JSONRPCHandler::GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent)
@@ -650,7 +630,7 @@ namespace torrents
 	{
 		m_Response.version (11); // HTTP/1.1
 		m_Response.result (result);
-		m_Response.set (boost::beast::http::field::server, "i2pd torents RPC");
+		m_Response.set (boost::beast::http::field::server, "i2pd torrents RPC");
 		m_Response.set (boost::beast::http::field::access_control_allow_origin, "*");
 		m_Response.set (boost::beast::http::field::access_control_allow_headers, "Content-Type, Authorization");
 		if (isOptions)
