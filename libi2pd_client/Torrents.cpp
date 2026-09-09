@@ -1647,15 +1647,18 @@ namespace torrents
 							boost::asio::post (s->GetTorrentsTunnel ()->GetService (),
 								[requestedBlock = std::move (requestBlock), s]()
 								{
-									if (s->m_NumPieces < MAX_NUM_PIECES)
-										s->SendRequestedBlock (requestedBlock);
-									else
-										s->m_IncomingRequestsQueue.emplace_back (std::move (requestedBlock));
+									s->SendRequestedBlock (requestedBlock);
 								});
 						else
 						{
 							LogPrint (eLogError, "Torrent: Failed to load piece ", index);
 							piece.Reset ();
+							if (s->m_IsFast)
+								boost::asio::post (s->GetTorrentsTunnel ()->GetService (),
+								[requestedBlock = std::move (requestBlock), s]()
+								{
+									std::apply (std::bind_front(&PeerConnection::SendRejectRequestMsg, s), requestedBlock);
+								});
 						}
 					});
 				}
