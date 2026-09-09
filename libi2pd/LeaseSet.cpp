@@ -404,6 +404,10 @@ namespace data
 		std::shared_ptr<LocalDestination> dest)
 	{
 		size_t offset = 0;
+
+		if(offset + 2 > len) // AKA (len < 2)
+			return 0;
+
 		// properties
 		if (offset + 2 > len) return 0;
 		m_Properties.CleanUp ();
@@ -500,6 +504,10 @@ namespace data
 	size_t LeaseSet2::ReadMetaLS2TypeSpecificPart (const uint8_t * buf, size_t len)
 	{
 		size_t offset = 0;
+
+		if(offset + 2 > len) // AKA (len < 2)
+			return 0;
+
 		// properties
 		uint16_t propertiesLen = bufbe16toh (buf + offset); offset += 2;
 		offset += propertiesLen; // skip for now. TODO: implement properties
