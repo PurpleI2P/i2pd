@@ -64,6 +64,8 @@ namespace torrents
 	// extensions
 	constexpr std::string_view EXTENSION_NAME_UT_METADATA { "ut_metadata" };
 	constexpr uint8_t EXTENSION_MSGID_UT_METADATA = 1;
+	constexpr std::string_view EXTENSION_NAME_I2P_PEX { "i2p_pex" };
+	constexpr uint8_t EXTENSION_MSGID_I2P_PEX = 2;
 
 	enum MessageType
 	{
@@ -354,6 +356,7 @@ namespace torrents
 			void SendExtendedMsg (uint8_t extendedMsgID = 0, std::string_view payload = "", std::string_view data = "");
 			void AddExtendedMsgHandler (std::string_view extensionName, int64_t msgID);
 			void HandleUtMetadataExtension (const uint8_t * buf, size_t len); // BEP9
+			void HandleI2PPEXExtension (const uint8_t * buf, size_t len); // BEP11
 
 			std::optional<RequestedBlock> GetNextBlockToRequest ();
 			bool RequestNextBlocks ();
@@ -378,7 +381,7 @@ namespace torrents
 			std::unique_ptr<boost::asio::steady_timer> m_HandshakeReceiveTimer;
 			// BEP10
 			std::unordered_map<uint8_t, PeerConnection::ExtendedMessageHandler> m_ExtendedMessageHandlers;
-			uint8_t m_RemoteMsgIDUtMetadata;
+			uint8_t m_RemoteMsgIDUtMetadata, m_RemoteMsgIDI2PPEX;
 			// BEP9
 			size_t m_RemoteMetadataSize;
 			std::vector<uint8_t> m_RemoteMetadata;

@@ -932,8 +932,8 @@ namespace torrents
 		m_IsHandshakeSent (false), m_IsEstablished (false), m_IsChoked (true), m_IsRemoteChoked (true),
 		m_IsInterested (false), m_IsRemoteInterested (false), m_LastReceiveTime (0), m_LastSendTime (0),
 		m_NumRequests (0), m_NumPieces (0), m_LastRequestedPieceIndex (-1),
-		m_RemoteMsgIDUtMetadata (0), m_RemoteMetadataSize (0), m_IsFast (false),
-		m_SuggestedPieceIndex (-1), m_Downloaded (0), m_Uploaded (0)
+		m_RemoteMsgIDUtMetadata (0), m_RemoteMsgIDI2PPEX (0), m_RemoteMetadataSize (0),
+		m_IsFast (false), m_SuggestedPieceIndex (-1), m_Downloaded (0), m_Uploaded (0)
 	{
 		ResetStats ();
 	}
@@ -1830,6 +1830,11 @@ namespace torrents
 			m_ExtendedMessageHandlers.emplace (EXTENSION_MSGID_UT_METADATA, &PeerConnection::HandleUtMetadataExtension);
 			m_RemoteMsgIDUtMetadata = msgID;
 		}
+		else if (extensionName == EXTENSION_NAME_I2P_PEX)
+		{
+			m_ExtendedMessageHandlers.emplace (EXTENSION_MSGID_I2P_PEX, &PeerConnection::HandleI2PPEXExtension);
+			m_RemoteMsgIDI2PPEX = msgID;
+		}
 	}
 
 	void PeerConnection::SendExtendedMsg (uint8_t extendedMsgID, std::string_view payload, std::string_view data)
@@ -1839,6 +1844,7 @@ namespace torrents
 		{
 			str = CreateDictionary ({
 				{ "m", CreateDictionary ({
+					{ EXTENSION_NAME_I2P_PEX, CreateInteger (EXTENSION_MSGID_I2P_PEX) },
 					{ EXTENSION_NAME_UT_METADATA, CreateInteger (EXTENSION_MSGID_UT_METADATA) }
 										  }) },
 				{ "metadata_size",  CreateInteger (m_Torrent->GetInfo ().size ()) },
@@ -1902,6 +1908,7 @@ namespace torrents
 				}
 				case 1: // data
 				{
+					if (m_Torrent->GetLength ()) break; // we have info
 					size_t offset = piece*REQUEST_BLOCK_SIZE;
 					if (offset > m_RemoteMetadataSize) break;
 					size_t size = m_RemoteMetadataSize - offset;
@@ -1936,6 +1943,28 @@ namespace torrents
 					LogPrint (eLogInfo, "Torrents: ut_metadata msg_type ", msgType, " is not supported");
 			}
 		}
+	}
+
+	void PeerConnection::HandleI2PPEXExtension (const uint8_t * buf, size_t len)
+	{
+		std::unordered_set<i2p::data::IdentHash> newPeers;
+		ParseDictionary (std::string_view ((const char *)buf, len),
+			[&newPeers](std::string_view key, std::string_view buf)->size_t
+			{
+				if (key == "added")
+				{
+					auto [idents, l] = ExtractByteString (buf);
+					if (l && !(l & 0x20))
+						while (!idents.empty ())
+						{
+							newPeers.emplace (i2p::data::IdentHash ((const uint8_t *)idents.substr (0, i2p::data::IdentHash::len).data ()));
+							idents = idents.substr (i2p::data::IdentHash::len);
+						};
+					return l;
+				}
+				return 0;
+			});
+		LogPrint (eLogDebug, "Torrents: I2P_PEX ", newPeers.size (), " added peers received");
 	}
 
 	std::optional<RequestedBlock> PeerConnection::GetNextBlockToRequest ()
