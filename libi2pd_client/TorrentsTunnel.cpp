@@ -704,6 +704,17 @@ namespace torrents
 		return peersToConnect.size ();
 	}
 
+	void TorrentsTunnel::ConnectToNewPeers (std::shared_ptr<Torrent> torrent, std::unordered_set<i2p::data::IdentHash>& newPeers)
+	{
+		if (!torrent) return;
+		FilterNonConnectedPeers (torrent, newPeers);
+		if (!newPeers.empty ())
+		{
+			for (const auto& it: newPeers)
+				ConnectToPeer (torrent, it);
+		}
+	}
+
 	void TorrentsTunnel::ScheduleTrackerRequestsCheck ()
 	{
 		m_TrackerRequestsCheckTimer.expires_after (std::chrono::milliseconds(TRACKER_REQUESTS_CHECK_TIMEOUT));
@@ -833,24 +844,27 @@ namespace torrents
 		if (torrent)
 		{
 			ret = torrent->GetPeers ();
-			if(!ret.empty ())
-			{
-				IterateHandlers ([&ret, torrent](std::shared_ptr<i2p::client::I2PServiceHandler> handler)
-					{
-						if (handler)
-						{
-							auto conn = std::static_pointer_cast<PeerConnection>(handler);
-							if (conn->GetTorrent () == torrent && conn->GetStream ())
-							{
-								auto ident = conn->GetStream ()->GetRemoteIdentity ();
-								if (ident)
-									ret.erase (ident->GetIdentHash ());
-							}
-						}
-					});
-			}
+			FilterNonConnectedPeers (torrent, ret);
 		}
 		return ret;
+	}
+
+	void TorrentsTunnel::FilterNonConnectedPeers (std::shared_ptr<Torrent> torrent, std::unordered_set<i2p::data::IdentHash>& peers)
+	{
+		if (peers.empty ()) return;
+		IterateHandlers ([&peers, torrent](std::shared_ptr<i2p::client::I2PServiceHandler> handler)
+			{
+				if (handler)
+				{
+					auto conn = std::static_pointer_cast<PeerConnection>(handler);
+					if (conn->GetTorrent () == torrent && conn->GetStream ())
+					{
+						auto ident = conn->GetStream ()->GetRemoteIdentity ();
+						if (ident)
+							peers.erase (ident->GetIdentHash ());
+					}
+				}
+			});
 	}
 
 	void TorrentsTunnel::UpdatePeersPerPiece (std::shared_ptr<Torrent> torrent)

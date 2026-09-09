@@ -105,6 +105,7 @@ namespace torrents
 			bool RemoveTorrent (int id, bool deleteFiles);
 			bool StopTorrent (int id);
 			bool StartTorrent (int id);
+			void ConnectToNewPeers (std::shared_ptr<Torrent> torrent, std::unordered_set<i2p::data::IdentHash>& newPeers);
 
 			const char* GetName() const override { return m_Name.c_str (); }
 
@@ -139,6 +140,7 @@ namespace torrents
 			void HandleTorrentsStatusUpdateTimer (const boost::system::error_code& ecode);
 
 			std::unordered_set<i2p::data::IdentHash> GetNonConnectedPeers (std::shared_ptr<Torrent> torrent);
+			void FilterNonConnectedPeers (std::shared_ptr<Torrent> torrent, std::unordered_set<i2p::data::IdentHash>& peers);
 			void ConnectToPeer (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& peer);
 			size_t ConnectToPeers (std::shared_ptr<Torrent> torrent);
 			void UpdatePeersPerPiece (std::shared_ptr<Torrent> torrent);

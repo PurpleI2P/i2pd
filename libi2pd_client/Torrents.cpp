@@ -1954,7 +1954,7 @@ namespace torrents
 				if (key == "added")
 				{
 					auto [idents, l] = ExtractByteString (buf);
-					if (l && !(l & 0x20))
+					if (l && !(idents.size () & 0x1F)) // multiple of 32
 						while (!idents.empty ())
 						{
 							newPeers.emplace (i2p::data::IdentHash ((const uint8_t *)idents.substr (0, i2p::data::IdentHash::len).data ()));
@@ -1964,7 +1964,17 @@ namespace torrents
 				}
 				return 0;
 			});
-		LogPrint (eLogDebug, "Torrents: I2P_PEX ", newPeers.size (), " added peers received");
+		if (!newPeers.empty ())
+		{
+			auto existingPeers = m_Torrent->GetPeers ();
+			for (auto it: existingPeers)
+				newPeers.extract (it);
+		}
+		if (!newPeers.empty ())
+		{
+			LogPrint (eLogDebug, "Torrents: I2P_PEX ", newPeers.size (), " new peers");
+			GetTorrentsTunnel ()->ConnectToNewPeers (m_Torrent, newPeers);
+		}
 	}
 
 	std::optional<RequestedBlock> PeerConnection::GetNextBlockToRequest ()
