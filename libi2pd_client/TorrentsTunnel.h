@@ -105,7 +105,6 @@ namespace torrents
 			bool RemoveTorrent (int id, bool deleteFiles);
 			bool StopTorrent (int id);
 			bool StartTorrent (int id);
-			std::list<std::shared_ptr<PeerConnection> > GetTorrentConnections (std::shared_ptr<Torrent> torrent);
 
 			const char* GetName() const override { return m_Name.c_str (); }
 

@@ -277,7 +277,7 @@ namespace torrents
 						// inform trackers that we are done
 						RequestTorrentTrackers (torrent, eTrackerAnnounceEventCompleted);
 						// close connections with seeds and reset stats for remaining
-						auto conns = GetTorrentConnections (torrent);
+						auto conns = torrent->GetConnections ();
 						for (auto it: conns)
 						{
 							if (it->GetRemoteBitfield ().all ()) // seed
@@ -508,7 +508,7 @@ namespace torrents
 		// inform trackers that we stopped
 		RequestTorrentTrackers (torrent, eTrackerAnnounceEventStopped);
 		// close connections
-		auto connections = GetTorrentConnections (torrent);
+		auto connections = torrent->GetConnections ();
 		for (auto it: connections)
 			it->Close ();
 	}
@@ -825,24 +825,6 @@ namespace torrents
 			UpdateStats ();
 			ScheduleStatusUpdate ();
 		}
-	}
-
-	std::list<std::shared_ptr<PeerConnection> > TorrentsTunnel::GetTorrentConnections (std::shared_ptr<Torrent> torrent)
-	{
-		std::list<std::shared_ptr<PeerConnection> > ret;
-		if (torrent)
-		{
-			IterateHandlers ([&ret, torrent](std::shared_ptr<i2p::client::I2PServiceHandler> handler)
-				{
-					if (handler)
-					{
-						auto conn = std::static_pointer_cast<PeerConnection>(handler);
-						if (conn->GetTorrent () == torrent && conn->GetStream ())
-							ret.emplace_back (conn);
-					}
-				});
-		}
-		return ret;
 	}
 
 	std::unordered_set<i2p::data::IdentHash> TorrentsTunnel::GetNonConnectedPeers (std::shared_ptr<Torrent> torrent)

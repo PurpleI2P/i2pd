@@ -725,6 +725,7 @@ namespace torrents
 
 	bool Torrent::UpdateStatus (uint64_t ts)
 	{
+		GetConnections (); // cleanup expired connections
 		if (!m_Length) return false; // non ready magnet
 		bool complete = true;
 		for (auto& it: m_Pieces)
@@ -900,6 +901,29 @@ namespace torrents
 		if (m_IsStopped) return eTorrentStatusStopped;
 		if (m_IsComplete) return eTorrentStatusSeeding;
 		return eTorrentStatusDownloading;
+	}
+
+	void Torrent::AddConnection (std::shared_ptr<PeerConnection> conn)
+	{
+		m_Connections.emplace_back (conn);
+	}
+
+	std::list<std::shared_ptr<PeerConnection> > Torrent::GetConnections ()
+	{
+		std::list<std::shared_ptr<PeerConnection> > ret;
+		auto it = m_Connections.begin ();
+		while (it != m_Connections.end ())
+		{
+			auto conn = it->lock ();
+			if (conn)
+			{
+				ret.emplace_back (conn);
+				it++;
+			}
+			else
+				it = m_Connections.erase (it);
+		}
+		return ret;
 	}
 
 	PeerConnection::PeerConnection (std::shared_ptr<i2p::client::I2PService> owner,
@@ -1268,6 +1292,9 @@ namespace torrents
 		// BEP6
 		if (m_ReceiveBuffer[20 + 7] & 0x04) // bit 61 of reserved
 			m_IsFast = true;
+		// established
+		m_IsEstablished = true;
+		m_Torrent->AddConnection (shared_from_this ());
 		// send bitfield, have all or have none
 		auto [bitfield, empty] = m_Torrent->CreateBitfield ();
 		if (!empty)
@@ -1279,7 +1306,7 @@ namespace torrents
 		}
 		else if (m_IsFast)
 			SendHaveNoneMsg ();
-		m_IsEstablished = true;
+
 		return HANDSHAKE_MSG_LENGTH;
 	}
 
@@ -1444,7 +1471,7 @@ namespace torrents
 							torrent->SaveTorrentResumeFile (resumeFilePath);
 						});
 					// send have
-					auto conns = GetTorrentsTunnel ()->GetTorrentConnections (m_Torrent);
+					auto conns = m_Torrent->GetConnections ();
 					for (auto it: conns)
 						it->SendHaveMsg (index);
 				}

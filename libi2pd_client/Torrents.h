@@ -161,6 +161,7 @@ namespace torrents
 	};
 
 	using RequestedBlock = std::tuple<uint32_t, uint32_t, uint32_t>; // (index, offset, len)
+	class PeerConnection;
 	class Torrent final
 	{
 		using TrackerStats = std::tuple<std::unordered_set<i2p::data::IdentHash>,
@@ -210,6 +211,8 @@ namespace torrents
 			std::vector<PieceFileFragment> GetPieceFileFragments (int index) const;
 			std::vector<size_t> GetFilesCompleted () const; // completed size per file
 			bool UpdateStatus (uint64_t ts); // return true if complete
+			void AddConnection (std::shared_ptr<PeerConnection> conn);
+			std::list<std::shared_ptr<PeerConnection> > GetConnections ();
 
 			uint64_t GetNextTrackerRequestTime (size_t trackerID) const;
 			void SetNextTrackerRequestTime (size_t trackerID, uint64_t ts);
@@ -259,6 +262,7 @@ namespace torrents
 			InfoHash m_InfoHash; // SHA1
 			std::vector<Piece> m_Pieces;
 			std::vector<TrackerStats> m_TrackerStats;
+			std::list<std::weak_ptr<PeerConnection> > m_Connections;
 			bool m_IsComplete, m_IsStopped;
 			std::list<std::pair<std::filesystem::path, size_t> > m_Files; // list of (path, length)
 			size_t m_Uploaded, m_Downloaded;

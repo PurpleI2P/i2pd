@@ -370,9 +370,9 @@ namespace torrents
 		boost::json::array peers;
 		std::list<std::shared_ptr<PeerConnection> > conns;
 		boost::asio::post (m_Tunnel->GetService (),
-			boost::asio::use_future ([tunnel = m_Tunnel, torrent, &conns]()
+			boost::asio::use_future ([torrent, &conns]()
 			{
-				conns = tunnel->GetTorrentConnections (torrent);
+				conns = torrent->GetConnections ();
 			})).wait ();
 		for (const auto& it: conns)
 		{
@@ -410,9 +410,9 @@ namespace torrents
 	{
 		std::list<std::shared_ptr<PeerConnection> > conns;
 		boost::asio::post (m_Tunnel->GetService (),
-			boost::asio::use_future ([tunnel = m_Tunnel, torrent, &conns]()
+			boost::asio::use_future ([torrent, &conns]()
 			{
-				conns = tunnel->GetTorrentConnections (torrent);
+				conns = torrent->GetConnections ();
 			})).wait ();
 		return boost::json::value(conns.size ());
 	}
