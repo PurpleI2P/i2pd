@@ -357,11 +357,14 @@ namespace torrents
 			void SendExtendedMsg (uint8_t extendedMsgID = 0, std::string_view payload = "", std::string_view data = "");
 			void AddExtendedMsgHandler (std::string_view extensionName, int64_t msgID);
 			void HandleUtMetadataExtension (const uint8_t * buf, size_t len); // BEP9
+			void RequestUtMetadata (); // BEP9
 			void HandleI2PPEXExtension (const uint8_t * buf, size_t len); // BEP11
+			void NotifyPEXPeers (); // BEP11
 
 			std::optional<RequestedBlock> GetNextBlockToRequest ();
 			bool RequestNextBlocks ();
 			bool SendRequestedBlock (const RequestedBlock& requestedBlock);
+
 
 		private:
 

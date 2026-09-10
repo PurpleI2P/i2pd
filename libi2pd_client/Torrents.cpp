@@ -1804,34 +1804,22 @@ namespace torrents
 					}
 					return 0;
 				});
+			// trigger extensions
+			// BEP9
 			if (!m_Torrent->GetLength ()) // magnet without info
 			{
 				if (m_RemoteMsgIDUtMetadata && m_RemoteMetadataSize) // peer supports BEP9
 					// request first piece of info
-					SendExtendedMsg (m_RemoteMsgIDUtMetadata, CreateDictionary ({{ "msg_type", CreateInteger (0) }, { "piece", CreateInteger (0) }}));
+					RequestUtMetadata ();
 				else
 				{
 					LogPrint (eLogInfo, "Torrents: Magnet doesn't have info yet, but BEP9 is not supported by this peer");
 					Close ();
 				}
 			}
+			// BEP11
 			if (m_RemoteMsgIDI2PPEX && m_Stream && m_Stream->IsIncoming ())
-			{
-				auto conns = m_Torrent->GetConnections ();
-				if (conns.size () > 1) // including us
-				{
-					auto remoteIdent = GetRemoteIdentHash ();
-					std::vector<uint8_t> hashes;
-					for (auto it: conns)
-					{
-						auto ident = it->GetRemoteIdentHash ();
-						if (ident && ident != remoteIdent)
-							hashes.insert (hashes.end(), ident->data (), ident->data () + i2p::data::IdentHash::len);
-					}
-					if (!hashes.empty ())
-						SendExtendedMsg (m_RemoteMsgIDI2PPEX, CreateDictionary ({{ "added", CreateByteString (std::string_view ((const char *)hashes.data (), hashes.size ())) }}));
-				}
-			}
+				NotifyPEXPeers ();
 		}
 		else
 		{
@@ -1965,6 +1953,11 @@ namespace torrents
 		}
 	}
 
+	void PeerConnection::RequestUtMetadata ()
+	{
+		SendExtendedMsg (m_RemoteMsgIDUtMetadata, CreateDictionary ({{ "msg_type", CreateInteger (0) }, { "piece", CreateInteger (0) }}));
+	}
+
 	void PeerConnection::HandleI2PPEXExtension (const uint8_t * buf, size_t len)
 	{
 		std::unordered_set<i2p::data::IdentHash> newPeers;
@@ -1994,6 +1987,31 @@ namespace torrents
 		{
 			LogPrint (eLogDebug, "Torrents: I2P_PEX ", newPeers.size (), " new peers");
 			GetTorrentsTunnel ()->ConnectToNewPeers (m_Torrent, newPeers);
+		}
+	}
+
+	void PeerConnection::NotifyPEXPeers ()
+	{
+		auto conns = m_Torrent->GetConnections ();
+		if (conns.size () > 1) // including us
+		{
+			std::string addedPayload;
+			auto remoteIdent = GetRemoteIdentHash ();
+			if (remoteIdent)
+				addedPayload = CreateDictionary ({{ "added", CreateByteString (std::string_view ((const char *)remoteIdent->data (), i2p::data::IdentHash::len)) }});
+			std::vector<uint8_t> hashes;
+			for (auto it: conns)
+			{
+				auto ident = it->GetRemoteIdentHash ();
+				if (ident && ident != remoteIdent)
+				{
+					if (!addedPayload.empty () && it->m_RemoteMsgIDI2PPEX) // connection suuprts PEX
+						it->SendExtendedMsg (it->m_RemoteMsgIDI2PPEX, addedPayload);
+					hashes.insert (hashes.end(), ident->data (), ident->data () + i2p::data::IdentHash::len);
+				}
+			}
+			if (!hashes.empty ())
+				SendExtendedMsg (m_RemoteMsgIDI2PPEX, CreateDictionary ({{ "added", CreateByteString (std::string_view ((const char *)hashes.data (), hashes.size ())) }}));
 		}
 	}
 
