@@ -1815,6 +1815,23 @@ namespace torrents
 					Close ();
 				}
 			}
+			if (m_RemoteMsgIDI2PPEX && m_Stream && m_Stream->IsIncoming ())
+			{
+				auto conns = m_Torrent->GetConnections ();
+				if (conns.size () > 1) // including us
+				{
+					auto remoteIdent = GetRemoteIdentHash ();
+					std::vector<uint8_t> hashes;
+					for (auto it: conns)
+					{
+						auto ident = it->GetRemoteIdentHash ();
+						if (ident && ident != remoteIdent)
+							hashes.insert (hashes.end(), ident->data (), ident->data () + i2p::data::IdentHash::len);
+					}
+					if (!hashes.empty ())
+						SendExtendedMsg (m_RemoteMsgIDI2PPEX, CreateDictionary ({{ "added", CreateByteString (std::string_view ((const char *)hashes.data (), hashes.size ())) }}));
+				}
+			}
 		}
 		else
 		{
@@ -2019,6 +2036,17 @@ namespace torrents
 		if (bufOffset > 0)
 			WriteToStream (buf.data (), bufOffset);
 		return bufOffset > 0;
+	}
+
+	std::optional<i2p::data::IdentHash> PeerConnection::GetRemoteIdentHash () const
+	{
+		if (m_Stream)
+		{
+			auto ident = m_Stream->GetRemoteIdentity ();
+			if (ident)
+				return ident->GetIdentHash ();
+		}
+		return {};
 	}
 }
 }

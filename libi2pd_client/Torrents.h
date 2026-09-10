@@ -301,6 +301,7 @@ namespace torrents
 			const boost::dynamic_bitset<>& GetRemoteBitfield () const  { return m_RemoteBitfield; }
 			const PeerID& GetRemotePeerID () const { return m_RemotePeerID; }
 			std::string_view GetRemoteName () const { return m_RemoteName; }
+			std::optional<i2p::data::IdentHash> GetRemoteIdentHash () const;
 
 			// stats
 			void ResetStats ();

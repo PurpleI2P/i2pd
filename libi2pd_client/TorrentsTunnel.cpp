@@ -857,11 +857,11 @@ namespace torrents
 				if (handler)
 				{
 					auto conn = std::static_pointer_cast<PeerConnection>(handler);
-					if (conn->GetTorrent () == torrent && conn->GetStream ())
+					if (conn->GetTorrent () == torrent)
 					{
-						auto ident = conn->GetStream ()->GetRemoteIdentity ();
+						auto ident = conn->GetRemoteIdentHash ();
 						if (ident)
-							peers.erase (ident->GetIdentHash ());
+							peers.erase (*ident);
 					}
 				}
 			});
