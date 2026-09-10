@@ -732,7 +732,14 @@ namespace data
 								ecode = ec;
 							});
 						service.run_for (std::chrono::seconds (RESEED_CONNECT_TIMEOUT));
-						if (!service.stopped()) s.lowest_layer().close ();
+						if (!service.stopped())
+						{
+							// the handler never ran, so ecode still holds success from resolve:
+							// without this the timeout reads as a connection and the request goes
+							// out on a socket that was just closed
+							ecode = boost::asio::error::timed_out;
+							s.lowest_layer().close ();
+						}
 
 						if (!ecode)
 						{
@@ -857,7 +864,11 @@ namespace data
 							ecode = ec;
 						});
 					service.run_for (std::chrono::seconds (2*RESEED_CONNECT_TIMEOUT));
-					if (!service.stopped()) s.close ();
+					if (!service.stopped())
+					{
+						ecode = boost::asio::error::timed_out;
+						s.close ();
+					}
 
 					if (!ecode)
 					{
