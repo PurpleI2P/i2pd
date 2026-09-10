@@ -141,14 +141,11 @@ namespace torrents
 
 	std::string JSONRPCHandler::HandleSessionGet (boost::json::object&& jsonRequest)
 	{
-		boost::json::object response, arguments;
-		response["result"] = "success";
-		arguments["rpc-version"] = 17;
-		arguments["rpc-version-minimum"] = 14;
-		arguments["rpc-version-semver"] = "5.3.0";
-		arguments["version"] = "4.0.0";
-		response["arguments"] = arguments;
-		response["tag"] = 0;
+		boost::json::object response;
+		response["rpc-version"] = 17;
+		response["rpc-version-minimum"] = 14;
+		response["rpc-version-semver"] = "5.3.0";
+		response["version"] = "4.0.0 (280ace12f8)";
 		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}
 
@@ -334,7 +331,24 @@ namespace torrents
 			{ "metadataPercentComplete", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetLength () ? 1.0 : 0.0); } },
 			{ "haveValid", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetLength () - torrent->GetLeft ()); } },
 			{ "uploadedEver", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetUploaded ()); } },
-			{ "downloadedEver", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetDownloaded ()); } }
+			{ "downloadedEver", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetDownloaded ()); } },
+			{ "errorString", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(""); } },
+			{ "isStalled", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(false); } }, // TODO:
+			{ "labels", [](std::shared_ptr<Torrent> torrent) { return boost::json::array(); } },
+			{ "queuePosition", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(1); } },
+			{ "recheckProgress", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(0); } },
+
+			// follow the global settings
+			// TR_RATIOLIMIT_GLOBAL = 0,
+			// override the global settings, seeding until a certain ratio
+			// TR_RATIOLIMIT_SINGLE = 1,
+			// override the global settings, seeding regardless of ratio
+			// TR_RATIOLIMIT_UNLIMITED = 2
+			{ "seedRatioMode", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(0); } },
+			{ "seedRatioLimit", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(0); } },
+
+			{ "downloadDir", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(""); } }, // TODO: torrentsdir
+			{ "webseedsSendingToUs", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(0); } } // not webseeds in i2p yet
 		};
 		if (torrent)
 		{
