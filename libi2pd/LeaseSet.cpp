@@ -353,19 +353,12 @@ namespace data
 			m_IsPublic = true;
 		}
 		// type specific part
-		size_t s = 0;
-		if (offset > len) return;
-		switch (m_StoreType)
+		if (m_StoreType != NETDB_STORE_TYPE_STANDARD_LEASESET2)
 		{
-			case NETDB_STORE_TYPE_STANDARD_LEASESET2:
-				s = ReadStandardLS2TypeSpecificPart (buf + offset, len - offset, dest);
-			break;
-			case NETDB_STORE_TYPE_META_LEASESET2:
-				s = ReadMetaLS2TypeSpecificPart (buf + offset, len - offset);
-			break;
-			default:
-				LogPrint (eLogWarning, "LeaseSet2: Unexpected store type ", (int)m_StoreType);
+			LogPrint (eLogWarning, "LeaseSet2: Store type ", (int)m_StoreType, " is not supported");
+			return;
 		}
+		auto s = ReadStandardLS2TypeSpecificPart (buf + offset, len - offset, dest);
 		if (!s) return;
 		offset += s;
 		if (verifySignature || m_TransientVerifier)
@@ -495,34 +488,6 @@ namespace data
 			offset += numLeases*LEASE2_SIZE; // 40 bytes per lease
 
 		return (offset > len ? 0 : offset);
-	}
-
-	size_t LeaseSet2::ReadMetaLS2TypeSpecificPart (const uint8_t * buf, size_t len)
-	{
-		size_t offset = 0;
-		// properties
-		uint16_t propertiesLen = bufbe16toh (buf + offset); offset += 2;
-		offset += propertiesLen; // skip for now. TODO: implement properties
-		// entries
-		if (offset + 1 > len) return 0;
-		int numEntries = buf[offset]; offset++;
-		for (int i = 0; i < numEntries; i++)
-		{
-			if (offset + LEASE2_SIZE > len) return 0;
-			offset += 32; // hash
-			offset += 3; // flags
-			offset += 1; // cost
-			offset += 4; // expires
-		}
-		// revocations
-		if (offset + 1 > len) return 0;
-		int numRevocations = buf[offset]; offset++;
-		for (int i = 0; i < numRevocations; i++)
-		{
-			if (offset + 32 > len) return 0;
-			offset += 32; // hash
-		}
-		return offset;
 	}
 
 	void LeaseSet2::ReadFromBufferEncrypted (const uint8_t * buf, size_t len,
