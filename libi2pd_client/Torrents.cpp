@@ -182,7 +182,7 @@ namespace torrents
 
 	Piece::~Piece ()
 	{
-		delete[] m_Data;
+		DeleteDataBuffer ();
 	}
 
 	bool Piece::VerifyHash () const
@@ -221,7 +221,7 @@ namespace torrents
 		size_t blockIndex = offset/REQUEST_BLOCK_SIZE;
 		if ((*m_Blocks)[blockIndex] == BlockStatus::Requested)
 		{
-			if (!m_Data) m_Data = new uint8_t[m_Size];
+			if (!m_Data) NewDataBuffer ();
 			memcpy (m_Data + offset, block, len);
 			(*m_Blocks)[blockIndex] = BlockStatus::Available;
 			if (std::find_if (m_Blocks->begin (), m_Blocks->end (),
@@ -263,7 +263,7 @@ namespace torrents
 		std::ifstream f(fragment.fullFilePath, std::ifstream::binary);
 		if (f)
 		{
-			if (!m_Data) m_Data = new uint8_t[m_Size];
+			if (!m_Data) NewDataBuffer ();
 			f.seekg (fragment.fileOffset, std::ios::beg);
 			f.read ((char *)m_Data + fragment.fragmentOffset, fragment.fragmentSize);
 			LogPrint (eLogDebug, "Torrents: Loaded bytes ", fragment.fileOffset, " - ", fragment.fileOffset + fragment.fragmentSize - 1, " from ", fragment.fullFilePath);
@@ -271,6 +271,20 @@ namespace torrents
 		else
 			return false;
 		return true;
+	}
+
+	void Piece::NewDataBuffer ()
+	{
+		std::atomic_ref<uint8_t *> data (m_Data);
+		auto old = data.exchange (new uint8_t[m_Size]);
+		if (old) delete[] old;
+	}
+
+	void Piece::DeleteDataBuffer ()
+	{
+		std::atomic_ref<uint8_t *> data (m_Data);
+		auto old = data.exchange (nullptr);
+		if (old) delete[] old;
 	}
 
 	bool Piece::HasBlock (size_t offset) const
@@ -314,9 +328,7 @@ namespace torrents
 		m_Blocks = nullptr;
 		m_Blocks = std::make_unique<std::vector<BlockStatus> >(GetNumBlocks (m_Size), BlockStatus::Missing);
 		if (m_Data)
-		{
-			delete[] m_Data; m_Data = nullptr;
-		}
+			DeleteDataBuffer ();
 	}
 
 	void Piece::Reset ()
@@ -325,7 +337,7 @@ namespace torrents
 			ClearAllRequests ();
 		else if (m_Data && !m_IsSending)
 		{
-			delete[] m_Data; m_Data = nullptr;
+			DeleteDataBuffer ();
 			LogPrint (eLogDebug, "Torrents: piece's data deleted");
 		}
 	}
@@ -1272,6 +1284,12 @@ namespace torrents
 				std::string hexHash;
 				boost::algorithm::hex (infoHash.begin(), infoHash.end(), std::back_inserter(hexHash));
 				LogPrint (eLogWarning, "Torrents: Torrent with InfoHash ", hexHash, " not found");
+				Terminate ();
+				return 0;
+			}
+			if (m_Torrent->IsStopped ())
+			{
+				LogPrint (eLogInfo, "Torrents: Torrent ", m_Torrent->GetName (), " is stopped");
 				Terminate ();
 				return 0;
 			}

@@ -140,6 +140,8 @@ namespace torrents
 
 			bool IsAvailable (int block) const;
 			size_t GetNumBlocks (size_t len) const;
+			void NewDataBuffer ();
+			void DeleteDataBuffer ();
 
 		private:
 
