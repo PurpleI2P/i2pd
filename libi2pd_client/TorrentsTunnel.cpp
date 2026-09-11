@@ -373,11 +373,7 @@ namespace torrents
 				static constexpr std::string_view hashPrefix { "xt=urn:btih:" };
 				static constexpr std::string_view trackerPrefix { "tr=" };
 				static constexpr std::string_view namePrefix { "dn=" };
-#if __cplusplus >= 202002L // C++20
 				if (param.starts_with (hashPrefix))
-#else
-				if (param.substr (0, hashPrefix.size ()) == hashPrefix)
-#endif
 				{
 					std::string_view hexStr = param.substr (hashPrefix.size (), infoHash.size ()*2);
 					try
@@ -390,18 +386,10 @@ namespace torrents
 						LogPrint (eLogInfo, "TorentsTunnel: Can't unhex magnet hash ", hexStr);
 					}
 				}
-#if __cplusplus >= 202002L // C++20
 				else if (param.starts_with (trackerPrefix))
-#else
-				else if (param.substr (0, trackerPrefix.size ()) == trackerPrefix)
-#endif
 					announce = param.substr (trackerPrefix.size ());
-#if __cplusplus >= 202002L // C++20
 				else if (param.starts_with (namePrefix))
-#else
-				else if (param.substr (0, namePrefix.size ()) == namePrefix)
-#endif
-					name = param.substr (namePrefix.size ());
+					name = i2p::http::UrlDecode (param.substr (namePrefix.size ()));
 			}
 			if (isInfoHashFound && m_Torrents.find (infoHash) == m_Torrents.end ())
 			{
