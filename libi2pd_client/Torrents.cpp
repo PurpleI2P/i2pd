@@ -1916,7 +1916,14 @@ namespace torrents
 				}
 				case 1: // data
 				{
-					if (m_Torrent->GetLength ()) break; // we have info
+					if (m_Torrent->GetLength ())
+					{
+						// we have info
+						if (m_RemoteMetadata.size () < m_RemoteMetadataSize) // response to our request
+							Terminate (); // reconnect
+						// otherwise unsolicited data, ignore
+						break;
+					}
 					size_t offset = piece*REQUEST_BLOCK_SIZE;
 					if (offset > m_RemoteMetadataSize) break;
 					size_t size = m_RemoteMetadataSize - offset;
