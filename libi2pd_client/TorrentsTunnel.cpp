@@ -346,15 +346,11 @@ namespace torrents
 	{
 		// magnet:?xt=urn:btih:<hash>&dn=<name>&tr=<tracker>
 		static constexpr std::string_view magnetPrefix { "magnet:?" };
-#if __cplusplus >= 202002L // C++20
 		if (magnet.starts_with (magnetPrefix))
-#else
-		if (magnet.substr (0, magnetPrefix.size ()) == magnetPrefix)
-#endif
 		{
 			Torrent::InfoHash infoHash;
 			bool isInfoHashFound = false;
-			std::string_view announce, name;
+			std::string announce, name;
 			magnet = magnet.substr (magnetPrefix.size ());
 			while (!magnet.empty())
 			{
@@ -387,7 +383,7 @@ namespace torrents
 					}
 				}
 				else if (param.starts_with (trackerPrefix))
-					announce = param.substr (trackerPrefix.size ());
+					announce = i2p::http::UrlDecode (param.substr (trackerPrefix.size ()));
 				else if (param.starts_with (namePrefix))
 					name = i2p::http::UrlDecode (param.substr (namePrefix.size ()));
 			}
