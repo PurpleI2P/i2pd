@@ -1065,7 +1065,7 @@ namespace torrents
 		m_Stream->AsyncSend (buf, len,
 			[s = shared_from_this ()](const boost::system::error_code& ecode, size_t bytes_transferred)
 			{
-				if (ecode) s->Terminate ();
+				if (ecode || !s->m_Stream) s->Terminate ();
 			});
 		m_LastSendTime = i2p::util::GetMonotonicSeconds ();
 	}
@@ -1160,6 +1160,7 @@ namespace torrents
 
 	void PeerConnection::HandleStreamReceive (const boost::system::error_code& ecode, size_t bytes_transferred)
 	{
+		if (!m_Stream) return;
 		if (ecode)
 		{
 			if (ecode != boost::asio::error::operation_aborted)
@@ -1584,7 +1585,7 @@ namespace torrents
 			[s = shared_from_this ()](const boost::system::error_code& ecode, size_t bytes_transferred)
 			{
 				if (s->m_NumPieces > 0) s->m_NumPieces--;
-				if (!ecode)
+				if (!ecode && s->m_Stream)
 				{
 					while (!s->m_IncomingRequestsQueue.empty () && s->m_NumPieces < MAX_NUM_PIECES)
 					{
