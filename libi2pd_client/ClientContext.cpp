@@ -218,6 +218,10 @@ namespace client
 		}
 
 		{
+			// let tunnels finish
+			LogPrint(eLogInfo, "Clients: Waiting for ", STOP_DESTINATIONS_TIMEOUT, "seconds");
+			std::this_thread::sleep_for (std::chrono::seconds (STOP_DESTINATIONS_TIMEOUT));
+			// stop destinations
 			LogPrint(eLogInfo, "Clients: Stopping Destinations");
 			std::lock_guard<std::mutex> lock(m_DestinationsMutex);
 			for (auto& it: m_Destinations)
