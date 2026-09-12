@@ -211,7 +211,8 @@ namespace torrents
 			Piece& GetPiece (int index) { return m_Pieces[index]; }
 			std::pair<std::vector<uint8_t>, bool> CreateBitfield () const; // (bitfield, empty)
 			bool ApplyBitfield (const std::vector<uint8_t>& bitfield); // return true if complete
-			std::unordered_set<i2p::data::IdentHash>  GetPeers () const;
+			std::unordered_set<i2p::data::IdentHash>  GetPeers () const; // from trackers
+			std::unordered_set<i2p::data::IdentHash>  GetNonConnectedPeers () const;
 			RequestedBlock GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn, bool skipRequested = true);
 			std::vector<PieceFileFragment> GetPieceFileFragments (int index) const;
 			std::vector<size_t> GetFilesCompleted () const; // completed size per file
@@ -220,6 +221,7 @@ namespace torrents
 			void SetNextUpdateStatusTime (uint64_t nextUpdateStatusTime) { m_NextUpdateStatusTime = nextUpdateStatusTime; }
 			bool AddConnection (std::shared_ptr<PeerConnection> conn);
 			std::list<std::shared_ptr<PeerConnection> > GetConnections ();
+			bool IsConnectedToPeer (const i2p::data::IdentHash& peer);
 
 			uint64_t GetNextTrackerRequestTime (size_t trackerID) const;
 			void SetNextTrackerRequestTime (size_t trackerID, uint64_t ts);

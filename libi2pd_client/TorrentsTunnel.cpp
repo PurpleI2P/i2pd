@@ -662,7 +662,7 @@ namespace torrents
 
 	void TorrentsTunnel::ConnectToPeer (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& peer)
 	{
-		if (!torrent) return;
+		if (!torrent || torrent->IsConnectedToPeer (peer)) return;
 		LogPrint (eLogDebug, "TorrentsTunnel: Connecting to peer ", peer.ToBase32 () + ".b32.i2p");
 		if (peer == GetLocalDestination ()->GetIdentHash ())
 		{
@@ -686,7 +686,7 @@ namespace torrents
 	size_t TorrentsTunnel::ConnectToPeers (std::shared_ptr<Torrent> torrent)
 	{
 		if (!torrent) return 0;
-		auto peersToConnect = GetNonConnectedPeers (torrent);
+		auto peersToConnect = torrent->GetNonConnectedPeers ();
 		if (!peersToConnect.empty ())
 		{
 			for (const auto& it: peersToConnect)
@@ -698,11 +698,11 @@ namespace torrents
 	void TorrentsTunnel::ConnectToNewPeers (std::shared_ptr<Torrent> torrent, std::unordered_set<i2p::data::IdentHash>& newPeers)
 	{
 		if (!torrent) return;
-		FilterNonConnectedPeers (torrent, newPeers);
 		if (!newPeers.empty ())
 		{
 			for (const auto& it: newPeers)
-				ConnectToPeer (torrent, it);
+				if (!torrent->IsConnectedToPeer (it))
+					ConnectToPeer (torrent, it);
 		}
 	}
 
@@ -829,35 +829,6 @@ namespace torrents
 			UpdateStats ();
 			ScheduleStatusUpdate ();
 		}
-	}
-
-	std::unordered_set<i2p::data::IdentHash> TorrentsTunnel::GetNonConnectedPeers (std::shared_ptr<Torrent> torrent)
-	{
-		std::unordered_set<i2p::data::IdentHash> ret;
-		if (torrent)
-		{
-			ret = torrent->GetPeers ();
-			FilterNonConnectedPeers (torrent, ret);
-		}
-		return ret;
-	}
-
-	void TorrentsTunnel::FilterNonConnectedPeers (std::shared_ptr<Torrent> torrent, std::unordered_set<i2p::data::IdentHash>& peers)
-	{
-		if (peers.empty ()) return;
-		IterateHandlers ([&peers, torrent](std::shared_ptr<i2p::client::I2PServiceHandler> handler)
-			{
-				if (handler)
-				{
-					auto conn = std::static_pointer_cast<PeerConnection>(handler);
-					if (conn->GetTorrent () == torrent)
-					{
-						auto ident = conn->GetRemoteIdentHash ();
-						if (ident)
-							peers.erase (*ident);
-					}
-				}
-			});
 	}
 
 	void TorrentsTunnel::UpdatePeersPerPiece (std::shared_ptr<Torrent> torrent)

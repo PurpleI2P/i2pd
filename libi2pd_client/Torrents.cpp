@@ -894,6 +894,19 @@ namespace torrents
 		return ret;
 	}
 
+	std::unordered_set<i2p::data::IdentHash> Torrent::GetNonConnectedPeers () const
+	{
+		std::unordered_set<i2p::data::IdentHash> ret;
+		for (const auto& it: m_TrackerStats)
+		{
+			const auto& peers = std::get<0>(it);
+			for (const auto& it: peers)
+				if (!m_Connections.contains (it))
+					ret.emplace (it);
+		}
+		return ret;
+	}
+
 	uint64_t Torrent::GetNextTrackerRequestTime (size_t trackerID) const
 	{
 		if (trackerID < m_TrackerStats.size ()) return std::get<2>(m_TrackerStats[trackerID]);
@@ -950,6 +963,17 @@ namespace torrents
 				it = m_Connections.erase (it);
 		}
 		return ret;
+	}
+
+	bool Torrent::IsConnectedToPeer (const i2p::data::IdentHash& peer)
+	{
+		auto it = m_Connections.find (peer);
+		if (it != m_Connections.end ())
+		{
+			if (!it->second.expired ()) return true;
+			m_Connections.erase (it);
+		}
+		return false;
 	}
 
 	PeerConnection::PeerConnection (std::shared_ptr<i2p::client::I2PService> owner,
