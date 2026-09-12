@@ -84,6 +84,7 @@ namespace torrents
 		m_KeepAliveCheckTimer.cancel ();
 		m_ReconnectCheckTimer.cancel ();
 		m_TorrentsStatusUpdateTimer.cancel ();
+		i2p::client::I2PService::ClearHandlers (); // close connections
 		for (auto it: m_Torrents)
 			RequestTorrentTrackers (it.second, eTrackerAnnounceEventStopped);
 		m_Torrents.clear ();
@@ -243,11 +244,16 @@ namespace torrents
 			{
 				auto partFilePath = torrent->GetFullPath ();  partFilePath += ".part";
 				std::error_code ec;
-				std::filesystem::rename (partFilePath, torrent->GetFullPath (), ec);
-				if (!ec)
+				if (std::filesystem::exists (partFilePath))
+				{
+					std::filesystem::rename (partFilePath, torrent->GetFullPath (), ec);
+					if (!ec)
+						completed = true;
+					else
+						LogPrint (eLogError, "TorrentsTunnel: Can't rename ", partFilePath);
+				}
+				else if (std::filesystem::exists (torrent->GetFullPath ()))
 					completed = true;
-				else
-					LogPrint (eLogError, "TorrentsTunnel: Can't rename ", partFilePath);
 			}
 			else
 			{
