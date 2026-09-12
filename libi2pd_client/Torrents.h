@@ -218,7 +218,7 @@ namespace torrents
 			bool UpdateStatus (uint64_t ts); // return true if complete
 			uint64_t GetNextUpdateStatusTime () { return m_NextUpdateStatusTime; }
 			void SetNextUpdateStatusTime (uint64_t nextUpdateStatusTime) { m_NextUpdateStatusTime = nextUpdateStatusTime; }
-			void AddConnection (std::shared_ptr<PeerConnection> conn);
+			bool AddConnection (std::shared_ptr<PeerConnection> conn);
 			std::list<std::shared_ptr<PeerConnection> > GetConnections ();
 
 			uint64_t GetNextTrackerRequestTime (size_t trackerID) const;
@@ -269,7 +269,7 @@ namespace torrents
 			InfoHash m_InfoHash; // SHA1
 			std::vector<Piece> m_Pieces;
 			std::vector<TrackerStats> m_TrackerStats;
-			std::list<std::weak_ptr<PeerConnection> > m_Connections;
+			std::unordered_map<i2p::data::IdentHash, std::weak_ptr<PeerConnection> > m_Connections; // remote ident hash -> connection
 			bool m_IsComplete, m_IsStopped;
 			std::list<std::pair<std::filesystem::path, size_t> > m_Files; // list of (path, length)
 			size_t m_Uploaded, m_Downloaded;

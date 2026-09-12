@@ -915,9 +915,23 @@ namespace torrents
 		return eTorrentStatusDownloading;
 	}
 
-	void Torrent::AddConnection (std::shared_ptr<PeerConnection> conn)
+	bool Torrent::AddConnection (std::shared_ptr<PeerConnection> conn)
 	{
-		m_Connections.emplace_back (conn);
+		if (!conn) return false;
+		auto remoteIdentHash = conn->GetRemoteIdentHash ();
+		if (!remoteIdentHash) return false;
+		auto [it, inserted] = m_Connections.emplace (*remoteIdentHash, conn);
+		if (!inserted)
+		{
+			if (it->second.expired ())
+			{
+				m_Connections.erase (it); // delete not longer existing
+				return m_Connections.emplace (*remoteIdentHash, conn).second; // try again
+			}
+			else
+				return false;
+		}
+		return true;
 	}
 
 	std::list<std::shared_ptr<PeerConnection> > Torrent::GetConnections ()
@@ -926,7 +940,7 @@ namespace torrents
 		auto it = m_Connections.begin ();
 		while (it != m_Connections.end ())
 		{
-			auto conn = it->lock ();
+			auto conn = it->second.lock ();
 			if (conn)
 			{
 				ret.emplace_back (conn);
@@ -1262,7 +1276,7 @@ namespace torrents
 	size_t PeerConnection::HandleHandshakeMsg ()
 	{
 		LogPrint (eLogDebug, "Torrents: Handshake received");
-		if (m_ReceiveBufferOffset < HANDSHAKE_MSG_LENGTH) return 0;
+		if (!m_Stream || m_ReceiveBufferOffset < HANDSHAKE_MSG_LENGTH) return 0;
 		if (m_HandshakeReceiveTimer)
 		{
 			m_HandshakeReceiveTimer->cancel ();
@@ -1312,7 +1326,13 @@ namespace torrents
 			m_IsFast = true;
 		// established
 		m_IsEstablished = true;
-		m_Torrent->AddConnection (shared_from_this ());
+		if (!m_Torrent->AddConnection (shared_from_this ()))
+		{
+			LogPrint (eLogWarning, "Torrents: Connection with peer ",
+				i2p::data::GetIdentHashAbbreviation (m_Stream->GetRemoteIdentity ()->GetIdentHash ()), " already exists");
+			Terminate ();
+			return 0;
+		}
 		// send bitfield, have all or have none
 		auto [bitfield, empty] = m_Torrent->CreateBitfield ();
 		if (!empty)
