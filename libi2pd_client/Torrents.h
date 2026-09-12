@@ -44,7 +44,7 @@ namespace torrents
 	constexpr size_t MAX_NUM_REQUESTS = 24;
 	constexpr size_t MAX_NUM_PIECES = 6;
 	constexpr size_t MAX_INCOMING_REQUESTS_QUEUE_SIZE = 32;
-	constexpr int PIECE_INACTIVITY_TIMEOUT = 35; // in seconds
+	constexpr int PIECE_INACTIVITY_TIMEOUT = 22; // in seconds
 	constexpr int HANDSHAKE_RECEIVE_TIMEOUT = 20; // in seconds
 	constexpr int BANDWIDTH_RATE_SAMPLING_INTERVAL = 20; // in milliseconds
 
@@ -188,6 +188,7 @@ namespace torrents
 			void SetComplete ();
 			bool IsStopped () const { return m_IsStopped; }
 			void SetStopped (bool stopped) { m_IsStopped = stopped; }
+			bool IsActive () const { return !m_Connections.empty (); }
 			TorrentStatus GetStatus () const;
 
 			std::string_view GetAnnounce () const { return m_Announce; }
@@ -215,6 +216,8 @@ namespace torrents
 			std::vector<PieceFileFragment> GetPieceFileFragments (int index) const;
 			std::vector<size_t> GetFilesCompleted () const; // completed size per file
 			bool UpdateStatus (uint64_t ts); // return true if complete
+			uint64_t GetNextUpdateStatusTime () { return m_NextUpdateStatusTime; }
+			void SetNextUpdateStatusTime (uint64_t nextUpdateStatusTime) { m_NextUpdateStatusTime = nextUpdateStatusTime; }
 			void AddConnection (std::shared_ptr<PeerConnection> conn);
 			std::list<std::shared_ptr<PeerConnection> > GetConnections ();
 
@@ -270,6 +273,7 @@ namespace torrents
 			bool m_IsComplete, m_IsStopped;
 			std::list<std::pair<std::filesystem::path, size_t> > m_Files; // list of (path, length)
 			size_t m_Uploaded, m_Downloaded;
+			uint64_t m_NextUpdateStatusTime; // in monotonic seconds
 			// stats
 			uint64_t m_DownloadRate, m_UploadRate; // B/sec
 			int m_NumDownloadingFromPeers, m_NumUploadingToPeers; // by us

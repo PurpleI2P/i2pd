@@ -344,7 +344,7 @@ namespace torrents
 
 	Torrent::Torrent ():
 		m_Length (0), m_PieceLength (0), m_IsComplete (false), m_IsStopped (false),
-		m_Uploaded (0), m_Downloaded (0)
+		m_Uploaded (0), m_Downloaded (0), m_NextUpdateStatusTime (0)
 	{
 		ResetStats ();
 	}
@@ -743,7 +743,7 @@ namespace torrents
 		for (auto& it: m_Pieces)
 		{
 			if (!it.IsComplete ()) complete = false;
-			if (ts > it.GetLastActivityTimestamp () + PIECE_INACTIVITY_TIMEOUT) // piece was inactive recently
+			if (m_IsStopped || (ts > it.GetLastActivityTimestamp () + PIECE_INACTIVITY_TIMEOUT)) // piece was inactive recently
 				it.Reset ();
 		}
 		return complete;

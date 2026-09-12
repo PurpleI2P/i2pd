@@ -489,6 +489,7 @@ namespace torrents
 	{
 		if (!torrent) return;
 		torrent->SetStopped (true);
+		torrent->UpdateStatus (i2p::util::GetMonotonicSeconds ());
 		// inform trackers that we stopped
 		RequestTorrentTrackers (torrent, eTrackerAnnounceEventStopped);
 		// close connections
@@ -797,7 +798,7 @@ namespace torrents
 	void TorrentsTunnel::ScheduleStatusUpdate ()
 	{
 		m_TorrentsStatusUpdateTimer.cancel ();
-		m_TorrentsStatusUpdateTimer.expires_after (std::chrono::seconds(TORRENTS_STATUS_UPDATE_INTERVAL));
+		m_TorrentsStatusUpdateTimer.expires_after (std::chrono::seconds(TORRENTS_STATUS_UPDATE_CHECK_INTERVAL));
 		m_TorrentsStatusUpdateTimer.async_wait (std::bind (&TorrentsTunnel::HandleTorrentsStatusUpdateTimer,
 			this, std::placeholders::_1));
 	}
@@ -808,15 +809,17 @@ namespace torrents
 		{
 			auto ts = i2p::util::GetMonotonicSeconds ();
 			for (auto it: m_Torrents)
-			{
-				if (!it.second->IsComplete () &&!it.second->IsStopped ())
+				if (ts > it.second->GetNextUpdateStatusTime ())
 				{
-					if (it.second->UpdateStatus (ts))
-						CompleteTorrent (it.second);
-					else
-						UpdatePeersPerPiece (it.second);
+					if (!it.second->IsStopped () && (it.second->IsActive () || !it.second->IsComplete ()))
+					{
+						if (it.second->UpdateStatus (ts))
+							CompleteTorrent (it.second);
+						else
+							UpdatePeersPerPiece (it.second);
+					}
+					it.second->SetNextUpdateStatusTime (ts + TORRENTS_STATUS_UPDATE_INTERVAL + GetLocalDestination ()->GetRng ()() % TORRENTS_STATUS_UPDATE_INTERVAL_VARIANCE);
 				}
-			}
 			UpdateStats ();
 			ScheduleStatusUpdate ();
 		}
