@@ -220,6 +220,8 @@ namespace torrents
 			bool UpdateStatus (uint64_t ts); // return true if complete
 			uint64_t GetNextUpdateStatusTime () { return m_NextUpdateStatusTime; }
 			void SetNextUpdateStatusTime (uint64_t nextUpdateStatusTime) { m_NextUpdateStatusTime = nextUpdateStatusTime; }
+			uint64_t GetNextReconnectTime () { return m_NextReconnectTime; }
+			void SetNextReconnectTime (uint64_t nextReconnectTime) { m_NextReconnectTime = nextReconnectTime; }
 			bool AddConnection (std::shared_ptr<PeerConnection> conn);
 			void RemoveConnection (std::shared_ptr<PeerConnection> conn);
 			std::list<std::shared_ptr<PeerConnection> > GetConnections ();
@@ -277,7 +279,7 @@ namespace torrents
 			bool m_IsComplete, m_IsStopped;
 			std::list<std::pair<std::filesystem::path, size_t> > m_Files; // list of (path, length)
 			size_t m_Uploaded, m_Downloaded;
-			uint64_t m_NextUpdateStatusTime; // in monotonic seconds
+			uint64_t m_NextUpdateStatusTime, m_NextReconnectTime; // in monotonic seconds
 			// stats
 			uint64_t m_DownloadRate, m_UploadRate; // B/sec
 			int m_NumDownloadingFromPeers, m_NumUploadingToPeers; // by us

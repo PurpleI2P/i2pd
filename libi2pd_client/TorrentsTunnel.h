@@ -37,7 +37,9 @@ namespace torrents
 	constexpr int DATAGRAM_TRACKER_TRANSACTION_TIMEOUT = 10000; // in milliseconds
 	constexpr int DATAGRAM_TRACKER_CONNECTION_EXPIRATION = 60000; // in milliseconds
 	constexpr int TRACKER_REQUESTS_CHECK_TIMEOUT = 1900; // in milliseconds
-	constexpr int RECONNECT_CHECK_INTERVAL = 70; // in seconds
+	constexpr int RECONNECT_INTERVAL = 45; // in seconds
+	constexpr int RECONNECT_INTERVAL_VARIANCE = 30; // in seconds
+	constexpr int RECONNECT_CHECK_INTERVAL = 30; // in seconds
 	constexpr int TRACKER_REQUESTS_INTERVAL_VARIANCE = 3000; // in milliseconds
 	constexpr int TRACKER_INITIAL_REQUEST_INTERVAL_VARIANCE = 31000; // in milliseconds
 	constexpr int PEER_KEEP_ALIVE_CHECK_INTERVAL = 15; // in seconds

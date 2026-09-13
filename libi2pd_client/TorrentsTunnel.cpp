@@ -801,15 +801,19 @@ namespace torrents
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
+			auto ts = i2p::util::GetMonotonicSeconds ();
 			for (auto it: m_Torrents)
-			{
-				if (!it.second->IsComplete () && !it.second->IsStopped ())
+				if (ts > it.second->GetNextReconnectTime ())
 				{
-					auto numPeers = ConnectToPeers (it.second);
-					if (numPeers)
-						LogPrint (eLogDebug, "TorrentsTunnel: Reconnecting to ", numPeers, " peers");
+					if (!it.second->IsComplete () && !it.second->IsStopped ())
+					{
+						auto numPeers = ConnectToPeers (it.second);
+						if (numPeers)
+							LogPrint (eLogDebug, "TorrentsTunnel: Reconnecting to ", numPeers, " peers");
+					}
+					it.second->SetNextReconnectTime (ts + RECONNECT_INTERVAL + GetLocalDestination ()->GetRng ()() % RECONNECT_INTERVAL_VARIANCE);
 				}
-			}
+
 			ScheduleReconnectCheck ();
 		}
 	}
