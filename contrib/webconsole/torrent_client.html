@@ -20,14 +20,17 @@
  gap: 2.5px;
 }
 #torrents li {
-       border-bottom: 2px solid #333333; 
-} 
-
+       border-bottom: 2px solid #333333;  
+}  
 </style>
+
 <fieldset>
   <legend>Torrent Client</legend>
   <div id="torrent-ui">
-    <label for='torrent_manet_url'>Your a torrent magnet link (only magnet): <input  id='torrent_manet_url' type='text' id='torrent_manet_url'/><button id='btn_magnet'>download</button>
+    <label for='torrent_manet_url'>Your a torrent magnet link (only magnet): 
+      <input id='torrent_manet_url' type='text'/>
+      <button id='btn_magnet'>download</button>
+    </label>
     <h3 id="connection_status">_</h3>
     <input type="file" id="torrentf" accept=".torrent" style="display: none" />
     <button onclick="document.getElementById('torrentf').click()">
@@ -44,52 +47,51 @@
 </fieldset>
 
 <div id="torrent_details_modal" style="display: none">
+  <h3> Torrent Hash Info: <div id="TORRENT_DETAILS_MODAL_HASH_INFO"></div></h3>
   <h3 id="modal_torrent_title"></h3>
-  <h4>Files:</h4>
-  <ul id="modal_files_list"></ul>
-  <h4>Peers (<span id="peer_count">0</span>):</h4>
-  <ul id="modal_peers_list"></ul>
+  
   <h4>Trackers (<span id="trackers_count">0</span>):</h4>
   <ul id="modal_trackers_list"></ul>
+  
   <h4>trackerStats:</h4>
   <pre id="modal_tracker_stats"></pre>
+  
+  <h4>Peers (<span id="peer_count">0</span>):</h4>
+  <ul id="modal_peers_list"></ul>
+  
+  <h4>Files:</h4>
+  <ul id="modal_files_list"></ul>
+  
   <button onclick="closeDetailsModal()">Close</button>
 </div>
 
 <script>
-
   let currentTorrentsData = [];
-  async function stopAll()
-  {
-	const conf = confirm("Are sure to stop all torrents?");
-	 // console.log(conf)
-	  if(conf && window.tjs)
-	  {
-		const r = await window.tjs.getTorrents()
-		//console.log(`torrents: ${r}`)
-      		if (!r?.arguments?.torrents) return;
-		r.arguments.torrents.forEach(async (t) => {
-			 console.log(`stop torrent => ${t.id}`)
-			 await window.tjs.stopTorrent([t.id]);
-		});
-	  }
-          //if (window.tjs && conf) await window.tjs.stopTorrent();
+  
+  async function stopAll() {
+        const conf = confirm("Are sure to stop all torrents?");
+         if(conf && window.tjs) {
+               const r = await window.tjs.getTorrents()
+               if (!r?.arguments?.torrents) return;
+               r.arguments.torrents.forEach(async (t) => {
+                        console.log(`stop torrent => ${t.id}`)
+                        await window.tjs.stopTorrent([t.id]);
+               });
+         }
   }
-  async function startAll()
-  {
-	const conf = confirm("Are sure to start all torrents?");
-	  if(conf && window.tjs)
-	  {
-		const r = await window.tjs.getTorrents()
-		//console.log(`torrents: ${r}`)
-      		if (!r?.arguments?.torrents) return;
-		r.arguments.torrents.forEach( async (t) =>{
-			 console.log(`start torrent => ${t.id}`)
-			 await window.tjs.startTorrent([t.id]);
-		});
-	  }
-          //if (window.tjs && conf) await window.tjs.startTorrent();
+  
+  async function startAll() {
+        const conf = confirm("Are sure to start all torrents?");
+         if(conf && window.tjs) {
+               const r = await window.tjs.getTorrents()
+               if (!r?.arguments?.torrents) return;
+               r.arguments.torrents.forEach( async (t) =>{
+                        console.log(`start torrent => ${t.id}`)
+                        await window.tjs.startTorrent([t.id]);
+               });
+         }
   }
+  
   setInterval(async () => {
     const statusIndicator = document.getElementById("connection_status");
     if (!window.tjs)
@@ -113,32 +115,20 @@
 
       torrents.innerHTML = "";
       currentTorrentsData.forEach((el) => {
-        const percent = el.percentDone
-          ? (el.percentDone * 100).toFixed(2)
-          : "0.00";
-        const speed = window.tjs.formatBytes
-          ? window.tjs.formatBytes(el.rateDownload)
-          : `${el.rateDownload} B/s`;
-        const speedUp = window.tjs.formatBytes
-          ? window.tjs.formatBytes(el.rateUpload)
-          : `${el.rateUpload} B/s`;
-        const status = window.tjs.getStatusString
-          ? window.tjs.getStatusString(el.status)
-          : el.status;
+        const percent = el.percentDone ? (el.percentDone * 100).toFixed(2) : "0.00";
+        const speed = window.tjs.formatBytes ? window.tjs.formatBytes(el.rateDownload) : `${el.rateDownload} B/s`;
+        const speedUp = window.tjs.formatBytes ? window.tjs.formatBytes(el.rateUpload) : `${el.rateUpload} B/s`;
+        const status = window.tjs.getStatusString ? window.tjs.getStatusString(el.status) : el.status;
         const totalSize = el.totalSize || 0; // bytes
-        const ETA = el.rateDownload
-          ? (
-              (totalSize * (1 - el.percentDone)) /
-              el.rateDownload /
-              60
-            ).toFixed(1) + " min"
-          : "-";
+        const ETA = el.rateDownload ? ((totalSize * (1 - el.percentDone)) / el.rateDownload / 60).toFixed(1) + " min" : "-";
         const name = el.name || "|unknown name, maybe a bad torrent|";
+
+        // УБРАЛ ОТСЮДА ПЕРЕЗАПИСЬ ХЭША, ОНА ТУТ НЕ НУЖНА
 
         const li = document.createElement("li");
         const span = document.createElement("span");
-	let hString = el.hashString;
-        span.textContent = `${name} (Info hash: ${hString}) — ${percent}% [${status}] (⬇ ${speed} | ⬆ ${speedUp}) ---- size = ${(totalSize / 1024 / 1024).toFixed(2)}mb; ETA: ${ETA} / `;
+        
+        span.textContent = `${name} — ${percent}% [${status}] (⬇ ${speed} | ⬆ ${speedUp}) ---- size = ${(totalSize / 1024 / 1024).toFixed(2)}mb; ETA: ${ETA} / `;
         li.appendChild(span);
 
         const butDetails = document.createElement("button");
@@ -205,6 +195,9 @@
 
     if (!torrent) return;
 
+    // ВОТ СЮДА ДОБАВЛЕНА ЗАПИСЬ ХЭША ДЛЯ КОНКРЕТНОГО ТОРРЕНТА:
+    document.getElementById("TORRENT_DETAILS_MODAL_HASH_INFO").textContent = torrent.hashString || "NO HASH";
+
     document.getElementById("modal_torrent_title").textContent =
       `DETAILS: ${torrent.name} (#${torrent.id})`;
 
@@ -267,22 +260,18 @@
       li.textContent = "NO_TRACKERS";
       trackersList.appendChild(li);
     }
-
     document.getElementById("trackers_count").textContent = torrent.trackers
       ? torrent.trackers.length
       : 0;
 
     const modal_TrackerStats = document.getElementById("modal_tracker_stats");
     const tstats = torrent.trackerStats;
-    /*
-    To convert a Unix timestamp to a human-readable date in JavaScript, multiply the timestamp by 1000 and pass it into the new Date() constructor. JavaScript requires milliseconds, while standard Unix timestamps are measured in second
-    (so, for js we need ms)
-    */
+    
     modal_TrackerStats.textContent = tstats
       ? tstats
           .map(
-		  (tr) => {
-const leachers = tr.leecherCount >= 0 ? tr.leecherCount : '?'; // TODO: why so big value
+                  (tr) => {
+const leachers = tr.leecherCount >= 0 ? tr.leecherCount : '?'; 
 return `
 Host: ${tr.host}
 Announce: ${tr.announce}
@@ -304,4 +293,3 @@ Next Announce: ${new Date(tr.nextAnnounceTime * 1000).toLocaleString()}
     if(!r) alert("Not correct magnet link");
   }
 </script>
-
