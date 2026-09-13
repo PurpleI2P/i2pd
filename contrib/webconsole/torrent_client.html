@@ -1,304 +1,637 @@
 <style>
-/*todo: more 2000 design*/
-#torrent-ui button {
-       border-radius: 6.66px;
-       padding: 0.1vw;
-       margin: 2px;
-       text-decoration: underline;
-       color: black;
-       background: aquamarine;
-       text-transform: uppercase;
-}
-#torrent-ui button:hover {
-       cursor:pointer;
-       background-color: yellow;
-       transition: background-color 0.5s ease 0.1s;
-}
-#torrent-ui {
- display: flex;
- flex-direction: column;
- gap: 2.5px;
-}
-#torrents li {
-       border-bottom: 2px solid #333333; 
-} 
+  #torrent-ui {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-width: 900px;
+  }
 
+  #torrent-ui button {
+    border-radius: 6px;
+    padding: 5px 8px;
+    margin: 2px;
+    color: black;
+    background: aquamarine;
+    text-transform: uppercase;
+  }
+
+  #torrent-ui button:hover {
+    cursor: pointer;
+    background-color: yellow;
+    transition: background-color 0.5s ease 0.1s;
+  }
+
+  #torrents li {
+    border-bottom: 2px solid #333;
+    padding: 6px;
+  }
+
+  #torrent_details_modal {
+    display: none;
+    margin-top: 15px;
+    padding: 15px;
+    border: 1px solid #333;
+    background: white;
+  }
 </style>
+
 <fieldset>
   <legend>Torrent Client</legend>
+
   <div id="torrent-ui">
-    <label for='torrent_manet_url'>Your a torrent magnet link (only magnet): <input  id='torrent_manet_url' type='text' id='torrent_manet_url'/><button id='btn_magnet'>download</button>
-    <h3 id="connection_status">_</h3>
-    <input type="file" id="torrentf" accept=".torrent" style="display: none" />
-    <button onclick="document.getElementById('torrentf').click()">
-      Add torrent
-    </button>
-    <button onclick="stopAll()">
-      stopAll
-    </button>
-    <button onclick="startAll()">
-      startAll
-    </button>
+    <label for="torrent_magnet_url">
+      Your torrent magnet link:
+    </label>
+
+    <input
+      id="torrent_magnet_url"
+      type="text"
+      placeholder="magnet:?xt=urn:btih:..."
+    >
+
+    <button id="btn_magnet">Download</button>
+
+    <h3 id="connection_status">STATUS: Connecting...</h3>
+
+    <input
+      type="file"
+      id="torrentf"
+      accept=".torrent"
+      style="display: none"
+    >
+
+    <button id="btn_add_torrent">Add torrent</button>
+    <button id="btn_stop_all">Stop all</button>
+    <button id="btn_start_all">Start all</button>
+
     <ul id="torrents"></ul>
   </div>
 </fieldset>
 
-<div id="torrent_details_modal" style="display: none">
+<div id="torrent_details_modal">
   <h3 id="modal_torrent_title"></h3>
+  <p id="modal_torrent_hash"></p>
+
   <h4>Files:</h4>
   <ul id="modal_files_list"></ul>
+
   <h4>Peers (<span id="peer_count">0</span>):</h4>
   <ul id="modal_peers_list"></ul>
+
   <h4>Trackers (<span id="trackers_count">0</span>):</h4>
   <ul id="modal_trackers_list"></ul>
-  <h4>trackerStats:</h4>
+
+  <h4>Tracker stats:</h4>
   <pre id="modal_tracker_stats"></pre>
-  <button onclick="closeDetailsModal()">Close</button>
+
+  <button id="btn_close_details">Close</button>
 </div>
 
 <script>
+  "use strict";
 
   let currentTorrentsData = [];
-  async function stopAll()
-  {
-	const conf = confirm("Are sure to stop all torrents?");
-	 // console.log(conf)
-	  if(conf && window.tjs)
-	  {
-		const r = await window.tjs.getTorrents()
-		//console.log(`torrents: ${r}`)
-      		if (!r?.result?.torrents) return;
-		r.result.torrents.forEach(async (t) => {
-			 console.log(`stop torrent => ${t.id}`)
-			 await window.tjs.stopTorrent([t.id]);
-		});
-	  }
-          //if (window.tjs && conf) await window.tjs.stopTorrent();
+  let updateInProgress = false;
+
+  const statusIndicator = document.getElementById("connection_status");
+  const torrentsElement = document.getElementById("torrents");
+  const torrentFileInput = document.getElementById("torrentf");
+  const magnetInput = document.getElementById("torrent_magnet_url");
+
+  function setStatus(text, color = "") {
+    statusIndicator.textContent = text;
+    statusIndicator.style.color = color;
   }
-  async function startAll()
-  {
-	const conf = confirm("Are sure to start all torrents?");
-	  if(conf && window.tjs)
-	  {
-		const r = await window.tjs.getTorrents()
-		//console.log(`torrents: ${r}`)
-      		if (!r?.result?.torrents) return;
-		r.result.torrents.forEach( async (t) =>{
-			 console.log(`start torrent => ${t.id}`)
-			 await window.tjs.startTorrent([t.id]);
-		});
-	  }
-          //if (window.tjs && conf) await window.tjs.startTorrent();
+  function getTorrentsFromResponse(response) {
+   if (
+    response?.result === "success" &&
+    Array.isArray(response?.arguments?.torrents)
+   ) {
+     return response.arguments.torrents;
+   }
+
+   return null;
   }
-  setInterval(async () => {
-    const statusIndicator = document.getElementById("connection_status");
-    if (!window.tjs)
-      return (statusIndicator.textContent = "STATUS: TJS_NOT_LOADED");
+
+  function getResultError(response) {
+    return JSON.stringify(response);
+  }
+
+  function formatBytes(value) {
+    if (window.tjs?.formatBytes) {
+      return window.tjs.formatBytes(value || 0);
+    }
+
+    const bytes = Number(value) || 0;
+
+    if (bytes < 1024) {
+      return `${bytes} B`;
+    }
+
+    if (bytes < 1024 ** 2) {
+      return `${(bytes / 1024).toFixed(2)} KB`;
+    }
+
+    if (bytes < 1024 ** 3) {
+      return `${(bytes / 1024 ** 2).toFixed(2)} MB`;
+    }
+
+    return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
+  }
+
+  function getTorrentStatus(status) {
+    if (window.tjs?.getStatusString) {
+      return window.tjs.getStatusString(status);
+    }
+
+    return status ?? "unknown";
+  }
+
+  async function updateTorrents() {
+    if (updateInProgress) {
+      return;
+    }
+
+    updateInProgress = true;
 
     try {
-      const r = await window.tjs.getTorrents();
-      if (!r?.result?.torrents)
-        return (statusIndicator.textContent = "STATUS: INVALID_RESPONSE");
-
-      statusIndicator.textContent = "STATUS: Connected";
-      statusIndicator.style.color = "rgb(77, 91, 83)";
-
-      const torrents = document.getElementById("torrents");
-      currentTorrentsData = r.result.torrents;
-
-      if (currentTorrentsData.length === 0) {
-        torrents.innerHTML = "<li>No downloads</li>";
+      if (!window.tjs) {
+        setStatus("STATUS: TJS_NOT_LOADED", "#ff3333");
         return;
       }
 
-      torrents.innerHTML = "";
-      currentTorrentsData.forEach((el) => {
-        const percent = el.percentDone
-          ? (el.percentDone * 100).toFixed(2)
-          : "0.00";
-        const speed = window.tjs.formatBytes
-          ? window.tjs.formatBytes(el.rateDownload)
-          : `${el.rateDownload} B/s`;
-        const speedUp = window.tjs.formatBytes
-          ? window.tjs.formatBytes(el.rateUpload)
-          : `${el.rateUpload} B/s`;
-        const status = window.tjs.getStatusString
-          ? window.tjs.getStatusString(el.status)
-          : el.status;
-        const totalSize = el.totalSize || 0; // bytes
-        const ETA = el.rateDownload
-          ? (
-              (totalSize * (1 - el.percentDone)) /
-              el.rateDownload /
-              60
-            ).toFixed(1) + " min"
-          : "-";
-        const name = el.name || "|unknown name, maybe a bad torrent|";
+      const response = await window.tjs.getTorrents();
 
-        const li = document.createElement("li");
-        const span = document.createElement("span");
-        span.textContent = `${name} — ${percent}% [${status}] (⬇ ${speed} | ⬆ ${speedUp}) ---- size = ${(totalSize / 1024 / 1024).toFixed(2)}mb; ETA: ${ETA} `;
-        li.appendChild(span);
+      console.log("getTorrents response:", response);
 
-        const butDetails = document.createElement("button");
-        butDetails.textContent = "Details";
-        butDetails.onclick = () => openTorrentDetails(el.id);
-        li.appendChild(butDetails);
+      const torrents = getTorrentsFromResponse(response);
 
-        const butStop = document.createElement("button");
-        butStop.textContent = "Stop";
-        butStop.onclick = async () => {
-          if (window.tjs) await window.tjs.stopTorrent([el.id]);
-        };
-        li.appendChild(butStop);
-
-        const butStart = document.createElement("button");
-        butStart.textContent = "Start";
-        butStart.onclick = async () => {
-          if (window.tjs) await window.tjs.startTorrent([el.id]);
-        };
-        li.appendChild(butStart);
-
-        const butRemove = document.createElement("button");
-        butRemove.textContent = "✕";
-        butRemove.onclick = () => removeTorrent(el.id);
-        li.appendChild(butRemove);
-
-        torrents.appendChild(li);
-      });
-    } catch (err) {
-      statusIndicator.textContent =
-        "STATUS: ERROR_WITH_DATA (f12, check your console and write issue)";
-      statusIndicator.style.color = "#ff3333";
-    }
-  }, 1000);
-
-  document.getElementById("torrentf").onchange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const bytes = new Uint8Array(reader.result);
-      let binary = "";
-      for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
+      if (!torrents) {
+        throw new Error(
+          "Неверный формат ответа getTorrents: " +
+          getResultError(response)
+        );
       }
-      const b64 = btoa(binary);
-      if (window.tjs) await window.tjs.addTorrent(b64);
-      e.target.value = "";
-    };
-    reader.readAsArrayBuffer(file);
-  };
 
-  window.removeTorrent = async (id) => {
-    const confirmed = confirm(`Drop the torrent with id ${id}?`);
-    if (confirmed && window.tjs) await window.tjs.removeTorrent(Number(id));
-  };
+      setStatus("STATUS: Connected", "rgb(77, 91, 83)");
 
-  window.openTorrentDetails = (id) => {
+      currentTorrentsData = torrents;
+      renderTorrents(torrents);
+    } catch (error) {
+      console.error("Ошибка при получении списка торрентов:", error);
+
+      setStatus(
+        "STATUS: ERROR_WITH_DATA: " +
+          (error?.message ?? String(error)),
+        "#ff3333"
+      );
+    } finally {
+      updateInProgress = false;
+    }
+  }
+
+  function renderTorrents(torrents) {
+    torrentsElement.replaceChildren();
+
+    if (torrents.length === 0) {
+      const li = document.createElement("li");
+      li.textContent = "No downloads";
+      torrentsElement.appendChild(li);
+      return;
+    }
+
+    for (const torrent of torrents) {
+      const li = document.createElement("li");
+
+      const percentDone = Number(torrent.percentDone) || 0;
+      const percent = (percentDone * 100).toFixed(2);
+
+      const downloadSpeed = formatBytes(torrent.rateDownload);
+      const uploadSpeed = formatBytes(torrent.rateUpload);
+
+      const status = getTorrentStatus(torrent.status);
+      const totalSize = Number(torrent.totalSize) || 0;
+      const downloadRate = Number(torrent.rateDownload) || 0;
+
+      let eta = "-";
+
+      if (downloadRate > 0 && percentDone < 1) {
+        const seconds =
+          (totalSize * (1 - percentDone)) / downloadRate;
+
+        eta = `${(seconds / 60).toFixed(1)} min`;
+      }
+
+      const name =
+        torrent.name || "| unknown name, maybe a bad torrent |";
+
+      const info = document.createElement("span");
+
+      info.textContent =
+        `${name} — ${percent}% [${status}] ` +
+        `(⬇ ${downloadSpeed} | ⬆ ${uploadSpeed}) ` +
+        `— size: ${formatBytes(totalSize)}; ETA: ${eta}`;
+
+      li.appendChild(info);
+
+      const detailsButton = document.createElement("button");
+      detailsButton.textContent = "Details";
+      detailsButton.addEventListener("click", () => {
+        openTorrentDetails(torrent.id);
+      });
+
+      const stopButton = document.createElement("button");
+      stopButton.textContent = "Stop";
+      stopButton.addEventListener("click", async () => {
+        await stopTorrent(torrent.id);
+      });
+
+      const startButton = document.createElement("button");
+      startButton.textContent = "Start";
+      startButton.addEventListener("click", async () => {
+        await startTorrent(torrent.id);
+      });
+
+      const removeButton = document.createElement("button");
+      removeButton.textContent = "Remove";
+      removeButton.addEventListener("click", async () => {
+        await removeTorrent(torrent.id);
+      });
+
+      li.append(
+        detailsButton,
+        stopButton,
+        startButton,
+        removeButton
+      );
+
+      torrentsElement.appendChild(li);
+    }
+  }
+
+  async function stopTorrent(id) {
+    try {
+      if (!window.tjs) {
+        throw new Error("window.tjs не загружен");
+      }
+
+      console.log("Stop torrent:", id);
+      await window.tjs.stopTorrent([id]);
+      await updateTorrents();
+    } catch (error) {
+      console.error("Ошибка остановки торрента:", error);
+    }
+  }
+
+  async function startTorrent(id) {
+    try {
+      if (!window.tjs) {
+        throw new Error("window.tjs не загружен");
+      }
+
+      console.log("Start torrent:", id);
+      await window.tjs.startTorrent([id]);
+      await updateTorrents();
+    } catch (error) {
+      console.error("Ошибка запуска торрента:", error);
+    }
+  }
+
+  async function stopAll() {
+    if (!confirm("Are you sure you want to stop all torrents?")) {
+      return;
+    }
+
+    try {
+      if (!window.tjs) {
+        throw new Error("window.tjs не загружен");
+      }
+
+      const response = await window.tjs.getTorrents();
+      const torrents = getTorrentsFromResponse(response);
+
+      if (!torrents) {
+        throw new Error("Неверный ответ getTorrents");
+      }
+
+      await Promise.all(
+        torrents.map((torrent) =>
+          window.tjs.stopTorrent([torrent.id])
+        )
+      );
+
+      await updateTorrents();
+    } catch (error) {
+      console.error("Ошибка остановки всех торрентов:", error);
+    }
+  }
+
+  async function startAll() {
+    if (!confirm("Are you sure you want to start all torrents?")) {
+      return;
+    }
+
+    try {
+      if (!window.tjs) {
+        throw new Error("window.tjs не загружен");
+      }
+
+      const response = await window.tjs.getTorrents();
+      const torrents = getTorrentsFromResponse(response);
+
+      if (!torrents) {
+        throw new Error("Неверный ответ getTorrents");
+      }
+
+      await Promise.all(
+        torrents.map((torrent) =>
+          window.tjs.startTorrent([torrent.id])
+        )
+      );
+
+      await updateTorrents();
+    } catch (error) {
+      console.error("Ошибка запуска всех торрентов:", error);
+    }
+  }
+
+  async function removeTorrent(id) {
+    if (!confirm(`Remove torrent with id ${id}?`)) {
+      return;
+    }
+
+    try {
+      if (!window.tjs) {
+        throw new Error("window.tjs не загружен");
+      }
+
+      await window.tjs.removeTorrent(Number(id));
+      await updateTorrents();
+    } catch (error) {
+      console.error("Ошибка удаления торрента:", error);
+    }
+  }
+
+  function openTorrentDetails(id) {
     const torrent = currentTorrentsData.find(
-      (t) => String(t.id) === String(id),
+      (item) => String(item.id) === String(id)
     );
-    if (!torrent) return;
+
+    if (!torrent) {
+      console.warn("Торрент не найден:", id);
+      return;
+    }
 
     document.getElementById("modal_torrent_title").textContent =
-      `DETAILS: ${torrent.name} (#${torrent.id})`;
+      `DETAILS: ${torrent.name || "Unknown"} (#${torrent.id})`;
 
-    const filesList = document.getElementById("modal_files_list");
-    filesList.innerHTML = "";
+    document.getElementById("modal_torrent_hash").textContent =
+      `hashString: ${torrent.hashString || "-"}`;
 
-    if (torrent.files?.length) {
-      torrent.files.forEach((f) => {
-        const li = document.createElement("li");
-        const completedMB = (f.bytesCompleted / 1048576).toFixed(2);
-        const totalMB = (f.length / 1048576).toFixed(2);
-        const percent = ((f.bytesCompleted / f.length) * 100 || 0).toFixed(1);
+    renderFiles(torrent);
+    renderPeers(torrent);
+    renderTrackers(torrent);
+    renderTrackerStats(torrent);
 
-        li.textContent = `${f.name} — ${completedMB} / ${totalMB} MB (${percent}%)`;
-        filesList.appendChild(li);
-      });
-    } else {
+    document.getElementById(
+      "torrent_details_modal"
+    ).style.display = "block";
+  }
+
+  function renderFiles(torrent) {
+    const list = document.getElementById("modal_files_list");
+    list.replaceChildren();
+
+    if (!Array.isArray(torrent.files) || torrent.files.length === 0) {
       const li = document.createElement("li");
       li.textContent = "NO_FILES";
-      filesList.appendChild(li);
+      list.appendChild(li);
+      return;
     }
 
-    const peersList = document.getElementById("modal_peers_list");
-    const trackersList = document.getElementById("modal_trackers_list");
+    for (const file of torrent.files) {
+      const li = document.createElement("li");
 
-    document.getElementById("peer_count").textContent = torrent.peers
-      ? torrent.peers.length
-      : 0;
+      const completed = Number(file.bytesCompleted) || 0;
+      const length = Number(file.length) || 0;
+      const percent =
+        length > 0 ? ((completed / length) * 100).toFixed(1) : "0.0";
 
-    peersList.innerHTML = "";
-    if (torrent.peers?.length) {
-      peersList.append(
-        ...torrent.peers.map((p) => {
-          const li = document.createElement("li");
-          const downSpeed = (p.rateToClient / 1024).toFixed(2);
-          const upSpeed = (p.rateToPeer / 1024).toFixed(2);
-          const client = p.clientName || "Unk";
+      li.textContent =
+        `${file.name || "Unknown"} — ` +
+        `${formatBytes(completed)} / ${formatBytes(length)} ` +
+        `(${percent}%)`;
 
-          li.textContent = `${p.address} (${client}) — ${downSpeed} KB/s — ${upSpeed} KB/s`;
-          return li;
-        }),
-      );
-    } else {
+      list.appendChild(li);
+    }
+  }
+
+  function renderPeers(torrent) {
+    const list = document.getElementById("modal_peers_list");
+    list.replaceChildren();
+
+    const peers = Array.isArray(torrent.peers)
+      ? torrent.peers
+      : [];
+
+    document.getElementById("peer_count").textContent = peers.length;
+
+    if (peers.length === 0) {
       const li = document.createElement("li");
       li.textContent = "NO_PEERS";
-      peersList.appendChild(li);
+      list.appendChild(li);
+      return;
     }
 
-    trackersList.innerHTML = "";
-    if (torrent.trackers?.length) {
-      trackersList.append(
-        ...torrent.trackers.map((p) => {
-          const li = document.createElement("li");
-          li.textContent = `[id:${p.id}] announce: ${p.announce} ; tier - ${p.tier}`;
-          return li;
-        }),
-      );
-    } else {
+    for (const peer of peers) {
+      const li = document.createElement("li");
+
+      const downSpeed =
+        ((Number(peer.rateToClient) || 0) / 1024).toFixed(2);
+
+      const upSpeed =
+        ((Number(peer.rateToPeer) || 0) / 1024).toFixed(2);
+
+      li.textContent =
+        `${peer.address || "Unknown"} ` +
+        `(${peer.clientName || "Unknown"}) — ` +
+        `⬇ ${downSpeed} KB/s — ⬆ ${upSpeed} KB/s`;
+
+      list.appendChild(li);
+    }
+  }
+
+  function renderTrackers(torrent) {
+    const list = document.getElementById("modal_trackers_list");
+    list.replaceChildren();
+
+    const trackers = Array.isArray(torrent.trackers)
+      ? torrent.trackers
+      : [];
+
+    document.getElementById("trackers_count").textContent =
+      trackers.length;
+
+    if (trackers.length === 0) {
       const li = document.createElement("li");
       li.textContent = "NO_TRACKERS";
-      trackersList.appendChild(li);
+      list.appendChild(li);
+      return;
     }
 
-    document.getElementById("trackers_count").textContent = torrent.trackers
-      ? torrent.trackers.length
-      : 0;
+    for (const tracker of trackers) {
+      const li = document.createElement("li");
 
-    const modal_TrackerStats = document.getElementById("modal_tracker_stats");
-    const tstats = torrent.trackerStats;
-    /*
-    To convert a Unix timestamp to a human-readable date in JavaScript, multiply the timestamp by 1000 and pass it into the new Date() constructor. JavaScript requires milliseconds, while standard Unix timestamps are measured in second
-    (so, for js we need ms)
-    */
-    modal_TrackerStats.textContent = tstats
-      ? tstats
-          .map(
-		  (tr) => {
-const leachers = tr.leecherCount >= 0 ? tr.leecherCount : '?'; // TODO: why so big value
-return `
-Host: ${tr.host}
-Announce: ${tr.announce}
-Status: ${tr.lastAnnounceResult} (${tr.lastAnnounceSucceeded ? "OK" : "Fail"})
-Peers: ${tr.lastAnnouncePeerCount} | Seeders: ${tr.seederCount} | Leechers: ${leachers}
-Last Announce: ${new Date(tr.lastAnnounceTime * 1000).toLocaleString()}
-Next Announce: ${new Date(tr.nextAnnounceTime * 1000).toLocaleString()}
-`}).join("\n" + "-".repeat(40)) : "-";
+      li.textContent =
+        `[id: ${tracker.id}] ` +
+        `announce: ${tracker.announce || "-"}; ` +
+        `tier: ${tracker.tier ?? "-"}`;
 
-
-    document.getElementById("torrent_details_modal").style.display = "block";
-  };
-
-  window.closeDetailsModal = () => {
-    document.getElementById("torrent_details_modal").style.display = "none";
-  };
-  const btn_magnet = document.getElementById('btn_magnet')
-  btn_magnet.onclick = async () => {
-    const r = await window.tjs.addTorrentByMagnet(document.getElementById('torrent_manet_url').value)
-    if(!r) alert("Not correct magnet link");
+      list.appendChild(li);
+    }
   }
+
+  function renderTrackerStats(torrent) {
+    const output = document.getElementById("modal_tracker_stats");
+    const stats = Array.isArray(torrent.trackerStats)
+      ? torrent.trackerStats
+      : [];
+
+    if (stats.length === 0) {
+      output.textContent = "-";
+      return;
+    }
+
+    output.textContent = stats
+      .map((tracker) => {
+        const leechers =
+          tracker.leecherCount >= 0
+            ? tracker.leecherCount
+            : "?";
+
+        const lastAnnounce =
+          tracker.lastAnnounceTime
+            ? new Date(
+                tracker.lastAnnounceTime * 1000
+              ).toLocaleString()
+            : "-";
+
+        const nextAnnounce =
+          tracker.nextAnnounceTime
+            ? new Date(
+                tracker.nextAnnounceTime * 1000
+              ).toLocaleString()
+            : "-";
+
+        return [
+          `Host: ${tracker.host || "-"}`,
+          `Announce: ${tracker.announce || "-"}`,
+          `Status: ${tracker.lastAnnounceResult || "-"}`,
+          `Peers: ${tracker.lastAnnouncePeerCount ?? "-"}`,
+          `Seeders: ${tracker.seederCount ?? "-"}`,
+          `Leechers: ${leechers}`,
+          `Last Announce: ${lastAnnounce}`,
+          `Next Announce: ${nextAnnounce}`
+        ].join("\n");
+      })
+      .join("\n" + "-".repeat(40) + "\n");
+  }
+
+  function closeDetailsModal() {
+    document.getElementById(
+      "torrent_details_modal"
+    ).style.display = "none";
+  }
+
+  document
+    .getElementById("btn_add_torrent")
+    .addEventListener("click", () => {
+      torrentFileInput.click();
+    });
+
+  document
+    .getElementById("btn_stop_all")
+    .addEventListener("click", stopAll);
+
+  document
+    .getElementById("btn_start_all")
+    .addEventListener("click", startAll);
+
+  document
+    .getElementById("btn_close_details")
+    .addEventListener("click", closeDetailsModal);
+
+  torrentFileInput.addEventListener("change", (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = async () => {
+      try {
+        if (!window.tjs) {
+          throw new Error("window.tjs не загружен");
+        }
+
+        const bytes = new Uint8Array(reader.result);
+
+        let binary = "";
+
+        for (const byte of bytes) {
+          binary += String.fromCharCode(byte);
+        }
+
+        const base64 = btoa(binary);
+
+        await window.tjs.addTorrent(base64);
+        await updateTorrents();
+      } catch (error) {
+        console.error("Ошибка добавления torrent-файла:", error);
+      } finally {
+        event.target.value = "";
+      }
+    };
+
+    reader.readAsArrayBuffer(file);
+  });
+
+  document
+    .getElementById("btn_magnet")
+    .addEventListener("click", async () => {
+      const magnet = magnetInput.value.trim();
+
+      if (!magnet.startsWith("magnet:?")) {
+        alert("Введите корректную magnet-ссылку");
+        return;
+      }
+
+      try {
+        if (!window.tjs) {
+          throw new Error("window.tjs не загружен");
+        }
+
+        const result =
+          await window.tjs.addTorrentByMagnet(magnet);
+
+        console.log("addTorrentByMagnet response:", result);
+
+        if (!result) {
+          alert("Не удалось добавить magnet-ссылку");
+          return;
+        }
+
+        magnetInput.value = "";
+        await updateTorrents();
+      } catch (error) {
+        console.error("Ошибка добавления magnet-ссылки:", error);
+        alert(error?.message ?? "Ошибка добавления magnet-ссылки");
+      }
+    });
+
+  window.setInterval(updateTorrents, 1000);
+  updateTorrents();
 </script>
+
