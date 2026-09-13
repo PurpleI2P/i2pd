@@ -896,29 +896,16 @@ namespace torrents
 		return completed;
 	}
 
-	std::unordered_set<i2p::data::IdentHash> Torrent::GetPeers () const
-	{
-		if (m_TrackerStats.size () == 1)
-			return std::get<0>(m_TrackerStats.front ());
-		std::unordered_set<i2p::data::IdentHash> ret;
-		for (const auto& it: m_TrackerStats)
-		{
-			const auto& peers = std::get<0>(it);
-			ret.insert (peers.begin (), peers.end ());
-		}
-		return ret;
-	}
-
 	std::unordered_set<i2p::data::IdentHash> Torrent::GetNonConnectedPeers ()
 	{
 		std::unordered_set<i2p::data::IdentHash> ret;
 		for (const auto& it: m_TrackerStats)
 		{
 			const auto& peers = std::get<0>(it);
-			for (const auto& it: peers)
+			for (const auto& it1: peers)
 			{
-				if (!IsConnectedToPeer (it))
-					ret.emplace (it);
+				if (!IsConnectedToPeer (it1))
+					ret.emplace (it1);
 			}
 		}
 		return ret;
@@ -1089,9 +1076,19 @@ namespace torrents
 
 	void PeerConnection::Connect ()
 	{
-		SendHandshakeMsg ();
-		ScheduleHandshakeReceiveTimer ();
-		StreamReceive ();
+		if (m_Torrent && m_Torrent->AddConnection (shared_from_this ()))
+		{
+			SendHandshakeMsg ();
+			ScheduleHandshakeReceiveTimer ();
+			StreamReceive ();
+		}
+		else
+		{
+			LogPrint (eLogWarning, "Torrents: Connection with peer ",
+				i2p::data::GetIdentHashAbbreviation (m_Stream->GetRemoteIdentity ()->GetIdentHash ()), " already exists");
+			Terminate ();
+			return;
+		}
 	}
 
 	void PeerConnection::ReceiveHandshake ()
@@ -1334,8 +1331,8 @@ namespace torrents
 		{
 			Torrent::InfoHash infoHash;
 			memcpy (infoHash.data (), m_ReceiveBuffer + 28, 20);
-			m_Torrent = GetTorrentsTunnel ()->FindTorrent (infoHash);
-			if (!m_Torrent)
+			auto torrent = GetTorrentsTunnel ()->FindTorrent (infoHash);
+			if (!torrent)
 			{
 				std::string hexHash;
 				boost::algorithm::hex (infoHash.begin(), infoHash.end(), std::back_inserter(hexHash));
@@ -1343,11 +1340,34 @@ namespace torrents
 				Terminate ();
 				return 0;
 			}
-			if (m_Torrent->IsStopped ())
+			if (torrent->IsStopped ())
 			{
-				LogPrint (eLogInfo, "Torrents: Torrent ", m_Torrent->GetName (), " is stopped");
+				LogPrint (eLogInfo, "Torrents: Torrent ", torrent->GetName (), " is stopped");
 				Terminate ();
 				return 0;
+			}
+			if (m_Torrent)
+			{
+				// outgoing
+				if (m_Torrent->GetInfoHash () != infoHash)
+				{
+					LogPrint (eLogWarning, "Torrents: InfoHash mistmatch for ", torrent->GetName ());
+					Terminate ();
+					return 0;
+				}
+			}
+			else
+			{
+				// incoming
+				if (torrent->AddConnection (shared_from_this ()))
+					m_Torrent = torrent;
+				else
+				{
+					LogPrint (eLogWarning, "Torrents: Incoming connection with peer ",
+						i2p::data::GetIdentHashAbbreviation (m_Stream->GetRemoteIdentity ()->GetIdentHash ()), " already exists");
+					Terminate ();
+					return 0;
+				}
 			}
 		}
 		memcpy (m_RemotePeerID.data (), m_ReceiveBuffer + 48, m_RemotePeerID.size ());
@@ -1366,15 +1386,7 @@ namespace torrents
 		// BEP6
 		if (m_ReceiveBuffer[20 + 7] & 0x04) // bit 61 of reserved
 			m_IsFast = true;
-		// established
 		m_IsEstablished = true;
-		if (!m_Torrent->AddConnection (shared_from_this ()))
-		{
-			LogPrint (eLogWarning, "Torrents: Connection with peer ",
-				i2p::data::GetIdentHashAbbreviation (m_Stream->GetRemoteIdentity ()->GetIdentHash ()), " already exists");
-			Terminate ();
-			return 0;
-		}
 		// send bitfield, have all or have none
 		auto [bitfield, have] = m_Torrent->CreateBitfield ();
 		if (!have) // have none
@@ -2066,13 +2078,7 @@ namespace torrents
 			});
 		if (!newPeers.empty ())
 		{
-			auto existingPeers = m_Torrent->GetPeers ();
-			for (auto it: existingPeers)
-				newPeers.extract (it);
-		}
-		if (!newPeers.empty ())
-		{
-			LogPrint (eLogDebug, "Torrents: I2P_PEX ", newPeers.size (), " new peers");
+			LogPrint (eLogDebug, "Torrents: I2P_PEX ", newPeers.size (), " new peers received");
 			GetTorrentsTunnel ()->ConnectToNewPeers (m_Torrent, newPeers);
 		}
 	}

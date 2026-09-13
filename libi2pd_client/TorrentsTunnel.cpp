@@ -340,7 +340,9 @@ namespace torrents
 					SaveTorrentFile (torrent);
 					InitTorrentFiles (torrent);
 				});
-			return { torrent, InsertTorrent (torrent) };
+			auto id = InsertTorrent (torrent);
+			boost::asio::post (GetService (), [this, torrent] { RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone); });
+			return { torrent, id };
 		}
 		return { torrent, 0 };
 	}
@@ -395,7 +397,9 @@ namespace torrents
 				auto torrent = std::make_shared<Torrent> (infoHash);
 				if (!announce.empty ()) torrent->SetAnnounce (announce);
 				if (!name.empty ()) torrent->SetName (name);
-				return { torrent, InsertTorrent (torrent) };
+				auto id = InsertTorrent (torrent);
+				boost::asio::post (GetService (), [this, torrent] { RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone); });
+				return { torrent, id };
 			}
 		}
 		return { nullptr, 0 };
