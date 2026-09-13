@@ -41,7 +41,9 @@ namespace torrents
 	constexpr int TRACKER_REQUESTS_INTERVAL_VARIANCE = 3000; // in milliseconds
 	constexpr int TRACKER_INITIAL_REQUEST_INTERVAL_VARIANCE = 31000; // in milliseconds
 	constexpr int PEER_KEEP_ALIVE_CHECK_INTERVAL = 15; // in seconds
-	constexpr int TORRENTS_STATUS_UPDATE_INTERVAL = 25; // in seconds
+	constexpr int TORRENTS_STATUS_UPDATE_INTERVAL = 9; // in seconds
+	constexpr int TORRENTS_STATUS_UPDATE_INTERVAL_VARIANCE = 7; // in seconds
+	constexpr int TORRENTS_STATUS_UPDATE_CHECK_INTERVAL = 8; // in seconds
 	constexpr int TRACKER_MAX_NUM_WANT = 25;
 
 	enum DatagramTrackerAction
@@ -98,13 +100,14 @@ namespace torrents
 			std::shared_ptr<Torrent> FindTorrent (const Torrent::InfoHash& infoHash) const;
 			std::shared_ptr<Torrent> FindTorrentByID (int id) const;
 			std::vector<int> GetTorrentIDs () const;
+			std::list<std::shared_ptr<Torrent> > GetTorrents () const;
 			std::pair<std::shared_ptr<Torrent>, int> AddTorrent (std::string_view torrentFileContent); // retrun (torrent, id)
 			std::pair<std::shared_ptr<Torrent>, int> AddMagnet (std::string_view magnet); // return (torrent, id)
 			void UpdateTorrentInfo (std::shared_ptr<Torrent> torrent, std::string_view info); // magnet
 			bool RemoveTorrent (int id, bool deleteFiles);
 			bool StopTorrent (int id);
 			bool StartTorrent (int id);
-			std::list<std::shared_ptr<PeerConnection> > GetTorrentConnections (std::shared_ptr<Torrent> torrent);
+			void ConnectToNewPeers (std::shared_ptr<Torrent> torrent, std::unordered_set<i2p::data::IdentHash>& newPeers);
 
 			const char* GetName() const override { return m_Name.c_str (); }
 
@@ -138,9 +141,9 @@ namespace torrents
 			void ScheduleStatusUpdate ();
 			void HandleTorrentsStatusUpdateTimer (const boost::system::error_code& ecode);
 
-			std::unordered_set<i2p::data::IdentHash> GetNonConnectedPeers (std::shared_ptr<Torrent> torrent);
 			void ConnectToPeer (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& peer);
 			size_t ConnectToPeers (std::shared_ptr<Torrent> torrent);
+			size_t ConnectToPeers (std::shared_ptr<Torrent> torrent, size_t trackerID);
 			void UpdatePeersPerPiece (std::shared_ptr<Torrent> torrent);
 			void UpdateStats ();
 

@@ -179,7 +179,6 @@ namespace data
 			void ReadFromBufferEncrypted (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key,
 				std::shared_ptr<LocalDestination> dest, const uint8_t * secret);
 			size_t ReadStandardLS2TypeSpecificPart (const uint8_t * buf, size_t len, std::shared_ptr<LocalDestination> dest);
-			size_t ReadMetaLS2TypeSpecificPart (const uint8_t * buf, size_t len);
 
 			template<typename Verifier>
 			bool VerifySignature (Verifier& verifier, const uint8_t * buf, size_t len, size_t signatureOffset);

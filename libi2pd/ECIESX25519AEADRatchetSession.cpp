@@ -393,6 +393,7 @@ namespace garlic
 
 	void ECIESX25519AEADRatchetSession::HandlePayload (const uint8_t * buf, size_t len, const std::shared_ptr<ReceiveRatchetTagSet>& receiveTagset, int index)
 	{
+		if (len < 3) return;
 		size_t offset = 0;
 		while (offset < len)
 		{
@@ -520,7 +521,14 @@ namespace garlic
 				m_NextReceiveRatchet->newKey = true;
 			}
 			else
+			{
+				if (!m_NextReceiveRatchet->key)
+				{
+					LogPrint (eLogError, "Garlic: Forward next key received, but key is not set");
+					return;
+				}
 				m_NextReceiveRatchet->newKey = false;
+			}
 			auto tagsetID = m_NextReceiveRatchet->GetReceiveTagSetID ();
 			if (flag & ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG)
 				memcpy (m_NextReceiveRatchet->remote, buf, 32);
