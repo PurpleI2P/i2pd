@@ -899,13 +899,21 @@ namespace torrents
 	std::unordered_set<i2p::data::IdentHash> Torrent::GetNonConnectedPeers ()
 	{
 		std::unordered_set<i2p::data::IdentHash> ret;
-		for (const auto& it: m_TrackerStats)
+		for (size_t i = 0; i < m_TrackerStats.size (); i++)
+			ret.merge (GetNonConnectedPeers (i));
+		return ret;
+	}
+
+	std::unordered_set<i2p::data::IdentHash> Torrent::GetNonConnectedPeers (size_t trackerID)
+	{
+		std::unordered_set<i2p::data::IdentHash> ret;
+		if (trackerID < m_TrackerStats.size ())
 		{
-			const auto& peers = std::get<0>(it);
-			for (const auto& it1: peers)
+			const auto& peers = std::get<0>(m_TrackerStats[trackerID]);
+			for (const auto& it: peers)
 			{
-				if (!IsConnectedToPeer (it1))
-					ret.emplace (it1);
+				if (!IsConnectedToPeer (it))
+					ret.emplace (it);
 			}
 		}
 		return ret;
@@ -949,6 +957,14 @@ namespace torrents
 				return false;
 		}
 		return true;
+	}
+
+	void Torrent::RemoveConnection (std::shared_ptr<PeerConnection> conn)
+	{
+		if (!conn) return;
+		auto remoteIdentHash = conn->GetRemoteIdentHash ();
+		if (!remoteIdentHash) return;
+		m_Connections.erase (*remoteIdentHash);
 	}
 
 	std::list<std::shared_ptr<PeerConnection> > Torrent::GetConnections ()
@@ -1006,11 +1022,15 @@ namespace torrents
 	void PeerConnection::Terminate ()
 	{
 		if (Kill()) return;
-		if (m_Torrent && m_LastRequestedPieceIndex >= 0) // pending requests by us
+		if (m_Torrent)
 		{
-			auto& piece = m_Torrent->GetPiece (m_LastRequestedPieceIndex);
-			if (piece.IsRequested ())
-				piece.ClearAllRequests (); // piece can be requested by other connections
+			if (m_LastRequestedPieceIndex >= 0) // pending requests by us
+			{
+				auto& piece = m_Torrent->GetPiece (m_LastRequestedPieceIndex);
+				if (piece.IsRequested ())
+					piece.ClearAllRequests (); // piece can be requested by other connections
+			}
+			m_Torrent->RemoveConnection (shared_from_this ());
 		}
 		if (m_Stream)
 		{
@@ -1022,7 +1042,6 @@ namespace torrents
 			m_HandshakeReceiveTimer->cancel ();
 			m_HandshakeReceiveTimer = nullptr;
 		}
-		Done(shared_from_this ());
 	}
 
 	void PeerConnection::ResetStats ()

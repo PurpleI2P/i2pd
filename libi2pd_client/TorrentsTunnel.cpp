@@ -66,6 +66,7 @@ namespace torrents
         }
 
 		ScheduleTrackerRequestsCheck ();
+		ScheduleReconnectCheck ();
 		ScheduleKeepAliveCheck ();
 		ScheduleStatusUpdate ();
 	}
@@ -651,8 +652,7 @@ namespace torrents
 						if (res->result () == boost::beast::http::status::ok)
 						{
 							torrent->ParseTrackerResponse (trackerID, res->body ());
-							ConnectToPeers (torrent);
-							ScheduleReconnectCheck ();
+							ConnectToPeers (torrent, trackerID);
 						}
 						else
 							LogPrint (eLogWarning, "TorrentsTunnel: Tracker ", trackerID, " response code ", res->result_int());
@@ -688,6 +688,18 @@ namespace torrents
 	{
 		if (!torrent) return 0;
 		auto peersToConnect = torrent->GetNonConnectedPeers ();
+		if (!peersToConnect.empty ())
+		{
+			for (const auto& it: peersToConnect)
+				ConnectToPeer (torrent, it);
+		}
+		return peersToConnect.size ();
+	}
+
+	size_t TorrentsTunnel::ConnectToPeers (std::shared_ptr<Torrent> torrent, size_t trackerID)
+	{
+		if (!torrent) return 0;
+		auto peersToConnect = torrent->GetNonConnectedPeers (trackerID);
 		if (!peersToConnect.empty ())
 		{
 			for (const auto& it: peersToConnect)

@@ -143,6 +143,7 @@ namespace torrents
 
 			void ConnectToPeer (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& peer);
 			size_t ConnectToPeers (std::shared_ptr<Torrent> torrent);
+			size_t ConnectToPeers (std::shared_ptr<Torrent> torrent, size_t trackerID);
 			void UpdatePeersPerPiece (std::shared_ptr<Torrent> torrent);
 			void UpdateStats ();
 

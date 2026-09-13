@@ -213,6 +213,7 @@ namespace torrents
 			std::pair<std::vector<uint8_t>, boost::logic::tribool> CreateBitfield () const; // (bitfield, true - all false - none)
 			bool ApplyBitfield (const std::vector<uint8_t>& bitfield); // return true if complete
 			std::unordered_set<i2p::data::IdentHash>  GetNonConnectedPeers ();
+			std::unordered_set<i2p::data::IdentHash>  GetNonConnectedPeers (size_t trackerID);
 			RequestedBlock GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn, bool skipRequested = true);
 			std::vector<PieceFileFragment> GetPieceFileFragments (int index) const;
 			std::vector<size_t> GetFilesCompleted () const; // completed size per file
@@ -220,6 +221,7 @@ namespace torrents
 			uint64_t GetNextUpdateStatusTime () { return m_NextUpdateStatusTime; }
 			void SetNextUpdateStatusTime (uint64_t nextUpdateStatusTime) { m_NextUpdateStatusTime = nextUpdateStatusTime; }
 			bool AddConnection (std::shared_ptr<PeerConnection> conn);
+			void RemoveConnection (std::shared_ptr<PeerConnection> conn);
 			std::list<std::shared_ptr<PeerConnection> > GetConnections ();
 			bool IsConnectedToPeer (const i2p::data::IdentHash& peer);
 
