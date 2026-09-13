@@ -84,11 +84,11 @@ namespace torrents
 		m_KeepAliveCheckTimer.cancel ();
 		m_ReconnectCheckTimer.cancel ();
 		m_TorrentsStatusUpdateTimer.cancel ();
-		i2p::client::I2PService::ClearHandlers (); // close connections
 		for (auto it: m_Torrents)
-			RequestTorrentTrackers (it.second, eTrackerAnnounceEventStopped);
+			StopTorrent (it.second);
 		m_Torrents.clear ();
 		m_DiskIOService.Stop ();
+		i2p::client::I2PService::ClearHandlers (); // close connections
 		i2p::client::I2PService::Stop ();
 	}
 
@@ -273,9 +273,6 @@ namespace torrents
 			if (completed)
 			{
 				torrent->SetComplete ();
-				auto resumeFilePath = torrent->GetFullPath (); resumeFilePath += ".resume";
-				if (!std::filesystem::remove (resumeFilePath))
-					LogPrint (eLogError, "TorrentsTunnel: Can't delete resume file ", resumeFilePath);
 				LogPrint (eLogInfo, "TorrentsTunnel: Download complete ", torrent->GetFullPath ());
 
 				boost::asio::post (GetService (), [this, torrent]()

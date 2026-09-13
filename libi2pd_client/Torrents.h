@@ -15,6 +15,7 @@
 #include <openssl/sha.h>
 #include <boost/asio.hpp>
 #include <boost/dynamic_bitset.hpp>
+#include <boost/logic/tribool.hpp>
 #include <memory>
 #include <vector>
 #include <array>
@@ -209,10 +210,10 @@ namespace torrents
 			std::string GetHexStringInfoHash () const; // in url format
 			size_t GetNumPieces () const { return m_Pieces.size (); }
 			Piece& GetPiece (int index) { return m_Pieces[index]; }
-			std::pair<std::vector<uint8_t>, bool> CreateBitfield () const; // (bitfield, empty)
+			std::pair<std::vector<uint8_t>, boost::logic::tribool> CreateBitfield () const; // (bitfield, true - all false - none)
 			bool ApplyBitfield (const std::vector<uint8_t>& bitfield); // return true if complete
 			std::unordered_set<i2p::data::IdentHash>  GetPeers () const; // from trackers
-			std::unordered_set<i2p::data::IdentHash>  GetNonConnectedPeers () const;
+			std::unordered_set<i2p::data::IdentHash>  GetNonConnectedPeers ();
 			RequestedBlock GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn, bool skipRequested = true);
 			std::vector<PieceFileFragment> GetPieceFileFragments (int index) const;
 			std::vector<size_t> GetFilesCompleted () const; // completed size per file
@@ -230,7 +231,7 @@ namespace torrents
 			size_t GetDownloaded () const { return m_Downloaded; }
 			void AddDownloaded (size_t add) { m_Downloaded += add; }
 
-			void SaveTorrentResumeFile (const std::filesystem::path& fullPath);
+			void SaveTorrentResumeFile ();
 
 			void StartCountingPeers ();
 			void ApplyPeerRemoteBitfield (const boost::dynamic_bitset<>& peerRemoteBitfield);

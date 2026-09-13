@@ -633,13 +633,14 @@ namespace torrents
 				0, 0, 0, i2p::util::GetSecondsSinceEpoch (), ""});
 	}
 
-	std::pair<std::vector<uint8_t>, bool> Torrent::CreateBitfield () const
+	std::pair<std::vector<uint8_t>, boost::logic::tribool> Torrent::CreateBitfield () const
 	{
 		size_t numPieces = m_Pieces.size ();
 		size_t bitfieldSize = numPieces / 8;
 		if (numPieces % 8) bitfieldSize++;
+		if (!bitfieldSize) return { {}, false }; // magnet, have none
 		std::vector<uint8_t> ret(bitfieldSize); // filled with 0
-		bool empty = true;
+		bool none = true, all = true;
 		size_t idx = 0;
 		for (size_t i = 0; i < ret.size (); i++) // bytes
 		{
@@ -650,13 +651,15 @@ namespace torrents
 				if (m_Pieces[idx].IsComplete ())
 				{
 					ret[i] |= bit;
-					empty = false;
+					none = false;
 				}
+				else
+					all = false;
 				bit >>= 1;
 				idx++;
 			}
 		}
-		return { ret, empty };
+		return { ret, all ? boost::logic::tribool (true) : (none ? boost::logic::tribool (false) : boost::logic::indeterminate) };
 	}
 
 	bool Torrent::ApplyBitfield (const std::vector<uint8_t>& bitfield)
@@ -757,13 +760,25 @@ namespace torrents
 				it.Complete ();
 	}
 
-	void Torrent::SaveTorrentResumeFile (const std::filesystem::path& fullPath)
+	void Torrent::SaveTorrentResumeFile ()
 	{
-		auto [bitfield, empty] = CreateBitfield ();
-		if (empty) return;
-		std::ofstream f(fullPath, std::ofstream::binary);
-		if (f.is_open ())
-			f.write ((const char *)bitfield.data (), bitfield.size ());
+		auto [bitfield, have] = CreateBitfield ();
+		if (!have) return; // empty
+		std::filesystem::path resumeFilePath = m_FullPath; resumeFilePath += ".resume";
+		if (have) // all
+		{
+			// delete resume file
+			if (!std::filesystem::remove (resumeFilePath))
+				LogPrint (eLogError, "Torrents: Can't delete resume file ", resumeFilePath);
+		}
+		else
+		{
+			std::ofstream f(resumeFilePath, std::ofstream::binary);
+			if (f.is_open ())
+				f.write ((const char *)bitfield.data (), bitfield.size ());
+			else
+				LogPrint (eLogError, "Torrents: Can't open resume file ", resumeFilePath);
+		}
 	}
 
 	void Torrent::StartCountingPeers ()
@@ -894,15 +909,17 @@ namespace torrents
 		return ret;
 	}
 
-	std::unordered_set<i2p::data::IdentHash> Torrent::GetNonConnectedPeers () const
+	std::unordered_set<i2p::data::IdentHash> Torrent::GetNonConnectedPeers ()
 	{
 		std::unordered_set<i2p::data::IdentHash> ret;
 		for (const auto& it: m_TrackerStats)
 		{
 			const auto& peers = std::get<0>(it);
 			for (const auto& it: peers)
-				if (!m_Connections.contains (it))
+			{
+				if (!IsConnectedToPeer (it))
 					ret.emplace (it);
+			}
 		}
 		return ret;
 	}
@@ -1359,16 +1376,17 @@ namespace torrents
 			return 0;
 		}
 		// send bitfield, have all or have none
-		auto [bitfield, empty] = m_Torrent->CreateBitfield ();
-		if (!empty)
+		auto [bitfield, have] = m_Torrent->CreateBitfield ();
+		if (!have) // have none
 		{
-			if (m_IsFast && m_Torrent->IsComplete ())
-				SendHaveAllMsg ();
-			else
-				SendBitfieldMsg (bitfield.data (), bitfield.size ());
+			if (m_IsFast)
+				SendHaveNoneMsg ();
+			// otherwise send nothing
 		}
-		else if (m_IsFast)
-			SendHaveNoneMsg ();
+		else if (have && m_IsFast) // have all
+			SendHaveAllMsg ();
+		else
+			SendBitfieldMsg (bitfield.data (), bitfield.size ());
 
 		return HANDSHAKE_MSG_LENGTH;
 	}
@@ -1530,8 +1548,7 @@ namespace torrents
 							Piece& piece = torrent->GetPiece (index);
 							for (auto& it: fragments)
 								piece.Dump (std::move (it));
-							auto resumeFilePath = torrent->GetFullPath (); resumeFilePath += ".resume";
-							torrent->SaveTorrentResumeFile (resumeFilePath);
+							torrent->SaveTorrentResumeFile ();
 						});
 					// send have
 					auto conns = m_Torrent->GetConnections ();
