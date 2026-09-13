@@ -137,7 +137,8 @@
 
         const li = document.createElement("li");
         const span = document.createElement("span");
-        span.textContent = `${name} — ${percent}% [${status}] (⬇ ${speed} | ⬆ ${speedUp}) ---- size = ${(totalSize / 1024 / 1024).toFixed(2)}mb; ETA: ${ETA} `;
+	let hString = el.hashString;
+        span.textContent = `${name} (${hString}) — ${percent}% [${status}] (⬇ ${speed} | ⬆ ${speedUp}) ---- size = ${(totalSize / 1024 / 1024).toFixed(2)}mb; ETA: ${ETA} / `;
         li.appendChild(span);
 
         const butDetails = document.createElement("button");
