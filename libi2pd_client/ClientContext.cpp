@@ -170,19 +170,6 @@ namespace client
 		}
 		m_ServerTunnels.clear ();
 
-#ifndef NO_TORRENTS
-		// start torrents RPC server
-		for (auto& it: m_TorrentsRPCServers)
-			it.second->Stop ();
-
-		for (auto& it: m_TorrentsTunnels)
-		{
-			LogPrint(eLogInfo, "Clients: Stopping torrents tunnel");
-			it.second->Stop ();
-		}
-		m_TorrentsTunnels.clear ();
-#endif
-
 		if (m_SamBridge)
 		{
 			LogPrint(eLogInfo, "Clients: Stopping SAM bridge");
@@ -217,10 +204,26 @@ namespace client
 			m_ClientForwards.clear();
 		}
 
+#ifndef NO_TORRENTS
+		// start torrents RPC server
+		for (auto& it: m_TorrentsRPCServers)
+			it.second->Stop ();
+
+		for (auto& it: m_TorrentsTunnels)
 		{
-			// let tunnels finish
+			LogPrint(eLogInfo, "Clients: Stopping torrents tunnel");
+			it.second->Stop ();
+		}
+		if (!m_TorrentsTunnels.empty ())
+		{
+			// let torrent tunnels finish
 			LogPrint(eLogInfo, "Clients: Waiting for ", STOP_DESTINATIONS_TIMEOUT, "seconds");
 			std::this_thread::sleep_for (std::chrono::seconds (STOP_DESTINATIONS_TIMEOUT));
+		}
+		m_TorrentsTunnels.clear ();
+#endif
+
+		{
 			// stop destinations
 			LogPrint(eLogInfo, "Clients: Stopping Destinations");
 			std::lock_guard<std::mutex> lock(m_DestinationsMutex);
