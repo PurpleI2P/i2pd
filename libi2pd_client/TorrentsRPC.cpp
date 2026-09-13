@@ -288,7 +288,7 @@ namespace torrents
 			},
 			{ "pieces", [](std::shared_ptr<Torrent> torrent)
 				{
-					auto [bitfield, empry] = torrent->CreateBitfield ();
+					auto [bitfield, have] = torrent->CreateBitfield ();
 					std::string b64pieces;
 					b64pieces.resize (boost::beast::detail::base64::encoded_size (bitfield.size()));
 					boost::beast::detail::base64::encode (b64pieces.data (), bitfield.data(), bitfield.size());
@@ -479,28 +479,17 @@ namespace torrents
 	{
 		boost::json::array files;
 		const auto& torrentFiles = torrent->GetFiles ();
-		if (torrentFiles.empty ())
+		const auto& torrentsDir = m_Tunnel->GetTorrentsDir ();
+		auto filesCompleted = torrent->GetFilesCompleted ();
+		size_t ind = 0;
+		for (const auto& it: torrentFiles)
 		{
 			boost::json::object file;
-			file["name"] = torrent->GetName ();
-			file["length"] = torrent->GetLength ();
-			file["bytesCompleted"] = torrent->GetLength () - torrent->GetLeft ();
+			file["name"] = std::filesystem::relative (it->fullFilePath, torrentsDir).string ();
+			file["length"] = it->fileLength;
+			file["bytesCompleted"] = (ind < filesCompleted.size ()) ? filesCompleted[ind] : 0;
 			files.push_back (file);
-		}
-		else
-		{
-			const auto& torrentsDir = m_Tunnel->GetTorrentsDir ();
-			auto filesCompleted = torrent->GetFilesCompleted ();
-			size_t ind = 0;
-			for (const auto& [filePath, fileSize]: torrentFiles)
-			{
-				boost::json::object file;
-				file["name"] = std::filesystem::relative (filePath, torrentsDir).string ();
-				file["length"] = fileSize;
-				file["bytesCompleted"] = (ind < filesCompleted.size ()) ? filesCompleted[ind] : 0;
-				files.push_back (file);
-				ind++;
-			}
+			ind++;
 		}
 		return files;
 	}

@@ -172,6 +172,36 @@ namespace torrents
 
 //------------------------------------
 
+	bool TorrentFile::Save (size_t offset, const uint8_t * buf, size_t len)
+	{
+		auto filePath = fullFilePath;
+		if (isPart) filePath += ".part";
+		std::fstream f(filePath, std::ios::binary | std::ios::in | std::ios::out );
+		if (f)
+		{
+			f.seekp (offset, std::ios::beg);
+			f.write ((const char *)buf, len);
+		}
+		else
+			return false;
+		return true;
+	}
+
+	bool TorrentFile::Load (size_t offset, uint8_t * buf, size_t len)
+	{
+		auto filePath = fullFilePath;
+		if (isPart) filePath += ".part";
+		std::ifstream f(filePath, std::ifstream::binary);
+		if (f)
+		{
+			f.seekg (offset, std::ios::beg);
+			f.read ((char *)buf, len);
+		}
+		else
+			return false;
+		return true;
+	}
+
 	Piece::Piece (size_t size, const uint8_t * hash):
 		m_Size (size), m_Data (nullptr), m_IsSending (false), m_IsRequested (false),
 		m_LastActivityTimestamp (0), m_NumPeers (0)
@@ -246,13 +276,8 @@ namespace torrents
 		m_IsSending = true;
 		if (m_Data && fragment.fragmentOffset + fragment.fragmentSize <= m_Size)
 		{
-			std::fstream f(fragment.fullFilePath, std::ios::binary | std::ios::in | std::ios::out );
-			if (f)
-			{
-				f.seekp (fragment.fileOffset, std::ios::beg);
-				f.write ((const char *)m_Data + fragment.fragmentOffset, fragment.fragmentSize);
-				LogPrint (eLogDebug, "Torrents: Saved bytes ", fragment.fileOffset, " - ", fragment.fileOffset + fragment.fragmentSize - 1, " to ", fragment.fullFilePath);
-			}
+			if (fragment.file->Save (fragment.fileOffset, m_Data + fragment.fragmentOffset, fragment.fragmentSize))
+				LogPrint (eLogDebug, "Torrents: Saved bytes ", fragment.fileOffset, " - ", fragment.fileOffset + fragment.fragmentSize - 1, " to ", fragment.file->fullFilePath);
 		}
 		m_IsSending = false;
 	}
@@ -260,17 +285,14 @@ namespace torrents
 	bool Piece::Load (PieceFileFragment&& fragment)
 	{
 		if (fragment.fragmentOffset + fragment.fragmentSize > m_Size) return false;
-		std::ifstream f(fragment.fullFilePath, std::ifstream::binary);
-		if (f)
+		if (!m_Data) NewDataBuffer ();
+		if (fragment.file->Load (fragment.fileOffset, m_Data + fragment.fragmentOffset, fragment.fragmentSize))
 		{
-			if (!m_Data) NewDataBuffer ();
-			f.seekg (fragment.fileOffset, std::ios::beg);
-			f.read ((char *)m_Data + fragment.fragmentOffset, fragment.fragmentSize);
-			LogPrint (eLogDebug, "Torrents: Loaded bytes ", fragment.fileOffset, " - ", fragment.fileOffset + fragment.fragmentSize - 1, " from ", fragment.fullFilePath);
+			LogPrint (eLogDebug, "Torrents: Loaded bytes ", fragment.fileOffset, " - ", fragment.fileOffset + fragment.fragmentSize - 1, " from ", fragment.file->fullFilePath);
+			return true;
 		}
 		else
 			return false;
-		return true;
 	}
 
 	void Piece::NewDataBuffer ()
@@ -343,7 +365,7 @@ namespace torrents
 	}
 
 	Torrent::Torrent ():
-		m_Length (0), m_PieceLength (0), m_IsComplete (false), m_IsStopped (false),
+		m_Length (0), m_PieceLength (0), m_IsComplete (false), m_IsStopped (false), m_IsSingleFile (true),
 		m_Uploaded (0), m_Downloaded (0), m_NextUpdateStatusTime (0), m_NextReconnectTime (0)
 	{
 		ResetStats ();
@@ -429,6 +451,8 @@ namespace torrents
 				return 0;
 			});
 		if (!len) return 0;
+		if (m_IsSingleFile && !m_Name.empty ()) // single file
+			m_Files.emplace_back (std::make_shared<TorrentFile> (m_Name, m_Length));
 		// save info
 		m_Info.resize (len);
 		memcpy (m_Info.data (), (const uint8_t *)buf.data (), len);
@@ -477,6 +501,7 @@ namespace torrents
 
 	size_t Torrent::ParseFiles (std::string_view buf)
 	{
+		m_IsSingleFile = false;
 		m_Length = 0;
 		return ParseList (buf, [this](std::string_view file)->size_t
 			{
@@ -510,7 +535,7 @@ namespace torrents
 					});
 				if (len && fileLength && !filePath.empty ())
 				{
-					m_Files.emplace_back (filePath, fileLength);
+					m_Files.emplace_back (std::make_shared<TorrentFile> (filePath, fileLength));
 					m_Length += fileLength;
 				}
 				return len;
@@ -758,6 +783,8 @@ namespace torrents
 		for (auto& it: m_Pieces)
 			if (!it.IsComplete ())
 				it.Complete ();
+		for (auto it: m_Files)
+			it->isPart = false;
 	}
 
 	void Torrent::SaveTorrentResumeFile ()
@@ -813,52 +840,44 @@ namespace torrents
 	std::vector<PieceFileFragment> Torrent::GetPieceFileFragments (int index) const
 	{
 		if (index < 0 || index >= (int)m_Pieces.size ()) return {};
-		if (m_Files.empty ())
+
+		std::vector<PieceFileFragment> ret;
+		// first file and offset for start of piece
+		size_t offset = index*m_PieceLength;
+		auto it = m_Files.begin ();
+		while (it != m_Files.end ())
 		{
-			auto fullPath = m_FullPath;
-			if (!IsComplete ()) fullPath += ".part";
-			return { { fullPath, index*m_PieceLength, 0, m_Pieces[index].GetSize () } };
+			if (offset < (*it)->fileLength) break;
+			offset -= (*it)->fileLength;
+			it++;
 		}
-		else
+		if (it != m_Files.end ())
 		{
-			std::vector<PieceFileFragment> ret;
-			// first file and offset for start of piece
-			size_t offset = index*m_PieceLength;
-			auto it = m_Files.begin ();
-			while (it != m_Files.end ())
+			// split piece by files
+			size_t size = m_Pieces[index].GetSize (), fragmentOffset = 0;
+			while (size > 0)
 			{
-				if (offset < it->second) break;
-				offset -= it->second;
-				it++;
-			}
-			if (it != m_Files.end ())
-			{
-				// split piece by files
-				size_t size = m_Pieces[index].GetSize (), fragmentOffset = 0;
-				while (size > 0)
+				auto file = *it;
+				file->isPart = !IsComplete ();
+				if (offset + size <= file->fileLength)
 				{
-					auto filePath = it->first;
-					if (!IsComplete ()) filePath += ".part";
-					if (offset + size <= it->second)
-					{
-						// last fragment
-						ret.emplace_back (filePath, offset, fragmentOffset, size);
-						size = 0;
-					}
-					else
-					{
-						size_t l = it->second - offset;
-						ret.emplace_back (filePath, offset, fragmentOffset, l);
-						size -= l; fragmentOffset += l;
-						offset = 0; it++;
-						if (it == m_Files.end ()) break;
-					}
+					// last fragment
+					ret.emplace_back (file, offset, fragmentOffset, size);
+					size = 0;
 				}
-				if (size > 0)
-					LogPrint (eLogError, "Torrents: Piece ", index, " is beyond files");
+				else
+				{
+					size_t l = file->fileLength - offset;
+					ret.emplace_back (file, offset, fragmentOffset, l);
+					size -= l; fragmentOffset += l;
+					offset = 0; it++;
+					if (it == m_Files.end ()) break;
+				}
 			}
-			return ret;
+			if (size > 0)
+				LogPrint (eLogError, "Torrents: Piece ", index, " is beyond files");
 		}
+		return ret;
 	}
 
 	std::vector<size_t> Torrent::GetFilesCompleted () const
@@ -870,22 +889,22 @@ namespace torrents
 			size_t currentSize = 0, currentCompletedSize = 0;
 			for (const auto& piece: m_Pieces)
 			{
-				if (currentSize + m_PieceLength < filesIT->second)
+				if (currentSize + m_PieceLength < (*filesIT)->fileLength)
 				{
 					currentSize += m_PieceLength;
 					if (piece.IsComplete ()) currentCompletedSize += m_PieceLength;
 				}
 				else
 				{
-					size_t leftoverSize = filesIT->second - currentSize;
+					size_t leftoverSize = (*filesIT)->fileLength - currentSize;
 					if (piece.IsComplete ()) currentCompletedSize += leftoverSize;
 					completed.push_back (currentCompletedSize);
 					currentSize = m_PieceLength - leftoverSize;
 					filesIT++;
-					while (filesIT != m_Files.end () && filesIT->second <= currentSize)
+					while (filesIT != m_Files.end () && (*filesIT)->fileLength <= currentSize)
 					{
-						completed.push_back (filesIT->second);
-						currentSize -= filesIT->second;
+						completed.push_back ((*filesIT)->fileLength);
+						currentSize -= (*filesIT)->fileLength;
 						filesIT++;
 					}
 					currentCompletedSize = piece.IsComplete () ?  currentSize : 0;

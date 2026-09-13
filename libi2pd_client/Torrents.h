@@ -88,15 +88,27 @@ namespace torrents
 		eMessageTypeExtended = 20
 	};
 
-	struct PieceFileFragment // fragment to save to/load from file
+	struct TorrentFile
 	{
 		std::filesystem::path fullFilePath;
+		size_t fileLength;
+		bool isPart = true;
+
+		TorrentFile (const std::filesystem::path & fullFilePath1, size_t fileLength1):
+			fullFilePath (fullFilePath1), fileLength (fileLength1) {};
+		bool Save (size_t offset, const uint8_t * buf, size_t len);
+		bool Load (size_t offset, uint8_t * buf, size_t len);
+	};
+
+	struct PieceFileFragment // fragment to save to/load from file
+	{
+		std::shared_ptr<TorrentFile> file;
 		size_t fileOffset;
 		size_t fragmentOffset; // from start of piece
 		size_t fragmentSize;
 
-		PieceFileFragment (const std::filesystem::path& fullFilePath1, size_t fileOffset1, size_t fragmentOffset1, size_t fragmentSize1):
-			fullFilePath (fullFilePath1), fileOffset (fileOffset1), fragmentOffset (fragmentOffset1), fragmentSize (fragmentSize1) {};
+		PieceFileFragment (std::shared_ptr<TorrentFile> file1, size_t fileOffset1, size_t fragmentOffset1, size_t fragmentSize1):
+			file (file1), fileOffset (fileOffset1), fragmentOffset (fragmentOffset1), fragmentSize (fragmentSize1) {};
 		PieceFileFragment (PieceFileFragment&& ) = default;
 		PieceFileFragment (const PieceFileFragment& ) = default;
 	};
@@ -191,6 +203,7 @@ namespace torrents
 			void SetStopped (bool stopped) { m_IsStopped = stopped; }
 			bool IsActive () const { return !m_Connections.empty (); }
 			TorrentStatus GetStatus () const;
+			bool IsSingleFile () const { return m_IsSingleFile; };
 
 			std::string_view GetAnnounce () const { return m_Announce; }
 			void SetAnnounce (std::string_view announce) { m_Announce = announce; }
@@ -199,8 +212,8 @@ namespace torrents
 			bool IsValid () const { return !m_Name.empty () && m_PieceLength && (m_Length || !m_Files.empty ()); }
 			const std::filesystem::path& GetFullPath () const { return m_FullPath; }
 			void SetFullPath (const std::filesystem::path& fullPath) { m_FullPath = fullPath; }
-			const std::list<std::pair<std::filesystem::path, size_t> >& GetFiles () const { return m_Files; }
-			std::list<std::pair<std::filesystem::path, size_t> >& GetFiles () { return m_Files; }
+			const std::list<std::shared_ptr<TorrentFile> >& GetFiles () const { return m_Files; }
+			std::list<std::shared_ptr<TorrentFile> >& GetFiles () { return m_Files; }
 			size_t GetLength () const { return m_Length; }
 			size_t GetPieceLength () const { return m_PieceLength; }
 			int GetInterval (size_t trackerID) const { return (trackerID < m_TrackerStats.size ()) ? std::get<1>(m_TrackerStats[trackerID]) : MIN_TRACKER_REQUESTS_INTERVAL; }
@@ -276,8 +289,8 @@ namespace torrents
 			std::vector<Piece> m_Pieces;
 			std::vector<TrackerStats> m_TrackerStats;
 			std::unordered_map<i2p::data::IdentHash, std::weak_ptr<PeerConnection> > m_Connections; // remote ident hash -> connection
-			bool m_IsComplete, m_IsStopped;
-			std::list<std::pair<std::filesystem::path, size_t> > m_Files; // list of (path, length)
+			bool m_IsComplete, m_IsStopped, m_IsSingleFile;
+			std::list<std::shared_ptr<TorrentFile> > m_Files;
 			size_t m_Uploaded, m_Downloaded;
 			uint64_t m_NextUpdateStatusTime, m_NextReconnectTime; // in monotonic seconds
 			// stats

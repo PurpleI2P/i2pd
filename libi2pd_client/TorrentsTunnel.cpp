@@ -147,33 +147,21 @@ namespace torrents
 	void TorrentsTunnel::InitTorrentFiles (std::shared_ptr<Torrent> torrent)
 	{
 		if (!torrent) return;
-		if (torrent->GetFiles ().empty ())
+
+		bool completed = true;
+		for (auto it: torrent->GetFiles ())
 		{
-			if (std::filesystem::exists (torrent->GetFullPath ()))
-				torrent->SetComplete ();
-			else
+			it->fullFilePath = torrent->IsSingleFile () ? torrent->GetFullPath () : torrent->GetFullPath ()/it->fullFilePath;
+			if (!std::filesystem::exists (it->fullFilePath))
 			{
-				auto partFilePath = torrent->GetFullPath (); partFilePath += ".part";
+				auto partFilePath = it->fullFilePath; partFilePath += ".part";
 				if (!std::filesystem::exists (partFilePath))
-					CreateAndReserveFile (partFilePath, torrent->GetLength ());
+					CreateAndReserveFile (partFilePath, it->fileLength);
+				completed = false;
 			}
 		}
-		else
-		{
-			bool completed = true;
-			for (auto& [filePath, fileLength]: torrent->GetFiles ())
-			{
-				filePath = torrent->GetFullPath ()/filePath;
-				if (!std::filesystem::exists (filePath))
-				{
-					auto partFilePath = filePath; partFilePath += ".part";
-					if (!std::filesystem::exists (partFilePath))
-						CreateAndReserveFile (partFilePath, fileLength);
-					completed = false;
-				}
-			}
-			if (completed) torrent->SetComplete ();
-		}
+		if (completed) torrent->SetComplete ();
+
 		auto resumeFilePath = torrent->GetFullPath (); resumeFilePath += ".resume";
 		if (std::filesystem::exists (resumeFilePath))
 		{
@@ -240,37 +228,23 @@ namespace torrents
 	{
 		boost::asio::post (GetDiskIOService (), [this, torrent]()
 		{
-			bool completed = false;
-			if (torrent->GetFiles ().empty ())
+			bool completed = true;
+			for (auto it: torrent->GetFiles ())
 			{
-				auto partFilePath = torrent->GetFullPath ();  partFilePath += ".part";
-				std::error_code ec;
+				auto partFilePath = it->fullFilePath; partFilePath += ".part";
 				if (std::filesystem::exists (partFilePath))
 				{
-					std::filesystem::rename (partFilePath, torrent->GetFullPath (), ec);
-					if (!ec)
-						completed = true;
-					else
-						LogPrint (eLogError, "TorrentsTunnel: Can't rename ", partFilePath);
-				}
-				else if (std::filesystem::exists (torrent->GetFullPath ()))
-					completed = true;
-			}
-			else
-			{
-				completed = true;
-				for (const auto& [filePath, fileSize]: torrent->GetFiles ())
-				{
-					auto partFilePath = filePath; partFilePath += ".part";
 					std::error_code ec;
-					std::filesystem::rename (partFilePath, filePath, ec);
+					std::filesystem::rename (partFilePath, it->fullFilePath, ec);
 					if (ec)
 					{
 						completed = false;
 						LogPrint (eLogError, "TorrentsTunnel: Can't rename ", partFilePath);
 					}
 				}
+				if (completed) it->isPart = false;
 			}
+
 			if (completed)
 			{
 				torrent->SetComplete ();
@@ -460,15 +434,15 @@ namespace torrents
 						if (ec)
 							LogPrint (eLogError, "TorrentsTunnel: Can't delete ", resumeFilePath);
 					}
-					if (torrent->IsComplete () || !torrent->GetFiles ().empty ())
+					if (std::filesystem::exists (fullPath))
 					{
 						std::filesystem::remove_all (fullPath, ec);
 						if (ec)
 							LogPrint (eLogError, "TorrentsTunnel: Can't delete ", fullPath);
 					}
-					else
+					auto partFilePath = fullPath; partFilePath += ".part";
+					if (std::filesystem::exists (partFilePath))
 					{
-						auto partFilePath = fullPath; partFilePath += ".part";
 						std::filesystem::remove (partFilePath, ec);
 						if (ec)
 							LogPrint (eLogError, "TorrentsTunnel: Can't delete ", partFilePath);
@@ -837,7 +811,10 @@ namespace torrents
 					if (!it.second->IsStopped () && (it.second->IsActive () || !it.second->IsComplete ()))
 					{
 						if (it.second->UpdateStatus (ts))
-							CompleteTorrent (it.second);
+						{
+							if (!it.second->IsComplete ())
+								CompleteTorrent (it.second);
+						}
 						else
 							UpdatePeersPerPiece (it.second);
 					}
