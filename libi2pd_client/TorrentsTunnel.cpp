@@ -820,7 +820,6 @@ namespace torrents
 					}
 					it.second->SetNextUpdateStatusTime (ts + TORRENTS_STATUS_UPDATE_INTERVAL + GetLocalDestination ()->GetRng ()() % TORRENTS_STATUS_UPDATE_INTERVAL_VARIANCE);
 				}
-			UpdateStats ();
 			ScheduleStatusUpdate ();
 		}
 	}
@@ -836,29 +835,6 @@ namespace torrents
 					auto conn = std::static_pointer_cast<PeerConnection>(handler);
 					if (conn->GetTorrent () == torrent)
 						torrent->ApplyPeerRemoteBitfield (conn->GetRemoteBitfield ());
-				}
-			});
-	}
-
-	void TorrentsTunnel::UpdateStats ()
-	{
-		for (auto it: m_Torrents)
-			it.second->ResetStats ();
-		IterateHandlers ([](std::shared_ptr<i2p::client::I2PServiceHandler> handler) mutable
-			{
-				if (handler)
-				{
-					auto conn = std::static_pointer_cast<PeerConnection>(handler);
-					auto torrent = conn->GetTorrent ();
-					if (torrent)
-					{
-						torrent->SetDownloadRate (torrent->GetDownloadRate () + conn->GetDownloadRate ());
-						torrent->SetUploadRate (torrent->GetUploadRate () + conn->GetUploadRate ());
-						if (conn->IsDownloading ())
-							torrent->SetNumDownloadingFromPeers (torrent->GetNumDownloadingFromPeers () + 1);
-						if (conn->IsUploading ())
-							torrent->SetNumUploadingToPeers (torrent->GetNumUploadingToPeers () + 1);
-					}
 				}
 			});
 	}

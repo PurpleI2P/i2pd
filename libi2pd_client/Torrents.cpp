@@ -368,7 +368,6 @@ namespace torrents
 		m_Length (0), m_PieceLength (0), m_IsComplete (false), m_IsStopped (false), m_IsSingleFile (true),
 		m_Uploaded (0), m_Downloaded (0), m_NextUpdateStatusTime (0), m_NextReconnectTime (0)
 	{
-		ResetStats ();
 	}
 
 	Torrent::Torrent (std::string_view buf): Torrent ()
@@ -1013,6 +1012,42 @@ namespace torrents
 			m_Connections.erase (it);
 		}
 		return false;
+	}
+
+	uint64_t Torrent::GetDownloadRate ()
+	{
+		uint64_t downloadRate = 0;
+		auto conns = GetConnections ();
+		for (auto it: conns)
+			downloadRate += it->GetDownloadRate ();
+		return downloadRate;
+	}
+
+	uint64_t Torrent::GetUploadRate ()
+	{
+		uint64_t uploadRate = 0;
+		auto conns = GetConnections ();
+		for (auto it: conns)
+			uploadRate += it->GetUploadRate ();
+		return uploadRate;
+	}
+
+	int Torrent::GetNumDownloadingFromPeers ()
+	{
+		int numDownloadingFromPeers = 0;
+		auto conns = GetConnections ();
+		for (auto it: conns)
+			if (it->IsDownloading ()) numDownloadingFromPeers++;
+		return numDownloadingFromPeers;
+	}
+
+	int Torrent::GetNumUploadingToPeers ()
+	{
+		int numUploadingToPeers = 0;
+		auto conns = GetConnections ();
+		for (auto it: conns)
+			if (it->IsUploading ()) numUploadingToPeers++;
+		return numUploadingToPeers;
 	}
 
 	PeerConnection::PeerConnection (std::shared_ptr<i2p::client::I2PService> owner,

@@ -253,15 +253,10 @@ namespace torrents
 			void ApplyPeerRemoteBitfield (const boost::dynamic_bitset<>& peerRemoteBitfield);
 			bool HasIncompletePieces (const boost::dynamic_bitset<>& peerRemoteBitfield) const; // if remote bitfie;d has incomplete pieces
 
-			void ResetStats () { m_DownloadRate = 0; m_UploadRate = 0;  m_NumDownloadingFromPeers = 0; m_NumUploadingToPeers = 0; }
-			uint64_t GetDownloadRate () const { return m_DownloadRate; }
-			void SetDownloadRate (uint64_t downloadRate) { m_DownloadRate = downloadRate; }
-			uint64_t GetUploadRate () const { return m_UploadRate; }
-			void SetUploadRate (uint64_t uploadRate) { m_UploadRate = uploadRate; }
-			int GetNumDownloadingFromPeers () const { return m_NumDownloadingFromPeers; }
-			void SetNumDownloadingFromPeers (int numDownloadingFromPeers) { m_NumDownloadingFromPeers = numDownloadingFromPeers; }
-			int GetNumUploadingToPeers () const { return m_NumUploadingToPeers; }
-			void SetNumUploadingToPeers (int numUploadingToPeers) { m_NumUploadingToPeers = numUploadingToPeers; }
+			uint64_t GetDownloadRate ();
+			uint64_t GetUploadRate ();
+			int GetNumDownloadingFromPeers ();
+			int GetNumUploadingToPeers ();
 
 			int GetNumSeeders (size_t trackerID) const { return (trackerID < m_TrackerStats.size ()) ? std::get<3>(m_TrackerStats[trackerID]) : 0; }
 			int GetNumLeechers (size_t trackerID) const { return (trackerID < m_TrackerStats.size ()) ? std::get<4>(m_TrackerStats[trackerID]) : 0; }
@@ -293,9 +288,6 @@ namespace torrents
 			std::list<std::shared_ptr<TorrentFile> > m_Files;
 			size_t m_Uploaded, m_Downloaded;
 			uint64_t m_NextUpdateStatusTime, m_NextReconnectTime; // in monotonic seconds
-			// stats
-			uint64_t m_DownloadRate, m_UploadRate; // B/sec
-			int m_NumDownloadingFromPeers, m_NumUploadingToPeers; // by us
 	};
 
 	class TorrentsTunnel;

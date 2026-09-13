@@ -147,7 +147,6 @@ namespace torrents
 			size_t ConnectToPeers (std::shared_ptr<Torrent> torrent);
 			size_t ConnectToPeers (std::shared_ptr<Torrent> torrent, size_t trackerID);
 			void UpdatePeersPerPiece (std::shared_ptr<Torrent> torrent);
-			void UpdateStats ();
 
 			void HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			void ConnectToDatagramTracker (size_t trackerID, std::string_view dest, uint16_t port);
