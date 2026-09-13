@@ -28,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        dist: ['trixie']
+        dist: ['bookworm','trixie']
 
     steps:
     - name: Checkout
@@ -41,13 +41,14 @@ jobs:
       uses: prompt/actions-commit-hash@v3.0.0
 
     - name: Build package
+      env:
+        MAKEFLAGS: "TORRENTS=N"
       uses: jtdor/build-deb-action@v1
       with:
         docker-image: debian:${{ matrix.dist }}-slim
         buildpackage-opts: --build=binary --no-sign
         before-build-hook: debchange --controlmaint --local "+${{ steps.commit.outputs.short }}~${{ matrix.dist }}" -b --distribution ${{ matrix.dist }} "CI build"
         extra-build-deps: devscripts git
-
     - name: Upload package
       uses: actions/upload-artifact@v4
       with:

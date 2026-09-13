@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2026, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -12,6 +12,7 @@
 #include <string.h>
 #include <chrono>
 #include <future>
+#include <utility> // for C++20 with boost < 1.81
 #include <boost/asio.hpp>
 #include <boost/algorithm/string.hpp>
 #include "Config.h"
@@ -245,8 +246,8 @@ namespace util
 	{
 		return std::chrono::duration_cast<std::chrono::seconds>(
 			std::chrono::steady_clock::now().time_since_epoch()).count();
-	}	
-	
+	}
+
 	void GetCurrentDate (char * date)
 	{
 		GetDateString (GetSecondsSinceEpoch (), date);
@@ -255,8 +256,8 @@ namespace util
 	void GetNextDayDate (char * date)
 	{
 		GetDateString (GetSecondsSinceEpoch () + 24*60*60, date);
-	}	
-	
+	}
+
 	void GetDateString (uint64_t timestamp, char * date)
 	{
 		using clock = std::chrono::system_clock;

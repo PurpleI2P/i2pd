@@ -329,28 +329,23 @@ endif()
 
 # C++ standard to use, based on compiler and version of boost
 if(NOT MSVC)
-# check for c++23, c++20, c++17 support
+# check for c++23, c++20 support
   include(CheckCXXCompilerFlag)
 
-  if(Boost_VERSION VERSION_GREATER_EQUAL "1.81") # min boost version for c++20
-    CHECK_CXX_COMPILER_FLAG("-std=c++23" CXX23_SUPPORTED)
-    CHECK_CXX_COMPILER_FLAG("-std=c++20" CXX20_SUPPORTED)
-  endif()
-  CHECK_CXX_COMPILER_FLAG("-std=c++17" CXX17_SUPPORTED)
+  CHECK_CXX_COMPILER_FLAG("-std=c++23" CXX23_SUPPORTED)
+  CHECK_CXX_COMPILER_FLAG("-std=c++20" CXX20_SUPPORTED)
 
   if(CXX23_SUPPORTED)
     set(I2PD_CXX_STANDARD 23)
   elseif(CXX20_SUPPORTED)
     set(I2PD_CXX_STANDARD 20)
-  elseif(CXX17_SUPPORTED)
-    set(I2PD_CXX_STANDARD 17)
   else()
-    message(SEND_ERROR "C++23 nor C++20 nor C++17 standard not seems to be supported by compiler. Too old version?")
+    message(SEND_ERROR "C++23 nor C++20 standard not seems to be supported by compiler. Too old version?")
   endif()
 else()
   # fix: error C2039: 'string_view': is not a member of 'std'
-  # MSVC defaults to C++14
-  set(I2PD_CXX_STANDARD 17)
+  # MSVC defaults to C++20
+  set(I2PD_CXX_STANDARD 20)
 endif()
 
 set_target_properties(libi2pd libi2pdclient libi2pdlang PROPERTIES CXX_STANDARD ${I2PD_CXX_STANDARD})
