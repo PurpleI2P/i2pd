@@ -1016,9 +1016,16 @@ namespace client
 	{
 		// a destination published as encrypted is not stored by its ident hash, so once its
 		// LeaseSet is gone the only way to ask for a new one is the blinded key
-		if (identity)
-			m_RemoteBlindedKeys.insert_or_assign (ident,
-				std::make_pair (std::make_shared<i2p::data::BlindedPublicKey>(identity), i2p::util::GetSecondsSinceEpoch ()));
+		if (!identity) return;
+		auto blindedKey = std::make_shared<i2p::data::BlindedPublicKey>(identity);
+		// a key of a signature type that can not be blinded is of no use for the request
+		if (!blindedKey->IsValid ())
+		{
+			LogPrint (eLogWarning, "Destination: Can't blind signature type ", (int)identity->GetSigningKeyType ());
+			return;
+		}
+		m_RemoteBlindedKeys.insert_or_assign (ident,
+			std::make_pair (blindedKey, i2p::util::GetSecondsSinceEpoch ()));
 	}
 
 	void LeaseSetDestination::CleanupRemoteLeaseSets ()
@@ -1027,7 +1034,7 @@ namespace client
 		std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
 		for (auto it = m_RemoteBlindedKeys.begin (); it != m_RemoteBlindedKeys.end ();)
 		{
-			if (ts/1000 > it->second.second + REMOTE_BLINDED_KEY_KEEP_TIME) // destination is gone for good
+			if (ts/1000 > it->second.second + REMOTE_BLINDED_KEY_IDLE_TIMEOUT) // destination is gone for good
 				it = m_RemoteBlindedKeys.erase (it);
 			else
 				++it;

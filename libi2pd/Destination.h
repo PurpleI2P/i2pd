@@ -49,7 +49,7 @@ namespace client
 	const int STOP_ON_SERVICE_TIMEOUT = 10; // in seconds, how long Stop waits for the destination's thread
 	const int LEASESET_REQUEST_TIMEOUT = 1200; // in milliseconds
 	const int MAX_LEASESET_REQUEST_TIMEOUT = 17000; // in milliseconds
-	const int REMOTE_BLINDED_KEY_KEEP_TIME = 600; // in seconds after the LeaseSet expired
+	const int REMOTE_BLINDED_KEY_IDLE_TIMEOUT = 600; // in seconds since the key was last used
 	const int DESTINATION_CLEANUP_TIMEOUT = 44; // in seconds
 	const int DESTINATION_CLEANUP_TIMEOUT_VARIANCE = 30; // in seconds
 	const unsigned int MAX_NUM_FLOODFILLS_PER_REQUEST = 7;
