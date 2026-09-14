@@ -207,9 +207,14 @@ namespace torrents
 	{
 		if (!f.is_open ())
 		{
+			auto mode = std::ios::binary | std::ios::in;
 			auto filePath = fullFilePath;
-			if (isPart) filePath += ".part";
-			f.open (filePath, std::ios::binary | std::ios::in | std::ios::out);
+			if (isPart)
+			{
+				filePath += ".part";
+				mode |= std::ios::out;
+			}
+			f.open (filePath, mode);
 		}
 		auto ts = i2p::util::GetMonotonicSeconds ();
 		if (ts > lastFlushTime + TORRENT_FILE_FLUSH_INTERVAL)

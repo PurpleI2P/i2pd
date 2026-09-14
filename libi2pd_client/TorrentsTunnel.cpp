@@ -806,7 +806,6 @@ namespace torrents
 		{
 			auto ts = i2p::util::GetMonotonicSeconds ();
 			for (auto it: m_Torrents)
-			{
 				if (ts > it.second->GetNextUpdateStatusTime ())
 				{
 					if (!it.second->IsStopped () && (it.second->IsActive () || !it.second->IsComplete ()))
@@ -819,15 +818,14 @@ namespace torrents
 						else
 							UpdatePeersPerPiece (it.second);
 					}
+					boost::asio::post (GetDiskIOService (), [torrent = it.second, ts]()
+					{
+						for (auto it: torrent->GetFiles ())
+							if (ts > it->lastAccessTime + TORRENT_FILE_INACTIVITY_TIMEOUT)
+								it->Close ();
+					});
 					it.second->SetNextUpdateStatusTime (ts + TORRENTS_STATUS_UPDATE_INTERVAL + GetLocalDestination ()->GetRng ()() % TORRENTS_STATUS_UPDATE_INTERVAL_VARIANCE);
 				}
-				boost::asio::post (GetDiskIOService (), [torrent = it.second, ts]()
-				{
-					for (auto it: torrent->GetFiles ())
-						if (ts > it->lastAccessTime + TORRENT_FILE_INACTIVITY_TIMEOUT)
-							it->Close ();
-				});
-			}
 			ScheduleStatusUpdate ();
 		}
 	}
