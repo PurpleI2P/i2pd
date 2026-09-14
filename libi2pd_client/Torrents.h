@@ -26,6 +26,7 @@
 #include <tuple>
 #include <optional>
 #include <filesystem>
+#include <fstream>
 #include "util.h"
 #include "Streaming.h"
 #include "I2PService.h"
@@ -48,6 +49,8 @@ namespace torrents
 	constexpr int PIECE_INACTIVITY_TIMEOUT = 22; // in seconds
 	constexpr int HANDSHAKE_RECEIVE_TIMEOUT = 20; // in seconds
 	constexpr int BANDWIDTH_RATE_SAMPLING_INTERVAL = 20; // in milliseconds
+	constexpr int TORRENT_FILE_FLUSH_INTERVAL = 30; // in seconds
+	constexpr int TORRENT_FILE_INACTIVITY_TIMEOUT = 90; // in seconds
 
 	constexpr size_t HANDSHAKE_MSG_LENGTH = 68;
 	constexpr size_t INTERESTED_MSG_LENGTH = 5;
@@ -93,11 +96,16 @@ namespace torrents
 		std::filesystem::path fullFilePath;
 		size_t fileLength;
 		bool isPart = true;
+		std::fstream f;
+		uint64_t lastAccessTime = 0, lastFlushTime = 0; // monotonic seconds
 
 		TorrentFile (const std::filesystem::path & fullFilePath1, size_t fileLength1):
 			fullFilePath (fullFilePath1), fileLength (fileLength1) {};
 		bool Save (size_t offset, const uint8_t * buf, size_t len);
 		bool Load (size_t offset, uint8_t * buf, size_t len);
+		void Complete ();
+		void Open ();
+		void Close ();
 	};
 
 	struct PieceFileFragment // fragment to save to/load from file

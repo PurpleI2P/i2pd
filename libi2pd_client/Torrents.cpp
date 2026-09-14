@@ -12,7 +12,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <charconv>
-#include <fstream>
 #include <sstream>
 #include <algorithm>
 #include <functional>
@@ -174,9 +173,7 @@ namespace torrents
 
 	bool TorrentFile::Save (size_t offset, const uint8_t * buf, size_t len)
 	{
-		auto filePath = fullFilePath;
-		if (isPart) filePath += ".part";
-		std::fstream f(filePath, std::ios::binary | std::ios::in | std::ios::out );
+		Open ();
 		if (f)
 		{
 			f.seekp (offset, std::ios::beg);
@@ -189,9 +186,7 @@ namespace torrents
 
 	bool TorrentFile::Load (size_t offset, uint8_t * buf, size_t len)
 	{
-		auto filePath = fullFilePath;
-		if (isPart) filePath += ".part";
-		std::ifstream f(filePath, std::ifstream::binary);
+		Open ();
 		if (f)
 		{
 			f.seekg (offset, std::ios::beg);
@@ -200,6 +195,34 @@ namespace torrents
 		else
 			return false;
 		return true;
+	}
+
+	void TorrentFile::Complete ()
+	{
+		isPart = false;
+		Close ();
+	}
+
+	void TorrentFile::Open ()
+	{
+		if (!f.is_open ())
+		{
+			auto filePath = fullFilePath;
+			if (isPart) filePath += ".part";
+			f.open (filePath, std::ios::binary | std::ios::in | std::ios::out);
+		}
+		auto ts = i2p::util::GetMonotonicSeconds ();
+		if (ts > lastFlushTime + TORRENT_FILE_FLUSH_INTERVAL)
+		{
+			f.flush ();
+			lastFlushTime = ts;
+		}
+		lastAccessTime = ts;
+	}
+
+	void TorrentFile::Close ()
+	{
+		f.close ();
 	}
 
 	Piece::Piece (size_t size, const uint8_t * hash):
@@ -783,7 +806,7 @@ namespace torrents
 			if (!it.IsComplete ())
 				it.Complete ();
 		for (auto it: m_Files)
-			it->isPart = false;
+			it->Complete ();
 	}
 
 	void Torrent::SaveTorrentResumeFile ()
