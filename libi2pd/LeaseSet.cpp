@@ -573,6 +573,11 @@ namespace data
 			// keys = HKDF(innerSalt, innerInput, "ELS2_L2K", 44)
 			uint8_t innerInput[68];
 			size_t authDataLen = ExtractClientAuthData (outerPlainText.data (), lenOuterPlaintext, secret, subcredential, innerInput);
+			if (lenOuterPlaintext < authDataLen + 34) // flag + authData + inner salt + at least one byte of inner plaintext
+			{
+				LogPrint (eLogError, "LeaseSet2: Outer plaintext is too short ", lenOuterPlaintext);
+				return;
+			}
 			if (authDataLen > 0)
 			{
 				memcpy (innerInput + 32, subcredential, 36);
