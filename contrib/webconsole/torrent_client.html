@@ -68,7 +68,7 @@
 		const r = await window.tjs.getTorrents()
 		//console.log(`torrents: ${r}`)
       		if (!r?.result?.torrents) return;
-		r.result.torrents.forEach(async (t) => {
+		r.arguments.torrents.forEach(async (t) => {
 			 console.log(`stop torrent => ${t.id}`)
 			 await window.tjs.stopTorrent([t.id]);
 		});
@@ -83,7 +83,7 @@
 		const r = await window.tjs.getTorrents()
 		//console.log(`torrents: ${r}`)
       		if (!r?.result?.torrents) return;
-		r.result.torrents.forEach( async (t) =>{
+		r.arguments.torrents.forEach( async (t) =>{
 			 console.log(`start torrent => ${t.id}`)
 			 await window.tjs.startTorrent([t.id]);
 		});
@@ -97,14 +97,15 @@
 
     try {
       const r = await window.tjs.getTorrents();
-      if (!r?.result?.torrents)
+      console.log(r)
+      if (!r?.result == "success")
         return (statusIndicator.textContent = "STATUS: INVALID_RESPONSE");
-
+      
       statusIndicator.textContent = "STATUS: Connected";
       statusIndicator.style.color = "rgb(77, 91, 83)";
 
       const torrents = document.getElementById("torrents");
-      currentTorrentsData = r.result.torrents;
+      currentTorrentsData = r.arguments.torrents;
 
       if (currentTorrentsData.length === 0) {
         torrents.innerHTML = "<li>No downloads</li>";
@@ -170,6 +171,7 @@
       statusIndicator.textContent =
         "STATUS: ERROR_WITH_DATA (f12, check your console and write issue)";
       statusIndicator.style.color = "#ff3333";
+      console.log(err)
     }
   }, 1000);
 
@@ -179,7 +181,7 @@
 
     const reader = new FileReader();
     reader.onload = async () => {
-      const bytes = new Uint8Array(reader.result);
+      const bytes = new Uint8Array(reader.arguments);
       let binary = "";
       for (let i = 0; i < bytes.byteLength; i++) {
         binary += String.fromCharCode(bytes[i]);
