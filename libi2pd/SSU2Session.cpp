@@ -2047,7 +2047,7 @@ namespace transport
 		len -= 5;
 		if (!len || m_SentPackets.empty ()) return; // don't handle ranges if nothing to acknowledge
 		const uint8_t * ranges = buf + 5;
-		while (len > 0 && firstPacketNum && ackThrough - firstPacketNum < SSU2_MAX_NUM_ACK_PACKETS)
+		while (len >= 2 && firstPacketNum && ackThrough - firstPacketNum < SSU2_MAX_NUM_ACK_PACKETS)
 		{
 			uint32_t lastPacketNum = firstPacketNum - 1;
 			if (*ranges > lastPacketNum) break;
