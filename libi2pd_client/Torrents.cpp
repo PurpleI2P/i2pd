@@ -1828,10 +1828,10 @@ namespace torrents
 						bool loaded = true;
 						auto [index, offset, len] = requestBlock;
 						Piece& piece = torrent->GetPiece (index);
+						piece.SetIsSending (true);
 						if (!piece.GetData ()) // don't try to load if already loaded
 						{
 							auto fragments = torrent->GetPieceFileFragments (index);
-							piece.SetIsSending (true);
 							for (auto& it: fragments)
 							{
 								if (!piece.Load (std::move (it)))
@@ -1839,20 +1839,24 @@ namespace torrents
 							}
 							if (loaded && !piece.VerifyHash ())
 							{
-								LogPrint (eLogError, "Torrent: Corrupted piece ", index);
+								LogPrint (eLogError, "Torrents: Corrupted piece ", index);
 								loaded = false;
 							}
-							piece.SetIsSending (false);
 						}
+						piece.SetIsSending (false);
 						if (loaded)
 							boost::asio::post (s->GetTorrentsTunnel ()->GetService (),
 								[requestedBlock = std::move (requestBlock), s]()
 								{
-									s->SendRequestedBlock (requestedBlock);
+									if (!s->SendRequestedBlock (requestedBlock))
+									{
+										LogPrint (eLogError, "Torrents: Couldn't send block from loaded piece");
+										std::apply (std::bind_front(&PeerConnection::SendRejectRequestMsg, s), requestedBlock);
+									}
 								});
 						else
 						{
-							LogPrint (eLogError, "Torrent: Failed to load piece ", index);
+							LogPrint (eLogError, "Torrents: Failed to load piece ", index);
 							piece.Reset ();
 							if (s->m_IsFast)
 								boost::asio::post (s->GetTorrentsTunnel ()->GetService (),
