@@ -169,6 +169,7 @@
         torrents.appendChild(li);
       });
     } catch (err) {
+      console.log(err)
       statusIndicator.textContent =
         "STATUS: ERROR_WITH_DATA (f12, check your console and write issue)";
       statusIndicator.style.color = "#ff3333";
@@ -203,6 +204,7 @@
     const torrent = currentTorrentsData.find(
       (t) => String(t.id) === String(id),
     );
+
     if (!torrent) return;
 
     document.getElementById("modal_torrent_title").textContent =
@@ -295,7 +297,6 @@ Last Announce: ${new Date(tr.lastAnnounceTime * 1000).toLocaleString()}
 Next Announce: ${new Date(tr.nextAnnounceTime * 1000).toLocaleString()}
 `}).join("\n" + "-".repeat(40)) : "-";
 
-
     document.getElementById("torrent_details_modal").style.display = "block";
   };
 
@@ -308,3 +309,4 @@ Next Announce: ${new Date(tr.nextAnnounceTime * 1000).toLocaleString()}
     if(!r) alert("Not correct magnet link");
   }
 </script>
+

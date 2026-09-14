@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2025, The PurpleI2P Project
+* Copyright (c) 2013-2026, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -13,8 +13,9 @@
 #include <thread>
 #include <vector>
 #include <string>
+#include <utility> // for C++20 with boost < 1.81
 #include <boost/asio.hpp>
-#include <boost/asio/steady_timer.hpp> // for boost 1.89 
+#include <boost/asio/steady_timer.hpp> // for boost 1.89
 
 namespace i2p
 {
@@ -28,7 +29,7 @@ namespace util
 	uint64_t GetMonotonicMicroseconds ();
 	uint64_t GetMonotonicMilliseconds ();
 	uint64_t GetMonotonicSeconds ();
-	
+
 	void GetCurrentDate (char * date); // returns UTC date as YYYYMMDD string, 9 bytes
 	void GetNextDayDate (char * date); // returns next UTC day as YYYYMMDD string, 9 bytes
 	void GetDateString (uint64_t timestamp, char * date); // timestamp is seconds since epoch, returns date as YYYYMMDD string, 9 bytes

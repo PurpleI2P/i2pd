@@ -66,6 +66,7 @@ namespace torrents
         }
 
 		ScheduleTrackerRequestsCheck ();
+		ScheduleReconnectCheck ();
 		ScheduleKeepAliveCheck ();
 		ScheduleStatusUpdate ();
 	}
@@ -84,16 +85,11 @@ namespace torrents
 		m_KeepAliveCheckTimer.cancel ();
 		m_ReconnectCheckTimer.cancel ();
 		m_TorrentsStatusUpdateTimer.cancel ();
-		m_Torrents.clear ();
 		for (auto it: m_Torrents)
-		{
-			auto fullPath = it.second->GetFullPath (); fullPath += ".resume";
-			boost::asio::post (m_DiskIOService.GetService (),  [torrent = it.second, fullPath]()
-				{
-					torrent->SaveTorrentResumeFile (fullPath);
-				});
-		}
+			StopTorrent (it.second);
+		m_Torrents.clear ();
 		m_DiskIOService.Stop ();
+		i2p::client::I2PService::ClearHandlers (); // close connections
 		i2p::client::I2PService::Stop ();
 	}
 
@@ -151,33 +147,21 @@ namespace torrents
 	void TorrentsTunnel::InitTorrentFiles (std::shared_ptr<Torrent> torrent)
 	{
 		if (!torrent) return;
-		if (torrent->GetFiles ().empty ())
+
+		bool completed = true;
+		for (auto it: torrent->GetFiles ())
 		{
-			if (std::filesystem::exists (torrent->GetFullPath ()))
-				torrent->SetComplete ();
-			else
+			it->fullFilePath = torrent->IsSingleFile () ? torrent->GetFullPath () : torrent->GetFullPath ()/it->fullFilePath;
+			if (!std::filesystem::exists (it->fullFilePath))
 			{
-				auto partFilePath = torrent->GetFullPath (); partFilePath += ".part";
+				auto partFilePath = it->fullFilePath; partFilePath += ".part";
 				if (!std::filesystem::exists (partFilePath))
-					CreateAndReserveFile (partFilePath, torrent->GetLength ());
+					CreateAndReserveFile (partFilePath, it->fileLength);
+				completed = false;
 			}
 		}
-		else
-		{
-			bool completed = true;
-			for (auto& [filePath, fileLength]: torrent->GetFiles ())
-			{
-				filePath = torrent->GetFullPath ()/filePath;
-				if (!std::filesystem::exists (filePath))
-				{
-					auto partFilePath = filePath; partFilePath += ".part";
-					if (!std::filesystem::exists (partFilePath))
-						CreateAndReserveFile (partFilePath, fileLength);
-					completed = false;
-				}
-			}
-			if (completed) torrent->SetComplete ();
-		}
+		if (completed) torrent->SetComplete ();
+
 		auto resumeFilePath = torrent->GetFullPath (); resumeFilePath += ".resume";
 		if (std::filesystem::exists (resumeFilePath))
 		{
@@ -244,38 +228,26 @@ namespace torrents
 	{
 		boost::asio::post (GetDiskIOService (), [this, torrent]()
 		{
-			bool completed = false;
-			if (torrent->GetFiles ().empty ())
+			bool completed = true;
+			for (auto it: torrent->GetFiles ())
 			{
-				auto partFilePath = torrent->GetFullPath ();  partFilePath += ".part";
-				std::error_code ec;
-				std::filesystem::rename (partFilePath, torrent->GetFullPath (), ec);
-				if (!ec)
-					completed = true;
-				else
-					LogPrint (eLogError, "TorrentsTunnel: Can't rename ", partFilePath);
-			}
-			else
-			{
-				completed = true;
-				for (const auto& [filePath, fileSize]: torrent->GetFiles ())
+				auto partFilePath = it->fullFilePath; partFilePath += ".part";
+				if (std::filesystem::exists (partFilePath))
 				{
-					auto partFilePath = filePath; partFilePath += ".part";
 					std::error_code ec;
-					std::filesystem::rename (partFilePath, filePath, ec);
+					std::filesystem::rename (partFilePath, it->fullFilePath, ec);
 					if (ec)
 					{
 						completed = false;
 						LogPrint (eLogError, "TorrentsTunnel: Can't rename ", partFilePath);
 					}
 				}
+				if (completed) it->Complete ();
 			}
+
 			if (completed)
 			{
 				torrent->SetComplete ();
-				auto resumeFilePath = torrent->GetFullPath (); resumeFilePath += ".resume";
-				if (!std::filesystem::remove (resumeFilePath))
-					LogPrint (eLogError, "TorrentsTunnel: Can't delete resume file ", resumeFilePath);
 				LogPrint (eLogInfo, "TorrentsTunnel: Download complete ", torrent->GetFullPath ());
 
 				boost::asio::post (GetService (), [this, torrent]()
@@ -283,7 +255,7 @@ namespace torrents
 						// inform trackers that we are done
 						RequestTorrentTrackers (torrent, eTrackerAnnounceEventCompleted);
 						// close connections with seeds and reset stats for remaining
-						auto conns = GetTorrentConnections (torrent);
+						auto conns = torrent->GetConnections ();
 						for (auto it: conns)
 						{
 							if (it->GetRemoteBitfield ().all ()) // seed
@@ -323,27 +295,29 @@ namespace torrents
 		return ids;
 	}
 
+	std::list<std::shared_ptr<Torrent> > TorrentsTunnel:: GetTorrents () const
+	{
+		std::list<std::shared_ptr<Torrent> > torrents;
+		std::lock_guard<std::mutex> l(m_TorrentsMutex);
+		for (const auto& it: m_Torrents)
+			torrents.push_back (it.second);
+		return torrents;
+	}
+
 	std::pair<std::shared_ptr<Torrent>, int> TorrentsTunnel::AddTorrent (std::string_view torrentFileContent)
 	{
 		auto torrent = std::make_shared<Torrent> (torrentFileContent);
 		if (m_Torrents.find (torrent->GetInfoHash ()) == m_Torrents.end ())
 		{
 			torrent->SetFullPath (m_TorrentsDir/std::filesystem::path (torrent->GetName ()));
-			std::string content (torrentFileContent);
-			boost::asio::post (GetDiskIOService (), [this, torrent, content]()
+			boost::asio::post (GetDiskIOService (), [this, torrent]()
 				{
-					auto torrentFilePath = torrent->GetFullPath ();  torrentFilePath += ".torrent";
-					{
-						// TODO: replace by SaveTorrentFile
-						std::ofstream f(torrentFilePath, std::ofstream::binary);
-						if (f)
-							f.write (content.data (), content.size ());
-						else
-							LogPrint (eLogError, "TorrentsTunnel: Can't open ", torrentFilePath);
-					}
+					SaveTorrentFile (torrent);
 					InitTorrentFiles (torrent);
 				});
-			return { torrent, InsertTorrent (torrent) };
+			auto id = InsertTorrent (torrent);
+			boost::asio::post (GetService (), [this, torrent] { RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone); });
+			return { torrent, id };
 		}
 		return { torrent, 0 };
 	}
@@ -352,14 +326,11 @@ namespace torrents
 	{
 		// magnet:?xt=urn:btih:<hash>&dn=<name>&tr=<tracker>
 		static constexpr std::string_view magnetPrefix { "magnet:?" };
-#if __cplusplus >= 202002L // C++20
 		if (magnet.starts_with (magnetPrefix))
-#else
-		if (magnet.substr (0, magnetPrefix.size ()) == magnetPrefix)
-#endif
 		{
 			Torrent::InfoHash infoHash;
 			bool isInfoHashFound = false;
+			std::string announce, name;
 			magnet = magnet.substr (magnetPrefix.size ());
 			while (!magnet.empty())
 			{
@@ -376,11 +347,9 @@ namespace torrents
 					magnet = "";
 				}
 				static constexpr std::string_view hashPrefix { "xt=urn:btih:" };
-#if __cplusplus >= 202002L // C++20
+				static constexpr std::string_view trackerPrefix { "tr=" };
+				static constexpr std::string_view namePrefix { "dn=" };
 				if (param.starts_with (hashPrefix))
-#else
-				if (param.substr (0, hashPrefix.size ()) == hashPrefix)
-#endif
 				{
 					std::string_view hexStr = param.substr (hashPrefix.size (), infoHash.size ()*2);
 					try
@@ -393,11 +362,19 @@ namespace torrents
 						LogPrint (eLogInfo, "TorentsTunnel: Can't unhex magnet hash ", hexStr);
 					}
 				}
+				else if (param.starts_with (trackerPrefix))
+					announce = i2p::http::UrlDecode (param.substr (trackerPrefix.size ()));
+				else if (param.starts_with (namePrefix))
+					name = i2p::http::UrlDecode (param.substr (namePrefix.size ()));
 			}
 			if (isInfoHashFound && m_Torrents.find (infoHash) == m_Torrents.end ())
 			{
 				auto torrent = std::make_shared<Torrent> (infoHash);
-				return { torrent, InsertTorrent (torrent) };
+				if (!announce.empty ()) torrent->SetAnnounce (announce);
+				if (!name.empty ()) torrent->SetName (name);
+				auto id = InsertTorrent (torrent);
+				boost::asio::post (GetService (), [this, torrent] { RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone); });
+				return { torrent, id };
 			}
 		}
 		return { nullptr, 0 };
@@ -457,15 +434,15 @@ namespace torrents
 						if (ec)
 							LogPrint (eLogError, "TorrentsTunnel: Can't delete ", resumeFilePath);
 					}
-					if (torrent->IsComplete () || !torrent->GetFiles ().empty ())
+					if (std::filesystem::exists (fullPath))
 					{
 						std::filesystem::remove_all (fullPath, ec);
 						if (ec)
 							LogPrint (eLogError, "TorrentsTunnel: Can't delete ", fullPath);
 					}
-					else
+					auto partFilePath = fullPath; partFilePath += ".part";
+					if (std::filesystem::exists (partFilePath))
 					{
-						auto partFilePath = fullPath; partFilePath += ".part";
 						std::filesystem::remove (partFilePath, ec);
 						if (ec)
 							LogPrint (eLogError, "TorrentsTunnel: Can't delete ", partFilePath);
@@ -494,10 +471,11 @@ namespace torrents
 	{
 		if (!torrent) return;
 		torrent->SetStopped (true);
+		torrent->UpdateStatus (i2p::util::GetMonotonicSeconds ());
 		// inform trackers that we stopped
 		RequestTorrentTrackers (torrent, eTrackerAnnounceEventStopped);
 		// close connections
-		auto connections = GetTorrentConnections (torrent);
+		auto connections = torrent->GetConnections ();
 		for (auto it: connections)
 			it->Close ();
 	}
@@ -648,8 +626,7 @@ namespace torrents
 						if (res->result () == boost::beast::http::status::ok)
 						{
 							torrent->ParseTrackerResponse (trackerID, res->body ());
-							ConnectToPeers (torrent);
-							ScheduleReconnectCheck ();
+							ConnectToPeers (torrent, trackerID);
 						}
 						else
 							LogPrint (eLogWarning, "TorrentsTunnel: Tracker ", trackerID, " response code ", res->result_int());
@@ -660,7 +637,7 @@ namespace torrents
 
 	void TorrentsTunnel::ConnectToPeer (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& peer)
 	{
-		if (!torrent) return;
+		if (!torrent || torrent->IsConnectedToPeer (peer)) return;
 		LogPrint (eLogDebug, "TorrentsTunnel: Connecting to peer ", peer.ToBase32 () + ".b32.i2p");
 		if (peer == GetLocalDestination ()->GetIdentHash ())
 		{
@@ -684,13 +661,36 @@ namespace torrents
 	size_t TorrentsTunnel::ConnectToPeers (std::shared_ptr<Torrent> torrent)
 	{
 		if (!torrent) return 0;
-		auto peersToConnect = GetNonConnectedPeers (torrent);
+		auto peersToConnect = torrent->GetNonConnectedPeers ();
 		if (!peersToConnect.empty ())
 		{
 			for (const auto& it: peersToConnect)
 				ConnectToPeer (torrent, it);
 		}
 		return peersToConnect.size ();
+	}
+
+	size_t TorrentsTunnel::ConnectToPeers (std::shared_ptr<Torrent> torrent, size_t trackerID)
+	{
+		if (!torrent) return 0;
+		auto peersToConnect = torrent->GetNonConnectedPeers (trackerID);
+		if (!peersToConnect.empty ())
+		{
+			for (const auto& it: peersToConnect)
+				ConnectToPeer (torrent, it);
+		}
+		return peersToConnect.size ();
+	}
+
+	void TorrentsTunnel::ConnectToNewPeers (std::shared_ptr<Torrent> torrent, std::unordered_set<i2p::data::IdentHash>& newPeers)
+	{
+		if (!torrent) return;
+		if (!newPeers.empty ())
+		{
+			for (const auto& it: newPeers)
+				if (!torrent->IsConnectedToPeer (it))
+					ConnectToPeer (torrent, it);
+		}
 	}
 
 	void TorrentsTunnel::ScheduleTrackerRequestsCheck ()
@@ -775,15 +775,19 @@ namespace torrents
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
+			auto ts = i2p::util::GetMonotonicSeconds ();
 			for (auto it: m_Torrents)
-			{
-				if (!it.second->IsComplete () && !it.second->IsStopped ())
+				if (ts > it.second->GetNextReconnectTime ())
 				{
-					auto numPeers = ConnectToPeers (it.second);
-					if (numPeers)
-						LogPrint (eLogDebug, "TorrentsTunnel: Reconnecting to ", numPeers, " peers");
+					if (!it.second->IsComplete () && !it.second->IsStopped ())
+					{
+						auto numPeers = ConnectToPeers (it.second);
+						if (numPeers)
+							LogPrint (eLogDebug, "TorrentsTunnel: Reconnecting to ", numPeers, " peers");
+					}
+					it.second->SetNextReconnectTime (ts + RECONNECT_INTERVAL + GetLocalDestination ()->GetRng ()() % RECONNECT_INTERVAL_VARIANCE);
 				}
-			}
+
 			ScheduleReconnectCheck ();
 		}
 	}
@@ -791,7 +795,7 @@ namespace torrents
 	void TorrentsTunnel::ScheduleStatusUpdate ()
 	{
 		m_TorrentsStatusUpdateTimer.cancel ();
-		m_TorrentsStatusUpdateTimer.expires_after (std::chrono::seconds(TORRENTS_STATUS_UPDATE_INTERVAL));
+		m_TorrentsStatusUpdateTimer.expires_after (std::chrono::seconds(TORRENTS_STATUS_UPDATE_CHECK_INTERVAL));
 		m_TorrentsStatusUpdateTimer.async_wait (std::bind (&TorrentsTunnel::HandleTorrentsStatusUpdateTimer,
 			this, std::placeholders::_1));
 	}
@@ -803,61 +807,29 @@ namespace torrents
 			auto ts = i2p::util::GetMonotonicSeconds ();
 			for (auto it: m_Torrents)
 			{
-				if (!it.second->IsComplete () &&!it.second->IsStopped ())
+				if (ts > it.second->GetNextUpdateStatusTime ())
 				{
-					if (it.second->UpdateStatus (ts))
-						CompleteTorrent (it.second);
-					else
-						UpdatePeersPerPiece (it.second);
+					if (!it.second->IsStopped () && (it.second->IsActive () || !it.second->IsComplete ()))
+					{
+						if (it.second->UpdateStatus (ts))
+						{
+							if (!it.second->IsComplete ())
+								CompleteTorrent (it.second);
+						}
+						else
+							UpdatePeersPerPiece (it.second);
+					}
+					it.second->SetNextUpdateStatusTime (ts + TORRENTS_STATUS_UPDATE_INTERVAL + GetLocalDestination ()->GetRng ()() % TORRENTS_STATUS_UPDATE_INTERVAL_VARIANCE);
 				}
+				boost::asio::post (GetDiskIOService (), [torrent = it.second, ts]()
+				{
+					for (auto it: torrent->GetFiles ())
+						if (ts > it->lastAccessTime + TORRENT_FILE_INACTIVITY_TIMEOUT)
+							it->Close ();
+				});
 			}
-			UpdateStats ();
 			ScheduleStatusUpdate ();
 		}
-	}
-
-	std::list<std::shared_ptr<PeerConnection> > TorrentsTunnel::GetTorrentConnections (std::shared_ptr<Torrent> torrent)
-	{
-		std::list<std::shared_ptr<PeerConnection> > ret;
-		if (torrent)
-		{
-			IterateHandlers ([&ret, torrent](std::shared_ptr<i2p::client::I2PServiceHandler> handler)
-				{
-					if (handler)
-					{
-						auto conn = std::static_pointer_cast<PeerConnection>(handler);
-						if (conn->GetTorrent () == torrent && conn->GetStream ())
-							ret.emplace_back (conn);
-					}
-				});
-		}
-		return ret;
-	}
-
-	std::unordered_set<i2p::data::IdentHash> TorrentsTunnel::GetNonConnectedPeers (std::shared_ptr<Torrent> torrent)
-	{
-		std::unordered_set<i2p::data::IdentHash> ret;
-		if (torrent)
-		{
-			ret = torrent->GetPeers ();
-			if(!ret.empty ())
-			{
-				IterateHandlers ([&ret, torrent](std::shared_ptr<i2p::client::I2PServiceHandler> handler)
-					{
-						if (handler)
-						{
-							auto conn = std::static_pointer_cast<PeerConnection>(handler);
-							if (conn->GetTorrent () == torrent && conn->GetStream ())
-							{
-								auto ident = conn->GetStream ()->GetRemoteIdentity ();
-								if (ident)
-									ret.erase (ident->GetIdentHash ());
-							}
-						}
-					});
-			}
-		}
-		return ret;
 	}
 
 	void TorrentsTunnel::UpdatePeersPerPiece (std::shared_ptr<Torrent> torrent)
@@ -871,29 +843,6 @@ namespace torrents
 					auto conn = std::static_pointer_cast<PeerConnection>(handler);
 					if (conn->GetTorrent () == torrent)
 						torrent->ApplyPeerRemoteBitfield (conn->GetRemoteBitfield ());
-				}
-			});
-	}
-
-	void TorrentsTunnel::UpdateStats ()
-	{
-		for (auto it: m_Torrents)
-			it.second->ResetStats ();
-		IterateHandlers ([](std::shared_ptr<i2p::client::I2PServiceHandler> handler) mutable
-			{
-				if (handler)
-				{
-					auto conn = std::static_pointer_cast<PeerConnection>(handler);
-					auto torrent = conn->GetTorrent ();
-					if (torrent)
-					{
-						torrent->SetDownloadRate (torrent->GetDownloadRate () + conn->GetDownloadRate ());
-						torrent->SetUploadRate (torrent->GetUploadRate () + conn->GetUploadRate ());
-						if (conn->IsDownloading ())
-							torrent->SetNumDownloadingFromPeers (torrent->GetNumDownloadingFromPeers () + 1);
-						if (conn->IsUploading ())
-							torrent->SetNumUploadingToPeers (torrent->GetNumUploadingToPeers () + 1);
-					}
 				}
 			});
 	}

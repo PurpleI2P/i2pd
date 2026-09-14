@@ -10,6 +10,7 @@
 #include <fstream>
 #include <vector>
 #include <map>
+#include <utility> // for C++20 with boost < 1.81
 #include <boost/asio.hpp>
 #include <stdexcept>
 
