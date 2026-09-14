@@ -183,7 +183,7 @@
 
     const reader = new FileReader();
     reader.onload = async () => {
-      const bytes = new Uint8Array(reader.arguments);
+      const bytes = new Uint8Array(reader.result);
       let binary = "";
       for (let i = 0; i < bytes.byteLength; i++) {
         binary += String.fromCharCode(bytes[i]);
