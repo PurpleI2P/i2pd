@@ -320,16 +320,24 @@ namespace torrents
 
 	void Piece::NewDataBuffer ()
 	{
+#if defined(__cpp_lib_atomic_ref)
 		std::atomic_ref<uint8_t *> data (m_Data);
 		auto old = data.exchange (new uint8_t[m_Size]);
 		if (old) delete[] old;
+#else
+		if (!m_Data) m_Data = new uint8_t[m_Size];
+#endif
 	}
 
 	void Piece::DeleteDataBuffer ()
 	{
+#if defined(__cpp_lib_atomic_ref)
 		std::atomic_ref<uint8_t *> data (m_Data);
 		auto old = data.exchange (nullptr);
 		if (old) delete[] old;
+#else
+		delete[] m_Data; m_Data = nullptr;
+#endif
 	}
 
 	bool Piece::HasBlock (size_t offset) const
