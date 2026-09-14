@@ -8,7 +8,7 @@ INCFLAGS = -I/usr/include/ -I/usr/local/include/
 LDFLAGS = ${LD_DEBUG} -Wl,-rpath,/usr/local/lib -L/usr/local/lib
 LDLIBS = -lssl -lcrypto -lz -lpthread -lboost_program_options
 ifeq ($(TORRENTS),yes)
-	LDLIBS = -lboost_json
+	LDLIBS += -lboost_json
 endif
 
 ## NOTE: NEEDED_CXXFLAGS is here so that custom CXXFLAGS can be specified at build time
