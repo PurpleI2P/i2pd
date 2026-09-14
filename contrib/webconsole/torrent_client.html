@@ -45,6 +45,7 @@
 
 <div id="torrent_details_modal" style="display: none">
   <h3 id="modal_torrent_title"></h3>
+  <p style="color:#303030" id="modal_torrent_hash"></p>
   <h4>Files:</h4>
   <ul id="modal_files_list"></ul>
   <h4>Peers (<span id="peer_count">0</span>):</h4>
@@ -206,6 +207,9 @@
 
     document.getElementById("modal_torrent_title").textContent =
       `DETAILS: ${torrent.name} (#${torrent.id})`;
+
+    document.getElementById("modal_torrent_hash").textContent =
+      `InfoHash: ${torrent.hashString}`;
 
     const filesList = document.getElementById("modal_files_list");
     filesList.innerHTML = "";
