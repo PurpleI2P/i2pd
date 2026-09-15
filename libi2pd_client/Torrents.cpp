@@ -1154,6 +1154,7 @@ namespace torrents
 			m_HandshakeReceiveTimer->cancel ();
 			m_HandshakeReceiveTimer = nullptr;
 		}
+		Done(shared_from_this());
 	}
 
 	void PeerConnection::ResetStats ()
