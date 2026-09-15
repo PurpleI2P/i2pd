@@ -410,11 +410,14 @@ namespace torrents
 		boost::json::array trackers;
 		for (size_t i = 0; i < m_Tunnel->GetNumTrackers (); i++)
 		{
-			boost::json::object tracker;
-			tracker["id"] = i;
-			tracker["announce"] = m_Tunnel->GetTrackerAnnounce (i);
-			tracker["tier"] = 0;
-			trackers.push_back (tracker);
+			if (torrent->GetNextTrackerRequestTime (i))
+			{
+				boost::json::object tracker;
+				tracker["id"] = i;
+				tracker["announce"] = m_Tunnel->GetTrackerAnnounce (i);
+				tracker["tier"] = 0;
+				trackers.push_back (tracker);
+			}
 		}
 		return trackers;
 	}
@@ -426,45 +429,48 @@ namespace torrents
 		auto tsSinceEpoch = i2p::util::GetMillisecondsSinceEpoch ();
 		for (size_t i = 0; i < m_Tunnel->GetNumTrackers (); i++)
 		{
-			boost::json::object tracker;
-			tracker["id"] = i;
-			tracker["announce"] = m_Tunnel->GetTrackerAnnounce (i);
-			i2p::http::URL announceURL;
-			announceURL.parse (m_Tunnel->GetTrackerAnnounce (i));
-			tracker["host"]= announceURL.host;
-			tracker["announceState"] = 1;
-			tracker["scrapeState"] = 0;
-			tracker["hasAnnounced"] = true; // TODO:
-            tracker["hasScraped"] = false;
-            tracker["isBackup"] = false;
-			tracker["downloadCount"] = -1;
-			tracker["tier"] = 0;
-			tracker["seederCount"] = torrent->GetNumSeeders (i);
-			tracker["leecherCount"] = torrent->GetNumLeechers (i);
-			tracker["lastAnnouncePeerCount"] = torrent->GetNumPeers (i);
-			auto trackerError = torrent->GetTrackerError (i);
-			if (trackerError.empty ())
+			if (torrent->GetNextTrackerRequestTime (i))
 			{
-				tracker["lastAnnounceResult"] = "Success";
-				tracker["lastAnnounceSucceeded"] = true;
+				boost::json::object tracker;
+				tracker["id"] = i;
+				tracker["announce"] = m_Tunnel->GetTrackerAnnounce (i);
+				i2p::http::URL announceURL;
+				announceURL.parse (m_Tunnel->GetTrackerAnnounce (i));
+				tracker["host"]= announceURL.host;
+				tracker["announceState"] = 1;
+				tracker["scrapeState"] = 0;
+				tracker["hasAnnounced"] = true; // TODO:
+				tracker["hasScraped"] = false;
+				tracker["isBackup"] = false;
+				tracker["downloadCount"] = -1;
+				tracker["tier"] = 0;
+				tracker["seederCount"] = torrent->GetNumSeeders (i);
+				tracker["leecherCount"] = torrent->GetNumLeechers (i);
+				tracker["lastAnnouncePeerCount"] = torrent->GetNumPeers (i);
+				auto trackerError = torrent->GetTrackerError (i);
+				if (trackerError.empty ())
+				{
+					tracker["lastAnnounceResult"] = "Success";
+					tracker["lastAnnounceSucceeded"] = true;
+				}
+				else
+				{
+					tracker["lastAnnounceResult"] = trackerError;
+					tracker["lastAnnounceSucceeded"] = false;
+				}
+				tracker["lastAnnounceTimedOut"] = false; // TODO:
+				auto nextRequestTime = torrent->GetNextTrackerRequestTime (i);
+				tracker["nextAnnounceTime"] = ((nextRequestTime && nextRequestTime > ts ? nextRequestTime - ts : 0) + tsSinceEpoch)/1000;
+				tracker["lastAnnounceTime"] = torrent->GetLastTrackerUpdateTime (i);
+				tracker["lastAnnounceStartTime"] = torrent->GetLastTrackerUpdateTime (i); // TODO:
+				tracker["lastScrapeTime"] = 0;
+				tracker["lastScrapeStartTime"] = 0;
+				tracker["nextScrapeTime"] = 0;
+				tracker["lastScrapeResult"]= "";
+				tracker["lastScrapeTimedOut"]= false;
+				tracker["lastScrapeSucceeded"]= true;
+				trackers.push_back (tracker);
 			}
-			else
-			{
-				tracker["lastAnnounceResult"] = trackerError;
-				tracker["lastAnnounceSucceeded"] = false;
-			}
-			tracker["lastAnnounceTimedOut"] = false; // TODO:
-			auto nextRequestTime = torrent->GetNextTrackerRequestTime (i);
-			tracker["nextAnnounceTime"] = ((nextRequestTime && nextRequestTime > ts ? nextRequestTime - ts : 0) + tsSinceEpoch)/1000;
-			tracker["lastAnnounceTime"] = torrent->GetLastTrackerUpdateTime (i);
-			tracker["lastAnnounceStartTime"] = torrent->GetLastTrackerUpdateTime (i); // TODO:
-			tracker["lastScrapeTime"] = 0;
-			tracker["lastScrapeStartTime"] = 0;
-			tracker["nextScrapeTime"] = 0;
-			tracker["lastScrapeResult"]= "";
-			tracker["lastScrapeTimedOut"]= false;
-			tracker["lastScrapeSucceeded"]= true;
-			trackers.push_back (tracker);
 		}
 		return trackers;
 	}

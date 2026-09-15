@@ -83,8 +83,8 @@ namespace torrents
 					void Stop () { StopWorkAndFinishTasks (); }
 			};
 
-			using TrackerInfo = std::tuple<std::string, uint64_t, uint64_t, uint16_t>;
-			// (announce, connection_id, connection expiration time in monotonic milliseconds, connction from_port)
+			using TrackerInfo = std::tuple<std::string, bool, uint64_t, uint64_t, uint16_t>;
+			// (announce, common, connection_id, connection expiration time in monotonic milliseconds, connection from_port)
 
 		public:
 
@@ -125,7 +125,7 @@ namespace torrents
 			bool CreateAndReserveFile (const std::filesystem::path& filePath, size_t reserve);
 			void CompleteTorrent (std::shared_ptr<Torrent> torrent);
 			void StopTorrent (std::shared_ptr<Torrent> torrent);
-			void RequestTracker (size_t trackerID, std::shared_ptr<Torrent> torrent, TrackerAnnounceEvent event);
+			bool RequestTracker (size_t trackerID, std::shared_ptr<Torrent> torrent, TrackerAnnounceEvent event);
 			void RequestTorrentTrackers (std::shared_ptr<Torrent> torrent, TrackerAnnounceEvent event);
 			void TrackerRequestSent (const boost::beast::error_code& ecode, size_t bytes_transferred,
 				std::shared_ptr<i2p::client::BoostAsyncStream> httpStream, std::shared_ptr<Torrent> torrent,

@@ -40,7 +40,7 @@ namespace torrents
 			std::vector<std::string> trackersList;
 			boost::split(trackersList, trackers, boost::is_any_of(","), boost::token_compress_on);
 			for (const auto& it: trackersList)
-				m_Trackers.emplace_back (TrackerInfo{ it, 0, 0, 0 });
+				m_Trackers.emplace_back (TrackerInfo{ it, true, 0, 0, 0 });
 		}
 	}
 
@@ -390,6 +390,17 @@ namespace torrents
 			if (!m_TorrentsByID.empty ())
 				id = m_TorrentsByID.rbegin ()->first + 1;
 			m_TorrentsByID.emplace (id, torrent);
+			if (!torrent->GetAnnounce ().empty ())
+			{
+				// add announce to trackers
+				 auto it = std::find_if (m_Trackers.begin (), m_Trackers.end (),
+					[announce = torrent->GetAnnounce ()](const TrackerInfo& tracker)
+					{
+						return std::get<0>(tracker) == announce;
+					});
+				if (it == m_Trackers.end())
+					m_Trackers.emplace_back (TrackerInfo{ torrent->GetAnnounce (), false, 0, 0, 0 });
+			}
 			return id;
  		}
 		return 0;
@@ -533,35 +544,26 @@ namespace torrents
 
 	void TorrentsTunnel::RequestTorrentTrackers (std::shared_ptr<Torrent> torrent, TrackerAnnounceEvent event)
 	{
-		if (!m_Trackers.empty ())
-			for (size_t i = 0; i < m_Trackers.size (); i++)
-				RequestTracker (i, torrent, event);
-		else
-			RequestTracker (0, torrent, event); // from announce
+		for (size_t i = 0; i < m_Trackers.size (); i++)
+			RequestTracker (i, torrent, event);
 	}
 
-	void TorrentsTunnel::RequestTracker (size_t trackerID, std::shared_ptr<Torrent> torrent, TrackerAnnounceEvent event)
+	bool TorrentsTunnel::RequestTracker (size_t trackerID, std::shared_ptr<Torrent> torrent, TrackerAnnounceEvent event)
 	{
-		if (!torrent) return;
+		if (!torrent || trackerID >= m_Trackers.size() ||
+			(!std::get<1>(m_Trackers[trackerID]) && std::get<0>(m_Trackers[trackerID]) != torrent->GetAnnounce ())) // not common tracker or with torrent's aanpunce
+			return false;
 		i2p::http::URL reqURL;
-		if (trackerID < m_Trackers.size())
-			reqURL.parse (std::get<0>(m_Trackers[trackerID]));
-		else
-			reqURL.parse (torrent->GetAnnounce ());
-#if __cplusplus >= 202002L // C++20
+		reqURL.parse (std::get<0>(m_Trackers[trackerID]));
 		if (!reqURL.host.ends_with (".i2p"))
-#else
-		if (reqURL.host.find(".i2p") == reqURL.host.npos)
-#endif
 		{
 			LogPrint (eLogWarning, "TorrentsTunnel: Non-I2P address ", reqURL.host, " for torrent ", torrent->GetName ());
-			return;
+			return false;
 		}
 		if (reqURL.schema == "udp")
 		{
-			if (trackerID >= m_Trackers.size()) return;
 			auto ts = i2p::util::GetMonotonicMilliseconds ();
-			auto& [announce, connectionID, expiration, fromPort] = m_Trackers[trackerID];
+			auto& [announce, common, connectionID, expiration, fromPort] = m_Trackers[trackerID];
 			if (connectionID && ts <= expiration)
 				SendAnnounceToDatagramTracker (trackerID, connectionID, torrent, reqURL.host, reqURL.port, fromPort, event);
 			else
@@ -573,7 +575,7 @@ namespace torrents
 					ConnectToDatagramTracker (trackerID, reqURL.host, reqURL.port);
 				}
 			}
-			return;
+			return true;
 		}
 		std::map<std::string, std::string> params;
 		params.emplace ("info_hash", torrent->GetHexStringInfoHash ());
@@ -606,6 +608,7 @@ namespace torrents
 							std::placeholders::_2, httpStream, torrent, req, trackerID));
 				}
 			}, reqURL.host, reqURL.port);
+		return true;
 	}
 
 	void TorrentsTunnel::TrackerRequestSent (const boost::beast::error_code& ecode, size_t bytes_transferred,
@@ -731,9 +734,11 @@ namespace torrents
 						}
 						if (ts >= it.second->GetNextTrackerRequestTime (i))
 						{
-							auto nextInterval = it.second->GetInterval (i) + GetLocalDestination ()->GetRng()() % TRACKER_REQUESTS_INTERVAL_VARIANCE;
-							it.second->SetNextTrackerRequestTime (i, ts + nextInterval);
-							RequestTracker (i, it.second, eTrackerAnnounceEventNone);
+							if (RequestTracker (i, it.second, eTrackerAnnounceEventNone))
+							{
+								auto nextInterval = it.second->GetInterval (i) + GetLocalDestination ()->GetRng()() % TRACKER_REQUESTS_INTERVAL_VARIANCE;
+								it.second->SetNextTrackerRequestTime (i, ts + nextInterval);
+							}
 						}
 					}
 				}
@@ -944,7 +949,7 @@ namespace torrents
 		auto [trackerID, fromPort, torrent, ts] = it->second;
 		if (trackerID < m_Trackers.size ())
 		{
-			auto& [announce, connID, connExpiration, connFromPort] = m_Trackers[trackerID];
+			auto& [announce, common, connID, connExpiration, connFromPort] = m_Trackers[trackerID];
 			connID = connectionID;
 			connExpiration = i2p::util::GetMonotonicMilliseconds () + lifetime;
 			connFromPort = fromPort;
