@@ -1831,7 +1831,7 @@ namespace torrents
 			{
 				if (m_NumPieces >= MAX_NUM_PIECES)
 				{
-					if (m_IncomingRequestsQueue.size () < MAX_INCOMING_REQUESTS_QUEUE_SIZE)
+					if (m_IncomingRequestsQueue.size () + m_NumPieces < MAX_INCOMING_REQUESTS_QUEUE_SIZE)
 						m_IncomingRequestsQueue.emplace_back (index, offset, length);
 					else if (m_IsFast)
 						SendRejectRequestMsg (index, offset, length);
