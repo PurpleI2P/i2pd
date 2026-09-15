@@ -134,7 +134,7 @@ namespace esperanto // language namespace
 		{"Start graceful shutdown", "Startigi la pravan haltigon"},
 		{"Force shutdown", "Perforte haltigi"},
 		{"Reload external CSS styles", "Reŝargi eksterajn stilojn de CSS"},
-		{"<b>Note:</b> any action done here are not persistent and not changes your config files.", "<b>Rimarko:</b> ĉiu ago estante tie ne estas konstanta kaj ne ŝanĝis viajn dosierojn de la agordoj."},
+		{"<b>Note:</b> any action performed here is not persistent and does not change your config files.", "<b>Rimarko:</b> ĉiu ago estante tie ne estas konstanta kaj ne ŝanĝis viajn dosierojn de la agordoj."},
 		{"Logging level", "Nivelo de loka-raportado"},
 		{"Transit tunnels limit", "Limigo de transitaj tuneloj"},
 		{"Change", "Ŝanĝi"},

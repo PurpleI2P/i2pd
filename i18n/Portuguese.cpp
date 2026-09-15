@@ -134,7 +134,7 @@ namespace portuguese // language namespace
 		{"Start graceful shutdown", "Iniciar desligamento gracioso"},
 		{"Force shutdown", "Forçar desligamento"},
 		{"Reload external CSS styles", "Recarregar estilos CSS externos"},
-		{"<b>Note:</b> any action done here are not persistent and not changes your config files.", "<b> Nota: </b> Qualquer ação feita aqui não será permanente e não altera os seus arquivos de configuração."},
+		{"<b>Note:</b> any action performed here is not persistent and does not change your config files.", "<b> Nota: </b> Qualquer ação feita aqui não será permanente e não altera os seus arquivos de configuração."},
 		{"Logging level", "Nível de registro"},
 		{"Transit tunnels limit", "Limite de túneis de trânsito"},
 		{"Change", "Mudar"},
