@@ -423,7 +423,12 @@ namespace data
 				if (keyType <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) // skip PQ keys if not supported
 #endif
 				{
-					if ((keyType == m_PreferredEncryptionType || !newEncryptor || keyType > newEncryptionType) &&
+					// encryptionKeyLen is the length the publisher declares, and it was
+					// checked against the buffer. The encryptor reads a length fixed by
+					// the key type instead, so a section declaring a short ElGamal key
+					// makes it read 256 bytes out of a few
+					if (encryptionKeyLen >= i2p::crypto::GetCryptoPublicKeyLen (keyType) &&
+					    (keyType == m_PreferredEncryptionType || !newEncryptor || keyType > newEncryptionType) &&
 					    (!dest || dest->SupportsEncryptionType (keyType)))
 					{
 						auto encryptor = i2p::data::IdentityEx::CreateEncryptor (keyType, buf + offset);
