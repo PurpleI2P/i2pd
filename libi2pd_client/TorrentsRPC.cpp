@@ -45,8 +45,8 @@ namespace torrents
 			static int64_t GetTag (boost::json::object& jsonRequest);
 			static std::vector<int> GetTorrentIds (boost::json::object& arguments);
 			static boost::json::value GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent);
-			boost::json::array GetPeers (std::shared_ptr<Torrent> torrent) const;
-			boost::json::value GetPeersConnected (std::shared_ptr<Torrent> torrent) const;
+			boost::json::object GetTorrentObject (std::shared_ptr<Torrent> torrent, int id, const boost::json::array& fields);
+			static boost::json::array GetPeers (std::shared_ptr<Torrent> torrent);
 			boost::json::array GetTrackers (std::shared_ptr<Torrent> torrent) const;
 			boost::json::array GetTrackerStats (std::shared_ptr<Torrent> torrent) const;
 			boost::json::array GetFiles (std::shared_ptr<Torrent> torrent) const;
@@ -228,33 +228,41 @@ namespace torrents
 			if (torrent)
 			{
 				boost::json::object t;
-				t["id"] = id;
-				for (const auto& field: fields)
-				{
-					if (field == "id")
-						continue;
-					else if (field == "peers")
-						t["peers"] = GetPeers (torrent);
-					else if (field == "peersConnected")
-						t["peersConnected"] = GetPeersConnected (torrent);
-					else if (field == "trackers")
-						t["trackers"] = GetTrackers (torrent);
-					else if (field == "trackerStats")
-						t["trackerStats"] = GetTrackerStats (torrent);
-					else if (field == "files")
-						t["files"] = GetFiles (torrent);
-					else
+				boost::asio::post (m_Tunnel->GetService (),
+					boost::asio::use_future ([this, torrent, id, fields, &t]()
 					{
-						auto fieldValue = GetFieldValue (field.as_string (), torrent);
-						if (!fieldValue.is_null ())
-							t[field.as_string ()] = fieldValue;
-					}
-				}
+						t = GetTorrentObject (torrent, id, fields);
+					})).wait ();
 				torrents.push_back (t);
 			}
 		}
 		response["torrents"] = torrents;
 		return SuccessResponse (GetTag (jsonRequest), std::move (response));
+	}
+
+	boost::json::object JSONRPCHandler::GetTorrentObject (std::shared_ptr<Torrent> torrent,
+		int id, const boost::json::array& fields)
+	{
+		boost::json::object t;
+		t["id"] = id;
+		for (const auto& field: fields)
+		{
+			if (field == "id")
+				continue;
+			else if (field == "trackers")
+				t["trackers"] = GetTrackers (torrent);
+			else if (field == "trackerStats")
+				t["trackerStats"] = GetTrackerStats (torrent);
+			else if (field == "files")
+				t["files"] = GetFiles (torrent);
+			else
+			{
+				auto fieldValue = GetFieldValue (field.as_string (), torrent);
+				if (!fieldValue.is_null ())
+					t[field.as_string ()] = fieldValue;
+			}
+		}
+		return t;
 	}
 
 	boost::json::value JSONRPCHandler::GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent)
@@ -348,7 +356,9 @@ namespace torrents
 			{ "seedRatioLimit", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(0); } },
 
 			{ "downloadDir", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(""); } }, // TODO: torrentsdir
-			{ "webseedsSendingToUs", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(0); } } // not webseeds in i2p yet
+			{ "webseedsSendingToUs", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(0); } }, // not webseeds in i2p yet
+			{ "peers", &JSONRPCHandler::GetPeers },
+			{ "peersConnected", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetConnections ().size ()); } }
 		};
 		if (torrent)
 		{
@@ -359,15 +369,10 @@ namespace torrents
 		return boost::json::value ();
 	}
 
-	boost::json::array JSONRPCHandler::GetPeers (std::shared_ptr<Torrent> torrent) const
+	boost::json::array JSONRPCHandler::GetPeers (std::shared_ptr<Torrent> torrent)
 	{
 		boost::json::array peers;
-		std::list<std::shared_ptr<PeerConnection> > conns;
-		boost::asio::post (m_Tunnel->GetService (),
-			boost::asio::use_future ([torrent, &conns]()
-			{
-				conns = torrent->GetConnections ();
-			})).wait ();
+		auto conns = torrent->GetConnections ();
 		for (const auto& it: conns)
 		{
 			if (it->IsEstablished ())
@@ -398,17 +403,6 @@ namespace torrents
 			}
 		}
 		return peers;
-	}
-
-	boost::json::value JSONRPCHandler::GetPeersConnected (std::shared_ptr<Torrent> torrent) const
-	{
-		std::list<std::shared_ptr<PeerConnection> > conns;
-		boost::asio::post (m_Tunnel->GetService (),
-			boost::asio::use_future ([torrent, &conns]()
-			{
-				conns = torrent->GetConnections ();
-			})).wait ();
-		return boost::json::value(conns.size ());
 	}
 
 	boost::json::array JSONRPCHandler::GetTrackers (std::shared_ptr<Torrent> torrent) const
