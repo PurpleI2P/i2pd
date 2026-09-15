@@ -78,6 +78,33 @@ namespace client
 		m_Owner.RemoveSocket(shared_from_this());
 	}
 
+	void SAMSocket::GenerateRemoteEndpointStr (boost::system::error_code& ec) {
+		std::ostringstream oss;
+		auto tmp = m_Socket.remote_endpoint (ec);
+		if (ec) return;
+
+		if (tmp.protocol().family() == AF_INET || tmp.protocol().family() == AF_INET6)
+		{
+			boost::asio::ip::tcp::endpoint ep;
+			ep.resize(tmp.size());
+			std::memcpy(ep.data(), tmp.data(), tmp.size());
+			oss << ep;
+		}
+#if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
+		else
+		{
+			boost::asio::local::stream_protocol::endpoint ep;
+			ep.resize(tmp.size());
+			std::memcpy(ep.data(), tmp.data(), tmp.size());
+			if (ep.path().empty())
+				oss << "unix:/abstract";
+			else
+				oss << ep.path();
+		}
+#endif
+		m_RemoteEndpointStr = oss.str();
+	}
+
 	void SAMSocket::ReceiveHandshake ()
 	{
 		m_Socket.async_read_some (boost::asio::buffer(m_Buffer, SAM_SOCKET_BUFFER_SIZE),
@@ -747,12 +774,15 @@ namespace client
 		else
 		{
 			boost::system::error_code ec;
-			ep = m_Socket.remote_endpoint(ec);
-			if (ec)
+			auto tmp_ep = m_Socket.remote_endpoint(ec);
+			if (ec || ((tmp_ep.protocol().family() != AF_INET) && (tmp_ep.protocol().family() != AF_INET6)))
 			{
 				SendSessionI2PError("Socket error: cannot get remote endpoint");
 				return;
 			}
+
+			ep.resize(tmp_ep.size());
+			std::memcpy(ep.data(), tmp_ep.data(), tmp_ep.size());
 			ep.port(port);
 		}
 
@@ -1547,8 +1577,6 @@ namespace client
 
 	SAMBridge::SAMBridge (const std::string& address, uint16_t portTCP, uint16_t portUDP, bool singleThread):
 		RunnableService ("SAM"), m_IsSingleThread (singleThread),
-		m_Acceptor (GetIOService (), boost::asio::ip::tcp::endpoint(boost::asio::ip::make_address(address), portTCP)),
-		m_DatagramEndpoint (boost::asio::ip::make_address(address), (!portUDP) ? portTCP-1 : portUDP), m_DatagramSocket (GetIOService (), m_DatagramEndpoint),
 		m_SignatureTypes
 		{
 			{"DSA_SHA1", i2p::data::SIGNING_KEY_TYPE_DSA_SHA1},
@@ -1561,6 +1589,27 @@ namespace client
 			{"RedDSA_SHA512_Ed25519", i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519},
 		}
 	{
+		if (portTCP > 0)
+		{
+			auto addr = boost::asio::ip::make_address(address);
+			using tcp = boost::asio::ip::tcp;
+			using udp = boost::asio::ip::udp;
+
+			m_Acceptor = std::make_unique<TCPAcceptor>(GetIOService (), tcp::endpoint(addr, portTCP));
+			m_DatagramEndpoint = std::make_shared<udp::endpoint>(addr, (!portUDP) ? portTCP-1 : portUDP);
+			m_SenderEndpoint = std::make_shared<udp::endpoint>();
+			m_DatagramSocket = std::make_unique<udp::socket>(GetIOService (), *m_DatagramEndpoint);
+		}
+		else
+#if defined (BOOST_ASIO_HAS_LOCAL_SOCKETS)
+		{
+			std::remove(address.c_str());
+			m_Acceptor = std::make_unique<LocalAcceptor>(GetIOService(),
+							boost::asio::local::stream_protocol::endpoint(address));
+		}
+#else
+			LogPrint(eLogError, "SAM: Local sockets are not supported");
+#endif
 	}
 
 	SAMBridge::~SAMBridge ()
@@ -1580,7 +1629,7 @@ namespace client
 	{
 		try
 		{
-			m_Acceptor.cancel ();
+			if (m_Acceptor) m_Acceptor->Stop ();
 		}
 		catch (const std::exception& ex)
 		{
@@ -1600,9 +1649,12 @@ namespace client
 
 	void SAMBridge::Accept ()
 	{
-		auto newSocket = std::make_shared<SAMSocket>(*this);
-		m_Acceptor.async_accept (newSocket->GetSocket(), std::bind (&SAMBridge::HandleAccept, this,
-			std::placeholders::_1, newSocket));
+		if (m_Acceptor)
+		{
+			auto newSocket = std::make_shared<SAMSocket>(*this);
+			m_Acceptor->start_async_accept (newSocket->GetSocket(), std::bind (&SAMBridge::HandleAccept, this,
+				std::placeholders::_1, newSocket));
+		}
 	}
 
 	void SAMBridge::AddSocket(std::shared_ptr<SAMSocket> socket)
@@ -1622,10 +1674,10 @@ namespace client
 		if (!ecode)
 		{
 			boost::system::error_code ec;
-			auto ep = socket->GetSocket ().remote_endpoint (ec);
+			socket->GenerateRemoteEndpointStr(ec);
 			if (!ec)
 			{
-				LogPrint (eLogDebug, "SAM: New connection from ", ep);
+				LogPrint (eLogDebug, "SAM: New connection from ", socket->GetRemoteEndpointStr());
 				AddSocket (socket);
 				socket->ReceiveHandshake ();
 			}
@@ -1768,15 +1820,18 @@ namespace client
 
 	void SAMBridge::SendTo (const std::vector<boost::asio::const_buffer>& bufs, const boost::asio::ip::udp::endpoint& ep)
 	{
-		m_DatagramSocket.send_to (bufs, ep);
+		if (m_DatagramSocket) m_DatagramSocket->send_to (bufs, ep);
 	}
 
 	void SAMBridge::ReceiveDatagram ()
 	{
-		m_DatagramSocket.async_receive_from (
-			boost::asio::buffer (m_DatagramReceiveBuffer, i2p::datagram::MAX_DATAGRAM_SIZE),
-			m_SenderEndpoint,
-			std::bind (&SAMBridge::HandleReceivedDatagram, this, std::placeholders::_1, std::placeholders::_2));
+		if(m_DatagramSocket)
+		{
+			m_DatagramSocket->async_receive_from (
+				boost::asio::buffer (m_DatagramReceiveBuffer, i2p::datagram::MAX_DATAGRAM_SIZE),
+				*m_SenderEndpoint,
+				std::bind (&SAMBridge::HandleReceivedDatagram, this, std::placeholders::_1, std::placeholders::_2));
+		}
 	}
 
 	void SAMBridge::HandleReceivedDatagram (const boost::system::error_code& ecode, std::size_t bytes_transferred)
