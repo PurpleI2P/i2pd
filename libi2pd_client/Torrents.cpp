@@ -313,14 +313,20 @@ namespace torrents
 	bool Piece::Load (PieceFileFragment&& fragment)
 	{
 		if (fragment.fragmentOffset + fragment.fragmentSize > m_Size) return false;
-		if (!m_Data) NewDataBuffer ();
-		if (fragment.file->Load (fragment.fileOffset, m_Data + fragment.fragmentOffset, fragment.fragmentSize))
+		uint8_t * data = m_Data;
+		if (!data) data = new uint8_t[m_Size];
+		bool success = fragment.file->Load (fragment.fileOffset, data + fragment.fragmentOffset, fragment.fragmentSize);
+		UpdateDataBuffer (data);
+		if (success)
 		{
 			LogPrint (eLogDebug, "Torrents: Loaded bytes ", fragment.fileOffset, " - ", fragment.fileOffset + fragment.fragmentSize - 1, " from ", fragment.file->fullFilePath);
 			return true;
 		}
 		else
+		{
+			LogPrint (eLogError, "Torrents: Failed to load bytes ", fragment.fileOffset, " - ", fragment.fileOffset + fragment.fragmentSize - 1, " from ", fragment.file->fullFilePath);
 			return false;
+		}
 	}
 
 	void Piece::NewDataBuffer ()
@@ -343,6 +349,22 @@ namespace torrents
 #else
 		delete[] m_Data; m_Data = nullptr;
 #endif
+	}
+
+	void Piece::UpdateDataBuffer (uint8_t * newData)
+	{
+#if defined(__cpp_lib_atomic_ref)
+		std::atomic_ref<uint8_t *> data (m_Data);
+		auto old = data.exchange (newData);
+		if (old && old != newData) delete[] old;
+#else
+		if (newData != m_Data)
+		{
+			auto old = m_Data;
+			m_Data = newData; delete[] old;
+		}
+#endif
+
 	}
 
 	bool Piece::HasBlock (size_t offset) const

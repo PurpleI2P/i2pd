@@ -163,6 +163,7 @@ namespace torrents
 			size_t GetNumBlocks (size_t len) const;
 			void NewDataBuffer ();
 			void DeleteDataBuffer ();
+			void UpdateDataBuffer (uint8_t * newData);
 
 		private:
 
