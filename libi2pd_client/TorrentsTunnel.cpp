@@ -436,22 +436,23 @@ namespace torrents
 	{
 		if (!torrent) return;
 		StopTorrent (torrent);
-		if (deleteFiles)
-			boost::asio::post (GetDiskIOService (), [torrent]()
+		boost::asio::post (GetDiskIOService (), [torrent, deleteFiles]()
+			{
+				auto fullPath = torrent->GetFullPath ();
+				auto torrentFilePath = fullPath; torrentFilePath += ".torrent";
+				std::error_code ec;
+				std::filesystem::remove (torrentFilePath, ec);
+				if (ec)
+					LogPrint (eLogError, "TorrentsTunnel: Can't delete ", torrentFilePath);
+				auto resumeFilePath = fullPath; resumeFilePath += ".resume";
+				if (std::filesystem::exists (resumeFilePath))
 				{
-					auto fullPath = torrent->GetFullPath ();
-					auto torrentFilePath = fullPath; torrentFilePath += ".torrent";
-					std::error_code ec;
-					std::filesystem::remove (torrentFilePath, ec);
+					std::filesystem::remove (resumeFilePath, ec);
 					if (ec)
-						LogPrint (eLogError, "TorrentsTunnel: Can't delete ", torrentFilePath);
-					auto resumeFilePath = fullPath; resumeFilePath += ".resume";
-					if (std::filesystem::exists (resumeFilePath))
-					{
-						std::filesystem::remove (resumeFilePath, ec);
-						if (ec)
-							LogPrint (eLogError, "TorrentsTunnel: Can't delete ", resumeFilePath);
-					}
+						LogPrint (eLogError, "TorrentsTunnel: Can't delete ", resumeFilePath);
+				}
+				if (deleteFiles)
+				{
 					if (std::filesystem::exists (fullPath))
 					{
 						std::filesystem::remove_all (fullPath, ec);
@@ -465,7 +466,8 @@ namespace torrents
 						if (ec)
 							LogPrint (eLogError, "TorrentsTunnel: Can't delete ", partFilePath);
 					}
-				});
+				}
+			});
 	}
 
 	bool TorrentsTunnel::StopTorrent (int id)
@@ -519,7 +521,7 @@ namespace torrents
 
 	void TorrentsTunnel::UpdateTorrentInfo (std::shared_ptr<Torrent> torrent, std::string_view info)
 	{
-		if (!torrent) return;
+		if (!torrent || torrent->IsStopped ()) return;
 		torrent->ParseInfo (info);
 		torrent->SetFullPath (m_TorrentsDir/std::filesystem::path (torrent->GetName ()));
 		boost::asio::post (GetDiskIOService (), [this, torrent]()
