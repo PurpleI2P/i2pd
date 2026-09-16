@@ -399,7 +399,14 @@ namespace torrents
 						return std::get<0>(tracker) == announce;
 					});
 				if (it == m_Trackers.end())
-					m_Trackers.emplace_back (TrackerInfo{ torrent->GetAnnounce (), false, 0, 0, 0 });
+				{
+					i2p::http::URL reqURL;
+					reqURL.parse (torrent->GetAnnounce ());
+					if (reqURL.host.ends_with (".i2p"))
+						m_Trackers.emplace_back (TrackerInfo{ torrent->GetAnnounce (), false, 0, 0, 0 });
+					else
+						LogPrint (eLogInfo, "TorrentsTunnel: Non-I2P address ", reqURL.host, " in announce for torrent ", torrent->GetName ());
+				}
 			}
 			return id;
  		}
