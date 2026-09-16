@@ -240,6 +240,7 @@ namespace client
 	struct SAMSingleSession: public SAMSession
 	{
 		std::shared_ptr<ClientDestination> localDestination;
+		bool isDestinationReleased = false;
 
 		SAMSingleSession (SAMBridge & parent, std::string_view name, SAMSessionType type, std::shared_ptr<ClientDestination> dest);
 		~SAMSingleSession ();

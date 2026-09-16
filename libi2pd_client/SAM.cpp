@@ -1494,13 +1494,22 @@ namespace client
 
 	SAMSingleSession::~SAMSingleSession ()
 	{
-		i2p::client::context.DeleteLocalDestination (localDestination);
+		// A newer session created with the same keys while this one was waiting
+		// for the cleanup timer gets the same destination back from
+		// CreateNewLocalDestination and acquires it; only its last user may
+		// delete it. Drop our own reference first if StopLocalDestination
+		// didn't run (bridge stop, session discarded).
+		if (!isDestinationReleased) localDestination->Release ();
+		if (localDestination->GetRefCounter () <= 0)
+			i2p::client::context.DeleteLocalDestination (localDestination);
 	}
 
 	void SAMSingleSession::StopLocalDestination ()
 	{
 		// Destination is ref-counted and may be shared by sessions whose SESSION
 		// CREATEs resolve to the same identity hash; only its last user may stop it.
+		if (isDestinationReleased) return;
+		isDestinationReleased = true;
 		if (localDestination->Release () > 0) return;
 		// stop accepting new streams
 		localDestination->StopAcceptingStreams ();
