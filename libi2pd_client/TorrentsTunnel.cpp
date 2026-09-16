@@ -40,13 +40,19 @@ namespace torrents
 			std::vector<std::string> trackersList;
 			boost::split(trackersList, trackers, boost::is_any_of(","), boost::token_compress_on);
 			// exclude duplicates
-			std::unordered_map<std::string, i2p::http::URL> hosts;
+			std::unordered_map<i2p::data::IdentHash, i2p::http::URL> hosts;
 			for (const auto& it: trackersList)
 			{
 				i2p::http::URL url (it);
-				auto [it1, inserted] = hosts.emplace (url.host, url);
-				if (!inserted && url.schema == "udp" && it1->second.schema == "http")
-					it1->second = url; // replace http address by udp address
+				auto address = i2p::client::context.GetAddressBook ().GetAddress (url.host);
+				if (address && address->IsIdentHash ())
+				{
+					auto [it1, inserted] = hosts.emplace (address->identHash, url);
+					if (!inserted && url.schema == "udp" && it1->second.schema == "http")
+						it1->second = url; // replace http address by udp address
+				}
+				else
+					LogPrint (eLogInfo, "TorrentsTunnel: Unexepcted tracker host ", url.host);
 			}
 			// create common trackers
 			for (const auto& it: hosts)

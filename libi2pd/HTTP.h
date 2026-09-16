@@ -36,7 +36,7 @@ namespace http
 		}
 	};
 
-	struct URL
+	struct URL final
 	{
 		std::string schema;
 		std::string user;
@@ -50,6 +50,10 @@ namespace http
 		bool ipv6;
 
 		URL(): schema(""), user(""), pass(""), host(""), port(0), path(""), hasquery(false), query(""), frag(""), ipv6(false) {};
+		URL (std::string_view url): URL () { parse (url); };
+		URL (const URL& ) = default;
+		URL (URL&& ) = default;
+		URL& operator=(const URL& ) = default;
 
 		/**
 		 * @brief Tries to parse url from string
