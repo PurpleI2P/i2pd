@@ -260,6 +260,11 @@ namespace client
 						LogPrint (eLogError, "I2PControl: Malformed request, HTTP header expected");
 						return; // TODO:
 					}
+					if (contentLength > I2P_CONTROL_MAX_CONTENT_LENGTH)
+					{
+						LogPrint (eLogError, "I2PControl: Content-Length ", contentLength, " exceeds maximum allowed size");
+						return;
+					}
 					std::streamoff rem = contentLength + ss.tellg () - bytes_transferred; // more bytes to read
 					while (rem > 0) // read in chunks to prevent buffer overflow
 					{

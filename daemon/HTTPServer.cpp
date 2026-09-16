@@ -709,7 +709,9 @@ namespace http {
 		if (i2cpServer)
 		{
 			s << "<b>I2CP " << tr("Local Destination") << ":</b><br>\r\n<br>\r\n";
-			auto session = i2cpServer->FindSessionByID ((uint16_t)std::stoi (id));
+			std::shared_ptr<i2p::client::I2CPSession> session;
+			try { session = i2cpServer->FindSessionByID ((uint16_t)std::stoi (id)); }
+			catch (std::exception&) {}
 			if (session)
 				ShowLeaseSetDestination (s, session->GetDestination (), 0);
 			else
@@ -1505,7 +1507,19 @@ namespace http {
 		std::string redirect = std::to_string(COMMAND_REDIRECT_TIMEOUT) + "; url=" + webroot + "?page=commands";
 		std::string token = params["token"];
 
-		if (token.empty () || m_Tokens.find (std::stoi (token)) == m_Tokens.end ())
+		if (token.empty ())
+		{
+			ShowError(s, tr("Invalid token"));
+			return;
+		}
+		int tokenValue;
+		try { tokenValue = std::stoi (token); }
+		catch (std::exception&)
+		{
+			ShowError(s, tr("Invalid token"));
+			return;
+		}
+		if (m_Tokens.find (tokenValue) == m_Tokens.end ())
 		{
 			ShowError(s, tr("Invalid token"));
 			return;

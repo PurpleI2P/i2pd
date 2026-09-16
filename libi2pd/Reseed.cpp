@@ -270,7 +270,7 @@ namespace data
 			if (it != m_SigningKeys.end ())
 			{
 				// TODO: implement all signature types
-				if (signatureType == SIGNING_KEY_TYPE_RSA_SHA512_4096)
+				if (signatureType == SIGNING_KEY_TYPE_RSA_SHA512_4096 && signatureLength >= SHA512_DIGEST_LENGTH)
 				{
 					size_t pos = s.tellg ();
 					size_t tbsLen = pos + contentLength;
@@ -282,7 +282,7 @@ namespace data
 					// RSA-raw
 					{
 						// calculate digest
-						uint8_t digest[64];
+						uint8_t digest[SHA512_DIGEST_LENGTH];
 						SHA512 (tbs, tbsLen, digest);
 						// encrypt signature
 						BN_CTX * bnctx = BN_CTX_new ();
@@ -294,7 +294,7 @@ namespace data
 						i2p::crypto::bn2buf (s, enSigBuf, signatureLength);
 						// digest is right aligned
 						// we can't use RSA_verify due wrong padding in SU3
-						if (memcmp (enSigBuf + (signatureLength - 64), digest, 64))
+						if (memcmp (enSigBuf + (signatureLength - SHA512_DIGEST_LENGTH), digest, SHA512_DIGEST_LENGTH))
 							LogPrint (eLogWarning, "Reseed: SU3 signature verification failed");
 						else
 							verify = false; // verified

@@ -28,6 +28,7 @@ namespace client
 {
 	const size_t I2P_CONTROL_MAX_REQUEST_SIZE = 1024;
 	typedef std::array<char, I2P_CONTROL_MAX_REQUEST_SIZE> I2PControlBuffer;
+	const size_t I2P_CONTROL_MAX_CONTENT_LENGTH = 65536; // sanity limit on declared HTTP Content-Length
 
 	const uint64_t I2P_CONTROL_TOKEN_LIFETIME = 60*60; // 1 hour, in seconds
 	const long I2P_CONTROL_CERTIFICATE_VALIDITY = 365*10; // 10 years

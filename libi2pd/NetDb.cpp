@@ -1419,6 +1419,7 @@ namespace data
 	void NetDb::ManageLeaseSets ()
 	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		std::lock_guard<std::mutex> lock(m_LeaseSetsMutex);
 		for (auto it = m_LeaseSets.begin (); it != m_LeaseSets.end ();)
 		{
 			if (!it->second->IsValid () || ts > it->second->GetExpirationTime () - LEASE_ENDDATE_THRESHOLD)
