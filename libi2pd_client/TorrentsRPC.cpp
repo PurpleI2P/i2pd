@@ -46,7 +46,7 @@ namespace torrents
 			static std::vector<int> GetTorrentIds (boost::json::object& arguments);
 			boost::json::value GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent) const;
 			boost::json::object GetTorrentObject (std::shared_ptr<Torrent> torrent, int id, const boost::json::array& fields) const;
-			boost::json::array GetTorrentTableRow (std::shared_ptr<Torrent> torrent,int id, const boost::json::array& fields) const;
+			boost::json::array GetTorrentTableRow (std::shared_ptr<Torrent> torrent,int id, const boost::json::array& fields, boost::json::array& header) const;
 			static boost::json::array GetPeers (std::shared_ptr<Torrent> torrent);
 			boost::json::array GetTrackers (std::shared_ptr<Torrent> torrent) const;
 			boost::json::array GetTrackerStats (std::shared_ptr<Torrent> torrent) const;
@@ -226,16 +226,7 @@ namespace torrents
 			isTable = arguments.at ("format").as_string () == "table";
 
 		boost::json::object response;
-		boost::json::array torrents;
-		if (isTable)
-		{
-			boost::json::array tableHeader;
-			tableHeader.push_back ("id");
-			for (const auto& field: fields)
-				if (field.as_string () != "id")
-					tableHeader.push_back (field.as_string ());
-			torrents.push_back (tableHeader);
-		}
+		boost::json::array torrents, header;
 		for (auto id: torrentIds)
 		{
 			auto torrent = m_Tunnel->FindTorrentByID (id);
@@ -243,12 +234,15 @@ namespace torrents
 			{
 				if (isTable)
 				{
+					bool isFirst = header.empty ();
 					boost::json::array t;
 					boost::asio::post (m_Tunnel->GetService (),
-						boost::asio::use_future ([this, torrent, id, fields, &t]()
+						boost::asio::use_future ([this, torrent, id, fields, &header, &t]()
 						{
-							t = GetTorrentTableRow (torrent, id, fields);
+							t = GetTorrentTableRow (torrent, id, fields, header);
 						})).wait ();
+					if (isFirst)
+						torrents.push_back (header); // add header once
 					torrents.push_back (t);
 				}
 				else
@@ -282,17 +276,24 @@ namespace torrents
 	}
 
 	boost::json::array JSONRPCHandler::GetTorrentTableRow (std::shared_ptr<Torrent> torrent,
-		int id, const boost::json::array& fields) const
+		int id, const boost::json::array& fields, boost::json::array& header) const
 	{
-		boost::json::array t;
-		t.push_back (id);
+		bool fillHeader = header.empty ();
+		boost::json::array row;
+		if (fillHeader)
+			header.push_back ("id");
+		row.push_back (id);
 		for (const auto& field: fields)
 		{
 			auto fieldValue = GetFieldValue (field.as_string (), torrent);
 			if (!fieldValue.is_null ())
-				t.push_back (fieldValue);
+			{
+				if (fillHeader)
+					header.push_back (field);
+				row.push_back (fieldValue);
+			}
 		}
-		return t;
+		return row;
 	}
 
 	boost::json::value JSONRPCHandler::GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent) const
