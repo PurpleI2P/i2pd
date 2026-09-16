@@ -50,6 +50,7 @@ namespace torrents
 			boost::json::array GetTrackers (std::shared_ptr<Torrent> torrent) const;
 			boost::json::array GetTrackerStats (std::shared_ptr<Torrent> torrent) const;
 			boost::json::array GetFiles (std::shared_ptr<Torrent> torrent) const;
+			static boost::json::array GetFileStats (std::shared_ptr<Torrent> torrent);
 			static std::string_view RecognizeClientByPeerID (const PeerConnection::PeerID& peerID);
 
 			std::string HandleTorrentAdd (boost::json::object&& jsonRequest);
@@ -358,7 +359,8 @@ namespace torrents
 			{ "downloadDir", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(""); } }, // TODO: torrentsdir
 			{ "webseedsSendingToUs", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(0); } }, // not webseeds in i2p yet
 			{ "peers", &JSONRPCHandler::GetPeers },
-			{ "peersConnected", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetConnections ().size ()); } }
+			{ "peersConnected", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetConnections ().size ()); } },
+			{ "fileStats", &JSONRPCHandler::GetFileStats }
 		};
 		if (torrent)
 		{
@@ -490,6 +492,21 @@ namespace torrents
 			file["bytesCompleted"] = (ind < filesCompleted.size ()) ? filesCompleted[ind] : 0;
 			files.push_back (file);
 			ind++;
+		}
+		return files;
+	}
+
+	boost::json::array JSONRPCHandler::GetFileStats (std::shared_ptr<Torrent> torrent)
+	{
+		boost::json::array files;
+		auto filesCompleted = torrent->GetFilesCompleted ();
+		for (auto it: filesCompleted)
+		{
+			boost::json::object file;
+			file["bytesCompleted"] = it;
+			file["priority"] = 0;
+			file["wanted"] = true;
+			files.push_back (file);
 		}
 		return files;
 	}
