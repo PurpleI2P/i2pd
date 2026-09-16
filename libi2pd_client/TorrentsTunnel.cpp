@@ -16,7 +16,6 @@
 #include "Log.h"
 #include "Timestamp.h"
 #include "I2PEndian.h"
-#include "HTTP.h"
 #include "AddressBook.h"
 #include "ClientContext.h"
 #include "TorrentsTunnel.h"
@@ -37,10 +36,21 @@ namespace torrents
 		m_PeerID.resize (20, '0');
 		if (!trackers.empty ())
 		{
+			// parse param
 			std::vector<std::string> trackersList;
 			boost::split(trackersList, trackers, boost::is_any_of(","), boost::token_compress_on);
+			// exclude duplicates
+			std::unordered_map<std::string, i2p::http::URL> hosts;
 			for (const auto& it: trackersList)
-				m_Trackers.emplace_back (TrackerInfo{ it, true, 0, 0, 0 });
+			{
+				i2p::http::URL url (it);
+				auto [it1, inserted] = hosts.emplace (url.host, url);
+				if (!inserted && url.schema == "udp" && it1->second.schema == "http")
+					it1->second = url; // replace http address by udp address
+			}
+			// create common trackers
+			for (const auto& it: hosts)
+				m_Trackers.emplace_back (TrackerInfo{ it.second, true, 0, 0, 0 });
 		}
 	}
 
@@ -393,15 +403,14 @@ namespace torrents
 			if (!torrent->GetAnnounce ().empty ())
 			{
 				// add announce to trackers
-				 auto it = std::find_if (m_Trackers.begin (), m_Trackers.end (),
-					[announce = torrent->GetAnnounce ()](const TrackerInfo& tracker)
+				i2p::http::URL reqURL (torrent->GetAnnounce ());
+				auto it = std::find_if (m_Trackers.begin (), m_Trackers.end (),
+					[host = std::string_view (reqURL.host)](const TrackerInfo& tracker)
 					{
-						return std::get<0>(tracker) == announce;
+						return std::get<0>(tracker).host == host;
 					});
 				if (it == m_Trackers.end())
 				{
-					i2p::http::URL reqURL;
-					reqURL.parse (torrent->GetAnnounce ());
 					if (reqURL.host.ends_with (".i2p"))
 						m_Trackers.emplace_back (TrackerInfo{ torrent->GetAnnounce (), false, 0, 0, 0 });
 					else
@@ -560,10 +569,9 @@ namespace torrents
 	bool TorrentsTunnel::RequestTracker (size_t trackerID, std::shared_ptr<Torrent> torrent, TrackerAnnounceEvent event)
 	{
 		if (!torrent || trackerID >= m_Trackers.size() ||
-			(!std::get<1>(m_Trackers[trackerID]) && std::get<0>(m_Trackers[trackerID]) != torrent->GetAnnounce ())) // not common tracker or with torrent's aanpunce
+			(!std::get<1>(m_Trackers[trackerID]) && std::get<0>(m_Trackers[trackerID]).host != i2p::http::URL (torrent->GetAnnounce ()).host)) // not common tracker or with torrent's announce
 			return false;
-		i2p::http::URL reqURL;
-		reqURL.parse (std::get<0>(m_Trackers[trackerID]));
+		i2p::http::URL reqURL = std::get<0>(m_Trackers[trackerID]);
 		if (!reqURL.host.ends_with (".i2p"))
 		{
 			LogPrint (eLogWarning, "TorrentsTunnel: Non-I2P address ", reqURL.host, " for torrent ", torrent->GetName ());
@@ -736,7 +744,7 @@ namespace torrents
 					for (size_t i = 0; i < m_Trackers.size (); i++)
 					{
 						if (!it.second->GetNextTrackerRequestTime (i) &&  // first time
-							(std::get<1>(m_Trackers[i]) || std::get<0>(m_Trackers[i]) == it.second->GetAnnounce ()))
+							(std::get<1>(m_Trackers[i]) || std::get<0>(m_Trackers[i]).host == i2p::http::URL (it.second->GetAnnounce ()).host))
 						{
 							auto initialInterval = GetLocalDestination ()->GetRng()() % TRACKER_INITIAL_REQUEST_INTERVAL_VARIANCE;
 							if (initialInterval <= TRACKER_REQUESTS_CHECK_TIMEOUT) initialInterval = 0; // request immeditely
