@@ -234,6 +234,7 @@ namespace torrents
 			for (const auto& field: fields)
 				if (field.as_string () != "id")
 					tableHeader.push_back (field.as_string ());
+			torrents.push_back (tableHeader);
 		}
 		for (auto id: torrentIds)
 		{
