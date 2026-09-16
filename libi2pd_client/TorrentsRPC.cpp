@@ -44,8 +44,9 @@ namespace torrents
 			std::string ErrorResponse (int64_t tag, std::string_view message);
 			static int64_t GetTag (boost::json::object& jsonRequest);
 			static std::vector<int> GetTorrentIds (boost::json::object& arguments);
-			static boost::json::value GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent);
-			boost::json::object GetTorrentObject (std::shared_ptr<Torrent> torrent, int id, const boost::json::array& fields);
+			boost::json::value GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent) const;
+			boost::json::object GetTorrentObject (std::shared_ptr<Torrent> torrent, int id, const boost::json::array& fields) const;
+			boost::json::array GetTorrentTableRow (std::shared_ptr<Torrent> torrent,int id, const boost::json::array& fields) const;
 			static boost::json::array GetPeers (std::shared_ptr<Torrent> torrent);
 			boost::json::array GetTrackers (std::shared_ptr<Torrent> torrent) const;
 			boost::json::array GetTrackerStats (std::shared_ptr<Torrent> torrent) const;
@@ -220,21 +221,45 @@ namespace torrents
 		else
 			torrentIds = m_Tunnel->GetTorrentIDs ();
 		auto fields = arguments.at ("fields").as_array ();
+		bool isTable = false;
+		if (arguments.contains ("format"))
+			isTable = arguments.at ("format").as_string () == "table";
 
 		boost::json::object response;
 		boost::json::array torrents;
+		if (isTable)
+		{
+			boost::json::array tableHeader;
+			tableHeader.push_back ("id");
+			for (const auto& field: fields)
+				if (field.as_string () != "id")
+					tableHeader.push_back (field.as_string ());
+		}
 		for (auto id: torrentIds)
 		{
 			auto torrent = m_Tunnel->FindTorrentByID (id);
 			if (torrent)
 			{
-				boost::json::object t;
-				boost::asio::post (m_Tunnel->GetService (),
-					boost::asio::use_future ([this, torrent, id, fields, &t]()
-					{
-						t = GetTorrentObject (torrent, id, fields);
-					})).wait ();
-				torrents.push_back (t);
+				if (isTable)
+				{
+					boost::json::array t;
+					boost::asio::post (m_Tunnel->GetService (),
+						boost::asio::use_future ([this, torrent, id, fields, &t]()
+						{
+							t = GetTorrentTableRow (torrent, id, fields);
+						})).wait ();
+					torrents.push_back (t);
+				}
+				else
+				{
+					boost::json::object t;
+					boost::asio::post (m_Tunnel->GetService (),
+						boost::asio::use_future ([this, torrent, id, fields, &t]()
+						{
+							t = GetTorrentObject (torrent, id, fields);
+						})).wait ();
+					torrents.push_back (t);
+				}
 			}
 		}
 		response["torrents"] = torrents;
@@ -242,31 +267,34 @@ namespace torrents
 	}
 
 	boost::json::object JSONRPCHandler::GetTorrentObject (std::shared_ptr<Torrent> torrent,
-		int id, const boost::json::array& fields)
+		int id, const boost::json::array& fields) const
 	{
 		boost::json::object t;
 		t["id"] = id;
 		for (const auto& field: fields)
 		{
-			if (field == "id")
-				continue;
-			else if (field == "trackers")
-				t["trackers"] = GetTrackers (torrent);
-			else if (field == "trackerStats")
-				t["trackerStats"] = GetTrackerStats (torrent);
-			else if (field == "files")
-				t["files"] = GetFiles (torrent);
-			else
-			{
-				auto fieldValue = GetFieldValue (field.as_string (), torrent);
-				if (!fieldValue.is_null ())
-					t[field.as_string ()] = fieldValue;
-			}
+			auto fieldValue = GetFieldValue (field.as_string (), torrent);
+			if (!fieldValue.is_null ())
+				t[field.as_string ()] = fieldValue;
 		}
 		return t;
 	}
 
-	boost::json::value JSONRPCHandler::GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent)
+	boost::json::array JSONRPCHandler::GetTorrentTableRow (std::shared_ptr<Torrent> torrent,
+		int id, const boost::json::array& fields) const
+	{
+		boost::json::array t;
+		t.push_back (id);
+		for (const auto& field: fields)
+		{
+			auto fieldValue = GetFieldValue (field.as_string (), torrent);
+			if (!fieldValue.is_null ())
+				t.push_back (fieldValue);
+		}
+		return t;
+	}
+
+	boost::json::value JSONRPCHandler::GetFieldValue (std::string_view field, std::shared_ptr<Torrent> torrent) const
 	{
 		const static std::map<std::string_view, std::function<boost::json::value (std::shared_ptr<Torrent>)> > fields =
 		{
@@ -364,6 +392,12 @@ namespace torrents
 		};
 		if (torrent)
 		{
+			if (field == "trackers")
+				return GetTrackers (torrent);
+			if (field == "trackerStats")
+				return GetTrackerStats (torrent);
+			if (field == "files")
+				return GetFiles (torrent);
 			auto it = fields.find (field);
 			if (it != fields.end ())
 				return it->second (torrent);
