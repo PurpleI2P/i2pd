@@ -416,7 +416,8 @@ namespace data
 			uint16_t keyType = bufbe16toh (buf + offset); offset += 2; // encryption key type
 			uint16_t encryptionKeyLen = bufbe16toh (buf + offset); offset += 2;
 			if (offset + encryptionKeyLen > len) return 0;
-			if (IsStoreLeases () && !preferredKeyFound) // create encryptor with leases only
+			if (IsStoreLeases () && !preferredKeyFound && // create encryptor with leases only
+				i2p::crypto::GetCryptoPublicKeyLen (keyType) == encryptionKeyLen) // key length mismatch or unknown key type
 			{
 				// we pick max key type if preferred not found
 #if !OPENSSL_PQ
