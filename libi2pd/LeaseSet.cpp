@@ -599,6 +599,7 @@ namespace data
 				// override store type and buffer
 				m_StoreType = innerPlainText[0];
 				SetBuffer (innerPlainText.data () + 1, lenInnerPlaintext - 1);
+				m_TransientVerifier = nullptr; // Layer 2 has a signer of its own
 				// parse and verify Layer 2
 				ReadFromBuffer (innerPlainText.data () + 1, lenInnerPlaintext - 1, dest);
 			}
