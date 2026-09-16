@@ -272,7 +272,7 @@ namespace util
 	{
 		if (!len) return { };
 		uint8_t l = buf[0];
-		if (l > len) l = len;
+		if (l > len - 1) l = len - 1;
 		return { (const char *)(buf + 1), l };
 	}
 

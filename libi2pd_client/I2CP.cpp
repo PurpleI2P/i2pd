@@ -882,6 +882,11 @@ namespace client
 
 	void I2CPSession::CreateLeaseSet2MessageHandler (const uint8_t * buf, size_t len)
 	{
+		if (len < 3)
+		{
+			LogPrint (eLogError, "I2CP: CreateLeaseSet2Message is too short ", len);
+			return;
+		}
 		uint16_t sessionID = bufbe16toh (buf);
 		if (sessionID == m_SessionID)
 		{
@@ -897,6 +902,11 @@ namespace client
 				}
 				offset += ls.GetBufferLen ();
 				// private keys
+				if (offset >= len)
+				{
+					LogPrint (eLogError, "I2CP: CreateLeaseSet2Message is too short for private keys");
+					return;
+				}
 				int numPrivateKeys = buf[offset]; offset++;
 				for (int i = 0; i < numPrivateKeys; i++)
 				{
@@ -1074,6 +1084,11 @@ namespace client
 
 	void I2CPSession::DestLookupMessageHandler (const uint8_t * buf, size_t len)
 	{
+		if (len < 32)
+		{
+			LogPrint (eLogError, "I2CP: DestLookupMessage is too short ", len);
+			return;
+		}
 		if (m_Destination)
 		{
 			auto ls = m_Destination->FindLeaseSet (buf);

@@ -556,6 +556,7 @@ namespace data
 		if (allzeros)
 		{
 			// offline information
+			if (ret + 6 > len) return 0; // expires(4) + key type(2)
 			const uint8_t * offlineInfo = buf + ret;
 			uint32_t expires = bufbe32toh (buf + ret); ret += 4; // expires timestamp
 			if (expires < i2p::util::GetSecondsSinceEpoch ())

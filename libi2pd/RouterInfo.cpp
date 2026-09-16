@@ -644,11 +644,12 @@ namespace data
 
 	std::string_view RouterInfo::ExtractString (const uint8_t * buf, size_t len) const
 	{
+		if (!len) return {};
 		uint8_t l = buf[0];
-		if (l > len)
+		if (l > len - 1)
 		{
 			LogPrint (eLogWarning, "RouterInfo: String length ", (int)l, " exceeds buffer size ", len);
-			l = len;
+			l = len - 1;
 		}
 		return { (const char *)(buf + 1), l };
 	}
