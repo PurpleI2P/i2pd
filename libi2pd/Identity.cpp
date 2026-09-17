@@ -768,6 +768,13 @@ namespace data
 			PrivateKeys keys;
 			// signature
 			std::unique_ptr<i2p::crypto::Verifier> verifier (IdentityEx::CreateVerifier (type));
+			if (!verifier)
+			{
+				// type comes from a config file or from a SAM or BOB command, so it can be anything
+				LogPrint (eLogError, "Identity: Signing key type ", (int)type, " is not supported. Use EdDSA");
+				type = SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519;
+				verifier.reset (IdentityEx::CreateVerifier (type));
+			}
 			std::vector<uint8_t> signingPublicKey(verifier->GetPublicKeyLen ());
 			keys.m_SigningPrivateKey.resize (verifier->GetPrivateKeyLen ());
 			GenerateSigningKeyPair (type, keys.m_SigningPrivateKey.data (), signingPublicKey.data ());
