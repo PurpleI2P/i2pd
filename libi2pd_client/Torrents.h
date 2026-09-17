@@ -36,6 +36,8 @@ namespace i2p
 namespace torrents
 {
 	constexpr size_t REQUEST_BLOCK_SIZE = 16384;
+	constexpr size_t MIN_PIECE_LENGTH = 16*1024; // 16K
+	constexpr size_t MAX_PIECE_LENGTH = 64*1024*1024; // 64M
 	constexpr uint16_t TORRENT_PORT = 6881; //  not used by required by protocol
 	constexpr int MIN_TRACKER_REQUESTS_INTERVAL = 15000; // in milliseconds
 	constexpr size_t PEER_CONNECTION_RECEIVE_BUFFER_SIZE = 65535;
@@ -219,6 +221,7 @@ namespace torrents
 			std::string_view GetName () const { return m_Name; }
 			void SetName (std::string_view name) { m_Name = AdjustName (name); }
 			bool IsValid () const { return !m_Name.empty () && m_PieceLength && (m_Length || !m_Files.empty ()); }
+			std::string_view GetError () const { return m_Error; }
 			const std::filesystem::path& GetFullPath () const { return m_FullPath; }
 			void SetFullPath (const std::filesystem::path& fullPath) { m_FullPath = fullPath; }
 			const std::list<std::shared_ptr<TorrentFile> >& GetFiles () const { return m_Files; }
@@ -285,7 +288,7 @@ namespace torrents
 
 		private:
 
-			std::string m_Name, m_Announce;
+			std::string m_Name, m_Announce, m_Error;
 			std::filesystem::path m_FullPath;
 			size_t m_Length, m_PieceLength;
 			std::vector<uint8_t> m_Info; // for BEP9

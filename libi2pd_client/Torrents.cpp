@@ -490,7 +490,15 @@ namespace torrents
 				else if (key == "piece length")
 				{
 					auto [value, l] = ExtractInteger (buf);
-					if (l)  m_PieceLength = value;
+					if (l)
+					{
+						if ((size_t)value < MIN_PIECE_LENGTH || (size_t)value > MAX_PIECE_LENGTH)
+						{
+							LogPrint (eLogError, "Torrents: invalid piece length ", value);
+							value = 0;
+						}
+						m_PieceLength = value;
+					}
 					return l;
 				}
 				else if (key == "pieces")
@@ -501,6 +509,8 @@ namespace torrents
 					}
 					if (m_PieceLength > 0 && m_Length > 0)
 						m_Pieces.reserve (m_Length/m_PieceLength + 1);
+					else
+						m_Error = "Malformed metaInfo";
 					return ParsePieces (buf);
 				}
 				else if (key == "files")
