@@ -286,7 +286,7 @@ namespace config {
             	"https://reseed.stormycloud.org/,"
             	"https://reseed.sahil.world/,"
             	"https://i2p.diyarciftci.xyz/,"
-            	"https://bybyh.de/,"
+            	"https://furland.horoshij.space/reseed/,"
             	"https://spiral.likogan.dev/"
 			),                                                            "Reseed URLs, separated by comma")
 			("reseed.yggurls", value<std::string>()->default_value(
