@@ -768,6 +768,11 @@ namespace data
 			PrivateKeys keys;
 			// signature
 			std::unique_ptr<i2p::crypto::Verifier> verifier (IdentityEx::CreateVerifier (type));
+			if (!verifier)
+			{
+				LogPrint (eLogError, "Identity: Can't create keys with signing key type ", (int)type, ". Use DSA-SHA1");
+				return PrivateKeys (i2p::data::CreateRandomKeys ()); // DSA-SHA1
+			}
 			std::vector<uint8_t> signingPublicKey(verifier->GetPublicKeyLen ());
 			keys.m_SigningPrivateKey.resize (verifier->GetPrivateKeyLen ());
 			GenerateSigningKeyPair (type, keys.m_SigningPrivateKey.data (), signingPublicKey.data ());
