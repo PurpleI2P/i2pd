@@ -37,6 +37,7 @@ namespace client
 	const size_t SAM_STREAM_MAX_SEND_BUFFER_SIZE = 8*SAM_SOCKET_BUFFER_SIZE;
 	const int SAM_SOCKET_CONNECTION_MAX_IDLE = 3600; // in seconds
 	const int SAM_SESSION_READINESS_CHECK_INTERVAL = 3; // in seconds
+	const int SAM_SESSION_CLEANUP_CHECK_INTERVAL = 5; // in seconds
 	const size_t SAM_SESSION_MAX_ACCEPT_QUEUE_SIZE = 50;
 	const size_t SAM_SESSION_MAX_ACCEPT_INTERVAL = 3; // in seconds
 

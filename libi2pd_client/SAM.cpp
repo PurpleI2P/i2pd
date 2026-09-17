@@ -1647,9 +1647,16 @@ namespace client
 		{
 			i2p::data::PrivateKeys keys;
 			if (!keys.FromBase64 (destination)) return nullptr;
-			localDestination = m_IsSingleThread ?
-				i2p::client::context.CreateNewLocalDestination (GetIOService (), keys, true, &params) :
-				i2p::client::context.CreateNewLocalDestination (keys, true, &params);
+			localDestination = i2p::client::context.FindLocalDestination (keys.GetPublic ()->GetIdentHash ());
+			if (localDestination && localDestination->GetRefCounter () <= 0)
+			{
+				LogPrint (eLogError, "SAM: Orphaned destination ", keys.GetPublic ()->GetIdentHash ().ToBase32 (), ".  Try later");
+				return nullptr;
+			}
+			if (!localDestination)
+				localDestination = m_IsSingleThread ?
+					i2p::client::context.CreateNewLocalDestination (GetIOService (), keys, true, &params) :
+					i2p::client::context.CreateNewLocalDestination (keys, true, &params);
 		}
 		else // transient
 		{
@@ -1716,7 +1723,7 @@ namespace client
 	void SAMBridge::ScheduleSessionCleanupTimer (std::shared_ptr<SAMSession> session)
 	{
 		auto timer = std::make_shared<boost::asio::steady_timer>(GetService ());
-		timer->expires_after (std::chrono::seconds(5)); // postpone destination clean for 5 seconds
+		timer->expires_after (std::chrono::seconds(SAM_SESSION_CLEANUP_CHECK_INTERVAL)); // postpone destination cleanup
 		timer->async_wait (std::bind (&SAMBridge::HandleSessionCleanupTimer, this, std::placeholders::_1, session, timer));
 	}
 
