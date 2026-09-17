@@ -333,8 +333,8 @@ namespace torrents
 			void ResetStats ();
 			uint64_t GetDownloadRate () const { return m_DownloadRate; }
 			uint64_t GetUploadRate () const { return m_UploadRate; }
-			bool IsDownloading () const { return m_NumRequests > 0; }
-			bool IsUploading () const { return m_NumPieces > 0 || (m_Stream && m_Stream->GetSendBufferSize () > 4); }
+			bool IsDownloading () const { return m_IsInterested && !m_IsChoked; }
+			bool IsUploading () const { return m_IsRemoteInterested && !m_IsRemoteChoked; }
 			bool IsInterested () const  { return m_IsInterested; }
 			bool IsRemoteInterested () const  { return m_IsRemoteInterested; }
 			bool IsChoked () const  { return m_IsChoked; }
