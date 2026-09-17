@@ -257,6 +257,7 @@ namespace torrents
 				}
 			}
 		}
+		if (header.empty ()) torrents.push_back (fields);
 		response["torrents"] = torrents;
 		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}
