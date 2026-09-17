@@ -495,6 +495,38 @@ namespace data
 		return l;
 	}
 
+	size_t OfflineSigner::FromBuffer (const uint8_t * buf, size_t len, size_t authoritySignatureLen)
+	{
+		if (len < OFFLINE_SIGNATURE_HEADER_LENGTH) return 0;
+		SigningKeyType transientSigType = bufbe16toh (buf + 4);
+		std::unique_ptr<i2p::crypto::Verifier> transientVerifier (IdentityEx::CreateVerifier (transientSigType));
+		if (!transientVerifier) return 0;
+		size_t offlineSignatureLen = OFFLINE_SIGNATURE_HEADER_LENGTH + transientVerifier->GetPublicKeyLen () + authoritySignatureLen;
+		size_t fullLen = offlineSignatureLen + transientVerifier->GetPrivateKeyLen ();
+		if (fullLen > len) return 0;
+		// the transient signs on behalf of the destination, so it must be a type we can sign with
+		std::unique_ptr<i2p::crypto::Signer> signer (PrivateKeys::CreateSigner (transientSigType, buf + offlineSignatureLen));
+		if (!signer) return 0;
+		m_SignatureLen = transientVerifier->GetSignatureLen ();
+		m_OfflineSignature.assign (buf, buf + offlineSignatureLen);
+		m_TransientPrivateKey.assign (buf + offlineSignatureLen, buf + fullLen);
+		m_Signer = std::move (signer);
+		return fullLen;
+	}
+
+	size_t OfflineSigner::ToBuffer (uint8_t * buf, size_t len) const
+	{
+		if (GetFullLen () > len) return 0;
+		memcpy (buf, m_OfflineSignature.data (), m_OfflineSignature.size ());
+		memcpy (buf + m_OfflineSignature.size (), m_TransientPrivateKey.data (), m_TransientPrivateKey.size ());
+		return GetFullLen ();
+	}
+
+	bool OfflineVerifier::IsExpired (uint32_t expires)
+	{
+		return expires < i2p::util::GetSecondsSinceEpoch ();
+	}
+
 	PrivateKeys& PrivateKeys::operator=(const Keys& keys)
 	{
 		m_Public = std::make_shared<IdentityEx>(Identity (keys));
@@ -502,9 +534,7 @@ namespace data
 		size_t keyLen = m_Public->GetSigningPrivateKeyLen ();
 		m_SigningPrivateKey.resize (keyLen);
 		memcpy (m_SigningPrivateKey.data (), keys.signingPrivateKey, keyLen);
-		m_OfflineSignature.resize (0);
-		m_TransientSignatureLen = 0;
-		m_TransientSigningPrivateKeyLen = 0;
+		m_OfflineSigner = nullptr;
 		m_Signer = nullptr;
 		CreateSigner ();
 		return *this;
@@ -514,12 +544,10 @@ namespace data
 	{
 		m_Public = std::make_shared<IdentityEx>(*other.m_Public);
 		memcpy (m_PrivateKey, other.m_PrivateKey, 256); // 256
-		m_OfflineSignature = other.m_OfflineSignature;
-		m_TransientSignatureLen = other.m_TransientSignatureLen;
-		m_TransientSigningPrivateKeyLen = other.m_TransientSigningPrivateKeyLen;
+		m_OfflineSigner = other.m_OfflineSigner;
 		m_SigningPrivateKey = other.m_SigningPrivateKey;
 		m_Signer = nullptr;
-		CreateSigner ();
+		if (!IsOfflineSignature ()) CreateSigner ();
 		return *this;
 	}
 
@@ -527,7 +555,7 @@ namespace data
 	{
 		size_t ret = m_Public->GetFullLen () + GetPrivateKeyLen () + m_Public->GetSigningPrivateKeyLen ();
 		if (IsOfflineSignature ())
-			ret += m_OfflineSignature.size () + m_TransientSigningPrivateKeyLen;
+			ret += m_OfflineSigner->GetFullLen ();
 		return ret;
 	}
 
@@ -555,40 +583,21 @@ namespace data
 			}
 		if (allzeros)
 		{
-			// offline information
-			if (ret + 6 > len) return 0; // expires(4) + key type(2)
-			const uint8_t * offlineInfo = buf + ret;
-			uint32_t expires = bufbe32toh (buf + ret); ret += 4; // expires timestamp
-			if (expires < i2p::util::GetSecondsSinceEpoch ())
-			{
-				LogPrint (eLogError, "Identity: Offline signature expired");
-				return 0;
-			}
-			SigningKeyType keyType = bufbe16toh (buf + ret); ret += 2; // key type
-			std::unique_ptr<i2p::crypto::Verifier> transientVerifier (IdentityEx::CreateVerifier (keyType));
-			if (!transientVerifier) return 0;
-			auto keyLen = transientVerifier->GetPublicKeyLen ();
-			if (keyLen + ret > len) return 0;
-			transientVerifier->SetPublicKey (buf + ret); ret += keyLen;
-			if (m_Public->GetSignatureLen () + ret > len) return 0;
-			if (!m_Public->Verify (offlineInfo, keyLen + 6, buf + ret))
+			auto offlineSigner = std::make_shared<OfflineSigner>();
+			size_t offlineSignerLen = offlineSigner->FromBuffer (buf + ret, len - ret, m_Public->GetSignatureLen ());
+			if (!offlineSignerLen) return 0;
+			if (!offlineSigner->Verify (m_Public))
 			{
 				LogPrint (eLogError, "Identity: Offline signature verification failed");
 				return 0;
 			}
-			ret += m_Public->GetSignatureLen ();
-			m_TransientSignatureLen = transientVerifier->GetSignatureLen ();
-			// copy offline signature
-			size_t offlineInfoLen = buf + ret - offlineInfo;
-			m_OfflineSignature.resize (offlineInfoLen);
-			memcpy (m_OfflineSignature.data (), offlineInfo, offlineInfoLen);
-			// override signing private key
-			m_TransientSigningPrivateKeyLen = transientVerifier->GetPrivateKeyLen ();
-			if (m_TransientSigningPrivateKeyLen + ret > len) return 0;
-			if (m_TransientSigningPrivateKeyLen > m_SigningPrivateKey.size ()) m_SigningPrivateKey.resize (m_TransientSigningPrivateKeyLen);
-			memcpy (m_SigningPrivateKey.data (), buf + ret, m_TransientSigningPrivateKeyLen);
-			ret += m_TransientSigningPrivateKeyLen;
-			CreateSigner (keyType);
+			if (offlineSigner->GetExpires () < i2p::util::GetSecondsSinceEpoch ())
+			{
+				LogPrint (eLogError, "Identity: Offline signature expired");
+				return 0;
+			}
+			m_OfflineSigner = offlineSigner;
+			ret += offlineSignerLen;
 		}
 		else
 			CreateSigner (m_Public->GetSigningKeyType ());
@@ -610,15 +619,9 @@ namespace data
 		ret += signingPrivateKeySize;
 		if (IsOfflineSignature ())
 		{
-			// offline signature
-			auto offlineSignatureLen = m_OfflineSignature.size ();
-			if (ret + offlineSignatureLen > len) return 0;
-			memcpy (buf + ret, m_OfflineSignature.data (), offlineSignatureLen);
-			ret += offlineSignatureLen;
-			// transient private key
-			if (ret + m_TransientSigningPrivateKeyLen > len) return 0;
-			memcpy (buf + ret, m_SigningPrivateKey.data (), m_TransientSigningPrivateKeyLen);
-			ret += m_TransientSigningPrivateKeyLen;
+			size_t offlineSignerLen = m_OfflineSigner->ToBuffer (buf + ret, len - ret);
+			if (!offlineSignerLen) return 0;
+			ret += offlineSignerLen;
 		}
 		return ret;
 	}
@@ -639,28 +642,31 @@ namespace data
 
 	void PrivateKeys::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{
-		if (!m_Signer)
-			CreateSigner();
-		m_Signer->Sign (buf, len, signature);
+		if (IsOfflineSignature ())
+			m_OfflineSigner->Sign (buf, len, signature);
+		else
+		{
+			if (!m_Signer)
+				CreateSigner();
+			m_Signer->Sign (buf, len, signature);
+		}
+	}
+
+	const std::vector<uint8_t>& PrivateKeys::GetOfflineSignature () const
+	{
+		static const std::vector<uint8_t> noSignature;
+		return IsOfflineSignature () ? m_OfflineSigner->GetOfflineSignature () : noSignature;
 	}
 
 	void PrivateKeys::UpdateOfflineSignature (const PrivateKeys& other)
 	{
-		// same identity (m_Public): refresh only the transient material and the signer
-		m_SigningPrivateKey = other.m_SigningPrivateKey;
-		m_OfflineSignature = other.m_OfflineSignature;
-		m_TransientSignatureLen = other.m_TransientSignatureLen;
-		m_TransientSigningPrivateKeyLen = other.m_TransientSigningPrivateKeyLen;
-		m_Signer = nullptr;
-		CreateSigner ();
+		// same identity (m_Public): refresh only the transient material
+		m_OfflineSigner = other.m_OfflineSigner;
 	}
 
 	void PrivateKeys::CreateSigner () const
 	{
-		if (IsOfflineSignature ())
-			CreateSigner (bufbe16toh (m_OfflineSignature.data () + 4)); // key type
-		else
-			CreateSigner (m_Public->GetSigningKeyType ());
+		CreateSigner (m_Public->GetSigningKeyType ());
 	}
 
 	void PrivateKeys::CreateSigner (SigningKeyType keyType) const
@@ -668,7 +674,7 @@ namespace data
 		if (m_Signer) return;
 		if (keyType == SIGNING_KEY_TYPE_DSA_SHA1)
 			m_Signer.reset (new i2p::crypto::DSASigner (m_SigningPrivateKey.data (), m_Public->GetStandardIdentity ().signingKey));
-		else if (keyType == SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519 && !IsOfflineSignature ())
+		else if (keyType == SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519)
 			m_Signer.reset (new i2p::crypto::EDDSA25519Signer (m_SigningPrivateKey.data (), m_Public->GetStandardIdentity ().signingKey + (sizeof(Identity::signingKey) - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH))); // TODO: remove public key check
 		else
 		{
@@ -716,7 +722,7 @@ namespace data
 
 	size_t PrivateKeys::GetSignatureLen () const
 	{
-		return IsOfflineSignature () ? m_TransientSignatureLen : m_Public->GetSignatureLen ();
+		return IsOfflineSignature () ? m_OfflineSigner->GetSignatureLen () : m_Public->GetSignatureLen ();
 	}
 
 	size_t PrivateKeys::GetPrivateKeyLen () const
@@ -851,17 +857,22 @@ namespace data
 		if (verifier)
 		{
 			size_t pubKeyLen = verifier->GetPublicKeyLen ();
-			keys.m_TransientSigningPrivateKeyLen = verifier->GetPrivateKeyLen ();
-			keys.m_TransientSignatureLen = verifier->GetSignatureLen ();
-			keys.m_OfflineSignature.resize (pubKeyLen + m_Public->GetSignatureLen () + 6);
-			keys.m_SigningPrivateKey.resize (verifier->GetPrivateKeyLen ());
-			htobe32buf (keys.m_OfflineSignature.data (), expires); // expires
-			htobe16buf (keys.m_OfflineSignature.data () + 4, type); // type
-			GenerateSigningKeyPair (type, keys.m_SigningPrivateKey.data (), keys.m_OfflineSignature.data () + 6); // public key
-			Sign (keys.m_OfflineSignature.data (), pubKeyLen + 6, keys.m_OfflineSignature.data () + 6 + pubKeyLen); // signature
-			// recreate signer
-			keys.m_Signer = nullptr;
-			keys.CreateSigner (type);
+			size_t signedLen = OFFLINE_SIGNATURE_HEADER_LENGTH + pubKeyLen;
+			// offline signature followed by the transient private key, as it is stored
+			std::vector<uint8_t> offlineSigner (signedLen + m_Public->GetSignatureLen () + verifier->GetPrivateKeyLen ());
+			htobe32buf (offlineSigner.data (), expires); // expires
+			htobe16buf (offlineSigner.data () + 4, type); // type
+			GenerateSigningKeyPair (type, offlineSigner.data () + signedLen + m_Public->GetSignatureLen (),
+				offlineSigner.data () + OFFLINE_SIGNATURE_HEADER_LENGTH); // public key
+			Sign (offlineSigner.data (), signedLen, offlineSigner.data () + signedLen); // signature by this destination
+			auto signer = std::make_shared<OfflineSigner>();
+			if (signer->FromBuffer (offlineSigner.data (), offlineSigner.size (), m_Public->GetSignatureLen ()))
+			{
+				keys.m_OfflineSigner = signer;
+				// the destination's own signing key does not belong to offline keys
+				memset (keys.m_SigningPrivateKey.data (), 0, keys.m_SigningPrivateKey.size ());
+				keys.m_Signer = nullptr;
+			}
 		}
 		return keys;
 	}

@@ -339,7 +339,7 @@ namespace data
 		if (flags & LEASESET2_FLAG_OFFLINE_KEYS)
 		{
 			// transient key
-			m_TransientVerifier = ProcessOfflineSignature (identity, buf, len, offset);
+			m_TransientVerifier = OfflineVerifier::FromBuffer (buf, len, identity, offset);
 			if (!m_TransientVerifier)
 			{
 				LogPrint (eLogError, "LeaseSet2: Offline signature failed");
@@ -515,7 +515,7 @@ namespace data
 		if (flags & LEASESET2_FLAG_OFFLINE_KEYS)
 		{
 			// transient key
-			m_TransientVerifier = ProcessOfflineSignature (blindedVerifier, buf, len, offset);
+			m_TransientVerifier = OfflineVerifier::FromBuffer (buf, len, blindedVerifier, offset);
 			if (!m_TransientVerifier)
 			{
 				LogPrint (eLogError, "LeaseSet2: Offline signature failed");

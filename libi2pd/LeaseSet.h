@@ -199,26 +199,6 @@ namespace data
 			i2p::util::Mapping m_Properties;
 	};
 
-	// also called from Streaming.cpp
-	template<typename Verifier>
-	std::shared_ptr<i2p::crypto::Verifier> ProcessOfflineSignature (const Verifier& verifier, const uint8_t * buf, size_t len, size_t& offset)
-	{
-		if (offset + 6 >= len) return nullptr;
-		const uint8_t * signedData = buf + offset;
-		uint32_t expiresTimestamp = bufbe32toh (buf + offset); offset += 4; // expires timestamp
-		if (expiresTimestamp < i2p::util::GetSecondsSinceEpoch ()) return nullptr;
-		uint16_t keyType = bufbe16toh (buf + offset); offset += 2;
-		std::shared_ptr<i2p::crypto::Verifier> transientVerifier (i2p::data::IdentityEx::CreateVerifier (keyType));
-		if (!transientVerifier) return nullptr;
-		auto keyLen = transientVerifier->GetPublicKeyLen ();
-		if (offset + keyLen >= len) return nullptr;
-		transientVerifier->SetPublicKey (buf + offset); offset += keyLen;
-		if (offset + verifier->GetSignatureLen () >= len) return nullptr;
-		if (!verifier->Verify (signedData, keyLen + 6, buf + offset)) return nullptr;
-		offset += verifier->GetSignatureLen ();
-		return transientVerifier;
-	}
-
 //------------------------------------------------------------------------------------
 	class LocalLeaseSet
 	{

@@ -253,7 +253,7 @@ namespace datagram
 			std::shared_ptr<i2p::crypto::Verifier> transientVerifier;
 			if (flags[1] & DATAGRAM2_FLAG_OFFLINE_SIGNATURE)
 			{
-				transientVerifier = i2p::data::ProcessOfflineSignature (&identity, buf, len, offset);
+				transientVerifier = i2p::data::OfflineVerifier::FromBuffer (buf, len, &identity, offset);
 				if (!transientVerifier)
 				{
 					LogPrint (eLogWarning, "Datagram: datagram2 offline signature failed");

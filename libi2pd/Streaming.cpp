@@ -624,7 +624,7 @@ namespace stream
 				{
 					// transient key
 					size_t offset = 0;
-					m_TransientVerifier = i2p::data::ProcessOfflineSignature (m_RemoteIdentity, optionData, optionSize - (optionData - packet->GetOptionData ()), offset);
+					m_TransientVerifier = i2p::data::OfflineVerifier::FromBuffer (optionData, optionSize - (optionData - packet->GetOptionData ()), m_RemoteIdentity, offset);
 					optionData += offset;
 					if (!m_TransientVerifier)
 					{
