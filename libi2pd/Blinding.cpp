@@ -109,6 +109,66 @@ namespace data
 		return ByteStreamToBase32 (addr, m_PublicKey.size () + 3);
 	}
 
+	BlindedSigner::BlindedSigner (std::shared_ptr<const i2p::crypto::Signer> signer, const uint8_t * blindedPublicKey,
+		size_t blindedPublicKeyLen, const std::vector<uint8_t>& offlineSignature):
+		m_Signer (signer), m_BlindedPublicKeyLen (std::min (blindedPublicKeyLen, m_BlindedPublicKey.size ())),
+		m_OfflineSignature (offlineSignature)
+	{
+		memcpy (m_BlindedPublicKey.data (), blindedPublicKey, m_BlindedPublicKeyLen);
+	}
+
+	BlindedPrivateKey::BlindedPrivateKey (const PrivateKeys& keys):
+		m_Public (keys.GetPublic ()),
+		m_SigningPrivateKey (keys.GetSigningPrivateKey (),
+			keys.GetSigningPrivateKey () + keys.GetPublic ()->GetSigningPrivateKeyLen ())
+	{
+	}
+
+	BlindedPrivateKey::~BlindedPrivateKey ()
+	{
+		if (!m_SigningPrivateKey.empty ())
+			memset (m_SigningPrivateKey.data (), 0, m_SigningPrivateKey.size ());
+	}
+
+	std::unique_ptr<BlindedPrivateKey> BlindedPrivateKey::Create (const PrivateKeys& keys)
+	{
+		if (keys.IsOfflineSignature ())
+		{
+			// blinding the transient key would publish a LeaseSet nobody can read
+			LogPrint (eLogError, "Blinding: An offline signature can't sign an encrypted LeaseSet");
+			return nullptr;
+		}
+		std::unique_ptr<BlindedPrivateKey> blindedKeys (new BlindedPrivateKey (keys));
+		if (!blindedKeys->GetPublic ().IsValid ())
+		{
+			LogPrint (eLogError, "Blinding: Can't blind signature type ", (int)keys.GetPublic ()->GetSigningKeyType ());
+			return nullptr;
+		}
+		return blindedKeys;
+	}
+
+	i2p::data::IdentHash BlindedPrivateKey::GetStoreHash (uint64_t timestamp) const
+	{
+		char date[9];
+		i2p::util::GetDateString (timestamp, date);
+		return m_Public.GetStoreHash (date);
+	}
+
+	std::unique_ptr<BlindedSigner> BlindedPrivateKey::CreateSigner (uint64_t timestamp) const
+	{
+		if (m_SigningPrivateKey.empty ()) return nullptr;
+		char date[9];
+		i2p::util::GetDateString (timestamp, date);
+		uint8_t blindedPriv[i2p::crypto::EDDSA25519_PRIVATE_KEY_LENGTH], blindedPub[i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH]; // 32 and 32 max
+		size_t publicKeyLen = m_Public.BlindPrivateKey (m_SigningPrivateKey.data (), date, blindedPriv, blindedPub);
+		std::shared_ptr<i2p::crypto::Signer> signer;
+		if (publicKeyLen)
+			signer.reset (PrivateKeys::CreateSigner (m_Public.GetBlindedSigType (), blindedPriv));
+		memset (blindedPriv, 0, sizeof (blindedPriv)); // it would give the destination's key away
+		if (!signer) return nullptr;
+		return std::unique_ptr<BlindedSigner>(new BlindedSigner (signer, blindedPub, publicKeyLen));
+	}
+
 	void BlindedPublicKey::GetCredential (uint8_t * credential) const
 	{
 		// A = destination's signing public key

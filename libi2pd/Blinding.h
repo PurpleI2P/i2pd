@@ -51,6 +51,55 @@ namespace data
 			i2p::data::SigningKeyType m_SigType, m_BlindedSigType;
 			bool m_IsClientAuth = false;
 	};
+
+	// signs the outer layer of an encrypted LeaseSet for one day
+	class BlindedSigner: public i2p::crypto::Signer
+	{
+		public:
+
+			BlindedSigner (std::shared_ptr<const i2p::crypto::Signer> signer, const uint8_t * blindedPublicKey,
+				size_t blindedPublicKeyLen, const std::vector<uint8_t>& offlineSignature = {});
+
+			// implements Signer
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const override { m_Signer->Sign (buf, len, signature); };
+			size_t GetSignatureLen () const override { return m_Signer->GetSignatureLen (); };
+
+			const uint8_t * GetBlindedPublicKey () const { return m_BlindedPublicKey.data (); };
+			size_t GetBlindedPublicKeyLen () const { return m_BlindedPublicKeyLen; };
+			// goes into the LeaseSet, empty unless the destination's signing key is offline
+			const std::vector<uint8_t>& GetOfflineSignature () const { return m_OfflineSignature; };
+
+		private:
+
+			std::shared_ptr<const i2p::crypto::Signer> m_Signer;
+			std::array<uint8_t, i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH> m_BlindedPublicKey;
+			size_t m_BlindedPublicKeyLen;
+			std::vector<uint8_t> m_OfflineSignature;
+	};
+
+	// the signing side of a blinded address, blinds the destination's own signing key
+	class BlindedPrivateKey
+	{
+		public:
+
+			static std::unique_ptr<BlindedPrivateKey> Create (const PrivateKeys& keys);
+
+			BlindedPrivateKey (const PrivateKeys& keys);
+			virtual ~BlindedPrivateKey ();
+
+			const BlindedPublicKey& GetPublic () const { return m_Public; };
+			IdentHash GetStoreHash (uint64_t timestamp) const;
+			virtual std::unique_ptr<BlindedSigner> CreateSigner (uint64_t timestamp) const; // nullptr if that day can't be signed
+
+		protected:
+
+			BlindedPublicKey m_Public;
+
+		private:
+
+			std::vector<uint8_t> m_SigningPrivateKey;
+	};
+
 }
 }
 
