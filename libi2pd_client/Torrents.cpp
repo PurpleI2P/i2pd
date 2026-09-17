@@ -1834,7 +1834,7 @@ namespace torrents
 		{
 			LogPrint (eLogDebug, "Torrents: Received request index ", index, " offset ", offset, " length ", length);
 			Piece& piece = m_Torrent->GetPiece (index);
-			if (piece.HasBlock (offset))
+			if (piece.HasBlock (offset) && offset + length <= piece.GetSize ())
 			{
 				if (m_NumPieces >= MAX_NUM_PIECES)
 				{
