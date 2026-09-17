@@ -495,6 +495,26 @@ namespace data
 		return l;
 	}
 
+	size_t B33OfflineKeys::FromBuffer (const uint8_t * buf, size_t len, const IdentHash& ident)
+	{
+		m_Buf.clear ();
+		if (len < B33_OFFLINE_KEYS_HEADER_LENGTH || buf[0] != B33_OFFLINE_KEYS_VERSION ||
+			memcmp (buf + 1, ident, IdentHash::len))
+		{
+			LogPrint (eLogWarning, "Identity: ", len, " bytes behind the keys are not b33 offline keys of this destination");
+			return 0;
+		}
+		m_Buf.assign (buf, buf + len);
+		return len;
+	}
+
+	size_t B33OfflineKeys::ToBuffer (uint8_t * buf, size_t len) const
+	{
+		if (m_Buf.size () > len) return 0;
+		memcpy (buf, m_Buf.data (), m_Buf.size ());
+		return m_Buf.size ();
+	}
+
 	size_t OfflineSigner::FromBuffer (const uint8_t * buf, size_t len, size_t authoritySignatureLen)
 	{
 		if (len < OFFLINE_SIGNATURE_HEADER_LENGTH) return 0;
@@ -545,6 +565,7 @@ namespace data
 		m_Public = std::make_shared<IdentityEx>(*other.m_Public);
 		memcpy (m_PrivateKey, other.m_PrivateKey, 256); // 256
 		m_OfflineSigner = other.m_OfflineSigner;
+		m_B33OfflineKeys = other.m_B33OfflineKeys;
 		m_SigningPrivateKey = other.m_SigningPrivateKey;
 		m_Signer = nullptr;
 		if (!IsOfflineSignature ()) CreateSigner ();
@@ -556,7 +577,7 @@ namespace data
 		size_t ret = m_Public->GetFullLen () + GetPrivateKeyLen () + m_Public->GetSigningPrivateKeyLen ();
 		if (IsOfflineSignature ())
 			ret += m_OfflineSigner->GetFullLen ();
-		return ret;
+		return ret + m_B33OfflineKeys.GetLen ();
 	}
 
 	size_t PrivateKeys::FromBuffer (const uint8_t * buf, size_t len)
@@ -601,6 +622,8 @@ namespace data
 		}
 		else
 			CreateSigner (m_Public->GetSigningKeyType ());
+		if (ret < len) // b33 offline keys may follow
+			ret += m_B33OfflineKeys.FromBuffer (buf + ret, len - ret, m_Public->GetIdentHash ());
 		return ret;
 	}
 
@@ -622,6 +645,12 @@ namespace data
 			size_t offlineSignerLen = m_OfflineSigner->ToBuffer (buf + ret, len - ret);
 			if (!offlineSignerLen) return 0;
 			ret += offlineSignerLen;
+		}
+		if (m_B33OfflineKeys.GetLen ())
+		{
+			size_t b33OfflineKeysLen = m_B33OfflineKeys.ToBuffer (buf + ret, len - ret);
+			if (!b33OfflineKeysLen) return 0;
+			ret += b33OfflineKeysLen;
 		}
 		return ret;
 	}
@@ -662,6 +691,7 @@ namespace data
 	{
 		// same identity (m_Public): refresh only the transient material
 		m_OfflineSigner = other.m_OfflineSigner;
+		m_B33OfflineKeys = other.m_B33OfflineKeys;
 	}
 
 	void PrivateKeys::CreateSigner () const

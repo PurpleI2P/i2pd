@@ -82,7 +82,7 @@ namespace data
 	{
 		public:
 
-			static std::unique_ptr<BlindedPrivateKey> Create (const PrivateKeys& keys);
+			static std::unique_ptr<BlindedPrivateKey> Create (const PrivateKeys& keys); // b33 offline keys, if the keys carry them
 
 			BlindedPrivateKey (const PrivateKeys& keys);
 			virtual ~BlindedPrivateKey ();
@@ -93,6 +93,10 @@ namespace data
 
 		protected:
 
+			BlindedPrivateKey (std::shared_ptr<const IdentityEx> identity); // the signing key is not here
+
+		protected:
+
 			BlindedPublicKey m_Public;
 
 		private:
@@ -100,6 +104,23 @@ namespace data
 			std::vector<uint8_t> m_SigningPrivateKey;
 	};
 
+	// the destination's signing key is offline: a transient per day, authorized by the blinded key of that day
+	class B33BlindedPrivateKey: public BlindedPrivateKey
+	{
+		public:
+
+			B33BlindedPrivateKey (std::shared_ptr<const IdentityEx> identity, const B33OfflineKeys& offlineKeys);
+
+			std::unique_ptr<BlindedSigner> CreateSigner (uint64_t timestamp) const override;
+
+		private:
+
+			std::shared_ptr<const OfflineSigner> GetKey (uint64_t timestamp) const;
+
+		private:
+
+			std::vector<std::shared_ptr<OfflineSigner> > m_Keys; // one per day, in the order they were generated
+	};
 }
 }
 

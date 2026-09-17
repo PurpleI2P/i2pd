@@ -230,6 +230,28 @@ namespace data
 			std::unique_ptr<i2p::crypto::Verifier> m_TransientVerifier;
 	};
 
+	const uint8_t B33_OFFLINE_KEYS_VERSION = 1;
+	const size_t B33_OFFLINE_KEYS_HEADER_LENGTH = 1 + IdentHash::len + 2; // version, ident hash, number of keys
+	const uint64_t SECONDS_PER_DAY = 24*60*60;
+
+	// a transient key per day for an encrypted LeaseSet, authorized by the blinded key of its own day.
+	// version || ident hash || number of keys, then an offline signature per day. Appended to the keys
+	// file, where a router without b33 offline keys does not look for it
+	class B33OfflineKeys
+	{
+		public:
+
+			size_t GetLen () const { return m_Buf.size (); };
+			const uint8_t * GetBuffer () const { return m_Buf.data (); };
+			bool operator== (const B33OfflineKeys& other) const { return m_Buf == other.m_Buf; };
+			size_t FromBuffer (const uint8_t * buf, size_t len, const IdentHash& ident); // the keys are the tail of the keys file
+			size_t ToBuffer (uint8_t * buf, size_t len) const;
+
+		private:
+
+			std::vector<uint8_t> m_Buf;
+	};
+
 	class PrivateKeys // for eepsites
 	{
 		public:
@@ -265,6 +287,8 @@ namespace data
 			static void GenerateCryptoKeyPair (CryptoKeyType type, uint8_t * priv, uint8_t * pub); // priv and pub are 256 bytes long
 			static i2p::crypto::Signer * CreateSigner (SigningKeyType keyType, const uint8_t * priv);
 
+			const B33OfflineKeys& GetB33OfflineKeys () const { return m_B33OfflineKeys; };
+
 			// offline keys
 			PrivateKeys CreateOfflineKeys (SigningKeyType type, uint32_t expires) const;
 			const std::vector<uint8_t>& GetOfflineSignature () const;
@@ -283,6 +307,7 @@ namespace data
 			std::vector<uint8_t> m_SigningPrivateKey;
 			mutable std::unique_ptr<i2p::crypto::Signer> m_Signer;
 			std::shared_ptr<OfflineSigner> m_OfflineSigner; // signs instead of m_Signer, if applicable
+			B33OfflineKeys m_B33OfflineKeys; // non zero length, if applicable
 	};
 
 	// destination for delivery instructions
