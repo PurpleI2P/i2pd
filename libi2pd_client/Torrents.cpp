@@ -1376,6 +1376,13 @@ namespace torrents
 			return 0;
 		}
 		uint32_t msgLen = bufbe32toh (m_ReceiveBuffer + offset);
+		if (msgLen > PEER_CONNECTION_RECEIVE_BUFFER_SIZE)
+		{
+			LogPrint (eLogError, "Torrents: Unexpected received message length ", msgLen);
+			m_ReceiveBufferOffset = 0;
+			Terminate ();
+			return 0;
+		}
 		if (len < msgLen + 4)
 		{
 			m_NextMsgLength = msgLen + 4;
