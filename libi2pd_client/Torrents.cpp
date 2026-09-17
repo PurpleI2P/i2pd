@@ -453,7 +453,7 @@ namespace torrents
 	{
 		auto [hashes, len] = ExtractByteString (buf);
 		size_t totalLen = 0;
-		while (!hashes.empty () && totalLen < m_Length)
+		while (hashes.length () >= SHA_DIGEST_LENGTH && totalLen < m_Length)
 		{
 			auto l = (totalLen + m_PieceLength <= m_Length) ? m_PieceLength : m_Length - totalLen;
 			m_Pieces.emplace_back (l, (const uint8_t *)hashes.substr (0, SHA_DIGEST_LENGTH).data ());
