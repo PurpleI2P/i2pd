@@ -60,8 +60,12 @@ namespace util
 
 			void CleanUp ()
 			{
-				CleanUp (m_Head);
+				// detach the list first: while it is being freed m_Head would point
+				// to already deleted memory, and Acquire or Release from another
+				// thread reads or writes it
+				auto head = m_Head;
 				m_Head = nullptr;
+				CleanUp (head);
 			}
 
 			template<typename... TArgs>
