@@ -433,7 +433,7 @@ namespace torrents
 
 	Torrent::Torrent (std::string_view buf): Torrent ()
 	{
-		ParseDictionary (buf, [this](std::string_view key, std::string_view buf)->size_t
+		if (!ParseDictionary (buf, [this](std::string_view key, std::string_view buf)->size_t
 			{
 				if (key == "announce")
 				{
@@ -444,7 +444,8 @@ namespace torrents
 				else if (key == "info")
 					return ParseInfo (buf);
 				return 0;
-			});
+			}))
+		m_Error = eTorrentErrorMalformedMetaInfo;
 	}
 
 	Torrent::Torrent (const InfoHash& infoHash): Torrent ()
@@ -539,7 +540,11 @@ namespace torrents
 					return ParseFiles (buf);
 				return 0;
 			});
-		if (!len) return 0;
+		if (!len)
+		{
+			m_Error = eTorrentErrorMalformedMetaInfo;
+			return 0;
+		}
 		if (m_IsSingleFile && !m_Name.empty ()) // single file
 			m_Files.emplace_back (std::make_shared<TorrentFile> (m_Name, m_Length));
 		// save info
