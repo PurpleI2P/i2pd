@@ -595,6 +595,7 @@ namespace torrents
 									if (name.empty ())
 									{
 										LogPrint (eLogError, "Torrents: Unsafe path component in torrent: ", it);
+										filePath.clear ();
 										return 0;
 									}
 									filePath /= name;
@@ -605,7 +606,14 @@ namespace torrents
 						{
 							auto [length, l] = ExtractInteger (value);
 							if (l)
+							{
+								if (length < 0 || (size_t)length > MAX_TORRENT_LENGTH)
+								{
+									LogPrint (eLogError, "Torrents: Invalid file length ", length);
+									length = 0;
+								}
 								fileLength = length;
+							}
 							return l;
 						}
 						return 0;
@@ -615,6 +623,8 @@ namespace torrents
 					m_Files.emplace_back (std::make_shared<TorrentFile> (filePath, fileLength));
 					m_Length += fileLength;
 				}
+				else
+					m_Error = eTorrentErrorMalformedMetaInfo;
 				return len;
 			});
 	}
