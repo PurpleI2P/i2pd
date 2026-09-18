@@ -503,7 +503,7 @@ namespace torrents
 					{
 						if ((size_t)value < MIN_PIECE_LENGTH || (size_t)value > MAX_PIECE_LENGTH)
 						{
-							LogPrint (eLogError, "Torrents: invalid piece length ", value);
+							LogPrint (eLogError, "Torrents: Invalid piece length ", value);
 							value = 0;
 						}
 						m_PieceLength = value;
@@ -517,7 +517,18 @@ namespace torrents
 						m_Pieces.swap (tmp);
 					}
 					if (m_PieceLength > 0 && m_Length > 0)
-						m_Pieces.reserve (m_Length/m_PieceLength + 1);
+					{
+						auto d = lldiv (m_Length, m_PieceLength);
+						size_t numPieces = d.quot;
+						if (d.rem > 0) numPieces++;
+						if (numPieces <= MAX_NUM_TORRENT_PIECES)
+							m_Pieces.reserve (numPieces);
+						else
+						{
+							LogPrint (eLogError, "Torrents: Too many pieces ", numPieces);
+							m_Error = eTorrentErrorMalformedMetaInfo;
+						}
+					}
 					else
 						m_Error = eTorrentErrorMalformedMetaInfo;
 					return ParsePieces (buf);
@@ -2053,7 +2064,15 @@ namespace torrents
 					else if (key == "metadata_size")
 					{
 						auto [s, l] = ExtractInteger (buf);
-						if (l) m_RemoteMetadataSize = s;
+						if (l)
+						{
+							if (s < 0 || (size_t)s > MAX_NUM_TORRENT_PIECES*SHA_DIGEST_LENGTH)
+							{
+								LogPrint (eLogError, "Torrents: Invalid metadata_size ", s);
+								s = 0;
+							}
+							m_RemoteMetadataSize = s;
+						}
 						return l;
 					}
 					else if (key == "reqq")
