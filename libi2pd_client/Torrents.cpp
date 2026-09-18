@@ -716,6 +716,7 @@ namespace torrents
 		CheckTrackerStatsSize (trackerID);
 		auto& [peers, trackerRequestInterval, nextRequestTime, seeders, leechers,
 			lastUpdateTime, error] = m_TrackerStats[trackerID];
+		error = "";
 		trackerRequestInterval = interval*1000; // milliseconds
 		nextRequestTime = i2p::util::GetMonotonicMilliseconds () + trackerRequestInterval;
 		seeders = numSeeders;
