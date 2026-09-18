@@ -355,8 +355,8 @@ namespace torrents
 					return priorities;
 				}
 			},
-			{ "error", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetError ().empty () ? 0 : 3); } }, // no error or local error
-			{ "errorString", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetError ()); } },
+			{ "error", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetError () ? 3 : 0); } }, // local error or no error
+			{ "errorString", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetErrorStr ()); } },
 			{ "eta", [](std::shared_ptr<Torrent> torrent)
 				{
 					auto downloadRate = torrent->GetDownloadRate ();

@@ -38,6 +38,7 @@ namespace torrents
 	constexpr size_t REQUEST_BLOCK_SIZE = 16384;
 	constexpr size_t MIN_PIECE_LENGTH = 16*1024; // 16K
 	constexpr size_t MAX_PIECE_LENGTH = 64*1024*1024; // 64M
+	constexpr size_t MAX_TORRENT_LENGTH = 1024LL*1024*1024*1024*1024; // 1P
 	constexpr uint16_t TORRENT_PORT = 6881; //  not used by required by protocol
 	constexpr int MIN_TRACKER_REQUESTS_INTERVAL = 15000; // in milliseconds
 	constexpr size_t PEER_CONNECTION_RECEIVE_BUFFER_SIZE = 65535;
@@ -188,6 +189,18 @@ namespace torrents
 		eTorrentStatusSeeding = 6
 	};
 
+	enum TorrentError
+	{
+		eTorrentErrorNoError = 0,
+		eTorrentErrorMalformedMetaInfo = 1,
+		eNumTorrentErrors
+	};
+
+	constexpr std::array<std::string_view, eNumTorrentErrors> TorrentErrorStr
+	{
+		"", "Malformed metaInfo"
+	};
+
 	using RequestedBlock = std::tuple<uint32_t, uint32_t, uint32_t>; // (index, offset, len)
 	class PeerConnection;
 	class Torrent final
@@ -221,7 +234,9 @@ namespace torrents
 			std::string_view GetName () const { return m_Name; }
 			void SetName (std::string_view name) { m_Name = AdjustName (name); }
 			bool IsValid () const { return !m_Name.empty () && m_PieceLength && (m_Length || !m_Files.empty ()); }
-			std::string_view GetError () const { return m_Error; }
+			TorrentError GetError () const { return m_Error; }
+			std::string_view GetErrorStr () const { return TorrentErrorStr[m_Error]; }
+			void SetError (TorrentError error) { m_Error = error; }
 			const std::filesystem::path& GetFullPath () const { return m_FullPath; }
 			void SetFullPath (const std::filesystem::path& fullPath) { m_FullPath = fullPath; }
 			const std::list<std::shared_ptr<TorrentFile> >& GetFiles () const { return m_Files; }
@@ -288,7 +303,7 @@ namespace torrents
 
 		private:
 
-			std::string m_Name, m_Announce, m_Error;
+			std::string m_Name, m_Announce;
 			std::filesystem::path m_FullPath;
 			size_t m_Length, m_PieceLength;
 			std::vector<uint8_t> m_Info; // for BEP9
@@ -300,6 +315,7 @@ namespace torrents
 			std::list<std::shared_ptr<TorrentFile> > m_Files;
 			size_t m_Uploaded, m_Downloaded;
 			uint64_t m_NextUpdateStatusTime, m_NextReconnectTime; // in monotonic seconds
+			TorrentError m_Error;
 	};
 
 	class TorrentsTunnel;

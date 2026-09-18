@@ -424,7 +424,8 @@ namespace torrents
 
 	Torrent::Torrent ():
 		m_Length (0), m_PieceLength (0), m_IsComplete (false), m_IsStopped (false), m_IsSingleFile (true),
-		m_Uploaded (0), m_Downloaded (0), m_NextUpdateStatusTime (0), m_NextReconnectTime (0)
+		m_Uploaded (0), m_Downloaded (0), m_NextUpdateStatusTime (0), m_NextReconnectTime (0),
+		m_Error (eTorrentErrorNoError)
 	{
 	}
 
@@ -470,7 +471,15 @@ namespace torrents
 				if (key == "length")
 				{
 					auto [value, l] = ExtractInteger (buf);
-					if (l) m_Length = value;
+					if (l)
+					{
+						if (value < 0 || (size_t)value > MAX_TORRENT_LENGTH)
+						{
+							LogPrint (eLogError, "Torrents: Invalid length ", value);
+							value = 0;
+						}
+						m_Length = value;
+					}
 					return l;
 				}
 				else if (key == "name")
@@ -510,7 +519,7 @@ namespace torrents
 					if (m_PieceLength > 0 && m_Length > 0)
 						m_Pieces.reserve (m_Length/m_PieceLength + 1);
 					else
-						m_Error = "Malformed metaInfo";
+						m_Error = eTorrentErrorMalformedMetaInfo;
 					return ParsePieces (buf);
 				}
 				else if (key == "files")
@@ -525,6 +534,7 @@ namespace torrents
 		memcpy (m_Info.data (), (const uint8_t *)buf.data (), len);
 		// calculate info hash
 		SHA1 (m_Info.data (), len, m_InfoHash.data ());
+		if (m_Error) m_IsStopped = true;
 		return len;
 	}
 
