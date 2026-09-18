@@ -535,6 +535,11 @@ namespace data
 	{
 		m_Public = std::make_shared<IdentityEx>();
 		size_t ret = m_Public->FromBuffer (buf, len);
+		if (!ret)
+		{
+			m_Public = nullptr;
+			return 0;
+		}
 		auto cryptoKeyLen = GetPrivateKeyLen ();
 		if (!ret || ret + cryptoKeyLen > len) return 0; // overflow
 		memcpy (m_PrivateKey, buf + ret, cryptoKeyLen);
