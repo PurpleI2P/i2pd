@@ -245,6 +245,7 @@ namespace torrents
 			size_t GetLength () const { return m_Length; }
 			size_t GetPieceLength () const { return m_PieceLength; }
 			int GetInterval (size_t trackerID) const { return (trackerID < m_TrackerStats.size ()) ? std::get<1>(m_TrackerStats[trackerID]) : MIN_TRACKER_REQUESTS_INTERVAL; }
+			void SetInterval (size_t trackerID, int interval);
 			const std::vector<uint8_t> GetInfo () const { return m_Info; }
 			const InfoHash& GetInfoHash () const { return m_InfoHash; }
 			size_t GetLeft () const;

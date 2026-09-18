@@ -759,7 +759,10 @@ namespace torrents
 						if (ts >= it.second->GetNextTrackerRequestTime (i))
 						{
 							if (i2p::util::GetSecondsSinceEpoch () > it.second->GetLastTrackerUpdateTime (i) + 2*it.second->GetInterval (i)/1000 && it.second->GetTrackerError (i).empty ())
+							{
 								it.second->SetTrackerError (i, "No response");
+								it.second->SetInterval (i, MIN_TRACKER_REQUESTS_INTERVAL); // try again shortly
+							}
 							if (RequestTracker (i, it.second, eTrackerAnnounceEventNone))
 							{
 								auto nextInterval = it.second->GetInterval (i) + GetLocalDestination ()->GetRng()() % TRACKER_REQUESTS_INTERVAL_VARIANCE;

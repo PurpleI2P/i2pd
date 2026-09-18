@@ -764,6 +764,12 @@ namespace torrents
 				0, 0, 0, i2p::util::GetSecondsSinceEpoch (), ""});
 	}
 
+	void Torrent::SetInterval (size_t trackerID, int interval)
+	{
+		CheckTrackerStatsSize (trackerID);
+		std::get<1>(m_TrackerStats[trackerID]) = interval;
+	}
+
 	std::pair<std::vector<uint8_t>, boost::logic::tribool> Torrent::CreateBitfield () const
 	{
 		size_t numPieces = m_Pieces.size ();
