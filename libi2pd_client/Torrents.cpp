@@ -692,7 +692,7 @@ namespace torrents
 		auto& peers = std::get<0>(m_TrackerStats[trackerID]);
 		peers.clear ();
 		auto [hashes, len] = ExtractByteString (buf);
-		while (!hashes.empty ())
+		while (hashes.length () >= i2p::data::IdentHash::len)
 		{
 			peers.emplace (i2p::data::IdentHash ((const uint8_t *)hashes.substr (0, i2p::data::IdentHash::len).data ()));
 			hashes = hashes.substr (i2p::data::IdentHash::len);
