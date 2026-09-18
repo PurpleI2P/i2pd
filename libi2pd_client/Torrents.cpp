@@ -2230,7 +2230,7 @@ namespace torrents
 				{
 					auto [idents, l] = ExtractByteString (buf);
 					if (l && !(idents.size () & 0x1F)) // multiple of 32
-						while (!idents.empty ())
+						while (idents.length () >= i2p::data::IdentHash::len)
 						{
 							newPeers.emplace (i2p::data::IdentHash ((const uint8_t *)idents.substr (0, i2p::data::IdentHash::len).data ()));
 							idents = idents.substr (i2p::data::IdentHash::len);
