@@ -691,7 +691,7 @@ namespace torrents
 					auto [value, l] = ExtractInteger (buf);
 					if (l)
 					{
-						int interval = std::max (MIN_TRACKER_REQUESTS_INTERVAL, (int)value*1000); // in milliseconds
+						int interval = std::clamp ((int)value, MIN_TRACKER_REQUESTS_INTERVAL/1000, MAX_TRACKER_REQUESTS_INTERVAL/1000)*1000; // in milliseconds
 						std::get<1>(m_TrackerStats[trackerID]) = interval;
 						std::get<2>(m_TrackerStats[trackerID]) = i2p::util::GetMonotonicMilliseconds () + interval; // reset next request
 					}
@@ -717,7 +717,7 @@ namespace torrents
 					LogPrint (eLogError, "Torrents: Tracker error: ", reason);
 					std::get<6>(m_TrackerStats[trackerID]) = reason;
 					// double interval if tracker failure
-					int interval = std::max (MIN_TRACKER_REQUESTS_INTERVAL, std::get<1>(m_TrackerStats[trackerID])*2);
+					int interval = std::clamp (std::get<1>(m_TrackerStats[trackerID])*2, MIN_TRACKER_REQUESTS_INTERVAL, MAX_TRACKER_REQUESTS_INTERVAL);
 					std::get<1>(m_TrackerStats[trackerID]) = interval;
 					std::get<2>(m_TrackerStats[trackerID]) = i2p::util::GetMonotonicMilliseconds () + interval;
 					return l;
@@ -747,7 +747,7 @@ namespace torrents
 		auto& [peers, trackerRequestInterval, nextRequestTime, seeders, leechers,
 			lastUpdateTime, error] = m_TrackerStats[trackerID];
 		error = "";
-		trackerRequestInterval = interval*1000; // milliseconds
+		trackerRequestInterval = std::clamp ((int)interval, MIN_TRACKER_REQUESTS_INTERVAL/1000, MAX_TRACKER_REQUESTS_INTERVAL/1000)*1000; // milliseconds
 		nextRequestTime = i2p::util::GetMonotonicMilliseconds () + trackerRequestInterval;
 		seeders = numSeeders;
 		leechers = numLeechers;
