@@ -1403,19 +1403,19 @@ namespace stream
 			break;
 			case eStreamStatusReset:
 				// TODO: send reset
-				Terminate ();
+				boost::asio::post (GetService (), std::bind (&Stream::Terminate, shared_from_this (), true));
 			break;
 			case eStreamStatusClosing:
 				if (m_SentPackets.empty () && m_SendBuffer.IsEmpty ()) // nothing to send
 				{
 					m_Status = eStreamStatusClosed;
-					SendClose();
+					boost::asio::post (GetService (), std::bind (&Stream::SendClose, shared_from_this ()));
 				}
 			break;
 			case eStreamStatusClosed:
 			case eStreamStatusNew:
 				// already closed
-				Terminate ();
+				boost::asio::post (GetService (), std::bind (&Stream::Terminate, shared_from_this (), true));
 			break;
 			default:
 				LogPrint (eLogWarning, "Streaming: Unexpected stream status=", (int)m_Status, " for sSID=", m_SendStreamID);
