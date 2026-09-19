@@ -339,7 +339,7 @@ namespace data
 		if (flags & LEASESET2_FLAG_OFFLINE_KEYS)
 		{
 			// transient key
-			m_TransientVerifier = ProcessOfflineSignature (identity, buf, len, offset);
+			m_TransientVerifier = OfflineVerifier::FromBuffer (buf, len, identity, offset);
 			if (!m_TransientVerifier)
 			{
 				LogPrint (eLogError, "LeaseSet2: Offline signature failed");
@@ -515,7 +515,7 @@ namespace data
 		if (flags & LEASESET2_FLAG_OFFLINE_KEYS)
 		{
 			// transient key
-			m_TransientVerifier = ProcessOfflineSignature (blindedVerifier, buf, len, offset);
+			m_TransientVerifier = OfflineVerifier::FromBuffer (buf, len, blindedVerifier, offset);
 			if (!m_TransientVerifier)
 			{
 				LogPrint (eLogError, "LeaseSet2: Offline signature failed");
@@ -599,6 +599,7 @@ namespace data
 				// override store type and buffer
 				m_StoreType = innerPlainText[0];
 				SetBuffer (innerPlainText.data () + 1, lenInnerPlaintext - 1);
+				m_TransientVerifier = nullptr; // Layer 2 has a signer of its own
 				// parse and verify Layer 2
 				ReadFromBuffer (innerPlainText.data () + 1, lenInnerPlaintext - 1, dest);
 			}
@@ -992,37 +993,39 @@ namespace data
 		}
 		size_t lenOuterCiphertext = lenOuterPlaintext + 32;
 
-		m_BufferLen = 2/*blinded sig type*/ + 32/*blinded pub key*/ + 4/*published*/ + 2/*expires*/ + 2/*flags*/ + 2/*lenOuterCiphertext*/ + lenOuterCiphertext + 64/*signature*/;
+		auto blindedKeys = BlindedPrivateKey::Create (keys);
+		if (!blindedKeys) return;
+		auto timestamp = i2p::util::GetSecondsSinceEpoch ();
+		auto blindedSigner = blindedKeys->CreateSigner (timestamp);
+		if (!blindedSigner) return;
+		const auto& blindedKey = blindedKeys->GetPublic ();
+		const auto& offlineSignature = blindedSigner->GetOfflineSignature ();
+		auto publicKeyLen = blindedSigner->GetBlindedPublicKeyLen ();
+		m_BufferLen = 2/*blinded sig type*/ + publicKeyLen + 4/*published*/ + 2/*expires*/ + 2/*flags*/ +
+			offlineSignature.size () + 2/*lenOuterCiphertext*/ + lenOuterCiphertext + blindedSigner->GetSignatureLen ();
 		m_Buffer = new uint8_t[m_BufferLen + 1];
 		m_Buffer[0] = NETDB_STORE_TYPE_ENCRYPTED_LEASESET2;
-		BlindedPublicKey blindedKey (ls->GetIdentity ());
-		auto timestamp = i2p::util::GetSecondsSinceEpoch ();
-		char date[9];
-		i2p::util::GetDateString (timestamp, date);
-		uint8_t blindedPriv[i2p::crypto::EDDSA25519_PRIVATE_KEY_LENGTH], blindedPub[i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH]; // 32 and 32 max
-		size_t publicKeyLen = blindedKey.BlindPrivateKey (keys.GetSigningPrivateKey (), date, blindedPriv, blindedPub);
-		std::unique_ptr<i2p::crypto::Signer> blindedSigner (i2p::data::PrivateKeys::CreateSigner (blindedKey.GetBlindedSigType (), blindedPriv));
-		if (!blindedSigner)
-		{
-			LogPrint (eLogError, "LeaseSet2: Can't create blinded signer for signature type ", blindedKey.GetSigType ());
-			return;
-		}
 		auto offset = 1;
 		htobe16buf (m_Buffer + offset, blindedKey.GetBlindedSigType ()); offset += 2; // Blinded Public Key Sig Type
-		memcpy (m_Buffer + offset, blindedPub, publicKeyLen); offset += publicKeyLen; // Blinded Public Key
+		memcpy (m_Buffer + offset, blindedSigner->GetBlindedPublicKey (), publicKeyLen); offset += publicKeyLen; // Blinded Public Key
 		htobe32buf (m_Buffer + offset, timestamp); offset += 4; // published timestamp (seconds)
 		auto nextMidnight = (timestamp/86400LL + 1)*86400LL; // 86400 = 24*3600 seconds
 		auto expirationTime = ls->GetExpirationTime ()/1000LL;
 		if (expirationTime > nextMidnight) expirationTime = nextMidnight;
 		SetExpirationTime (expirationTime*1000LL);
 		htobe16buf (m_Buffer + offset, expirationTime > timestamp ? expirationTime - timestamp : 0); offset += 2; // expires
-		uint16_t flags = 0;
+		uint16_t flags = offlineSignature.empty () ? 0 : LEASESET2_FLAG_OFFLINE_KEYS;
 		htobe16buf (m_Buffer + offset, flags); offset += 2; // flags
+		if (!offlineSignature.empty ())
+		{
+			memcpy (m_Buffer + offset, offlineSignature.data (), offlineSignature.size ());
+			offset += offlineSignature.size (); // offline signature
+		}
 		htobe16buf (m_Buffer + offset, lenOuterCiphertext); offset += 2; // lenOuterCiphertext
 		// outerChipherText
 		// Layer 1
 		uint8_t subcredential[36];
-		blindedKey.GetSubcredential (blindedPub, 32, subcredential);
+		blindedKey.GetSubcredential (blindedSigner->GetBlindedPublicKey (), publicKeyLen, subcredential);
 		htobe32buf (subcredential + 32, timestamp); // outerInput = subcredential || publishedTimestamp
 		// keys = HKDF(outerSalt, outerInput, "ELS2_L1K", 44)
 		uint8_t keys1[64]; // 44 bytes actual data
@@ -1059,7 +1062,7 @@ namespace data
 		// signature
 		blindedSigner->Sign (m_Buffer, offset, m_Buffer + offset);
 		// store hash
-		m_StoreHash = blindedKey.GetStoreHash (date);
+		m_StoreHash = blindedKeys->GetStoreHash (timestamp);
 	}
 
 	LocalEncryptedLeaseSet2::LocalEncryptedLeaseSet2 (std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len):

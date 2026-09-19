@@ -16,6 +16,7 @@
 #include <memory>
 #include <vector>
 #include "Base.h"
+#include "I2PEndian.h"
 #include "Signature.h"
 #include "Tag.h"
 
@@ -153,6 +154,104 @@ namespace data
 
 	size_t GetIdentityBufferLen (const uint8_t * buf, size_t len); // return actual identity length in buffer
 
+	const size_t OFFLINE_SIGNATURE_HEADER_LENGTH = 4 + 2; // expires, transient signature type
+
+	// expires || transient signature type || transient public key || signature by the authority,
+	// then the transient private key. The authority is the destination itself, or the blinded key
+	// of the day for an encrypted LeaseSet
+	class OfflineSigner: public i2p::crypto::Signer
+	{
+		public:
+
+			// implements Signer
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const override { m_Signer->Sign (buf, len, signature); };
+			size_t GetSignatureLen () const override { return m_SignatureLen; };
+
+			const std::vector<uint8_t>& GetOfflineSignature () const { return m_OfflineSignature; };
+			uint32_t GetExpires () const { return bufbe32toh (m_OfflineSignature.data ()); };
+			size_t GetFullLen () const { return m_OfflineSignature.size () + m_TransientPrivateKey.size (); };
+			size_t ToBuffer (uint8_t * buf, size_t len) const;
+			size_t FromBuffer (const uint8_t * buf, size_t len, size_t authoritySignatureLen); // returns length taken, 0 if invalid
+
+			template<typename Authority>
+			bool Verify (const Authority& authority) const // the authority must be the one the transient key was signed by
+			{
+				size_t signatureLen = authority->GetSignatureLen ();
+				if (m_OfflineSignature.size () <= signatureLen) return false;
+				size_t signedLen = m_OfflineSignature.size () - signatureLen;
+				return authority->Verify (m_OfflineSignature.data (), signedLen, m_OfflineSignature.data () + signedLen);
+			}
+
+		private:
+
+			size_t m_SignatureLen = 0;
+			std::vector<uint8_t> m_OfflineSignature, m_TransientPrivateKey;
+			std::unique_ptr<i2p::crypto::Signer> m_Signer;
+	};
+
+	// the transient key of an offline signature, verifying on behalf of the destination
+	class OfflineVerifier: public i2p::crypto::Verifier
+	{
+		public:
+
+			// implements Verifier
+			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const override { return m_TransientVerifier->Verify (buf, len, signature); };
+			size_t GetPublicKeyLen () const override { return m_TransientVerifier->GetPublicKeyLen (); };
+			size_t GetSignatureLen () const override { return m_TransientVerifier->GetSignatureLen (); };
+			void SetPublicKey (const uint8_t * signingKey) override { m_TransientVerifier->SetPublicKey (signingKey); };
+
+			// offset points to the offline signature inside a LeaseSet, a stream packet or a datagram
+			template<typename Authority>
+			static std::shared_ptr<OfflineVerifier> FromBuffer (const uint8_t * buf, size_t len, const Authority& authority, size_t& offset)
+			{
+				if (offset + OFFLINE_SIGNATURE_HEADER_LENGTH >= len) return nullptr;
+				const uint8_t * signedData = buf + offset;
+				uint32_t expires = bufbe32toh (signedData);
+				if (IsExpired (expires)) return nullptr;
+				SigningKeyType keyType = bufbe16toh (signedData + 4);
+				std::unique_ptr<i2p::crypto::Verifier> transientVerifier (IdentityEx::CreateVerifier (keyType));
+				if (!transientVerifier) return nullptr;
+				size_t signedLen = OFFLINE_SIGNATURE_HEADER_LENGTH + transientVerifier->GetPublicKeyLen ();
+				if (offset + signedLen + authority->GetSignatureLen () >= len) return nullptr;
+				transientVerifier->SetPublicKey (signedData + OFFLINE_SIGNATURE_HEADER_LENGTH);
+				if (!authority->Verify (signedData, signedLen, signedData + signedLen)) return nullptr;
+				offset += signedLen + authority->GetSignatureLen ();
+				auto verifier = std::make_shared<OfflineVerifier>();
+				verifier->m_TransientVerifier = std::move (transientVerifier);
+				return verifier;
+			}
+
+		private:
+
+			static bool IsExpired (uint32_t expires);
+
+		private:
+
+			std::unique_ptr<i2p::crypto::Verifier> m_TransientVerifier;
+	};
+
+	const uint8_t B33_OFFLINE_KEYS_VERSION = 1;
+	const size_t B33_OFFLINE_KEYS_HEADER_LENGTH = 1 + IdentHash::len + 2; // version, ident hash, number of keys
+	const uint64_t SECONDS_PER_DAY = 24*60*60;
+
+	// a transient key per day for an encrypted LeaseSet, authorized by the blinded key of its own day.
+	// version || ident hash || number of keys, then an offline signature per day. Appended to the keys
+	// file, where a router without b33 offline keys does not look for it
+	class B33OfflineKeys
+	{
+		public:
+
+			size_t GetLen () const { return m_Buf.size (); };
+			const uint8_t * GetBuffer () const { return m_Buf.data (); };
+			bool operator== (const B33OfflineKeys& other) const { return m_Buf == other.m_Buf; };
+			size_t FromBuffer (const uint8_t * buf, size_t len, const IdentHash& ident); // the keys are the tail of the keys file
+			size_t ToBuffer (uint8_t * buf, size_t len) const;
+
+		private:
+
+			std::vector<uint8_t> m_Buf;
+	};
+
 	class PrivateKeys // for eepsites
 	{
 		public:
@@ -168,7 +267,7 @@ namespace data
 			const uint8_t * GetPrivateKey () const { return m_PrivateKey; };
 			const uint8_t * GetSigningPrivateKey () const { return m_SigningPrivateKey.data (); };
 			size_t GetSignatureLen () const; // might not match identity
-			bool IsOfflineSignature () const { return m_TransientSignatureLen > 0; };
+			bool IsOfflineSignature () const { return m_OfflineSigner != nullptr; };
 			uint8_t * GetPadding();
 			void RecalculateIdentHash(uint8_t * buf=nullptr) { m_Public->RecalculateIdentHash(buf); }
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
@@ -188,9 +287,11 @@ namespace data
 			static void GenerateCryptoKeyPair (CryptoKeyType type, uint8_t * priv, uint8_t * pub); // priv and pub are 256 bytes long
 			static i2p::crypto::Signer * CreateSigner (SigningKeyType keyType, const uint8_t * priv);
 
+			const B33OfflineKeys& GetB33OfflineKeys () const { return m_B33OfflineKeys; };
+
 			// offline keys
 			PrivateKeys CreateOfflineKeys (SigningKeyType type, uint32_t expires) const;
-			const std::vector<uint8_t>& GetOfflineSignature () const { return m_OfflineSignature; };
+			const std::vector<uint8_t>& GetOfflineSignature () const;
 			void UpdateOfflineSignature (const PrivateKeys& other); // refresh transient material, keep identity
 
 		private:
@@ -205,9 +306,8 @@ namespace data
 			uint8_t m_PrivateKey[256];
 			std::vector<uint8_t> m_SigningPrivateKey;
 			mutable std::unique_ptr<i2p::crypto::Signer> m_Signer;
-			std::vector<uint8_t> m_OfflineSignature; // non zero length, if applicable
-			size_t m_TransientSignatureLen = 0;
-			size_t m_TransientSigningPrivateKeyLen = 0;
+			std::shared_ptr<OfflineSigner> m_OfflineSigner; // signs instead of m_Signer, if applicable
+			B33OfflineKeys m_B33OfflineKeys; // non zero length, if applicable
 	};
 
 	// destination for delivery instructions

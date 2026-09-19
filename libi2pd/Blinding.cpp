@@ -109,6 +109,134 @@ namespace data
 		return ByteStreamToBase32 (addr, m_PublicKey.size () + 3);
 	}
 
+	BlindedSigner::BlindedSigner (std::shared_ptr<const i2p::crypto::Signer> signer, const uint8_t * blindedPublicKey,
+		size_t blindedPublicKeyLen, const std::vector<uint8_t>& offlineSignature):
+		m_Signer (signer), m_BlindedPublicKeyLen (std::min (blindedPublicKeyLen, m_BlindedPublicKey.size ())),
+		m_OfflineSignature (offlineSignature)
+	{
+		memcpy (m_BlindedPublicKey.data (), blindedPublicKey, m_BlindedPublicKeyLen);
+	}
+
+	BlindedPrivateKey::BlindedPrivateKey (const PrivateKeys& keys):
+		m_Public (keys.GetPublic ()),
+		m_SigningPrivateKey (keys.GetSigningPrivateKey (),
+			keys.GetSigningPrivateKey () + keys.GetPublic ()->GetSigningPrivateKeyLen ())
+	{
+	}
+
+	BlindedPrivateKey::BlindedPrivateKey (std::shared_ptr<const IdentityEx> identity):
+		m_Public (identity)
+	{
+	}
+
+	BlindedPrivateKey::~BlindedPrivateKey ()
+	{
+		if (!m_SigningPrivateKey.empty ())
+			memset (m_SigningPrivateKey.data (), 0, m_SigningPrivateKey.size ());
+	}
+
+	std::unique_ptr<BlindedPrivateKey> BlindedPrivateKey::Create (const PrivateKeys& keys)
+	{
+		std::unique_ptr<BlindedPrivateKey> blindedKeys;
+		if (keys.GetB33OfflineKeys ().GetLen ())
+			blindedKeys.reset (new B33BlindedPrivateKey (keys.GetPublic (), keys.GetB33OfflineKeys ()));
+		else if (keys.IsOfflineSignature ())
+		{
+			// blinding the transient key would publish a LeaseSet nobody can read
+			LogPrint (eLogError, "Blinding: An offline signature without b33 offline keys can't sign an encrypted LeaseSet");
+			return nullptr;
+		}
+		else
+			blindedKeys.reset (new BlindedPrivateKey (keys));
+		if (!blindedKeys->GetPublic ().IsValid ())
+		{
+			LogPrint (eLogError, "Blinding: Can't blind signature type ", (int)keys.GetPublic ()->GetSigningKeyType ());
+			return nullptr;
+		}
+		return blindedKeys;
+	}
+
+	i2p::data::IdentHash BlindedPrivateKey::GetStoreHash (uint64_t timestamp) const
+	{
+		char date[9];
+		i2p::util::GetDateString (timestamp, date);
+		return m_Public.GetStoreHash (date);
+	}
+
+	std::unique_ptr<BlindedSigner> BlindedPrivateKey::CreateSigner (uint64_t timestamp) const
+	{
+		if (m_SigningPrivateKey.empty ()) return nullptr;
+		char date[9];
+		i2p::util::GetDateString (timestamp, date);
+		uint8_t blindedPriv[i2p::crypto::EDDSA25519_PRIVATE_KEY_LENGTH], blindedPub[i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH]; // 32 and 32 max
+		size_t publicKeyLen = m_Public.BlindPrivateKey (m_SigningPrivateKey.data (), date, blindedPriv, blindedPub);
+		std::shared_ptr<i2p::crypto::Signer> signer;
+		if (publicKeyLen)
+			signer.reset (PrivateKeys::CreateSigner (m_Public.GetBlindedSigType (), blindedPriv));
+		memset (blindedPriv, 0, sizeof (blindedPriv)); // it would give the destination's key away
+		if (!signer) return nullptr;
+		return std::unique_ptr<BlindedSigner>(new BlindedSigner (signer, blindedPub, publicKeyLen));
+	}
+
+	B33BlindedPrivateKey::B33BlindedPrivateKey (std::shared_ptr<const IdentityEx> identity, const B33OfflineKeys& offlineKeys):
+		BlindedPrivateKey (identity)
+	{
+		std::unique_ptr<i2p::crypto::Verifier> blindedVerifier (IdentityEx::CreateVerifier (m_Public.GetBlindedSigType ()));
+		const uint8_t * buf = offlineKeys.GetBuffer ();
+		size_t len = offlineKeys.GetLen ();
+		if (!blindedVerifier || len < B33_OFFLINE_KEYS_HEADER_LENGTH) return;
+		size_t offset = B33_OFFLINE_KEYS_HEADER_LENGTH - 2;
+		uint16_t numKeys = bufbe16toh (buf + offset); offset += 2;
+		for (uint16_t i = 0; i < numKeys; i++)
+		{
+			auto key = std::make_shared<OfflineSigner>();
+			size_t keyLen = offset < len ? key->FromBuffer (buf + offset, len - offset, blindedVerifier->GetSignatureLen ()) : 0;
+			if (!keyLen)
+			{
+				LogPrint (eLogError, "Blinding: Truncated b33 offline keys");
+				m_Keys.clear ();
+				return;
+			}
+			m_Keys.push_back (key);
+			offset += keyLen;
+		}
+	}
+
+	std::shared_ptr<const OfflineSigner> B33BlindedPrivateKey::GetKey (uint64_t timestamp) const
+	{
+		for (const auto& it: m_Keys)
+		{
+			// a key is for the day its signature expires at the end of
+			uint32_t expires = it->GetExpires ();
+			if (timestamp < expires && timestamp + SECONDS_PER_DAY >= expires) return it;
+		}
+		return nullptr;
+	}
+
+	std::unique_ptr<BlindedSigner> B33BlindedPrivateKey::CreateSigner (uint64_t timestamp) const
+	{
+		char date[9];
+		i2p::util::GetDateString (timestamp, date);
+		std::unique_ptr<i2p::crypto::Verifier> blindedVerifier (IdentityEx::CreateVerifier (m_Public.GetBlindedSigType ()));
+		if (!blindedVerifier) return nullptr;
+		auto key = GetKey (timestamp);
+		if (!key)
+		{
+			LogPrint (eLogError, "Blinding: No b33 offline key for ", date);
+			return nullptr;
+		}
+		uint8_t blindedPub[i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH]; // 32 max
+		size_t publicKeyLen = m_Public.GetBlindedKey (date, blindedPub);
+		if (!publicKeyLen) return nullptr;
+		blindedVerifier->SetPublicKey (blindedPub);
+		if (!key->Verify (blindedVerifier))
+		{
+			LogPrint (eLogError, "Blinding: b33 offline key for ", date, " is not signed by the blinded key of that day");
+			return nullptr;
+		}
+		return std::unique_ptr<BlindedSigner>(new BlindedSigner (key, blindedPub, publicKeyLen, key->GetOfflineSignature ()));
+	}
+
 	void BlindedPublicKey::GetCredential (uint8_t * credential) const
 	{
 		// A = destination's signing public key

@@ -53,6 +53,10 @@ set(test-aeadchacha20poly1305_SRCS
   test-aeadchacha20poly1305.cpp
 )
 
+set(test-b33-offline-keys_SRCS
+  test-b33-offline-keys.cpp
+)
+
 set(test-blinding_SRCS
   test-blinding.cpp
 )
@@ -79,6 +83,7 @@ add_executable(test-gost ${test-gost_SRCS})
 add_executable(test-gost-sig ${test-gost-sig_SRCS})
 add_executable(test-aeadchacha20poly1305 ${test-aeadchacha20poly1305_SRCS})
 add_executable(test-blinding ${test-blinding_SRCS})
+add_executable(test-b33-offline-keys ${test-b33-offline-keys_SRCS})
 add_executable(test-elligator ${test-elligator_SRCS})
 add_executable(test-eddsa ${test-eddsa_SRCS})
 add_executable(test-aes ${test-aes_SRCS})
@@ -104,6 +109,7 @@ target_link_libraries(test-gost ${LIBS})
 target_link_libraries(test-gost-sig ${LIBS})
 target_link_libraries(test-aeadchacha20poly1305 ${LIBS})
 target_link_libraries(test-blinding ${LIBS})
+target_link_libraries(test-b33-offline-keys ${LIBS})
 target_link_libraries(test-elligator ${LIBS})
 target_link_libraries(test-eddsa ${LIBS})
 target_link_libraries(test-aes ${LIBS})
@@ -118,6 +124,7 @@ add_test(test-gost ${TEST_PATH}/test-gost)
 add_test(test-gost-sig ${TEST_PATH}/test-gost-sig)
 add_test(test-aeadchacha20poly1305 ${TEST_PATH}/test-aeadchacha20poly1305)
 add_test(test-blinding ${TEST_PATH}/test-blinding)
+add_test(test-b33-offline-keys ${TEST_PATH}/test-b33-offline-keys)
 add_test(test-elligator ${TEST_PATH}/test-elligator)
 add_test(test-eddsa ${TEST_PATH}/test-eddsa)
 add_test(test-aes ${TEST_PATH}/test-aes)

@@ -990,6 +990,12 @@ namespace client
 			CleanupExpiredTags ();
 			CleanupRemoteLeaseSets ();
 			CleanupDestination ();
+			if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
+			{
+				// an encrypted LeaseSet expires at midnight, when its blinded key and store hash change too
+				auto ls = GetLeaseSetMt ();
+				if (ls && ls->IsExpired ()) UpdateLeaseSet (); // republishing would send the old one to the old hash
+			}
 			m_CleanupTimer.expires_after (std::chrono::seconds (DESTINATION_CLEANUP_TIMEOUT +
 				GetRng ()() % DESTINATION_CLEANUP_TIMEOUT_VARIANCE));
 			m_CleanupTimer.async_wait (std::bind (&LeaseSetDestination::HandleCleanupTimer,
@@ -1239,7 +1245,7 @@ namespace client
 			if (keys.GetPublic ()->GetIdentHash () != s->GetIdentHash ()) return;
 			const auto& next = keys.GetOfflineSignature ();
 			const auto& cur = s->m_Keys.GetOfflineSignature ();
-			if (next == cur) return; // same transient
+			if (next == cur && keys.GetB33OfflineKeys () == s->m_Keys.GetB33OfflineKeys ()) return; // nothing new
 			if (bufbe32toh (next.data ()) < bufbe32toh (cur.data ())) return; // do not shorten validity
 			LogPrint (eLogInfo, "Destination: Refreshing offline signature for ",
 				s->GetIdentHash ().ToBase32 (), ", transient expires ", bufbe32toh (next.data ()));
@@ -1608,7 +1614,10 @@ namespace client
 			auto ls2 = std::make_shared<i2p::data::LocalLeaseSet2> (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2,
 				m_Keys, keySections, tunnels, IsPublic (), publishedTimestamp, isPublishedEncrypted);
 			if (isPublishedEncrypted) // encrypt if type 5
+			{
 				ls2 = std::make_shared<i2p::data::LocalEncryptedLeaseSet2> (ls2, m_Keys, GetAuthType (), m_AuthKeys);
+				if (!ls2->GetBufferLen ()) return; // can't be blinded, or no b33 offline key for today
+			}
 			leaseSet = ls2;
 			m_LastPublishedTimestamp = publishedTimestamp;
 		}

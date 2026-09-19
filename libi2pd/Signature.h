@@ -41,6 +41,7 @@ namespace crypto
 
 			virtual ~Signer () {};
 			virtual void Sign (const uint8_t * buf, int len, uint8_t * signature) const = 0;
+			virtual size_t GetSignatureLen () const = 0;
 	};
 
 	// DSA
@@ -79,6 +80,7 @@ namespace crypto
 
 			// implements Signer
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const override;
+			size_t GetSignatureLen () const override { return DSA_SIGNATURE_LENGTH; };
 
 		private:
 
@@ -126,6 +128,7 @@ namespace crypto
 			~ECDSASigner ();
 
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
+			size_t GetSignatureLen () const { return m_KeyLen; }; // signature length = key length
 
 		private:
 
@@ -311,6 +314,8 @@ namespace crypto
 				ECDSA_SIG_free(sig);
 			}
 
+			size_t GetSignatureLen () const { return keyLen; }; // signature length = key length
+
 		private:
 
 			EC_KEY * m_PrivateKey;
@@ -400,6 +405,7 @@ namespace crypto
 			~EDDSA25519SignerCompat ();
 
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
+			size_t GetSignatureLen () const { return EDDSA25519_SIGNATURE_LENGTH; };
 			const uint8_t * GetPublicKey () const { return m_PublicKeyEncoded; }; // for keys creation
 
 		private:
@@ -417,6 +423,7 @@ namespace crypto
 			~EDDSA25519Signer ();
 
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
+			size_t GetSignatureLen () const { return EDDSA25519_SIGNATURE_LENGTH; };
 
 		protected:
 
@@ -551,6 +558,8 @@ namespace crypto
 				BN_free (d); BN_free (r); BN_free (s);
 			}
 
+			size_t GetSignatureLen () const { return keyLen*2; };
+
 		private:
 
 			GOSTR3410ParamSet m_ParamSet;
@@ -599,6 +608,8 @@ namespace crypto
 			{
 				GetEd25519 ()->SignRedDSA (m_PrivateKey, m_PublicKeyEncoded, buf, len, signature);
 			}
+
+			size_t GetSignatureLen () const { return EDDSA25519_SIGNATURE_LENGTH; };
 
 			const uint8_t * GetPublicKey () const { return m_PublicKeyEncoded; }; // for keys creation
 
