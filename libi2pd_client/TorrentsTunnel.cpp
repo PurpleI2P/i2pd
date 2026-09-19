@@ -162,7 +162,7 @@ namespace torrents
 
 	void TorrentsTunnel::InitTorrentFiles (std::shared_ptr<Torrent> torrent)
 	{
-		if (!torrent) return;
+		if (!torrent || torrent->GetError () == eTorrentErrorMalformedMetaInfo) return;
 
 		bool completed = true;
 		for (auto it: torrent->GetFiles ())
@@ -335,7 +335,8 @@ namespace torrents
 					InitTorrentFiles (torrent);
 				});
 			auto id = InsertTorrent (torrent);
-			boost::asio::post (GetService (), [this, torrent] { RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone); });
+			if (!torrent->GetError ())
+				boost::asio::post (GetService (), [this, torrent] { RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone); });
 			return { torrent, id };
 		}
 		return { torrent, 0 };
