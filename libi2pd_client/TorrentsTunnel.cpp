@@ -167,12 +167,15 @@ namespace torrents
 		bool completed = true;
 		for (auto it: torrent->GetFiles ())
 		{
-			it->fullFilePath = torrent->IsSingleFile () ? torrent->GetFullPath () : torrent->GetFullPath ()/it->fullFilePath;
-			if (!std::filesystem::exists (it->fullFilePath))
+			if (torrent->IsSingleFile ())
+				it->SetFullPath (torrent->GetFullPath ());
+			else
+				it->UpdateFullPath (torrent->GetFullPath ());
+			if (!std::filesystem::exists (it->GetFullFilePath ()))
 			{
-				auto partFilePath = it->fullFilePath; partFilePath += ".part";
+				auto partFilePath = it->GetFullFilePath (); partFilePath += ".part";
 				if (!std::filesystem::exists (partFilePath))
-					CreateAndReserveFile (partFilePath, it->fileLength);
+					CreateAndReserveFile (partFilePath, it->GetFileLength ());
 				completed = false;
 			}
 		}
@@ -247,11 +250,11 @@ namespace torrents
 			bool completed = true;
 			for (auto it: torrent->GetFiles ())
 			{
-				auto partFilePath = it->fullFilePath; partFilePath += ".part";
+				auto partFilePath = it->GetFullFilePath (); partFilePath += ".part";
 				if (std::filesystem::exists (partFilePath))
 				{
 					std::error_code ec;
-					std::filesystem::rename (partFilePath, it->fullFilePath, ec);
+					std::filesystem::rename (partFilePath, it->GetFullFilePath (), ec);
 					if (ec)
 					{
 						completed = false;
@@ -855,7 +858,7 @@ namespace torrents
 					boost::asio::post (GetDiskIOService (), [torrent = it.second, ts]()
 					{
 						for (auto it: torrent->GetFiles ())
-							if (ts > it->lastAccessTime + TORRENT_FILE_INACTIVITY_TIMEOUT)
+							if (ts > it->GetLastAccessTime () + TORRENT_FILE_INACTIVITY_TIMEOUT)
 								it->Close ();
 					});
 					it.second->SetNextUpdateStatusTime (ts + TORRENTS_STATUS_UPDATE_INTERVAL + GetLocalDestination ()->GetRng ()() % TORRENTS_STATUS_UPDATE_INTERVAL_VARIANCE);

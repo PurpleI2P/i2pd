@@ -525,8 +525,8 @@ namespace torrents
 		for (const auto& it: torrentFiles)
 		{
 			boost::json::object file;
-			file["name"] = std::filesystem::relative (it->fullFilePath, torrentsDir).string ();
-			file["length"] = it->fileLength;
+			file["name"] = std::filesystem::relative (it->GetFullFilePath (), torrentsDir).string ();
+			file["length"] = it->GetFileLength ();
 			file["bytesCompleted"] = (ind < filesCompleted.size ()) ? filesCompleted[ind] : 0;
 			files.push_back (file);
 			ind++;

@@ -95,21 +95,34 @@ namespace torrents
 		eMessageTypeExtended = 20
 	};
 
-	struct TorrentFile
+	class TorrentFile
 	{
-		std::filesystem::path fullFilePath;
-		size_t fileLength;
-		bool isPart = true;
-		std::fstream f;
-		uint64_t lastAccessTime = 0, lastFlushTime = 0; // monotonic seconds
+		public:
 
-		TorrentFile (const std::filesystem::path & fullFilePath1, size_t fileLength1):
-			fullFilePath (fullFilePath1), fileLength (fileLength1) {};
-		bool Save (size_t offset, const uint8_t * buf, size_t len);
-		bool Load (size_t offset, uint8_t * buf, size_t len);
-		void Complete ();
-		void Open ();
-		void Close ();
+			TorrentFile (const std::filesystem::path & fullFilePath, size_t fileLength):
+				m_FullFilePath (fullFilePath), m_FileLength (fileLength), m_IsPart (true),
+				m_LastAccessTime (0), m_LastFlushTime (0) {};
+
+			bool Save (size_t offset, const uint8_t * buf, size_t len);
+			bool Load (size_t offset, uint8_t * buf, size_t len);
+			void Complete ();
+			void Open ();
+			void Close ();
+
+			const std::filesystem::path& GetFullFilePath () const { return m_FullFilePath; }
+			void SetFullPath (const std::filesystem::path& p) { m_FullFilePath = p; }
+			size_t GetFileLength () const { return m_FileLength; }
+			uint64_t GetLastAccessTime () const { return m_LastAccessTime; }
+			void SetIsPart (bool isPart) { m_IsPart = isPart; }
+			void UpdateFullPath (const std::filesystem::path& rootDir);
+
+		private:
+
+			std::filesystem::path m_FullFilePath;
+			size_t m_FileLength;
+			bool m_IsPart;
+			std::fstream m_File;
+			uint64_t m_LastAccessTime, m_LastFlushTime; // monotonic seconds
 	};
 
 	struct PieceFileFragment // fragment to save to/load from file
