@@ -49,7 +49,7 @@ namespace torrents
 
 	static std::pair<int64_t, size_t> ExtractInteger (std::string_view buf)
 	{
-		if (buf[0] == 'i')
+		if (!buf.empty () && buf[0] == 'i')
 		{
 			auto pos = buf.find ('e');
 			if (pos != std::string_view::npos)
@@ -66,7 +66,7 @@ namespace torrents
 	static size_t ParseBEncoded (std::string_view buf); // recursive
 	static size_t ParseDictionary (std::string_view buf, std::function<size_t (std::string_view key, std::string_view buf)> handler = nullptr)
 	{
-		if (buf[0] != 'd') return 0;
+		if (buf.empty () || buf[0] != 'd') return 0;
 		buf = buf.substr (1);
 		size_t len = 1;
 		while (!buf.empty () && buf[0] != 'e')
@@ -91,7 +91,7 @@ namespace torrents
 
 	static size_t ParseList (std::string_view buf, std::function<size_t (std::string_view buf)> handler = nullptr)
 	{
-		if (buf[0] != 'l') return 0 ;
+		if (buf.empty () || buf[0] != 'l') return 0;
 		buf = buf.substr (1);
 		size_t len = 1;
 		while (!buf.empty () && buf[0] != 'e')
