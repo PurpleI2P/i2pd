@@ -598,6 +598,7 @@ namespace torrents
 	{
 		m_IsSingleFile = false;
 		m_Length = 0;
+		m_Files.clear ();
 		return ParseList (buf, [this](std::string_view file)->size_t
 			{
 				std::filesystem::path filePath; size_t fileLength = 0;
@@ -640,6 +641,12 @@ namespace torrents
 				{
 					m_Files.emplace_back (std::make_shared<TorrentFile> (filePath, fileLength));
 					m_Length += fileLength;
+					if (m_Length > MAX_TORRENT_LENGTH)
+					{
+						LogPrint (eLogError, "Torrents: Invalid torent's overall length ", m_Length);
+						m_Error = eTorrentErrorMalformedMetaInfo;
+						return 0;
+					}
 				}
 				else
 					m_Error = eTorrentErrorMalformedMetaInfo;
