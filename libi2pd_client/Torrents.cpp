@@ -644,7 +644,10 @@ namespace torrents
 					});
 				if (len && fileLength && !filePath.empty ())
 				{
-					m_Files.emplace_back (std::make_shared<TorrentFile> (filePath, fileLength));
+					if (m_Files.size () < MAX_NUM_TORRENT_FILES)
+						m_Files.emplace_back (std::make_shared<TorrentFile> (filePath, fileLength));
+					else
+						m_Error = eTorrentErrorMalformedMetaInfo;
 					if (m_Length + fileLength <= MAX_TORRENT_LENGTH)
 						m_Length += fileLength;
 					else
