@@ -29,7 +29,7 @@ namespace torrents
 		i2p::client::I2PService (localDestination), m_Name (name), m_PeerID ("-I2PD-"),
 		m_TorrentsDir (torrentsDir), m_TrackerRequestsCheckTimer (GetService ()),
 		m_KeepAliveCheckTimer (GetService ()), m_ReconnectCheckTimer (GetService ()),
-		m_TorrentsStatusUpdateTimer (GetService ())
+		m_TorrentsStatusUpdateTimer (GetService ()), m_DHT (*this, localDestination->GetRng()() % 1000 + 6000)
 	{
 		if (localDestination)
 			m_PeerID += localDestination->GetIdentHash ().ToBase64 ();
@@ -64,6 +64,7 @@ namespace torrents
 	{
 		i2p::client::I2PService::Start ();
 		m_DiskIOService.Start ();
+		m_DHT.Start ();
 
 		auto dgramDest = GetLocalDestination ()->CreateDatagramDestination (true, i2p::datagram::eDatagramV3);
 		if (dgramDest)
@@ -104,6 +105,7 @@ namespace torrents
 		for (auto it: m_Torrents)
 			StopTorrent (it.second);
 		m_Torrents.clear ();
+		m_DHT.Stop ();
 		m_DiskIOService.Stop ();
 		i2p::client::I2PService::ClearHandlers (); // close connections
 		i2p::client::I2PService::Stop ();
@@ -870,6 +872,11 @@ namespace torrents
 
 	void TorrentsTunnel::HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
 	{
+		if (toPort == m_DHT.GetRPort ())
+		{
+			m_DHT.HandleRawDatagram (buf, len);
+			return;
+		}
 		// response from tracker
 		if (len < 8) return;
 		uint32_t action = bufbe32toh (buf);
@@ -923,6 +930,7 @@ namespace torrents
 				uint32_t transactionID = localDestination->GetRng()();
 				htobe32buf (connectRequest + 12, transactionID); // transactionID
 				uint16_t fromPort = localDestination->GetRng()() % 1000 + 6000;
+				if (fromPort == m_DHT.GetRPort ()) fromPort++;
 				auto session = dgramDest->GetSession (address->identHash);
 				if (session)
 				{

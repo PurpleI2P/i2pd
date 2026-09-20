@@ -29,6 +29,7 @@
 #include "util.h"
 #include "BoostStream.h"
 #include "Torrents.h"
+#include "TorrentsDHT.h"
 
 namespace i2p
 {
@@ -172,6 +173,7 @@ namespace torrents
 			DiskIOService m_DiskIOService;
 			std::unordered_map<uint32_t, std::tuple<size_t, uint16_t, std::weak_ptr<Torrent>, uint64_t > > m_DatragramTrackerTransactions;
 			// transactionID->(trackerID, from_port, torrent, timestamp monotonic milliseconds)
+			TorrentsDHT m_DHT;
 	};
 
 }
