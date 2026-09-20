@@ -15,6 +15,7 @@
 #include <sstream>
 #include <algorithm>
 #include <functional>
+#include <limits>
 #include <set>
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/hex.hpp>
@@ -40,7 +41,7 @@ namespace torrents
 		{
 			size_t len = 0;
 			auto res = std::from_chars(buf.data(), buf.data() + pos, len);
-			if (res.ec == std::errc())
+			if (res.ec == std::errc() && len <= std::numeric_limits<size_t>::max () - pos - 1)
 			{
 				size_t totalLength = len + pos + 1;
 				if (totalLength <= buf.length ())
