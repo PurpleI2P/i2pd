@@ -100,6 +100,7 @@ namespace torrents
 			const std::filesystem::path& GetTorrentsDir () const { return m_TorrentsDir; }
 			std::string GetTrackerAnnounce (size_t id) const { return (id < m_Trackers.size ()) ? std::get<0>(m_Trackers[id]).to_string () : ""; }
 			size_t GetNumTrackers () const { return m_Trackers.size (); }
+			int AddTracker (std::string_view announce, bool isCommon); // tarckerID or -1 if not inserted
 			std::shared_ptr<Torrent> FindTorrent (const Torrent::InfoHash& infoHash) const;
 			std::shared_ptr<Torrent> FindTorrentByID (int id) const;
 			std::vector<int> GetTorrentIDs () const;

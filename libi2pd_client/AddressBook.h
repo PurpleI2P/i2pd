@@ -54,6 +54,8 @@ namespace client
 		bool IsIdentHash () const { return addressType == eAddressIndentHash; };
 		bool IsValid () const { return addressType != eAddressInvalid; };
 		std::string ToBase32 () const;
+
+		bool operator==(const Address& other) const;
 	};
 
 	inline std::string GetB32Address(const i2p::data::IdentHash& ident) { return ident.ToBase32().append(".b32.i2p"); }

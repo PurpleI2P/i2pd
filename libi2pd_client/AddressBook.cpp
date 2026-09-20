@@ -374,6 +374,27 @@ namespace client
 		return "";
 	}
 
+	bool Address::operator==(const Address& other) const
+	{
+		if (addressType != other.addressType) return false;
+		switch (addressType)
+		{
+			case eAddressIndentHash:
+				return identHash == other.identHash;
+			break;
+			case eAddressBlindedPublicKey:
+				if (blindedPublicKey && other.blindedPublicKey &&
+					blindedPublicKey->GetPublicKeyLen () == other.blindedPublicKey->GetPublicKeyLen () &&
+					blindedPublicKey->GetSigType () == other.blindedPublicKey->GetSigType () &&
+					blindedPublicKey->GetBlindedSigType () == other.blindedPublicKey->GetBlindedSigType ())
+					return !memcmp (blindedPublicKey->GetPublicKey (), other.blindedPublicKey->GetPublicKey (),
+						blindedPublicKey->GetPublicKeyLen ());
+			break;
+			default: ;
+		}
+		return false;
+	}
+
 	AddressBook::AddressBook (): m_Storage(nullptr), m_IsLoaded (false),
 		m_NumRetries (0), m_DefaultSubscription (nullptr), m_SubscriptionsUpdateTimer (nullptr),
 		m_IsEnabled (true)

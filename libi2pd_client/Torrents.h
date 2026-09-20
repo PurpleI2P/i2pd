@@ -247,6 +247,8 @@ namespace torrents
 
 			std::string_view GetAnnounce () const { return m_Announce; }
 			void SetAnnounce (std::string_view announce) { m_Announce = announce; }
+			int GetAnnounceTrackerID () const { return m_AnnounceTrackerID; }
+			void SetAnnounceTrackerID (int trackerID) { m_AnnounceTrackerID = trackerID; }
 			std::string_view GetName () const { return m_Name; }
 			void SetName (std::string_view name) { m_Name = AdjustName (name); }
 			bool IsValid () const { return !m_Name.empty () && m_PieceLength && (m_Length || !m_Files.empty ()); }
@@ -321,6 +323,7 @@ namespace torrents
 		private:
 
 			std::string m_Name, m_Announce;
+			int m_AnnounceTrackerID; // -1 not set
 			std::filesystem::path m_FullPath;
 			size_t m_Length, m_PieceLength;
 			std::vector<uint8_t> m_Info; // for BEP9

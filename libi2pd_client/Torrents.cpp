@@ -430,9 +430,9 @@ namespace torrents
 	}
 
 	Torrent::Torrent ():
-		m_Length (0), m_PieceLength (0), m_IsComplete (false), m_IsStopped (false), m_IsSingleFile (true),
-		m_Uploaded (0), m_Downloaded (0), m_NextUpdateStatusTime (0), m_NextReconnectTime (0),
-		m_Error (eTorrentErrorNoError)
+		m_AnnounceTrackerID (-1), m_Length (0), m_PieceLength (0), m_IsComplete (false),
+		m_IsStopped (false), m_IsSingleFile (true), m_Uploaded (0), m_Downloaded (0),
+		m_NextUpdateStatusTime (0), m_NextReconnectTime (0), m_Error (eTorrentErrorNoError)
 	{
 	}
 

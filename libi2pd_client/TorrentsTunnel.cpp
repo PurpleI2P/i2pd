@@ -411,22 +411,7 @@ namespace torrents
 				id = m_TorrentsByID.rbegin ()->first + 1;
 			m_TorrentsByID.emplace (id, torrent);
 			if (!torrent->GetAnnounce ().empty ())
-			{
-				// add announce to trackers
-				i2p::http::URL reqURL (torrent->GetAnnounce ());
-				auto it = std::find_if (m_Trackers.begin (), m_Trackers.end (),
-					[host = std::string_view (reqURL.host)](const TrackerInfo& tracker)
-					{
-						return std::get<0>(tracker).host == host;
-					});
-				if (it == m_Trackers.end())
-				{
-					if (reqURL.host.ends_with (".i2p"))
-						m_Trackers.emplace_back (TrackerInfo{ torrent->GetAnnounce (), false, 0, 0, 0 });
-					else
-						LogPrint (eLogInfo, "TorrentsTunnel: Non-I2P address ", reqURL.host, " in announce for torrent ", torrent->GetName ());
-				}
-			}
+				torrent->SetAnnounceTrackerID (AddTracker (torrent->GetAnnounce (), false)); // add announce to trackers
 			return id;
  		}
 		return 0;
@@ -754,7 +739,7 @@ namespace torrents
 					for (size_t i = 0; i < m_Trackers.size (); i++)
 					{
 						if (!it.second->GetNextTrackerRequestTime (i) &&  // first time
-							(std::get<1>(m_Trackers[i]) || std::get<0>(m_Trackers[i]).host == i2p::http::URL (it.second->GetAnnounce ()).host))
+							(std::get<1>(m_Trackers[i]) || it.second->GetAnnounceTrackerID () == (int)i))
 						{
 							auto initialInterval = GetLocalDestination ()->GetRng()() % TRACKER_INITIAL_REQUEST_INTERVAL_VARIANCE;
 							if (initialInterval <= TRACKER_REQUESTS_CHECK_TIMEOUT) initialInterval = 0; // request immeditely
@@ -1062,6 +1047,35 @@ namespace torrents
 			torrent.lock ()->HandleDatagramTrackerResponse (trackerID, interval, buf + 16, len - 16, seeders, leechers);
 		}
 		m_DatragramTrackerTransactions.erase (it);
+	}
+
+	int TorrentsTunnel::AddTracker (std::string_view announce, bool isCommon)
+	{
+		if (announce.empty ()) return -1;
+		i2p::http::URL reqURL (announce);
+		if (!reqURL.host.ends_with (".i2p"))
+		{
+			LogPrint (eLogInfo, "TorrentsTunnel: Non-I2P address ", reqURL.host, " in tracker announce");
+			return -1;
+		}
+		auto reqAddr = i2p::client::context.GetAddressBook ().GetAddress (reqURL.host);
+		if (reqAddr)
+		{
+			auto it = std::find_if (m_Trackers.begin (), m_Trackers.end (),
+				[host = std::string_view (reqURL.host), reqAddr](const TrackerInfo& tracker)
+				{
+					const auto& url = std::get<0>(tracker);
+					if (url.host == host) return true;
+					auto addr = i2p::client::context.GetAddressBook ().GetAddress (url.host);
+					if (!addr) return false;
+					return *addr == *reqAddr;
+				});
+			if (it != m_Trackers.end ()) // existing
+				return it - m_Trackers.begin();
+		}
+
+		m_Trackers.emplace_back (TrackerInfo{ announce, isCommon, 0, 0, 0 });
+		return m_Trackers.size () - 1;
 	}
 }
 }
