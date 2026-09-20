@@ -650,7 +650,14 @@ namespace proxy
 					else if (m_addrtype == ADDR_DNS)
 					{
 						if (m_address.dns.GetString ().substr (0, 4) == "255.")
-							resolved = GetServer ()->GetResolvedAddress (boost::asio::ip::make_address (m_address.dns.GetString ()).to_v4());
+						{
+							// the name only starts like an address: make_address throws on
+							// anything else, to_v4 throws on v6, and nothing catches here
+							boost::system::error_code ecode;
+							auto addr = boost::asio::ip::make_address (m_address.dns.GetString (), ecode);
+							if (!ecode && addr.is_v4 ())
+								resolved = GetServer ()->GetResolvedAddress (addr.to_v4 ());
+						}
 					}
 					if (!resolved.empty ())
 					{
