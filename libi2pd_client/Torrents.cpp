@@ -88,7 +88,7 @@ namespace torrents
 			len += offset;
 			buf = buf.substr (offset);
 		}
-		if (buf.empty ()) return 0; // maformed dictionary without terminating 'e'
+		if (buf.empty () || buf[0] != 'e') return 0; // malformed dictionary without terminating 'e'
 		len++; // 'e'
 		return len;
 	}
@@ -109,7 +109,7 @@ namespace torrents
 			len += l;
 			buf = buf.substr (l);
 		}
-		if (buf.empty ()) return 0; // maformed list without terminating 'e'
+		if (buf.empty () || buf[0] != 'e') return 0; // malformed list without terminating 'e'
 		len++; // 'e'
 		return len;
 	}
