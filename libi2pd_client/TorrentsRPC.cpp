@@ -17,6 +17,7 @@
 #include <vector>
 #include <array>
 #include <functional>
+#include "Base.h"
 #include "Log.h"
 #include "HTTP.h"
 #include "Timestamp.h"
@@ -654,11 +655,12 @@ namespace torrents
 	TorrentsRPCSession::TorrentsRPCSession (TorrentsRPCServer& server, boost::asio::ip::tcp::socket&& s):
 		m_Server (server), m_Socket (std::move (s))
 	{
+		m_RequestParser.body_limit (i2p::data::Base64EncodingBufferSize (MAX_NUM_TORRENT_PIECES*SHA_DIGEST_LENGTH));
 	}
 
 	void TorrentsRPCSession::ReceiveRequest ()
 	{
-		boost::beast::http::async_read (m_Socket, m_ReceiveBuffer, m_Request,
+		boost::beast::http::async_read (m_Socket, m_ReceiveBuffer, m_RequestParser,
 			boost::beast::bind_front_handler (&TorrentsRPCSession::HandleRequest, shared_from_this()));
 	}
 
@@ -667,23 +669,20 @@ namespace torrents
 		if (!ecode)
 		{
 #ifdef JSON_SUPPORTED
-			if (m_Request.method() == boost::beast::http::verb::post)
+			const auto& request = m_RequestParser.get ();
+			if (request.method() == boost::beast::http::verb::post)
 			{
-				auto path = m_Request.target ();
+				auto path = request.target ();
 				auto tunnel = m_Server.GetTunnel ( {path.data (), path.size ()}); // boost::beast::string_view to std::string_view
 				if (tunnel)
 				{
 					static constexpr std::string_view appjson { "application/json" };
-#if __cplusplus >= 202002L // C++20
-					if (m_Request[boost::beast::http::field::content_type].starts_with (appjson) || // starts with
-#else
-					if (m_Request[boost::beast::http::field::content_type].substr (0, appjson.size ()) == appjson || // starts with
-#endif
-						m_Request[boost::beast::http::field::content_type] == "application/x-www-form-urlencoded")
+					if (request[boost::beast::http::field::content_type].starts_with (appjson) || // starts with
+						request[boost::beast::http::field::content_type] == "application/x-www-form-urlencoded")
 					{
 
 						JSONRPCHandler jsonHandler (tunnel);
-						auto response = jsonHandler.HandleRequest (m_Request.body ());
+						auto response = jsonHandler.HandleRequest (request.body ());
 						if (!response.empty ())
 							SendResponse (boost::beast::http::status::ok, response);
 					}
@@ -696,7 +695,7 @@ namespace torrents
 					SendResponse (boost::beast::http::status::not_found);
 				}
 			}
-			else if (m_Request.method() == boost::beast::http::verb::options)
+			else if (request.method() == boost::beast::http::verb::options)
 				SendResponse (boost::beast::http::status::no_content, "", true);
 			else
 				SendResponse (boost::beast::http::status::method_not_allowed);

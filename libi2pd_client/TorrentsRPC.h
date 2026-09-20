@@ -44,7 +44,7 @@ namespace torrents
 			TorrentsRPCServer& m_Server;
 			boost::asio::ip::tcp::socket m_Socket;
 			boost::beast::flat_buffer m_ReceiveBuffer;
-			boost::beast::http::request<boost::beast::http::string_body> m_Request;
+			boost::beast::http::request_parser<boost::beast::http::string_body> m_RequestParser;
 			boost::beast::http::response<boost::beast::http::string_body> m_Response;
 	};
 
