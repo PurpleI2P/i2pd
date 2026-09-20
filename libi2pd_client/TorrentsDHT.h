@@ -15,7 +15,7 @@
 #include <openssl/sha.h>
 #include <memory>
 #include <array>
-#include <utility>
+#include <list>
 #include "Identity.h"
 #include "I2PService.h"
 #include "util.h"
@@ -24,8 +24,48 @@ namespace i2p
 {
 namespace torrents
 {
-	using NodeID = std::array<uint8_t, SHA_DIGEST_LENGTH>;
-	using NodeInfo = std::array<uint8_t, std::tuple_size<NodeID>::value + i2p::data::IdentHash::len + 2>;
+	struct NodeID
+	{
+		static constexpr size_t len = SHA_DIGEST_LENGTH;
+
+		union // 4 bytes aligned
+		{
+			uint8_t buf[len];
+			uint32_t l[len/4];
+		};
+	};
+
+	struct NodeDistance: public NodeID
+	{
+		auto operator<=>(const NodeDistance& other) const { return memcmp (buf, other.buf, len) <=> 0; }
+	};
+	NodeDistance operator^(const NodeID& node1, const NodeID& node2);
+
+	struct Node
+	{
+		NodeID id;
+		i2p::data::IdentHash peerInfo;
+	};
+
+	constexpr size_t MAX_BUCKET_CAPACITY = 8;
+	struct Bucket
+	{
+		std::list<std::shared_ptr<Node> > nodes;
+		NodeID start;
+	};
+
+	class RoutingTable
+	{
+		public:
+
+			RoutingTable () = default;
+
+		private:
+
+			std::list<std::shared_ptr<Bucket> > m_Buckets;
+	};
+
+	using NodeInfo = std::array<uint8_t, NodeID::len + i2p::data::IdentHash::len + 2>;
 
 	class TorrentsTunnel;
 	class TorrentsDHT
@@ -51,6 +91,7 @@ namespace torrents
 			uint16_t m_Port;
 			NodeID m_NodeID;
 			NodeInfo m_NodeInfo; // 20 byte Node ID + 32 byte IdentHash + 2 byte port
+			RoutingTable m_RoutingTable;
 	};
 }
 }
