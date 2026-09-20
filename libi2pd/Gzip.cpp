@@ -30,7 +30,7 @@ namespace data
 
 	size_t GzipInflator::Inflate (const uint8_t * in, size_t inLen, uint8_t * out, size_t outLen)
 	{
-		if (inLen < 23) return 0;
+		if (inLen < 20) return 0; // min 20 if compressed and 23 in not compressed
 		if (in[10] == 0x01) // non compressed
 		{
 			size_t len = bufle16toh (in + 11);
@@ -174,7 +174,7 @@ namespace data
 
 	size_t GzipNoCompression (const uint8_t * in, uint16_t inLen, uint8_t * out, size_t outLen)
 	{
-		static const uint8_t gzipHeader[11] = { 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x01 };
+		static constexpr uint8_t gzipHeader[11] = { 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x01 };
 		if (outLen < (size_t)inLen + 23) return 0;
 		memcpy (out, gzipHeader, 11);
 		htole16buf (out + 11, inLen);
@@ -192,7 +192,7 @@ namespace data
 
 	size_t GzipNoCompression (const std::vector<std::pair<const uint8_t *, size_t> >& bufs, uint8_t * out, size_t outLen)
 	{
-		static const uint8_t gzipHeader[11] = { 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x01 };
+		static constexpr uint8_t gzipHeader[11] = { 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x01 };
 		if (outLen < 23) return 0;
 		memcpy (out, gzipHeader, 11);
 		uint32_t crc = 0;
