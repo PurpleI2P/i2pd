@@ -7,6 +7,7 @@
 */
 
 #include <algorithm>
+#include <charconv>
 #include <cstring>
 #include <cassert>
 #include <string>
@@ -461,7 +462,14 @@ namespace proxy
 			else
 			{
 				useConnect = true;
-				dest_port = std::stoi(uri.substr(pos+1));
+				// stoi throws on a port out of int range and nothing catches it here
+				std::string_view portStr = std::string_view (uri).substr (pos + 1);
+				auto res = std::from_chars (portStr.data (), portStr.data () + portStr.size (), dest_port);
+				if (res.ec != std::errc () || res.ptr != portStr.data () + portStr.size ())
+				{
+					GenericProxyError(tr("Invalid request"), tr("Invalid request URI"));
+					return true;
+				}
 				dest_host = uri.substr(0, pos);
 			}
 		}
