@@ -611,7 +611,10 @@ namespace data
 		if (IsOfflineSignature ())
 			memset (buf + ret, 0, signingPrivateKeySize);
 		else
+		{
+			if (signingPrivateKeySize > m_SigningPrivateKey.size ()) return 0; // private key is not set
 			memcpy (buf + ret, m_SigningPrivateKey.data (), signingPrivateKeySize);
+		}
 		ret += signingPrivateKeySize;
 		if (IsOfflineSignature ())
 		{
@@ -621,7 +624,7 @@ namespace data
 			memcpy (buf + ret, m_OfflineSignature.data (), offlineSignatureLen);
 			ret += offlineSignatureLen;
 			// transient private key
-			if (ret + m_TransientSigningPrivateKeyLen > len) return 0;
+			if (ret + m_TransientSigningPrivateKeyLen > len || m_TransientSigningPrivateKeyLen > m_SigningPrivateKey.size ()) return 0;
 			memcpy (buf + ret, m_SigningPrivateKey.data (), m_TransientSigningPrivateKeyLen);
 			ret += m_TransientSigningPrivateKeyLen;
 		}
