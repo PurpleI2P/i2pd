@@ -30,6 +30,9 @@ namespace torrents
 {
 
 // BEncoded
+
+	constexpr size_t BENCODED_MAX_DEPTH = 10;
+
 	static std::pair<std::string_view, size_t> ExtractByteString (std::string_view buf)
 	{
 		auto pos = buf.find (':');
@@ -63,8 +66,8 @@ namespace torrents
 		return { 0, 0 };
 	}
 
-	static size_t ParseBEncoded (std::string_view buf); // recursive
-	static size_t ParseDictionary (std::string_view buf, std::function<size_t (std::string_view key, std::string_view buf)> handler = nullptr)
+	static size_t ParseBEncoded (std::string_view buf, size_t depth); // recursive
+	static size_t ParseDictionary (std::string_view buf, std::function<size_t (std::string_view key, std::string_view buf)> handler = nullptr, size_t depth = 0)
 	{
 		if (buf.empty () || buf[0] != 'd') return 0;
 		buf = buf.substr (1);
@@ -79,7 +82,7 @@ namespace torrents
 			if (handler)
 				offset = handler (key, buf);
 			if (!offset)
-				offset = ParseBEncoded (buf);
+				offset = ParseBEncoded (buf, depth);
 			if (!offset) break;
 			len += offset;
 			buf = buf.substr (offset);
@@ -89,7 +92,7 @@ namespace torrents
 		return len;
 	}
 
-	static size_t ParseList (std::string_view buf, std::function<size_t (std::string_view buf)> handler = nullptr)
+	static size_t ParseList (std::string_view buf, std::function<size_t (std::string_view buf)> handler = nullptr, size_t depth = 0)
 	{
 		if (buf.empty () || buf[0] != 'l') return 0;
 		buf = buf.substr (1);
@@ -100,7 +103,7 @@ namespace torrents
 			if (handler)
 				l = handler (buf);
 			if (!l)
-				l = ParseBEncoded (buf);
+				l = ParseBEncoded (buf, depth);
 			if (!l) break;
 			len += l;
 			buf = buf.substr (l);
@@ -110,9 +113,9 @@ namespace torrents
 		return len;
 	}
 
-	static size_t ParseBEncoded (std::string_view buf)
+	static size_t ParseBEncoded (std::string_view buf, size_t depth)
 	{
-		if (buf.empty ()) return 0;
+		if (buf.empty () || depth > BENCODED_MAX_DEPTH) return 0;
 		size_t ret = 0;
 		switch (buf[0])
 		{
@@ -120,10 +123,10 @@ namespace torrents
 				return ExtractInteger (buf).second;
 			break;
 			case 'l': // list
-				return ParseList (buf);
+				return ParseList (buf, nullptr, depth + 1);
 			break;
 			case 'd': // dictionary
-				return ParseDictionary (buf);
+				return ParseDictionary (buf, nullptr, depth + 1);
 			break;
 			default: // byte string
 				return ExtractByteString (buf).second;
