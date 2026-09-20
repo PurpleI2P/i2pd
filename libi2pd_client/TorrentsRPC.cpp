@@ -61,6 +61,7 @@ namespace torrents
 			std::string HandleTorrentStart (boost::json::object&& jsonRequest);
 			std::string HandleSessionGet (boost::json::object&& jsonRequest); // for transmission-rpc library
 			std::string HandleSessionStats (boost::json::object&& jsonRequest);
+			std::string HandleTorrentSet (boost::json::object&& jsonRequest);
 
 		private:
 
@@ -127,6 +128,8 @@ namespace torrents
 				return HandleSessionGet (std::move (jsonRequest));
 			else if (method == "session-stats")
 				return HandleSessionStats (std::move (jsonRequest));
+			else if (method == "torrent-set")
+				return HandleTorrentSet (std::move (jsonRequest));
 			else
 			{
 				LogPrint (eLogInfo, "TorrentsRPC: Method not found ", method);
@@ -624,6 +627,25 @@ namespace torrents
 		response["activeTorrentCount"] = torrents.size () - numStoppedTorrents;
 		response["current-stats"] = stats;
 		response["cumulative-stats"] = stats;
+		return SuccessResponse (GetTag (jsonRequest), std::move (response));
+	}
+
+	std::string JSONRPCHandler::HandleTorrentSet (boost::json::object&& jsonRequest)
+	{
+		auto arguments = jsonRequest.at ("arguments").as_object ();
+		if (arguments.contains ("trackerAdd"))
+		{
+			auto trackers = arguments.at ("trackerAdd").as_array ();
+			for (auto it: trackers)
+			{
+				boost::asio::post (m_Tunnel->GetService (),
+					boost::asio::use_future ([this, announce = it.as_string ()]()
+					{
+						m_Tunnel->AddTracker (announce, true);
+					})).wait ();
+			}
+		}
+		boost::json::object response; // always empty
 		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}
 
