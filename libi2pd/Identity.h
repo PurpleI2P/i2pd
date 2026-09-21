@@ -16,6 +16,7 @@
 #include <memory>
 #include <vector>
 #include "Base.h"
+#include "I2PEndian.h"
 #include "Signature.h"
 #include "Tag.h"
 
@@ -153,6 +154,28 @@ namespace data
 
 	size_t GetIdentityBufferLen (const uint8_t * buf, size_t len); // return actual identity length in buffer
 
+	const size_t OFFLINE_SIGNATURE_HEADER_LENGTH = 4 + 2; // expires, transient signature type
+	const uint8_t B33_OFFLINE_KEYS_VERSION = 1;
+	const size_t B33_OFFLINE_KEYS_HEADER_LENGTH = 1 + IdentHash::len + 2; // version, ident hash, number of keys
+	const uint64_t SECONDS_PER_DAY = 24*60*60;
+
+	// version || ident hash || number of keys, then an offline signature per day. Appended to the keys
+	// file, where a router without b33 offline keys does not look for it
+	class B33OfflineKeys
+	{
+		public:
+
+			size_t GetLen () const { return m_Buf.size (); };
+			const uint8_t * GetBuffer () const { return m_Buf.data (); };
+			bool operator== (const B33OfflineKeys& other) const { return m_Buf == other.m_Buf; };
+			size_t FromBuffer (const uint8_t * buf, size_t len, const IdentHash& ident);
+			size_t ToBuffer (uint8_t * buf, size_t len) const;
+
+		private:
+
+			std::vector<uint8_t> m_Buf;
+	};
+
 	class PrivateKeys // for eepsites
 	{
 		public:
@@ -191,6 +214,7 @@ namespace data
 			// offline keys
 			PrivateKeys CreateOfflineKeys (SigningKeyType type, uint32_t expires) const;
 			const std::vector<uint8_t>& GetOfflineSignature () const { return m_OfflineSignature; };
+			const B33OfflineKeys& GetB33OfflineKeys () const { return m_B33OfflineKeys; };
 			void UpdateOfflineSignature (const PrivateKeys& other); // refresh transient material, keep identity
 
 		private:
@@ -208,6 +232,29 @@ namespace data
 			std::vector<uint8_t> m_OfflineSignature; // non zero length, if applicable
 			size_t m_TransientSignatureLen = 0;
 			size_t m_TransientSigningPrivateKeyLen = 0;
+			B33OfflineKeys m_B33OfflineKeys;
+	};
+
+	// the destination's signing key is offline: a transient per day out of the b33 offline keys,
+	// each authorized by the blinded key of its own day
+	class OfflinePrivateKeys: public PrivateKeys
+	{
+		public:
+
+			OfflinePrivateKeys (const PrivateKeys& keys, const char * date); // date is 8 chars "YYYYMMDD"
+
+			bool IsOfflineSignature () const { return m_TransientPrivateKey != nullptr; }; // false if that day can't be signed
+			const uint8_t * GetSigningPrivateKey () const { return m_TransientPrivateKey ? m_TransientPrivateKey : PrivateKeys::GetSigningPrivateKey (); };
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Signer->Sign (buf, len, signature); };
+			size_t GetSignatureLen () const { return m_SignatureLen; };
+			const std::vector<uint8_t>& GetOfflineSignature () const { return m_OfflineSignature; };
+
+		private:
+
+			size_t m_SignatureLen = 0;
+			const uint8_t * m_TransientPrivateKey = nullptr; // points into the b33 offline keys
+			std::vector<uint8_t> m_OfflineSignature;
+			std::unique_ptr<i2p::crypto::Signer> m_Signer;
 	};
 
 	// destination for delivery instructions

@@ -993,21 +993,33 @@ namespace data
 		}
 		size_t lenOuterCiphertext = lenOuterPlaintext + 32;
 
-		m_BufferLen = 2/*blinded sig type*/ + 32/*blinded pub key*/ + 4/*published*/ + 2/*expires*/ + 2/*flags*/ + 2/*lenOuterCiphertext*/ + lenOuterCiphertext + 64/*signature*/;
-		m_Buffer = new uint8_t[m_BufferLen + 1];
-		m_Buffer[0] = NETDB_STORE_TYPE_ENCRYPTED_LEASESET2;
 		BlindedPublicKey blindedKey (ls->GetIdentity ());
 		auto timestamp = i2p::util::GetSecondsSinceEpoch ();
 		char date[9];
 		i2p::util::GetDateString (timestamp, date);
+		OfflinePrivateKeys offlineKeys (keys, date);
 		uint8_t blindedPriv[i2p::crypto::EDDSA25519_PRIVATE_KEY_LENGTH], blindedPub[i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH]; // 32 and 32 max
-		size_t publicKeyLen = blindedKey.BlindPrivateKey (keys.GetSigningPrivateKey (), date, blindedPriv, blindedPub);
-		std::unique_ptr<i2p::crypto::Signer> blindedSigner (i2p::data::PrivateKeys::CreateSigner (blindedKey.GetBlindedSigType (), blindedPriv));
-		if (!blindedSigner)
+		std::unique_ptr<i2p::crypto::Signer> blindedSigner;
+		size_t publicKeyLen = 0;
+		if (offlineKeys.IsOfflineSignature ())
+			publicKeyLen = blindedKey.GetBlindedKey (date, blindedPub); // the transient is authorized by it, not blinded from it
+		else if (!keys.IsOfflineSignature ())
 		{
-			LogPrint (eLogError, "LeaseSet2: Can't create blinded signer for signature type ", blindedKey.GetSigType ());
+			publicKeyLen = blindedKey.BlindPrivateKey (keys.GetSigningPrivateKey (), date, blindedPriv, blindedPub);
+			blindedSigner.reset (i2p::data::PrivateKeys::CreateSigner (blindedKey.GetBlindedSigType (), blindedPriv));
+			memset (blindedPriv, 0, sizeof (blindedPriv)); // it would give the destination's key away
+		}
+		if (!publicKeyLen || (!blindedSigner && !offlineKeys.IsOfflineSignature ()))
+		{
+			LogPrint (eLogError, "LeaseSet2: Can't sign an encrypted LeaseSet for ", date);
 			return;
 		}
+		const auto& offlineSignature = offlineKeys.GetOfflineSignature ();
+		m_BufferLen = 2/*blinded sig type*/ + publicKeyLen + 4/*published*/ + 2/*expires*/ + 2/*flags*/ +
+			offlineSignature.size () + 2/*lenOuterCiphertext*/ + lenOuterCiphertext +
+			(blindedSigner ? 64/*signature*/ : offlineKeys.GetSignatureLen ());
+		m_Buffer = new uint8_t[m_BufferLen + 1];
+		m_Buffer[0] = NETDB_STORE_TYPE_ENCRYPTED_LEASESET2;
 		auto offset = 1;
 		htobe16buf (m_Buffer + offset, blindedKey.GetBlindedSigType ()); offset += 2; // Blinded Public Key Sig Type
 		memcpy (m_Buffer + offset, blindedPub, publicKeyLen); offset += publicKeyLen; // Blinded Public Key
@@ -1017,8 +1029,13 @@ namespace data
 		if (expirationTime > nextMidnight) expirationTime = nextMidnight;
 		SetExpirationTime (expirationTime*1000LL);
 		htobe16buf (m_Buffer + offset, expirationTime > timestamp ? expirationTime - timestamp : 0); offset += 2; // expires
-		uint16_t flags = 0;
+		uint16_t flags = offlineKeys.IsOfflineSignature () ? LEASESET2_FLAG_OFFLINE_KEYS : 0;
 		htobe16buf (m_Buffer + offset, flags); offset += 2; // flags
+		if (flags)
+		{
+			memcpy (m_Buffer + offset, offlineSignature.data (), offlineSignature.size ());
+			offset += offlineSignature.size ();
+		}
 		htobe16buf (m_Buffer + offset, lenOuterCiphertext); offset += 2; // lenOuterCiphertext
 		// outerChipherText
 		// Layer 1
@@ -1058,7 +1075,10 @@ namespace data
 		offset += lenInnerPlaintext;
 		i2p::crypto::ChaCha20 (outerPlainText, lenOuterPlaintext, keys1, keys1 + 32, outerPlainText); // encrypt Layer 1
 		// signature
-		blindedSigner->Sign (m_Buffer, offset, m_Buffer + offset);
+		if (blindedSigner)
+			blindedSigner->Sign (m_Buffer, offset, m_Buffer + offset);
+		else
+			offlineKeys.Sign (m_Buffer, offset, m_Buffer + offset);
 		// store hash
 		m_StoreHash = blindedKey.GetStoreHash (date);
 	}
