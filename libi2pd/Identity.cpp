@@ -11,6 +11,7 @@
 #include "Log.h"
 #include "Timestamp.h"
 #include "CryptoKey.h"
+#include "Blinding.h"
 #include "Identity.h"
 
 namespace i2p
@@ -495,6 +496,70 @@ namespace data
 		return l;
 	}
 
+	size_t B33OfflineKeys::FromBuffer (const uint8_t * buf, size_t len, const IdentHash& ident)
+	{
+		m_Buf.clear ();
+		if (len < B33_OFFLINE_KEYS_HEADER_LENGTH || buf[0] != B33_OFFLINE_KEYS_VERSION ||
+			memcmp (buf + 1, ident, IdentHash::len))
+		{
+			LogPrint (eLogWarning, "Identity: ", len, " bytes behind the keys are not b33 offline keys of this destination");
+			return 0;
+		}
+		m_Buf.assign (buf, buf + len);
+		return len;
+	}
+
+	size_t B33OfflineKeys::ToBuffer (uint8_t * buf, size_t len) const
+	{
+		if (m_Buf.size () > len) return 0;
+		memcpy (buf, m_Buf.data (), m_Buf.size ());
+		return m_Buf.size ();
+	}
+
+	OfflinePrivateKeys::OfflinePrivateKeys (const PrivateKeys& keys, const char * date):
+		PrivateKeys (keys)
+	{
+		const uint8_t * buf = GetB33OfflineKeys ().GetBuffer ();
+		size_t len = GetB33OfflineKeys ().GetLen ();
+		if (!len) return;
+		BlindedPublicKey blindedKey (GetPublic ());
+		std::unique_ptr<i2p::crypto::Verifier> blindedVerifier (IdentityEx::CreateVerifier (blindedKey.GetBlindedSigType ()));
+		uint8_t blindedPub[i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH]; // 32 max
+		if (!blindedVerifier || !blindedKey.GetBlindedKey (date, blindedPub)) return;
+		blindedVerifier->SetPublicKey (blindedPub);
+		uint16_t numKeys = bufbe16toh (buf + B33_OFFLINE_KEYS_HEADER_LENGTH - 2);
+		size_t offset = B33_OFFLINE_KEYS_HEADER_LENGTH;
+		for (uint16_t i = 0; i < numKeys && offset + OFFLINE_SIGNATURE_HEADER_LENGTH < len; i++)
+		{
+			const uint8_t * key = buf + offset;
+			SigningKeyType transientSigType = bufbe16toh (key + 4);
+			std::unique_ptr<i2p::crypto::Verifier> transientVerifier (IdentityEx::CreateVerifier (transientSigType));
+			if (!transientVerifier) break;
+			size_t signedLen = OFFLINE_SIGNATURE_HEADER_LENGTH + transientVerifier->GetPublicKeyLen ();
+			size_t offlineSignatureLen = signedLen + blindedVerifier->GetSignatureLen ();
+			if (offset + offlineSignatureLen + transientVerifier->GetPrivateKeyLen () > len) break;
+			char keyDate[9];
+			// a key is for the day its signature expires at the end of
+			i2p::util::GetDateString (bufbe32toh (key) - SECONDS_PER_DAY, keyDate);
+			if (!strncmp (keyDate, date, 8))
+			{
+				if (!blindedVerifier->Verify (key, signedLen, key + signedLen))
+				{
+					LogPrint (eLogError, "Identity: b33 offline key for ", date, " is not signed by the blinded key of that day");
+					return;
+				}
+				m_Signer.reset (CreateSigner (transientSigType, key + offlineSignatureLen));
+				if (!m_Signer) return;
+				m_SignatureLen = transientVerifier->GetSignatureLen ();
+				m_OfflineSignature.assign (key, key + offlineSignatureLen);
+				m_TransientPrivateKey = key + offlineSignatureLen;
+				return;
+			}
+			offset += offlineSignatureLen + transientVerifier->GetPrivateKeyLen ();
+		}
+		LogPrint (eLogError, "Identity: No b33 offline key for ", date);
+	}
+
 	PrivateKeys& PrivateKeys::operator=(const Keys& keys)
 	{
 		m_Public = std::make_shared<IdentityEx>(Identity (keys));
@@ -517,6 +582,7 @@ namespace data
 		m_OfflineSignature = other.m_OfflineSignature;
 		m_TransientSignatureLen = other.m_TransientSignatureLen;
 		m_TransientSigningPrivateKeyLen = other.m_TransientSigningPrivateKeyLen;
+		m_B33OfflineKeys = other.m_B33OfflineKeys;
 		m_SigningPrivateKey = other.m_SigningPrivateKey;
 		m_Signer = nullptr;
 		CreateSigner ();
@@ -528,7 +594,7 @@ namespace data
 		size_t ret = m_Public->GetFullLen () + GetPrivateKeyLen () + m_Public->GetSigningPrivateKeyLen ();
 		if (IsOfflineSignature ())
 			ret += m_OfflineSignature.size () + m_TransientSigningPrivateKeyLen;
-		return ret;
+		return ret + m_B33OfflineKeys.GetLen ();
 	}
 
 	size_t PrivateKeys::FromBuffer (const uint8_t * buf, size_t len)
@@ -597,6 +663,8 @@ namespace data
 		}
 		else
 			CreateSigner (m_Public->GetSigningKeyType ());
+		if (ret < len)
+			ret += m_B33OfflineKeys.FromBuffer (buf + ret, len - ret, m_Public->GetIdentHash ());
 		return ret;
 	}
 
@@ -628,6 +696,8 @@ namespace data
 			memcpy (buf + ret, m_SigningPrivateKey.data (), m_TransientSigningPrivateKeyLen);
 			ret += m_TransientSigningPrivateKeyLen;
 		}
+		if (m_B33OfflineKeys.GetLen () && !m_B33OfflineKeys.ToBuffer (buf + ret, len - ret)) return 0;
+		ret += m_B33OfflineKeys.GetLen ();
 		return ret;
 	}
 
@@ -659,6 +729,7 @@ namespace data
 		m_OfflineSignature = other.m_OfflineSignature;
 		m_TransientSignatureLen = other.m_TransientSignatureLen;
 		m_TransientSigningPrivateKeyLen = other.m_TransientSigningPrivateKeyLen;
+		m_B33OfflineKeys = other.m_B33OfflineKeys;
 		m_Signer = nullptr;
 		CreateSigner ();
 	}
