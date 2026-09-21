@@ -17,33 +17,28 @@
 #include <array>
 #include <list>
 #include <algorithm>
+#include <utility>
 #include "Identity.h"
 #include "I2PService.h"
 #include "util.h"
+#include "Torrents.h"
 
 namespace i2p
 {
 namespace torrents
 {
-	struct NodeID
+	using Distance = Torrent::InfoHash;
+	struct NodeID: public Torrent::InfoHash
 	{
-		static constexpr size_t len = SHA_DIGEST_LENGTH;
-
-		union // 4 bytes aligned
+		static constexpr size_t len = std::tuple_size<Torrent::InfoHash>::value;
+		constexpr Distance operator^(const Torrent::InfoHash& hash)
 		{
-			uint8_t buf[len];
-			uint32_t l[len/4];
-		};
-
-		auto operator<=>(const NodeID& other) const { return memcmp (buf, other.buf, len) <=> 0; }
-		bool operator==(const NodeID& other) const { return !memcmp (buf, other.buf, len); }
-		static constexpr NodeID Zero () { NodeID n; std::fill_n (n.buf, len, 0); return n; }
+			Distance d;
+			for (size_t i = 0; i < size (); i++)
+				d[i] = (*this)[i] ^ hash[i];
+			return d;
+		}
 	};
-
-	struct NodeDistance: public NodeID
-	{
-	};
-	NodeDistance operator^(const NodeID& node1, const NodeID& node2);
 
 	struct Node
 	{
@@ -61,7 +56,7 @@ namespace torrents
 		std::list<std::shared_ptr<Node> > nodes;
 		NodeID start;
 
-		Bucket (): start (NodeID::Zero ()) {}
+		Bucket (): start{} {}
 	};
 
 	class RoutingTable
@@ -71,10 +66,11 @@ namespace torrents
 			RoutingTable (const NodeID& ourNode);
 
 			std::shared_ptr<Node> AddNode (const NodeID& id, i2p::data::IdentHash& peer, uint16_t port);
+			std::list<std::pair<std::shared_ptr<Node>, Distance> > FindClosestNodes (const Torrent::InfoHash& infoHash, size_t num) const;
 
 		private:
 
-			std::shared_ptr<Bucket> FindBucket (const NodeID& id);
+			std::shared_ptr<Bucket> FindBucket (const Torrent::InfoHash& id) const;
 
 		private:
 

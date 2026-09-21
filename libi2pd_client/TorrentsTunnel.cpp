@@ -29,7 +29,8 @@ namespace torrents
 		i2p::client::I2PService (localDestination), m_Name (name), m_PeerID ("-I2PD-"),
 		m_TorrentsDir (torrentsDir), m_TrackerRequestsCheckTimer (GetService ()),
 		m_KeepAliveCheckTimer (GetService ()), m_ReconnectCheckTimer (GetService ()),
-		m_TorrentsStatusUpdateTimer (GetService ()), m_DHT (*this, localDestination->GetRng()() % 1000 + 6000)
+		m_TorrentsStatusUpdateTimer (GetService ()),
+		m_DHT (*this, TORRENT_PORT + (localDestination ? localDestination->GetRng()() % (65535 - TORRENT_PORT - 1) : 1))
 	{
 		if (localDestination)
 			m_PeerID += localDestination->GetIdentHash ().ToBase64 ();
