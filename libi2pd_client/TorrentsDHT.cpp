@@ -30,6 +30,35 @@ namespace torrents
 		return d;
 	}
 
+	RoutingTable::RoutingTable (const NodeID& ourNode):
+		m_OurNode (ourNode)
+	{
+		m_Buckets.push_back (std::make_shared<Bucket> ());
+	}
+
+	std::shared_ptr<Bucket> RoutingTable::FindBucket (const NodeID& id)
+	{
+		if (m_Buckets.empty ()) return nullptr;
+		auto it = m_Buckets.begin ();
+		while (std::next (it) != m_Buckets.end ())
+		{
+			if (id < (*std::next (it))->start)
+				return *it;
+			it++;
+		}
+		return *it;
+	}
+
+	std::shared_ptr<Node> RoutingTable::AddNode (const NodeID& id, i2p::data::IdentHash& peer, uint16_t port)
+	{
+		if (id == m_OurNode) return nullptr;
+		auto bucket = FindBucket (id);
+		if (!bucket) return nullptr;
+		auto node = std::make_shared<Node>(id, peer, port);
+		bucket->nodes.emplace_back (node);
+		return node;
+	}
+
 	TorrentsDHT::TorrentsDHT (TorrentsTunnel& tunnel, uint16_t port):
 		m_Tunnel (tunnel), m_Port (port)
 	{
@@ -42,6 +71,7 @@ namespace torrents
 			memcpy (m_NodeInfo.data (), m_NodeID.buf, m_NodeID.len);
 			memcpy (m_NodeInfo.data () + m_NodeID.len, dest->GetIdentHash (), i2p::data::IdentHash::len);
 			htobe16buf (m_NodeInfo.data () + m_NodeInfo.size () - 2, port);
+			m_RoutingTable = std::make_unique<RoutingTable> (m_NodeID);
 		}
 		else
 		{

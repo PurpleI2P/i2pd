@@ -16,6 +16,7 @@
 #include <memory>
 #include <array>
 #include <list>
+#include <algorithm>
 #include "Identity.h"
 #include "I2PService.h"
 #include "util.h"
@@ -33,18 +34,25 @@ namespace torrents
 			uint8_t buf[len];
 			uint32_t l[len/4];
 		};
+
+		auto operator<=>(const NodeID& other) const { return memcmp (buf, other.buf, len) <=> 0; }
+		bool operator==(const NodeID& other) const { return !memcmp (buf, other.buf, len); }
+		static constexpr NodeID Zero () { NodeID n; std::fill_n (n.buf, len, 0); return n; }
 	};
 
 	struct NodeDistance: public NodeID
 	{
-		auto operator<=>(const NodeDistance& other) const { return memcmp (buf, other.buf, len) <=> 0; }
 	};
 	NodeDistance operator^(const NodeID& node1, const NodeID& node2);
 
 	struct Node
 	{
 		NodeID id;
-		i2p::data::IdentHash peerInfo;
+		i2p::data::IdentHash peer;
+		uint16_t port;
+
+		Node (const NodeID& id1, const i2p::data::IdentHash& peer1, uint16_t port1):
+			id (id1), peer (peer1), port (port1) {}
 	};
 
 	constexpr size_t MAX_BUCKET_CAPACITY = 8;
@@ -52,17 +60,26 @@ namespace torrents
 	{
 		std::list<std::shared_ptr<Node> > nodes;
 		NodeID start;
+
+		Bucket (): start (NodeID::Zero ()) {}
 	};
 
 	class RoutingTable
 	{
 		public:
 
-			RoutingTable () = default;
+			RoutingTable (const NodeID& ourNode);
+
+			std::shared_ptr<Node> AddNode (const NodeID& id, i2p::data::IdentHash& peer, uint16_t port);
+
+		private:
+
+			std::shared_ptr<Bucket> FindBucket (const NodeID& id);
 
 		private:
 
 			std::list<std::shared_ptr<Bucket> > m_Buckets;
+			NodeID m_OurNode;
 	};
 
 	using NodeInfo = std::array<uint8_t, NodeID::len + i2p::data::IdentHash::len + 2>;
@@ -91,7 +108,7 @@ namespace torrents
 			uint16_t m_Port;
 			NodeID m_NodeID;
 			NodeInfo m_NodeInfo; // 20 byte Node ID + 32 byte IdentHash + 2 byte port
-			RoutingTable m_RoutingTable;
+			std::unique_ptr<RoutingTable> m_RoutingTable;
 	};
 }
 }
