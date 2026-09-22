@@ -34,7 +34,7 @@ namespace torrents
 
 	constexpr size_t BENCODED_MAX_DEPTH = 10;
 
-	static std::pair<std::string_view, size_t> ExtractByteString (std::string_view buf)
+	std::pair<std::string_view, size_t> ExtractByteString (std::string_view buf)
 	{
 		auto pos = buf.find (':');
 		if (pos != std::string_view::npos)
@@ -51,7 +51,7 @@ namespace torrents
 		return { std::string_view{}, 0 };
 	}
 
-	static std::pair<int64_t, size_t> ExtractInteger (std::string_view buf)
+	std::pair<int64_t, size_t> ExtractInteger (std::string_view buf)
 	{
 		if (!buf.empty () && buf[0] == 'i')
 		{
@@ -68,7 +68,7 @@ namespace torrents
 	}
 
 	static size_t ParseBEncoded (std::string_view buf, size_t depth); // recursive
-	static size_t ParseDictionary (std::string_view buf, std::function<size_t (std::string_view key, std::string_view buf)> handler = nullptr, size_t depth = 0)
+	size_t ParseDictionary (std::string_view buf, std::function<size_t (std::string_view key, std::string_view buf)> handler, size_t depth)
 	{
 		if (buf.empty () || buf[0] != 'd') return 0;
 		buf = buf.substr (1);
@@ -93,7 +93,7 @@ namespace torrents
 		return len;
 	}
 
-	static size_t ParseList (std::string_view buf, std::function<size_t (std::string_view buf)> handler = nullptr, size_t depth = 0)
+	size_t ParseList (std::string_view buf, std::function<size_t (std::string_view buf)> handler, size_t depth)
 	{
 		if (buf.empty () || buf[0] != 'l') return 0;
 		buf = buf.substr (1);
@@ -135,7 +135,7 @@ namespace torrents
 		return ret;
 	}
 
-	static std::pair<std::vector<std::string_view>, size_t> ParseStringList (std::string_view buf)
+	std::pair<std::vector<std::string_view>, size_t> ParseStringList (std::string_view buf)
 	{
 		std::vector<std::string_view> strings;
 		size_t len = ParseList (buf, [&strings](std::string_view str)->size_t
@@ -147,7 +147,7 @@ namespace torrents
 		return { strings, len };
 	}
 
-	static std::string CreateByteString (std::string_view str)
+	std::string CreateByteString (std::string_view str)
 	{
 		if (str.empty ()) return "";
 		std::string ret (std::to_string (str.length ()));
@@ -155,14 +155,14 @@ namespace torrents
 		return ret;
 	}
 
-	static std::string CreateInteger (int64_t v)
+	std::string CreateInteger (int64_t v)
 	{
 		std::string ret ("i");
 		ret += std::to_string (v); ret += "e";
 		return ret;
 	}
 
-	static std::string CreateDictionary (const std::vector<std::pair<std::string_view, std::string_view> >& items)
+	std::string CreateDictionary (const std::vector<std::pair<std::string_view, std::string_view> >& items)
 	{
 		std::stringstream s;
 		s << 'd';
@@ -2172,6 +2172,7 @@ namespace torrents
 		{
 			str = CreateDictionary ({
 				{ "m", CreateDictionary ({
+//					{ EXTENSION_NAME_I2P_DHT, CreateInteger (EXTENSION_MSGID_I2P_DHT) },
 					{ EXTENSION_NAME_I2P_PEX, CreateInteger (EXTENSION_MSGID_I2P_PEX) },
 					{ EXTENSION_NAME_UT_METADATA, CreateInteger (EXTENSION_MSGID_UT_METADATA) }
 										  }) },
@@ -2313,9 +2314,9 @@ namespace torrents
 
 	void PeerConnection::HandleI2PDHTExtension (const uint8_t * buf, size_t len)
 	{
-		uint16_t port = 0, rport = 0;
+		uint16_t port = 0; // rport is always port + 1
 		ParseDictionary (std::string_view ((const char *)buf, len),
-			[&port, &rport](std::string_view key, std::string_view buf)->size_t
+			[&port](std::string_view key, std::string_view buf)->size_t
 			{
 				if (key == "port")
 				{
@@ -2324,15 +2325,14 @@ namespace torrents
 						port = value;
 					return l;
 				}
-				else if (key == "rport")
-				{
-					auto [value, l] = ExtractInteger (buf);
-					if (l && value > 0 && value <= 65535)
-						rport = value;
-					return l;
-				}
 				return 0;
 			});
+		if (port)
+		{
+			auto ident = GetRemoteIdentHash ();
+			if (ident)
+				GetTorrentsTunnel ()->SendDHTPingQuery (*ident, port);
+		}
 	}
 
 	void PeerConnection::NotifyPEXPeers ()

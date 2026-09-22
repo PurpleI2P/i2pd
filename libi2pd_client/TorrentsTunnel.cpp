@@ -67,7 +67,7 @@ namespace torrents
 		m_DiskIOService.Start ();
 		m_DHT.Start ();
 
-		auto dgramDest = GetLocalDestination ()->CreateDatagramDestination (true, i2p::datagram::eDatagramV3);
+		auto dgramDest = GetLocalDestination ()->CreateDatagramDestination (true, i2p::datagram::eDatagramV1); // V1 for DHT
 		if (dgramDest)
 			dgramDest->SetRawReceiver (std::bind (&TorrentsTunnel::HandleRecvFromI2PRaw,
 				std::static_pointer_cast<TorrentsTunnel>(shared_from_this ()),
@@ -1085,6 +1085,14 @@ namespace torrents
 
 		m_Trackers.emplace_back (TrackerInfo{ announce, isCommon, 0, 0, 0 });
 		return m_Trackers.size () - 1;
+	}
+
+	void TorrentsTunnel::SendDHTPingQuery (const i2p::data::IdentHash& toIdent, uint16_t toPort)
+	{
+		boost::asio::post (GetService (), [this, toIdent, toPort]()
+			{
+				m_DHT.SendPingQuery (toIdent, toPort);
+			});
 	}
 }
 }

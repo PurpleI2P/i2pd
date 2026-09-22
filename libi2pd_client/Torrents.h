@@ -35,6 +35,17 @@ namespace i2p
 {
 namespace torrents
 {
+	// BEncoded
+	std::pair<std::string_view, size_t> ExtractByteString (std::string_view buf);
+	std::pair<int64_t, size_t> ExtractInteger (std::string_view buf);
+	size_t ParseDictionary (std::string_view buf, std::function<size_t (std::string_view key, std::string_view buf)> handler = nullptr, size_t depth = 0);
+	size_t ParseList (std::string_view buf, std::function<size_t (std::string_view buf)> handler = nullptr, size_t depth = 0);
+	std::pair<std::vector<std::string_view>, size_t> ParseStringList (std::string_view buf);
+	std::string CreateByteString (std::string_view str);
+	std::string CreateInteger (int64_t v);
+	std::string CreateDictionary (const std::vector<std::pair<std::string_view, std::string_view> >& items);
+
+
 	constexpr size_t REQUEST_BLOCK_SIZE = 16384;
 	constexpr size_t MIN_PIECE_LENGTH = 16*1024; // 16K
 	constexpr size_t MAX_PIECE_LENGTH = 256*1024*1024; // 256M

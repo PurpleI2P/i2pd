@@ -116,10 +116,20 @@ namespace torrents
 			uint16_t GetRPort () const { return m_Port + 1; };
 			void HandleRawDatagram (const uint8_t * buf, size_t len);
 
+			void SendPingQuery (const i2p::data::IdentHash& toIdent, uint16_t toPort);
+
 		private:
 
 			void HandleDatagram (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort,
 				const uint8_t * buf, size_t len, const i2p::util::Mapping * options);
+			void HandleQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
+				std::string_view transactionID, std::string_view query, std::string_view id);
+
+			void SendDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort);
+			void SendRawDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort);
+			void SendQueryMsg (std::string_view query, std::string_view arguments, const i2p::data::IdentHash& toIdent, uint16_t toPort);
+			void SendResponseMsg (std::string_view response, std::string_view transactionID, const i2p::data::IdentHash& toIdent, uint16_t toPort);
+			void SendPingResponse (std::string_view transactionID, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 
 		private:
 

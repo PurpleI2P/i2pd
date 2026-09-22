@@ -197,11 +197,139 @@ namespace torrents
 
 	void TorrentsDHT::HandleRawDatagram (const uint8_t * buf, size_t len)
 	{
+		LogPrint (eLogDebug, "TorrentsDHT: Raw datagram received");
 	}
 
 	void TorrentsDHT::HandleDatagram (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort,
 			const uint8_t * buf, size_t len, const i2p::util::Mapping * options)
 	{
+		char type = 0;
+		std::string transactionID, query, id;
+		ParseDictionary (std::string_view ((const char *)buf, len),
+			[&type, &transactionID, &query, &id](std::string_view key, std::string_view buf)->size_t
+			{
+				if (key == "y")
+				{
+					auto [value, l] = ExtractByteString (buf);
+					if (l && !value.empty ()) type = value[0];
+					return l;
+				}
+				else if (key == "t")
+				{
+					auto [value, l] = ExtractByteString (buf);
+					if (l) transactionID = value;
+					return l;
+				}
+				else if (key == "q")
+				{
+					auto [value, l] = ExtractByteString (buf);
+					if (l) query = value;
+					return l;
+				}
+				else if (key == "a" || key == "r")
+				{
+					return ParseDictionary (buf,
+						[&id](std::string_view key, std::string_view buf)->size_t
+						{
+							if (key == "id")
+							{
+								auto [value, l] = ExtractByteString (buf);
+								if (l) id = value;
+								return l;
+							}
+							return 0;
+						});
+				}
+				return 0;
+			});
+		if (type)
+		{
+			switch (type)
+			{
+				 case 'q':
+					HandleQuery (from.GetIdentHash (), fromPort, transactionID, query, id);
+				 break;
+				 case 'r':
+					LogPrint (eLogDebug, "TorrentsDHT: Response msg received");
+				 break;
+				 case 'e':
+					LogPrint (eLogDebug, "TorrentsDHT: Error msg received");
+				 break;
+				 default:
+					LogPrint (eLogInfo, "TorrentsDHT: Unxpected msg type ", (int)type);
+			}
+		}
+	}
+
+	void TorrentsDHT::HandleQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
+		std::string_view transactionID, std::string_view query, std::string_view id)
+	{
+		LogPrint (eLogDebug, "TorrentsDHT: Query msg received");
+		if (query == "ping")
+			SendPingResponse (transactionID, fromIdent, fromPort + 1); // to rport
+		else
+			LogPrint (eLogDebug, "TorrentsDHT: Unexpected query ", query);
+	}
+
+	void TorrentsDHT::SendDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort)
+	{
+		auto dest = m_Tunnel.GetLocalDestination ();
+		if (dest)
+		{
+			auto dgramDest = dest->GetDatagramDestination ();
+			if (dgramDest)
+				dgramDest->SendDatagramTo ((const uint8_t *)msg.data (), msg.size (), toIdent, m_Port, toPort);
+		}
+	}
+
+	void TorrentsDHT::SendRawDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort)
+	{
+		auto dest = m_Tunnel.GetLocalDestination ();
+		if (dest)
+		{
+			auto dgramDest = dest->GetDatagramDestination ();
+			if (dgramDest)
+				dgramDest->SendRawDatagramTo ((const uint8_t *)msg.data (), msg.size (), toIdent, m_Port, toPort);
+		}
+	}
+
+	void TorrentsDHT::SendQueryMsg (std::string_view query, std::string_view arguments,
+		const i2p::data::IdentHash& toIdent, uint16_t toPort)
+	{
+		auto msg = CreateDictionary ({
+				{ "a", arguments },
+				{ "q", CreateByteString (query) },
+				{ "t", CreateByteString ("xx") }, // TODO: random
+				{ "y", CreateByteString ("q") }
+									});
+		SendDatagram (msg, toIdent, toPort);
+	}
+
+	void TorrentsDHT::SendResponseMsg (std::string_view response, std::string_view transactionID,
+		const i2p::data::IdentHash& toIdent, uint16_t toPort)
+	{
+		auto msg = CreateDictionary ({
+				{ "r", response },
+				{ "t", CreateByteString (transactionID) },
+				{ "y", CreateByteString ("r") }
+									});
+		SendRawDatagram (msg, toIdent, toPort);
+	}
+
+	void TorrentsDHT::SendPingQuery (const i2p::data::IdentHash& toIdent, uint16_t toPort)
+	{
+		SendQueryMsg ("ping", CreateDictionary ({
+			{ "id", CreateByteString (std::string_view ((const char *)m_NodeID.data (), m_NodeID.size ())) }
+												}),
+			toIdent, toPort);
+	}
+
+	void TorrentsDHT::SendPingResponse (std::string_view transactionID, const i2p::data::IdentHash& toIdent, uint16_t toPort)
+	{
+		SendResponseMsg (CreateDictionary ({
+			{ "id", CreateByteString (std::string_view ((const char *)m_NodeID.data (), m_NodeID.size ())) }
+											}),
+			transactionID, toIdent, toPort);
 	}
 }
 }
