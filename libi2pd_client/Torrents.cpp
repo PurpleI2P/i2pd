@@ -1185,8 +1185,9 @@ namespace torrents
 		m_IsHandshakeSent (false), m_IsEstablished (false), m_IsChoked (true), m_IsRemoteChoked (true),
 		m_IsInterested (false), m_IsRemoteInterested (false), m_LastReceiveTime (0), m_LastSendTime (0),
 		m_NumRequests (0), m_NumPieces (0), m_LastRequestedPieceIndex (-1),
-		m_RemoteMsgIDUtMetadata (0), m_RemoteMsgIDI2PPEX (0), m_RemoteMetadataSize (0),
-		m_IsFast (false), m_SuggestedPieceIndex (-1), m_Downloaded (0), m_Uploaded (0)
+		m_RemoteMsgIDUtMetadata (0), m_RemoteMsgIDI2PPEX (0), m_RemoteMsgIDI2PDHT (0),
+		m_RemoteMetadataSize (0), m_IsFast (false), m_SuggestedPieceIndex (-1),
+		m_Downloaded (0), m_Uploaded (0)
 	{
 		ResetStats ();
 	}
@@ -2157,6 +2158,11 @@ namespace torrents
 			m_ExtendedMessageHandlers.emplace (EXTENSION_MSGID_I2P_PEX, &PeerConnection::HandleI2PPEXExtension);
 			m_RemoteMsgIDI2PPEX = msgID;
 		}
+		else if (extensionName == EXTENSION_NAME_I2P_DHT)
+		{
+			m_ExtendedMessageHandlers.emplace (EXTENSION_MSGID_I2P_DHT, &PeerConnection::HandleI2PDHTExtension);
+			m_RemoteMsgIDI2PDHT = msgID;
+		}
 	}
 
 	void PeerConnection::SendExtendedMsg (uint8_t extendedMsgID, std::string_view payload, std::string_view data)
@@ -2303,6 +2309,30 @@ namespace torrents
 			LogPrint (eLogDebug, "Torrents: I2P_PEX ", newPeers.size (), " new peers received");
 			GetTorrentsTunnel ()->ConnectToNewPeers (m_Torrent, newPeers);
 		}
+	}
+
+	void PeerConnection::HandleI2PDHTExtension (const uint8_t * buf, size_t len)
+	{
+		uint16_t port = 0, rport = 0;
+		ParseDictionary (std::string_view ((const char *)buf, len),
+			[&port, &rport](std::string_view key, std::string_view buf)->size_t
+			{
+				if (key == "port")
+				{
+					auto [value, l] = ExtractInteger (buf);
+					if (l && value > 0 && value <= 65535)
+						port = value;
+					return l;
+				}
+				else if (key == "rport")
+				{
+					auto [value, l] = ExtractInteger (buf);
+					if (l && value > 0 && value <= 65535)
+						rport = value;
+					return l;
+				}
+				return 0;
+			});
 	}
 
 	void PeerConnection::NotifyPEXPeers ()
