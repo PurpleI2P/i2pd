@@ -31,12 +31,26 @@ namespace torrents
 	struct NodeID: public Torrent::InfoHash
 	{
 		static constexpr size_t len = std::tuple_size<Torrent::InfoHash>::value;
-		constexpr Distance operator^(const Torrent::InfoHash& hash)
+		constexpr Distance operator^(const Torrent::InfoHash& hash) const
 		{
 			Distance d;
 			for (size_t i = 0; i < size (); i++)
 				d[i] = (*this)[i] ^ hash[i];
 			return d;
+		}
+		constexpr int FindLowestBit () const // -1 in not found
+		{
+			for (int i = size () - 1; i >= 0; i--)
+			{
+				uint8_t byte = (*this)[i];
+				if (byte)
+				{
+					for (int j = 7; j >= 0; j--)
+					if (byte & (0x80 >> j))
+						return i*8 + j;
+				}
+			}
+			return -1;
 		}
 	};
 
@@ -53,10 +67,16 @@ namespace torrents
 	constexpr size_t MAX_BUCKET_CAPACITY = 8;
 	struct Bucket
 	{
+		Bucket * next;
 		std::list<std::shared_ptr<Node> > nodes;
 		NodeID start;
 
-		Bucket (): start{} {}
+		Bucket (): next (nullptr), start{} {}
+		Bucket (const NodeID& start1): next (nullptr), start (start1) {}
+		bool IsFull () const { return nodes.size () >= MAX_BUCKET_CAPACITY; }
+		bool IsInBucket (const NodeID& id) const { return id >= start && (!next || id < next->start); }
+		NodeID GetMiddleID () const;
+		void Split ();
 	};
 
 	class RoutingTable
@@ -64,17 +84,19 @@ namespace torrents
 		public:
 
 			RoutingTable (const NodeID& ourNode);
+			~RoutingTable ();
 
 			std::shared_ptr<Node> AddNode (const NodeID& id, i2p::data::IdentHash& peer, uint16_t port);
 			std::list<std::pair<std::shared_ptr<Node>, Distance> > FindClosestNodes (const Torrent::InfoHash& infoHash, size_t num) const;
 
 		private:
 
-			std::shared_ptr<Bucket> FindBucket (const Torrent::InfoHash& id) const;
+			Bucket * FindBucket (const Torrent::InfoHash& id) const;
+			void RemoveEmptyBuckers ();
 
 		private:
 
-			std::list<std::shared_ptr<Bucket> > m_Buckets;
+			Bucket * m_Buckets;
 			NodeID m_OurNode;
 	};
 

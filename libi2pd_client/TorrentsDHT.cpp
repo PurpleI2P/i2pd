@@ -17,24 +17,86 @@ namespace i2p
 {
 namespace torrents
 {
+	NodeID Bucket::GetMiddleID () const
+	{
+		NodeID middleID = start;
+		int bit = std::max (start.FindLowestBit (), next ? next->start.FindLowestBit () : -1) + 1;
+		middleID[bit >> 3] |= (0x80 >> (bit & 0x07));
+		return middleID;
+	}
+
+	void Bucket::Split ()
+	{
+		auto middleID = GetMiddleID ();
+		auto newBucket = new Bucket (middleID);
+		newBucket->next = next;
+		next = newBucket;
+		// move some nodes
+		auto it = nodes.begin ();
+		while (it != nodes.end ())
+		{
+			if ((*it)->id < middleID)
+				it++; // stay in old bucket
+			else
+			{
+				// move to new bucket
+				auto node = *it;
+				it = nodes.erase (it);
+				newBucket->nodes.push_back (node);
+			}
+		}
+	}
 
 	RoutingTable::RoutingTable (const NodeID& ourNode):
 		m_OurNode (ourNode)
 	{
-		m_Buckets.push_back (std::make_shared<Bucket> ());
+		m_Buckets = new Bucket;
 	}
 
-	std::shared_ptr<Bucket> RoutingTable::FindBucket (const Torrent::InfoHash& id) const
+	RoutingTable::~RoutingTable ()
 	{
-		if (m_Buckets.empty ()) return nullptr;
-		auto it = m_Buckets.begin ();
-		while (std::next (it) != m_Buckets.end ())
+		while (m_Buckets)
 		{
-			if (id < (*std::next (it))->start)
-				return *it;
-			it++;
+			auto bucket = m_Buckets;
+			m_Buckets = m_Buckets->next;
+			delete bucket;
 		}
-		return *it;
+	}
+
+	Bucket * RoutingTable::FindBucket (const Torrent::InfoHash& id) const
+	{
+		if (!m_Buckets) return nullptr;
+		auto bucket = m_Buckets;
+		while (bucket->next)
+		{
+			if (id < bucket->next->start)
+				return bucket;
+			bucket = bucket->next;
+		}
+		return bucket;
+	}
+
+	void RoutingTable::RemoveEmptyBuckers ()
+	{
+		if (m_Buckets)
+		{
+			auto prev = m_Buckets, bucket = m_Buckets->next;
+			while (bucket)
+			{
+				if (bucket->nodes.empty ())
+				{
+					prev->next = bucket->next;
+					auto tmp = bucket;
+					bucket = bucket->next;
+					delete tmp;
+				}
+				else
+				{
+					prev = bucket;
+					bucket = bucket->next;
+				}
+			}
+		}
 	}
 
 	std::shared_ptr<Node> RoutingTable::AddNode (const NodeID& id, i2p::data::IdentHash& peer, uint16_t port)
@@ -42,8 +104,22 @@ namespace torrents
 		if (id == m_OurNode) return nullptr;
 		auto bucket = FindBucket (id);
 		if (!bucket) return nullptr;
-		auto node = std::make_shared<Node>(id, peer, port);
-		bucket->nodes.emplace_back (node);
+		if (bucket->IsFull () && !bucket->IsInBucket (m_OurNode)) return nullptr;
+
+		std::shared_ptr<Node> node;
+		do
+		{
+			bucket->Split ();
+			bucket = FindBucket (id);
+		}
+		while (bucket->IsFull ());
+
+		if (bucket)
+		{
+			node = std::make_shared<Node>(id, peer, port);
+			bucket->nodes.emplace_back (node);
+		}
+		RemoveEmptyBuckers ();
 		return node;
 	}
 
