@@ -439,11 +439,11 @@ namespace torrents
 			void HandleI2PPEXExtension (const uint8_t * buf, size_t len); // BEP11
 			void NotifyPEXPeers (); // BEP11
 			void HandleI2PDHTExtension (const uint8_t * buf, size_t len); // BEP5
+			void SendDHTPortAdvertisement ();
 
 			std::optional<RequestedBlock> GetNextBlockToRequest ();
 			bool RequestNextBlocks ();
 			bool SendRequestedBlock (const RequestedBlock& requestedBlock);
-
 
 		private:
 

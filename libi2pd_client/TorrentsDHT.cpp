@@ -9,7 +9,6 @@
 #ifndef NO_TORRENTS
 
 #include <string.h>
-#include "I2PEndian.h"
 #include "TorrentsTunnel.h"
 #include "TorrentsDHT.h"
 
@@ -17,6 +16,16 @@ namespace i2p
 {
 namespace torrents
 {
+	std::shared_ptr<Node> Bucket::FindNode (const NodeID& id) const
+	{
+		auto it = std::find_if (nodes.begin (), nodes.end (),
+			[&id](std::shared_ptr<const Node> node)
+			{
+				return node->id == id;
+			});
+		return (it != nodes.end ()) ? *it : nullptr;
+	}
+
 	std::optional<NodeID> Bucket::GetMiddleID () const
 	{
 		uint8_t bit = std::max (start.FindLowestBit (), next ? next->start.FindLowestBit () : -1) + 1;
@@ -107,6 +116,8 @@ namespace torrents
 		if (id == m_OurNode) return nullptr;
 		auto bucket = FindBucket (id);
 		if (!bucket) return nullptr;
+		std::shared_ptr<Node> node = bucket->FindNode (id);
+		if (node) return node;
 		if (bucket->IsFull ())
 		{
 			if (!bucket->IsInBucket (m_OurNode)) return nullptr;
@@ -117,8 +128,6 @@ namespace torrents
 			}
 			while (bucket->IsFull ());
 		}
-
-		std::shared_ptr<Node> node;
 		if (bucket)
 		{
 			node = std::make_shared<Node>(id, peer, port);
@@ -197,12 +206,63 @@ namespace torrents
 
 	void TorrentsDHT::HandleRawDatagram (const uint8_t * buf, size_t len)
 	{
-		LogPrint (eLogDebug, "TorrentsDHT: Raw datagram received");
+		// response or error
+		char type = 0;
+		std::string transactionID, id;
+		ParseDictionary (std::string_view ((const char *)buf, len),
+			[&type, &transactionID, &id](std::string_view key, std::string_view buf)->size_t
+			{
+				if (key == "y")
+				{
+					auto [value, l] = ExtractByteString (buf);
+					if (l && !value.empty ()) type = value[0];
+					return l;
+				}
+				else if (key == "t")
+				{
+					auto [value, l] = ExtractByteString (buf);
+					if (l) transactionID = value;
+					return l;
+				}
+				else if (key == "r")
+				{
+					return ParseDictionary (buf,
+						[&id](std::string_view key, std::string_view buf)->size_t
+						{
+							if (key == "id")
+							{
+								auto [value, l] = ExtractByteString (buf);
+								if (l) id = value;
+								return l;
+							}
+							return 0;
+						});
+				}
+				return 0;
+			});
+		if (type)
+		{
+			switch (type)
+			{
+				 case 'r':
+					HandleResponse (transactionID, id);
+				 break;
+				 case 'e':
+					LogPrint (eLogDebug, "TorrentsDHT: Error msg received");
+				 break;
+				 case 'q':
+					LogPrint (eLogError, "TorrentsDHT: Query can't come as raw datagram");
+				break;
+				 default:
+					LogPrint (eLogInfo, "TorrentsDHT: Unxpected msg type ", (int)type);
+			}
+		}
 	}
 
 	void TorrentsDHT::HandleDatagram (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort,
 			const uint8_t * buf, size_t len, const i2p::util::Mapping * options)
 	{
+		// query
 		char type = 0;
 		std::string transactionID, query, id;
 		ParseDictionary (std::string_view ((const char *)buf, len),
@@ -226,7 +286,7 @@ namespace torrents
 					if (l) query = value;
 					return l;
 				}
-				else if (key == "a" || key == "r")
+				else if (key == "a")
 				{
 					return ParseDictionary (buf,
 						[&id](std::string_view key, std::string_view buf)->size_t
@@ -242,23 +302,10 @@ namespace torrents
 				}
 				return 0;
 			});
-		if (type)
-		{
-			switch (type)
-			{
-				 case 'q':
-					HandleQuery (from.GetIdentHash (), fromPort, transactionID, query, id);
-				 break;
-				 case 'r':
-					LogPrint (eLogDebug, "TorrentsDHT: Response msg received");
-				 break;
-				 case 'e':
-					LogPrint (eLogDebug, "TorrentsDHT: Error msg received");
-				 break;
-				 default:
-					LogPrint (eLogInfo, "TorrentsDHT: Unxpected msg type ", (int)type);
-			}
-		}
+		if (type == 'q')
+			HandleQuery (from.GetIdentHash (), fromPort, transactionID, query, id);
+		else if (type)
+			LogPrint (eLogInfo, "TorrentsDHT: Unxpected msg type ", (int)type);
 	}
 
 	void TorrentsDHT::HandleQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
@@ -269,6 +316,32 @@ namespace torrents
 			SendPingResponse (transactionID, fromIdent, fromPort + 1); // to rport
 		else
 			LogPrint (eLogDebug, "TorrentsDHT: Unexpected query ", query);
+	}
+
+	void TorrentsDHT::HandleResponse (std::string_view transactionID, std::string_view id)
+	{
+		LogPrint (eLogDebug, "TorrentsDHT: Response msg received");
+		auto it = m_Queries.find (transactionID);
+		if (it != m_Queries.end ())
+		{
+			// assume ping for now
+			if (id.size () < NodeID::len)
+			{
+				LogPrint (eLogInfo, "TorrentsDHT: received id is too short ", id.size ());
+				return;
+			}
+			if (m_RoutingTable)
+			{
+				NodeID nodeID;
+				memcpy (nodeID.data (), id.data (), NodeID::len);
+				if (m_RoutingTable->AddNode (nodeID, it->second.first, it->second.second))
+					LogPrint (eLogDebug, "TorrentsDHT: Node ", it->second.first.ToBase64 (), ":", it->second.second, " added");
+				else
+					LogPrint (eLogError, "TorrentsDHT: Failed to add node ", it->second.first.ToBase64 ());
+			}
+		}
+		else
+			LogPrint (eLogInfo, "TorrentsDHT: Query now found");
 	}
 
 	void TorrentsDHT::SendDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort)
@@ -296,12 +369,21 @@ namespace torrents
 	void TorrentsDHT::SendQueryMsg (std::string_view query, std::string_view arguments,
 		const i2p::data::IdentHash& toIdent, uint16_t toPort)
 	{
+		std::string transactionID;
+		if (m_Tunnel.GetLocalDestination ())
+		{
+			transactionID.push_back (m_Tunnel.GetLocalDestination ()->GetRng ()() % ('z' -'a' + 1) + 'a');
+			transactionID.push_back (m_Tunnel.GetLocalDestination ()->GetRng ()() % ('z' -'a' + 1) + 'a');
+		}
+		else
+			transactionID = "xx";
 		auto msg = CreateDictionary ({
 				{ "a", arguments },
 				{ "q", CreateByteString (query) },
-				{ "t", CreateByteString ("xx") }, // TODO: random
+				{ "t", CreateByteString (transactionID) },
 				{ "y", CreateByteString ("q") }
 									});
+		m_Queries.insert_or_assign (transactionID, std::make_pair (toIdent, toPort));
 		SendDatagram (msg, toIdent, toPort);
 	}
 

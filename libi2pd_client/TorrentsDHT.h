@@ -13,9 +13,12 @@
 
 #include <inttypes.h>
 #include <openssl/sha.h>
+#include <string>
+#include <string_view>
 #include <memory>
 #include <array>
 #include <list>
+#include <map>
 #include <algorithm>
 #include <utility>
 #include <optional>
@@ -76,6 +79,7 @@ namespace torrents
 		Bucket (const NodeID& start1): next (nullptr), start (start1) {}
 		bool IsFull () const { return nodes.size () >= MAX_BUCKET_CAPACITY; }
 		bool IsInBucket (const NodeID& id) const { return id >= start && (!next || id < next->start); }
+		std::shared_ptr<Node> FindNode (const NodeID& id) const;
 		std::optional<NodeID> GetMiddleID () const;
 		bool Split ();
 	};
@@ -113,6 +117,7 @@ namespace torrents
 			void Start ();
 			void Stop ();
 
+			uint16_t GetPort () const { return m_Port; };
 			uint16_t GetRPort () const { return m_Port + 1; };
 			void HandleRawDatagram (const uint8_t * buf, size_t len);
 
@@ -124,6 +129,7 @@ namespace torrents
 				const uint8_t * buf, size_t len, const i2p::util::Mapping * options);
 			void HandleQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
 				std::string_view transactionID, std::string_view query, std::string_view id);
+			void HandleResponse (std::string_view transactionID, std::string_view id);
 
 			void SendDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendRawDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort);
@@ -138,6 +144,7 @@ namespace torrents
 			NodeID m_NodeID;
 			NodeInfo m_NodeInfo; // 20 byte Node ID + 32 byte IdentHash + 2 byte port
 			std::unique_ptr<RoutingTable> m_RoutingTable;
+			std::map<std::string, std::pair<i2p::data::IdentHash, uint16_t>, std::less<> > m_Queries;
 	};
 }
 }

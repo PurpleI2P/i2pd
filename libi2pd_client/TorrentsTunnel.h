@@ -114,6 +114,7 @@ namespace torrents
 			bool StartTorrent (int id);
 			void ConnectToNewPeers (std::shared_ptr<Torrent> torrent, std::unordered_set<i2p::data::IdentHash>& newPeers);
 			void SendDHTPingQuery (const i2p::data::IdentHash& toIdent, uint16_t toPort);
+			std::pair<uint16_t, uint16_t> GetDHTPorts () const { return { m_DHT.GetPort (), m_DHT.GetRPort () }; }
 
 			const char* GetName() const override { return m_Name.c_str (); }
 

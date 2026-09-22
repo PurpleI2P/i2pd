@@ -2135,6 +2135,9 @@ namespace torrents
 			// BEP11
 			if (m_RemoteMsgIDI2PPEX && m_Stream && m_Stream->IsIncoming ())
 				NotifyPEXPeers ();
+			// BEP5
+			if (m_RemoteMsgIDI2PDHT)
+				SendDHTPortAdvertisement ();
 		}
 		else
 		{
@@ -2172,7 +2175,7 @@ namespace torrents
 		{
 			str = CreateDictionary ({
 				{ "m", CreateDictionary ({
-//					{ EXTENSION_NAME_I2P_DHT, CreateInteger (EXTENSION_MSGID_I2P_DHT) },
+					{ EXTENSION_NAME_I2P_DHT, CreateInteger (EXTENSION_MSGID_I2P_DHT) },
 					{ EXTENSION_NAME_I2P_PEX, CreateInteger (EXTENSION_MSGID_I2P_PEX) },
 					{ EXTENSION_NAME_UT_METADATA, CreateInteger (EXTENSION_MSGID_UT_METADATA) }
 										  }) },
@@ -2358,6 +2361,12 @@ namespace torrents
 			if (!hashes.empty ())
 				SendExtendedMsg (m_RemoteMsgIDI2PPEX, CreateDictionary ({{ "added", CreateByteString (std::string_view ((const char *)hashes.data (), hashes.size ())) }}));
 		}
+	}
+
+	void PeerConnection::SendDHTPortAdvertisement ()
+	{
+		auto [port, rport] = GetTorrentsTunnel ()->GetDHTPorts ();
+		SendExtendedMsg (m_RemoteMsgIDI2PDHT, CreateDictionary ({{ "port", CreateInteger (port) }, { "rport", CreateInteger (rport) }}));
 	}
 
 	std::optional<RequestedBlock> PeerConnection::GetNextBlockToRequest ()
