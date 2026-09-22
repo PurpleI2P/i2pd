@@ -15,6 +15,7 @@
 #include <string_view>
 #include <memory>
 #include <vector>
+#include <span>
 #include "Base.h"
 #include "I2PEndian.h"
 #include "Signature.h"
@@ -243,8 +244,8 @@ namespace data
 
 			OfflinePrivateKeys (const PrivateKeys& keys, const char * date); // date is 8 chars "YYYYMMDD"
 
-			bool IsOfflineSignature () const { return m_TransientPrivateKey != nullptr; }; // false if that day can't be signed
-			const uint8_t * GetSigningPrivateKey () const { return m_TransientPrivateKey ? m_TransientPrivateKey : PrivateKeys::GetSigningPrivateKey (); };
+			bool IsOfflineSignature () const { return !m_TransientPrivateKey.empty (); }; // false if that day can't be signed
+			const uint8_t * GetSigningPrivateKey () const { return m_TransientPrivateKey.empty () ? PrivateKeys::GetSigningPrivateKey () : m_TransientPrivateKey.data (); };
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Signer->Sign (buf, len, signature); };
 			size_t GetSignatureLen () const { return m_SignatureLen; };
 			const std::vector<uint8_t>& GetOfflineSignature () const { return m_OfflineSignature; };
@@ -252,7 +253,7 @@ namespace data
 		private:
 
 			size_t m_SignatureLen = 0;
-			const uint8_t * m_TransientPrivateKey = nullptr; // points into the b33 offline keys
+			std::span<const uint8_t> m_TransientPrivateKey; // points into the b33 offline keys
 			std::vector<uint8_t> m_OfflineSignature;
 			std::unique_ptr<i2p::crypto::Signer> m_Signer;
 	};

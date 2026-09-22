@@ -552,7 +552,7 @@ namespace data
 				if (!m_Signer) return;
 				m_SignatureLen = transientVerifier->GetSignatureLen ();
 				m_OfflineSignature.assign (key, key + offlineSignatureLen);
-				m_TransientPrivateKey = key + offlineSignatureLen;
+				m_TransientPrivateKey = std::span<const uint8_t> (key + offlineSignatureLen, transientVerifier->GetPrivateKeyLen ());
 				return;
 			}
 			offset += offlineSignatureLen + transientVerifier->GetPrivateKeyLen ();
