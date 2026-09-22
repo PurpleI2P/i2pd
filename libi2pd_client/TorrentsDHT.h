@@ -18,6 +18,7 @@
 #include <list>
 #include <algorithm>
 #include <utility>
+#include <optional>
 #include "Identity.h"
 #include "I2PService.h"
 #include "util.h"
@@ -75,8 +76,8 @@ namespace torrents
 		Bucket (const NodeID& start1): next (nullptr), start (start1) {}
 		bool IsFull () const { return nodes.size () >= MAX_BUCKET_CAPACITY; }
 		bool IsInBucket (const NodeID& id) const { return id >= start && (!next || id < next->start); }
-		NodeID GetMiddleID () const;
-		void Split ();
+		std::optional<NodeID> GetMiddleID () const;
+		bool Split ();
 	};
 
 	class RoutingTable

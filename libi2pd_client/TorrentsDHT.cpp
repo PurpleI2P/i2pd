@@ -17,25 +17,27 @@ namespace i2p
 {
 namespace torrents
 {
-	NodeID Bucket::GetMiddleID () const
+	std::optional<NodeID> Bucket::GetMiddleID () const
 	{
+		uint8_t bit = std::max (start.FindLowestBit (), next ? next->start.FindLowestBit () : -1) + 1;
+		if (bit >= NodeID::len * 8) return {};
 		NodeID middleID = start;
-		int bit = std::max (start.FindLowestBit (), next ? next->start.FindLowestBit () : -1) + 1;
 		middleID[bit >> 3] |= (0x80 >> (bit & 0x07));
-		return middleID;
+		return { middleID };
 	}
 
-	void Bucket::Split ()
+	bool Bucket::Split ()
 	{
 		auto middleID = GetMiddleID ();
-		auto newBucket = new Bucket (middleID);
+		if (!middleID) return false;
+		auto newBucket = new Bucket (*middleID);
 		newBucket->next = next;
 		next = newBucket;
 		// move some nodes
 		auto it = nodes.begin ();
 		while (it != nodes.end ())
 		{
-			if ((*it)->id < middleID)
+			if ((*it)->id < *middleID)
 				it++; // stay in old bucket
 			else
 			{
@@ -45,6 +47,7 @@ namespace torrents
 				newBucket->nodes.push_back (node);
 			}
 		}
+		return true;
 	}
 
 	RoutingTable::RoutingTable (const NodeID& ourNode):
@@ -104,16 +107,18 @@ namespace torrents
 		if (id == m_OurNode) return nullptr;
 		auto bucket = FindBucket (id);
 		if (!bucket) return nullptr;
-		if (bucket->IsFull () && !bucket->IsInBucket (m_OurNode)) return nullptr;
+		if (bucket->IsFull ())
+		{
+			if (!bucket->IsInBucket (m_OurNode)) return nullptr;
+			do
+			{
+				if (!bucket->Split ()) return nullptr;
+				bucket = FindBucket (id);
+			}
+			while (bucket->IsFull ());
+		}
 
 		std::shared_ptr<Node> node;
-		do
-		{
-			bucket->Split ();
-			bucket = FindBucket (id);
-		}
-		while (bucket->IsFull ());
-
 		if (bucket)
 		{
 			node = std::make_shared<Node>(id, peer, port);
