@@ -175,6 +175,16 @@ namespace torrents
 		return s.str ();
 	}
 
+	std::string CreateList (const std::vector<std::string>& items)
+	{
+		std::stringstream s;
+		s << 'l';
+		for (const auto& it: items)
+			s << it;
+		s << 'e';
+		return s.str ();
+	}
+
 //------------------------------------
 
 	bool TorrentFile::Save (size_t offset, const uint8_t * buf, size_t len)
@@ -1062,6 +1072,18 @@ namespace torrents
 				if (!IsConnectedToPeer (it))
 					ret.emplace (it);
 			}
+		}
+		return ret;
+	}
+
+	std::unordered_set<i2p::data::IdentHash> Torrent::GetAllPeers () const
+	{
+		std::unordered_set<i2p::data::IdentHash> ret;
+		for (const auto& it: m_TrackerStats)
+		{
+			const auto& peers = std::get<0>(it);
+			for (const auto& it1: peers)
+				ret.emplace (it1);
 		}
 		return ret;
 	}

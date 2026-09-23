@@ -44,6 +44,7 @@ namespace torrents
 	std::string CreateByteString (std::string_view str);
 	std::string CreateInteger (int64_t v);
 	std::string CreateDictionary (const std::vector<std::pair<std::string_view, std::string_view> >& items);
+	std::string CreateList (const std::vector<std::string>& items);
 
 
 	constexpr size_t REQUEST_BLOCK_SIZE = 16384;
@@ -284,8 +285,9 @@ namespace torrents
 			Piece& GetPiece (int index) { return m_Pieces[index]; }
 			std::pair<std::vector<uint8_t>, boost::logic::tribool> CreateBitfield () const; // (bitfield, true - all false - none)
 			bool ApplyBitfield (const std::vector<uint8_t>& bitfield); // return true if complete
-			std::unordered_set<i2p::data::IdentHash>  GetNonConnectedPeers ();
-			std::unordered_set<i2p::data::IdentHash>  GetNonConnectedPeers (size_t trackerID);
+			std::unordered_set<i2p::data::IdentHash> GetNonConnectedPeers ();
+			std::unordered_set<i2p::data::IdentHash> GetNonConnectedPeers (size_t trackerID);
+			std::unordered_set<i2p::data::IdentHash> GetAllPeers () const;
 			RequestedBlock GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn, bool skipRequested = true);
 			std::vector<PieceFileFragment> GetPieceFileFragments (int index) const;
 			std::vector<size_t> GetFilesCompleted () const; // completed size per file

@@ -9,6 +9,7 @@
 #ifndef NO_TORRENTS
 
 #include <string.h>
+#include <vector>
 #include "TorrentsTunnel.h"
 #include "TorrentsDHT.h"
 
@@ -264,9 +265,9 @@ namespace torrents
 	{
 		// query
 		char type = 0;
-		std::string transactionID, query, id;
+		std::string transactionID, query, id, infoHash;
 		ParseDictionary (std::string_view ((const char *)buf, len),
-			[&type, &transactionID, &query, &id](std::string_view key, std::string_view buf)->size_t
+			[&type, &transactionID, &query, &id, &infoHash](std::string_view key, std::string_view buf)->size_t
 			{
 				if (key == "y")
 				{
@@ -289,12 +290,18 @@ namespace torrents
 				else if (key == "a")
 				{
 					return ParseDictionary (buf,
-						[&id](std::string_view key, std::string_view buf)->size_t
+						[&id, &infoHash](std::string_view key, std::string_view buf)->size_t
 						{
 							if (key == "id")
 							{
 								auto [value, l] = ExtractByteString (buf);
 								if (l) id = value;
+								return l;
+							}
+							else if (key == "info_hash")
+							{
+								auto [value, l] = ExtractByteString (buf);
+								if (l) infoHash = value;
 								return l;
 							}
 							return 0;
@@ -303,19 +310,43 @@ namespace torrents
 				return 0;
 			});
 		if (type == 'q')
-			HandleQuery (from.GetIdentHash (), fromPort, transactionID, query, id);
+		{
+			if (query == "ping")
+				HandlePingQuery (from.GetIdentHash (), fromPort, transactionID, id);
+			else if (query == "get_peers")
+				HandleGetPeersQuery (from.GetIdentHash (), fromPort, transactionID, id, infoHash);
+			else
+				LogPrint (eLogDebug, "TorrentsDHT: Unexpected query ", query);
+		}
 		else if (type)
 			LogPrint (eLogInfo, "TorrentsDHT: Unxpected msg type ", (int)type);
 	}
 
-	void TorrentsDHT::HandleQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
-		std::string_view transactionID, std::string_view query, std::string_view id)
+	void TorrentsDHT::HandlePingQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
+		std::string_view transactionID, std::string_view id)
 	{
-		LogPrint (eLogDebug, "TorrentsDHT: Query msg received");
-		if (query == "ping")
-			SendPingResponse (transactionID, fromIdent, fromPort + 1); // to rport
-		else
-			LogPrint (eLogDebug, "TorrentsDHT: Unexpected query ", query);
+		LogPrint (eLogDebug, "TorrentsDHT: Ping query msg received");
+		SendPingResponse (transactionID, fromIdent, fromPort + 1); // to rport
+	}
+
+	void TorrentsDHT::HandleGetPeersQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
+		std::string_view transactionID, std::string_view id, std::string_view infoHash)
+	{
+		LogPrint (eLogDebug, "TorrentsDHT: Get peers query msg received");
+		Torrent::InfoHash hash;
+		if (infoHash.size () < hash.size ())
+		{
+			LogPrint (eLogInfo, "TorrentsDHT: Requested info hash is too short ", infoHash.size ());
+			return;
+		}
+		memcpy (hash.data (), infoHash.data (), hash.size ());
+		auto torrent = m_Tunnel.FindTorrent (hash);
+		if (torrent)
+		{
+			auto peers = torrent->GetAllPeers ();
+			if (!peers.empty ())
+				SendGetPeersResponse (transactionID, peers,  fromIdent, fromPort + 1); // to rport
+		}
 	}
 
 	void TorrentsDHT::HandleResponse (std::string_view transactionID, std::string_view id)
@@ -413,6 +444,21 @@ namespace torrents
 											}),
 			transactionID, toIdent, toPort);
 	}
+
+	void TorrentsDHT::SendGetPeersResponse (std::string_view transactionID, const std::unordered_set<i2p::data::IdentHash>& peers,
+		const i2p::data::IdentHash& toIdent, uint16_t toPort)
+	{
+		std::vector<std::string> values;
+		for (auto& it: peers)
+			values.emplace_back (CreateByteString (std::string_view ((const char *)it.data (), i2p::data::IdentHash::len)));
+		SendResponseMsg (CreateDictionary ({
+			{ "id", CreateByteString (std::string_view ((const char *)m_NodeID.data (), m_NodeID.size ())) },
+			{ "token", CreateByteString ("12345") }, // TODO:
+			{ "values", CreateList (values) }
+											}),
+			transactionID, toIdent, toPort);
+	}
+
 }
 }
 
