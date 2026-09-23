@@ -21,8 +21,9 @@ case "$1" in
     touch $LOGFILE
     chmod 640 $LOGFILE
     chown -f ${I2PDUSER}:adm $LOGFILE
-    mkdir -p -m0750 $I2PDHOME
+    mkdir -p $I2PDHOME
     chown -f -P ${I2PDUSER}:${I2PDUSER} ${I2PDHOME}
+    chmod 0700 $I2PDHOME
   ;;
   abort-upgrade|abort-remove|abort-deconfigure)
     echo "Aborting upgrade"
