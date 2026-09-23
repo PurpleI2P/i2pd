@@ -287,7 +287,6 @@ namespace torrents
 			bool ApplyBitfield (const std::vector<uint8_t>& bitfield); // return true if complete
 			std::unordered_set<i2p::data::IdentHash> GetNonConnectedPeers ();
 			std::unordered_set<i2p::data::IdentHash> GetNonConnectedPeers (size_t trackerID);
-			std::unordered_set<i2p::data::IdentHash> GetAllPeers () const;
 			RequestedBlock GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn, bool skipRequested = true);
 			std::vector<PieceFileFragment> GetPieceFileFragments (int index) const;
 			std::vector<size_t> GetFilesCompleted () const; // completed size per file

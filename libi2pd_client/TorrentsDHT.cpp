@@ -112,7 +112,7 @@ namespace torrents
 		}
 	}
 
-	std::shared_ptr<Node> RoutingTable::AddNode (const NodeID& id, i2p::data::IdentHash& peer, uint16_t port)
+	std::shared_ptr<Node> RoutingTable::AddNode (const NodeID& id, const i2p::data::IdentHash& peer, uint16_t port)
 	{
 		if (id == m_OurNode) return nullptr;
 		auto bucket = FindBucket (id);
@@ -160,6 +160,20 @@ namespace torrents
 			}
 		}
 		return ret;
+	}
+
+	std::string DHTTorrent::GetBEncodedPeers () const
+	{
+		std::vector<std::string> peers;
+		for (const auto& [peer, ts]: m_Peers)
+			peers.emplace_back (CreateByteString (std::string_view ((const char *)peer.data (), peer.len)));
+		return CreateList (peers);
+	}
+
+	void DHTTorrent::AddIncomingGetPeerNode (GetPeersToken token, std::shared_ptr<Node> node)
+	{
+		if (!node) return;
+		m_IncomingGetPeers.emplace (token, node);
 	}
 
 	TorrentsDHT::TorrentsDHT (TorrentsTunnel& tunnel, uint16_t port):
@@ -333,6 +347,19 @@ namespace torrents
 		std::string_view transactionID, std::string_view id, std::string_view infoHash)
 	{
 		LogPrint (eLogDebug, "TorrentsDHT: Get peers query msg received");
+		if (id.size () < NodeID::len)
+		{
+			LogPrint (eLogInfo, "TorrentsDHT: received id is too short ", id.size ());
+			return;
+		}
+		NodeID nodeID;
+		memcpy (nodeID.data (), id.data (), NodeID::len);
+		auto node = m_RoutingTable->AddNode (nodeID, fromIdent, fromPort);
+		if (!node)
+		{
+			LogPrint (eLogError, "TorrentsDHT: Failed to add node ", fromIdent.ToBase64 ());
+			return;
+		}
 		Torrent::InfoHash hash;
 		if (infoHash.size () < hash.size ())
 		{
@@ -340,20 +367,23 @@ namespace torrents
 			return;
 		}
 		memcpy (hash.data (), infoHash.data (), hash.size ());
-		auto torrent = m_Tunnel.FindTorrent (hash);
-		if (torrent)
+		auto it = m_Torrents.find (hash);
+		if (it != m_Torrents.end ())
 		{
-			auto peers = torrent->GetAllPeers ();
-			if (!peers.empty ())
-				SendGetPeersResponse (transactionID, peers,  fromIdent, fromPort + 1); // to rport
+			uint64_t token = m_Tunnel.GetLocalDestination () ? m_Tunnel.GetLocalDestination ()->GetRng ()() : 1;
+			it->second->AddIncomingGetPeerNode (token, node);
+			SendGetPeersResponse (transactionID, it->second, token, fromIdent, fromPort + 1); // to rport
 		}
 	}
 
 	void TorrentsDHT::HandleResponse (std::string_view transactionID, std::string_view id)
 	{
 		LogPrint (eLogDebug, "TorrentsDHT: Response msg received");
-		auto it = m_Queries.find (transactionID);
-		if (it != m_Queries.end ())
+		uint16_t t = 0;
+		if (transactionID.size () >= 2)
+			memcpy (&t, transactionID.data (), 2);
+		auto it = m_Queries.find (t);
+		if (t && it != m_Queries.end ())
 		{
 			// assume ping for now
 			if (id.size () < NodeID::len)
@@ -400,18 +430,11 @@ namespace torrents
 	void TorrentsDHT::SendQueryMsg (std::string_view query, std::string_view arguments,
 		const i2p::data::IdentHash& toIdent, uint16_t toPort)
 	{
-		std::string transactionID;
-		if (m_Tunnel.GetLocalDestination ())
-		{
-			transactionID.push_back (m_Tunnel.GetLocalDestination ()->GetRng ()() % ('z' -'a' + 1) + 'a');
-			transactionID.push_back (m_Tunnel.GetLocalDestination ()->GetRng ()() % ('z' -'a' + 1) + 'a');
-		}
-		else
-			transactionID = "xx";
+		uint16_t transactionID = m_Tunnel.GetLocalDestination () ? m_Tunnel.GetLocalDestination ()->GetRng ()() : 1;
 		auto msg = CreateDictionary ({
 				{ "a", arguments },
 				{ "q", CreateByteString (query) },
-				{ "t", CreateByteString (transactionID) },
+				{ "t", CreateByteString (std::string_view ((const char *)&transactionID, 2)) },
 				{ "y", CreateByteString ("q") }
 									});
 		m_Queries.insert_or_assign (transactionID, std::make_pair (toIdent, toPort));
@@ -445,16 +468,13 @@ namespace torrents
 			transactionID, toIdent, toPort);
 	}
 
-	void TorrentsDHT::SendGetPeersResponse (std::string_view transactionID, const std::unordered_set<i2p::data::IdentHash>& peers,
-		const i2p::data::IdentHash& toIdent, uint16_t toPort)
+	void TorrentsDHT::SendGetPeersResponse (std::string_view transactionID, std::shared_ptr<DHTTorrent> torrent,
+		uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort)
 	{
-		std::vector<std::string> values;
-		for (auto& it: peers)
-			values.emplace_back (CreateByteString (std::string_view ((const char *)it.data (), i2p::data::IdentHash::len)));
 		SendResponseMsg (CreateDictionary ({
 			{ "id", CreateByteString (std::string_view ((const char *)m_NodeID.data (), m_NodeID.size ())) },
-			{ "token", CreateByteString ("12345") }, // TODO:
-			{ "values", CreateList (values) }
+			{ "token", CreateByteString (std::string_view ((const char *)&token, 8)) },
+			{ "values", torrent->GetBEncodedPeers () }
 											}),
 			transactionID, toIdent, toPort);
 	}

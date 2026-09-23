@@ -1076,18 +1076,6 @@ namespace torrents
 		return ret;
 	}
 
-	std::unordered_set<i2p::data::IdentHash> Torrent::GetAllPeers () const
-	{
-		std::unordered_set<i2p::data::IdentHash> ret;
-		for (const auto& it: m_TrackerStats)
-		{
-			const auto& peers = std::get<0>(it);
-			for (const auto& it1: peers)
-				ret.emplace (it1);
-		}
-		return ret;
-	}
-
 	uint64_t Torrent::GetNextTrackerRequestTime (size_t trackerID) const
 	{
 		if (trackerID < m_TrackerStats.size ()) return std::get<2>(m_TrackerStats[trackerID]);

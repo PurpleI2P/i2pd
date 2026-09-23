@@ -19,6 +19,7 @@
 #include <array>
 #include <list>
 #include <map>
+#include <unordered_map>
 #include <algorithm>
 #include <utility>
 #include <optional>
@@ -91,7 +92,7 @@ namespace torrents
 			RoutingTable (const NodeID& ourNode);
 			~RoutingTable ();
 
-			std::shared_ptr<Node> AddNode (const NodeID& id, i2p::data::IdentHash& peer, uint16_t port);
+			std::shared_ptr<Node> AddNode (const NodeID& id, const i2p::data::IdentHash& peer, uint16_t port);
 			std::list<std::pair<std::shared_ptr<Node>, Distance> > FindClosestNodes (const Torrent::InfoHash& infoHash, size_t num) const;
 
 		private:
@@ -103,6 +104,23 @@ namespace torrents
 
 			Bucket * m_Buckets;
 			NodeID m_OurNode;
+	};
+
+	using GetPeersToken = uint64_t;
+	class DHTTorrent
+	{
+		public:
+
+			DHTTorrent () = default;
+
+			std::string GetBEncodedPeers () const;
+			void AddIncomingGetPeerNode (GetPeersToken token, std::shared_ptr<Node> node);
+
+		private:
+
+			std::list<std::pair<i2p::data::IdentHash, uint64_t> > m_Peers; // (ident, update time in monotonic seconds)
+			std::unordered_map<GetPeersToken, std::weak_ptr<Node> > m_IncomingGetPeers; // we send announces to
+			std::unordered_map<GetPeersToken, std::weak_ptr<Node> > m_OutgoingGetPeers; // we recive announces from
 	};
 
 	using NodeInfo = std::array<uint8_t, NodeID::len + i2p::data::IdentHash::len + 2>;
@@ -138,8 +156,8 @@ namespace torrents
 			void SendQueryMsg (std::string_view query, std::string_view arguments, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendResponseMsg (std::string_view response, std::string_view transactionID, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendPingResponse (std::string_view transactionID, const i2p::data::IdentHash& toIdent, uint16_t toPort);
-			void SendGetPeersResponse (std::string_view transactionID, const std::unordered_set<i2p::data::IdentHash>& peers,
-				const i2p::data::IdentHash& toIdent, uint16_t toPort);
+			void SendGetPeersResponse (std::string_view transactionID, std::shared_ptr<DHTTorrent> torrent,
+				uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 
 		private:
 
@@ -148,7 +166,8 @@ namespace torrents
 			NodeID m_NodeID;
 			NodeInfo m_NodeInfo; // 20 byte Node ID + 32 byte IdentHash + 2 byte port
 			std::unique_ptr<RoutingTable> m_RoutingTable;
-			std::map<std::string, std::pair<i2p::data::IdentHash, uint16_t>, std::less<> > m_Queries;
+			std::unordered_map<uint16_t, std::pair<i2p::data::IdentHash, uint16_t> > m_Queries;
+			std::map<Torrent::InfoHash, std::shared_ptr<DHTTorrent> > m_Torrents;
 	};
 }
 }
