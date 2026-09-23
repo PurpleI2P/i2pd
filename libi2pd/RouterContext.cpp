@@ -309,7 +309,7 @@ namespace i2p
 		memcpy (m_NTCP2Keys->staticPublicKey, m_NTCP2StaticKeys->GetPublicKey (), 32);
 		RAND_bytes (m_NTCP2Keys->iv, 16);
 		// save
-		std::ofstream fk (i2p::fs::DataDirPath (NTCP2_KEYS), std::ofstream::binary | std::ofstream::out);
+		std::ofstream fk (i2p::fs::CreatePrivateFile (i2p::fs::DataDirPath (NTCP2_KEYS)), std::ofstream::binary | std::ofstream::out);
 		fk.write ((char *)m_NTCP2Keys.get (), sizeof (NTCP2PrivateKeys));
 	}
 
@@ -322,7 +322,7 @@ namespace i2p
 		memcpy (m_SSU2Keys->staticPublicKey, m_SSU2StaticKeys->GetPublicKey (), 32);
 		RAND_bytes (m_SSU2Keys->intro, 32);
 		// save
-		std::ofstream fk (i2p::fs::DataDirPath (SSU2_KEYS), std::ofstream::binary | std::ofstream::out);
+		std::ofstream fk (i2p::fs::CreatePrivateFile (i2p::fs::DataDirPath (SSU2_KEYS)), std::ofstream::binary | std::ofstream::out);
 		fk.write ((char *)m_SSU2Keys.get (), sizeof (SSU2PrivateKeys));
 	}
 
@@ -1246,7 +1246,7 @@ namespace i2p
 	void RouterContext::SaveKeys ()
 	{
 		// save in the same format as .dat files
-		std::ofstream fk (i2p::fs::DataDirPath (ROUTER_KEYS), std::ofstream::binary | std::ofstream::out);
+		std::ofstream fk (i2p::fs::CreatePrivateFile (i2p::fs::DataDirPath (ROUTER_KEYS)), std::ofstream::binary | std::ofstream::out);
 		size_t len = m_Keys.GetFullLen ();
 		uint8_t * buf = new uint8_t[len];
 		m_Keys.ToBuffer (buf, len);

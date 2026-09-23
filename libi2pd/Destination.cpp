@@ -1549,7 +1549,7 @@ namespace client
 		memset (keys->pub.data (), 0, keys->pub.size ());
 		keys->GenerateKeys ();
 
-		std::ofstream f1 (path, std::ofstream::binary | std::ofstream::out);
+		std::ofstream f1 (i2p::fs::CreatePrivateFile (path), std::ofstream::binary | std::ofstream::out);
 		if (f1)
 		{
 			f1.write ((char *)keys->pub.data (), keys->pub.size ());
