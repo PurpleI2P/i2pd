@@ -302,6 +302,17 @@ namespace fs {
 		return fs_lib::create_directory(path);
 	}
 
+	std::filesystem::path CreatePrivateFile (const std::filesystem::path& path)
+	{
+		std::ofstream f (path, std::ofstream::out | std::ofstream::app);
+		std::error_code ec;
+		std::filesystem::permissions (path, std::filesystem::perms::owner_read | std::filesystem::perms::owner_write,
+			std::filesystem::perm_options::replace, ec);
+		if (ec)
+			LogPrint (eLogWarning, "FS: Can't restrict access to ", path.string (), ": ", ec.message ());
+		return path;
+	}
+
 	void HashedStorage::SetPlace(const std::string &path) {
 		root = path + i2p::fs::dirSep + name;
 	}

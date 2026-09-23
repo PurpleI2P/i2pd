@@ -955,7 +955,7 @@ namespace garlic
 		if (m_Tags.empty ()) return;
 		std::string ident = GetIdentHash().ToBase32();
 		std::string path  = i2p::fs::DataDirPath("tags", (ident + ".tags"));
-		std::ofstream f (path, std::ofstream::binary | std::ofstream::out | std::ofstream::trunc);
+		std::ofstream f (i2p::fs::CreatePrivateFile (path), std::ofstream::binary | std::ofstream::out | std::ofstream::trunc);
 		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 		// 4 bytes timestamp, 32 bytes tag, 32 bytes key
 		for (auto it: m_Tags)

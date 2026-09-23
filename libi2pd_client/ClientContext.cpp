@@ -323,7 +323,7 @@ namespace client
 		{
 			LogPrint (eLogInfo, "Clients: Can't open file ", fullPath, " Creating new one with signature type ", sigType, " crypto type ", cryptoType);
 			keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType, true);
-			std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
+			std::ofstream f (i2p::fs::CreatePrivateFile (fullPath), std::ofstream::binary | std::ofstream::out);
 			size_t len = keys.GetFullLen ();
 			uint8_t * buf = new uint8_t[len];
 			len = keys.ToBuffer (buf, len);

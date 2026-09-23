@@ -527,6 +527,7 @@ namespace client
 		X509_free (x509);
 
 		// save key
+		i2p::fs::CreatePrivateFile (key_path);
 		if ((f = fopen (key_path, "wb")) != NULL)
 		{
 			LogPrint (eLogInfo, "I2PControl: saving cert key to ", key_path);
