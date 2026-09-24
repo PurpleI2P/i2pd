@@ -15,6 +15,7 @@
 #include <openssl/sha.h>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <memory>
 #include <array>
 #include <list>
@@ -59,6 +60,7 @@ namespace torrents
 		}
 	};
 
+	using NodeInfo = std::array<uint8_t, NodeID::len + i2p::data::IdentHash::len + 2>;
 	struct Node
 	{
 		NodeID id;
@@ -67,6 +69,8 @@ namespace torrents
 
 		Node (const NodeID& id1, const i2p::data::IdentHash& peer1, uint16_t port1):
 			id (id1), peer (peer1), port (port1) {}
+
+		NodeInfo GetNodeInfo () const;
 	};
 
 	constexpr size_t MAX_BUCKET_CAPACITY = 8;
@@ -93,7 +97,8 @@ namespace torrents
 			~RoutingTable ();
 
 			std::shared_ptr<Node> AddNode (const NodeID& id, const i2p::data::IdentHash& peer, uint16_t port);
-			std::list<std::pair<std::shared_ptr<Node>, Distance> > FindClosestNodes (const Torrent::InfoHash& infoHash, size_t num) const;
+			std::shared_ptr<Node> FindNode (const NodeID& id) const;
+			std::list<std::pair<std::shared_ptr<Node>, Distance> > FindClosestNodes (const Torrent::InfoHash& infoHash, size_t num = 1) const;
 
 		private:
 
@@ -115,6 +120,7 @@ namespace torrents
 
 			std::string GetBEncodedPeers () const;
 			void AddIncomingGetPeerNode (GetPeersToken token, std::shared_ptr<Node> node);
+			void AddOutgoingGetPeerNode (GetPeersToken token, std::shared_ptr<Node> node);
 
 		private:
 
@@ -122,8 +128,6 @@ namespace torrents
 			std::unordered_map<GetPeersToken, std::weak_ptr<Node> > m_IncomingGetPeers; // we send announces to
 			std::unordered_map<GetPeersToken, std::weak_ptr<Node> > m_OutgoingGetPeers; // we recive announces from
 	};
-
-	using NodeInfo = std::array<uint8_t, NodeID::len + i2p::data::IdentHash::len + 2>;
 
 	class TorrentsTunnel;
 	class TorrentsDHT
@@ -149,7 +153,8 @@ namespace torrents
 				std::string_view transactionID, std::string_view id);
 			void HandleGetPeersQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
 				std::string_view transactionID, std::string_view id, std::string_view infoHash);
-			void HandleResponse (std::string_view transactionID, std::string_view id);
+			void HandleResponse (std::string_view transactionID, std::string_view id, uint64_t token,
+				const std::vector<std::string_view>& values);
 
 			void SendDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendRawDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort);
@@ -157,6 +162,8 @@ namespace torrents
 			void SendResponseMsg (std::string_view response, std::string_view transactionID, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendPingResponse (std::string_view transactionID, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendGetPeersResponse (std::string_view transactionID, std::shared_ptr<DHTTorrent> torrent,
+				uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort);
+			void SendGetPeersResponse (std::string_view transactionID, std::shared_ptr<Node> node,
 				uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 
 		private:
@@ -166,7 +173,7 @@ namespace torrents
 			NodeID m_NodeID;
 			NodeInfo m_NodeInfo; // 20 byte Node ID + 32 byte IdentHash + 2 byte port
 			std::unique_ptr<RoutingTable> m_RoutingTable;
-			std::unordered_map<uint16_t, std::pair<i2p::data::IdentHash, uint16_t> > m_Queries;
+			std::unordered_map<uint16_t, std::tuple<i2p::data::IdentHash, uint16_t, std::string, std::weak_ptr<Torrent> > > m_Queries;
 			std::map<Torrent::InfoHash, std::shared_ptr<DHTTorrent> > m_Torrents;
 	};
 }
