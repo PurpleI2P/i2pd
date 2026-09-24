@@ -128,12 +128,14 @@ namespace torrents
 			std::string GetBEncodedPeers () const;
 			void AddIncomingGetPeerNode (GetPeersToken token, std::shared_ptr<Node> node);
 			void AddOutgoingGetPeerNode (GetPeersToken token, std::shared_ptr<Node> node);
+			std::shared_ptr<Node> GetIncomingGetPeerNode (GetPeersToken token) const;
+			void AddPeer (const i2p::data::IdentHash& peer);
 
 		private:
 
 			std::list<std::pair<i2p::data::IdentHash, uint64_t> > m_Peers; // (ident, update time in monotonic seconds)
-			std::unordered_map<GetPeersToken, std::weak_ptr<Node> > m_IncomingGetPeers; // we send announces to
-			std::unordered_map<GetPeersToken, std::weak_ptr<Node> > m_OutgoingGetPeers; // we recive announces from
+			std::unordered_map<GetPeersToken, std::weak_ptr<Node> > m_IncomingGetPeers; // they request peers and send announces to us
+			std::unordered_map<GetPeersToken, std::weak_ptr<Node> > m_OutgoingGetPeers; // we request peers from and send announces to
 	};
 
 	class TorrentsTunnel;
@@ -162,6 +164,7 @@ namespace torrents
 				std::string_view transactionID, std::string_view id, std::string_view infoHash);
 			void HandleResponse (std::string_view transactionID, std::string_view id, uint64_t token,
 				const std::vector<std::string_view>& values);
+			void HandleAnnouncePeer (std::string_view infoHash, uint64_t token);
 
 			void SendDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendRawDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort);
