@@ -25,12 +25,11 @@ namespace i2p
 namespace torrents
 {
 	TorrentsTunnel::TorrentsTunnel (std::string_view name, std::shared_ptr<i2p::client::ClientDestination> localDestination,
-		std::string_view torrentsDir, std::string_view trackers):
+		std::string_view torrentsDir, std::string_view trackers, bool dht):
 		i2p::client::I2PService (localDestination), m_Name (name), m_PeerID ("-I2PD-"),
 		m_TorrentsDir (torrentsDir), m_TrackerRequestsCheckTimer (GetService ()),
 		m_KeepAliveCheckTimer (GetService ()), m_ReconnectCheckTimer (GetService ()),
-		m_TorrentsStatusUpdateTimer (GetService ()),
-		m_DHT (*this, TORRENT_PORT + (localDestination ? localDestination->GetRng()() % (65535 - TORRENT_PORT - 1) : 1))
+		m_TorrentsStatusUpdateTimer (GetService ())
 	{
 		if (localDestination)
 			m_PeerID += localDestination->GetIdentHash ().ToBase64 ();
@@ -59,13 +58,15 @@ namespace torrents
 			for (const auto& it: hosts)
 				m_Trackers.emplace_back (TrackerInfo{ it.second, true, 0, 0, 0 });
 		}
+		if (dht)
+			m_DHT = std::make_unique<TorrentsDHT>(*this, TORRENT_PORT + (localDestination ? localDestination->GetRng()() % (65535 - TORRENT_PORT - 1) : 1));
 	}
 
 	void TorrentsTunnel::Start ()
 	{
 		i2p::client::I2PService::Start ();
 		m_DiskIOService.Start ();
-		m_DHT.Start ();
+		if (m_DHT) m_DHT->Start ();
 
 		auto dgramDest = GetLocalDestination ()->CreateDatagramDestination (true, i2p::datagram::eDatagramV1); // V1 for DHT
 		if (dgramDest)
@@ -106,7 +107,7 @@ namespace torrents
 		for (auto it: m_Torrents)
 			StopTorrent (it.second);
 		m_Torrents.clear ();
-		m_DHT.Stop ();
+		if (m_DHT) m_DHT->Stop ();
 		m_DiskIOService.Stop ();
 		i2p::client::I2PService::ClearHandlers (); // close connections
 		i2p::client::I2PService::Stop ();
@@ -873,9 +874,9 @@ namespace torrents
 
 	void TorrentsTunnel::HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
 	{
-		if (toPort == m_DHT.GetRPort ())
+		if (m_DHT && toPort == m_DHT->GetRPort ())
 		{
-			m_DHT.HandleRawDatagram (buf, len);
+			m_DHT->HandleRawDatagram (buf, len);
 			return;
 		}
 		// response from tracker
@@ -931,7 +932,7 @@ namespace torrents
 				uint32_t transactionID = localDestination->GetRng()();
 				htobe32buf (connectRequest + 12, transactionID); // transactionID
 				uint16_t fromPort = localDestination->GetRng()() % 1000 + 6000;
-				if (fromPort == m_DHT.GetRPort ()) fromPort++;
+				if (m_DHT && fromPort == m_DHT->GetRPort ()) fromPort++;
 				auto session = dgramDest->GetSession (address->identHash);
 				if (session)
 				{
@@ -1091,7 +1092,7 @@ namespace torrents
 	{
 		boost::asio::post (GetService (), [this, toIdent, toPort]()
 			{
-				m_DHT.SendPingQuery (toIdent, toPort);
+				if (m_DHT) m_DHT->SendPingQuery (toIdent, toPort);
 			});
 	}
 }

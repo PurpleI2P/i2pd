@@ -501,7 +501,7 @@ namespace torrents
 			m_Torrents.emplace (hash, torrent);
 		}
 		uint64_t token = m_Tunnel.GetLocalDestination () ? m_Tunnel.GetLocalDestination ()->GetRng ()() : 1;
-		it->second->AddIncomingGetPeerNode (token, node);
+		torrent->AddIncomingGetPeerNode (token, node);
 
 		if (m_RoutingTable)
 		{

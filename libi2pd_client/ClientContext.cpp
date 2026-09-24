@@ -1047,6 +1047,7 @@ namespace client
 					std::string trackers = section.second.get<std::string> (TORRENTS_TUNNEL_TRACKERS, "");
 					i2p::data::SigningKeyType sigType = section.second.get (TORRENTS_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
 					if (sigType > i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519) sigType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519;
+					bool dht = section.second.get<bool> (TORRENTS_TUNNEL_DHT, true);
 
 					// I2CP
 					i2p::util::Mapping options;
@@ -1077,7 +1078,7 @@ namespace client
 						else
 							localDestination->SetPublic (true);
 					}
-					auto torrentsTunnel = std::make_shared<i2p::torrents::TorrentsTunnel> (name, localDestination, torrentsDir, trackers);
+					auto torrentsTunnel = std::make_shared<i2p::torrents::TorrentsTunnel> (name, localDestination, torrentsDir, trackers, dht);
 					auto [iit, inserted] = m_TorrentsTunnels.emplace (localDestination->GetIdentHash (), torrentsTunnel);
 					if (inserted)
 					{
@@ -1098,7 +1099,7 @@ namespace client
 					else
 						LogPrint (eLogError, "Clients: Failed to create torrents tunnel ", name, ". Duplicate keys ", keys);
 #else
-					LogPrint (eLogError, "Clients: Torrents tunnels are not supported. Comppile without NO_TORRENTS");
+					LogPrint (eLogError, "Clients: Torrents tunnels are not supported. Compile without NO_TORRENTS");
 #endif
 				}
 				else

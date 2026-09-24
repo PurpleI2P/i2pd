@@ -91,7 +91,7 @@ namespace torrents
 		public:
 
 			TorrentsTunnel (std::string_view name, std::shared_ptr<i2p::client::ClientDestination> localDestination,
-				std::string_view torrentsDir, std::string_view trackers = "");
+				std::string_view torrentsDir, std::string_view trackers = "", bool dht = true);
 
 			void Start () override;
 			void Stop () override;
@@ -114,7 +114,8 @@ namespace torrents
 			bool StartTorrent (int id);
 			void ConnectToNewPeers (std::shared_ptr<Torrent> torrent, std::unordered_set<i2p::data::IdentHash>& newPeers);
 			void SendDHTPingQuery (const i2p::data::IdentHash& toIdent, uint16_t toPort);
-			std::pair<uint16_t, uint16_t> GetDHTPorts () const { return { m_DHT.GetPort (), m_DHT.GetRPort () }; }
+			std::pair<uint16_t, uint16_t> GetDHTPorts () const { return { m_DHT ? m_DHT->GetPort () : 0, m_DHT ? m_DHT->GetRPort () : 0 }; }
+			bool SupportsDHT () const { return (bool)m_DHT; }
 
 			const char* GetName() const override { return m_Name.c_str (); }
 
@@ -175,7 +176,7 @@ namespace torrents
 			DiskIOService m_DiskIOService;
 			std::unordered_map<uint32_t, std::tuple<size_t, uint16_t, std::weak_ptr<Torrent>, uint64_t > > m_DatragramTrackerTransactions;
 			// transactionID->(trackerID, from_port, torrent, timestamp monotonic milliseconds)
-			TorrentsDHT m_DHT;
+			std::unique_ptr<TorrentsDHT> m_DHT;
 	};
 
 }

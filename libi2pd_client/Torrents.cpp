@@ -2146,7 +2146,7 @@ namespace torrents
 			if (m_RemoteMsgIDI2PPEX && m_Stream && m_Stream->IsIncoming ())
 				NotifyPEXPeers ();
 			// BEP5
-			if (m_RemoteMsgIDI2PDHT)
+			if (m_RemoteMsgIDI2PDHT && GetTorrentsTunnel ()->SupportsDHT ())
 				SendDHTPortAdvertisement ();
 		}
 		else
@@ -2180,15 +2180,21 @@ namespace torrents
 
 	void PeerConnection::SendExtendedMsg (uint8_t extendedMsgID, std::string_view payload, std::string_view data)
 	{
+		const static std::string messages = GetTorrentsTunnel ()->SupportsDHT () ?
+			CreateDictionary ({
+				{ EXTENSION_NAME_I2P_DHT, CreateInteger (EXTENSION_MSGID_I2P_DHT) },
+				{ EXTENSION_NAME_I2P_PEX, CreateInteger (EXTENSION_MSGID_I2P_PEX) },
+				{ EXTENSION_NAME_UT_METADATA, CreateInteger (EXTENSION_MSGID_UT_METADATA) }
+							 }):
+			CreateDictionary ({
+				{ EXTENSION_NAME_I2P_PEX, CreateInteger (EXTENSION_MSGID_I2P_PEX) },
+				{ EXTENSION_NAME_UT_METADATA, CreateInteger (EXTENSION_MSGID_UT_METADATA) }
+							 });
 		std::string str;
 		if (!extendedMsgID) // handshake
 		{
 			str = CreateDictionary ({
-				{ "m", CreateDictionary ({
-					{ EXTENSION_NAME_I2P_DHT, CreateInteger (EXTENSION_MSGID_I2P_DHT) },
-					{ EXTENSION_NAME_I2P_PEX, CreateInteger (EXTENSION_MSGID_I2P_PEX) },
-					{ EXTENSION_NAME_UT_METADATA, CreateInteger (EXTENSION_MSGID_UT_METADATA) }
-										  }) },
+				{ "m", messages },
 				{ "metadata_size",  CreateInteger (m_Torrent->GetInfo ().size ()) },
 				{ "reqq", CreateInteger (MAX_INCOMING_REQUESTS_QUEUE_SIZE) },
 				{ "v", CreateByteString ("i2pd") }
