@@ -10,6 +10,8 @@
 
 #include <string.h>
 #include <vector>
+#include <fstream>
+#include "I2PEndian.h"
 #include "TorrentsTunnel.h"
 #include "TorrentsDHT.h"
 
@@ -17,6 +19,13 @@ namespace i2p
 {
 namespace torrents
 {
+	Node::Node (const NodeInfo& nodeInfo)
+	{
+		memcpy (id.data (), nodeInfo.data (), id.size ());
+		memcpy ((uint8_t *)peer, nodeInfo.data () + id.size (), peer.len);
+		port = bufbe16toh (nodeInfo.data () + nodeInfo.size () - 2);
+	}
+
 	NodeInfo Node::GetNodeInfo () const
 	{
 		NodeInfo nodeInfo;
@@ -77,12 +86,22 @@ namespace torrents
 
 	RoutingTable::~RoutingTable ()
 	{
-		while (m_Buckets)
+		CleanUp ();
+		delete m_Buckets;
+	}
+
+	void RoutingTable::CleanUp ()
+	{
+		if (!m_Buckets) return;
+		auto bucket = m_Buckets->next;
+		while (bucket)
 		{
-			auto bucket = m_Buckets;
-			m_Buckets = m_Buckets->next;
-			delete bucket;
+			auto tmp = bucket;
+			bucket = bucket->next;
+			delete tmp;
 		}
+		m_Buckets->next = nullptr;
+		m_Buckets->nodes.clear ();
 	}
 
 	Bucket * RoutingTable::FindBucket (const Torrent::InfoHash& id) const
@@ -147,6 +166,12 @@ namespace torrents
 		return node;
 	}
 
+	std::shared_ptr<Node> RoutingTable::AddNode (const NodeInfo& nodeInfo)
+	{
+		Node node (nodeInfo);
+		return AddNode (node.id, node.peer, node.port);
+	}
+
 	std::shared_ptr<Node> RoutingTable::FindNode (const NodeID& id) const
 	{
 		auto bucket = FindBucket (id);
@@ -176,6 +201,40 @@ namespace torrents
 			}
 		}
 		return ret;
+	}
+
+	void RoutingTable::Save (const std::filesystem::path& file)
+	{
+		std::ofstream f(file, std::ofstream::binary);
+		if (f.is_open ())
+		{
+			auto bucket = m_Buckets;
+			while (bucket)
+			{
+				for (auto it: bucket->nodes)
+				{
+					auto nodeInfo = it->GetNodeInfo ();
+					f.write ((const char *)nodeInfo.data (), nodeInfo.size ());
+				}
+				bucket = bucket->next;
+			}
+		}
+	}
+
+	void RoutingTable::Load (const std::filesystem::path& file)
+	{
+		std::ifstream f (file, std::ios::in | std::ios::binary);
+		if (f.is_open ())
+		{
+			CleanUp ();
+			NodeInfo nodeInfo;
+			while (f.read ((char *)nodeInfo.data (), nodeInfo.size ()))
+			{
+				auto bytesRead = f.gcount();
+				if (bytesRead == nodeInfo.size ())
+					AddNode (nodeInfo);
+			}
+		}
 	}
 
 	std::string DHTTorrent::GetBEncodedPeers () const
@@ -264,7 +323,7 @@ namespace torrents
 				else if (key == "token")
 				{
 					auto [value, l] = ExtractByteString (buf);
-					if (l && value.size () <= 8)
+					if (l && value.size () >= 8)
 						memcpy (&token, value.data (), 8);
 					return l;
 				}

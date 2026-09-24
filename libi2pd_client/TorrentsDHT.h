@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <utility>
 #include <optional>
+#include <filesystem>
 #include "Identity.h"
 #include "I2PService.h"
 #include "util.h"
@@ -69,6 +70,7 @@ namespace torrents
 
 		Node (const NodeID& id1, const i2p::data::IdentHash& peer1, uint16_t port1):
 			id (id1), peer (peer1), port (port1) {}
+		Node (const NodeInfo& nodeInfo);
 
 		NodeInfo GetNodeInfo () const;
 	};
@@ -100,10 +102,15 @@ namespace torrents
 			std::shared_ptr<Node> FindNode (const NodeID& id) const;
 			std::list<std::pair<std::shared_ptr<Node>, Distance> > FindClosestNodes (const Torrent::InfoHash& infoHash, size_t num = 1) const;
 
+			void Save (const std::filesystem::path& file);
+			void Load (const std::filesystem::path& file);
+
 		private:
 
+			std::shared_ptr<Node> AddNode (const NodeInfo& nodeInfo);
 			Bucket * FindBucket (const Torrent::InfoHash& id) const;
 			void RemoveEmptyBuckers ();
+			void CleanUp ();
 
 		private:
 
