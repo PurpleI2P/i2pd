@@ -6,7 +6,6 @@ mainconf="/etc/i2pd/i2pd.conf"
 tunconf="/etc/i2pd/tunnels.conf"
 tundir="/etc/i2pd/tunnels.conf.d"
 
-name="i2pd"
 command="/usr/bin/i2pd"
 command_args="--service --daemon --log=file --logfile=$logfile --conf=$mainconf --tunconf=$tunconf --tunnelsdir=$tundir --pidfile=$pidfile"
 description="C++ daemon for accessing the I2P network"
