@@ -17,6 +17,7 @@
 #include <memory>
 #include <string_view>
 #include <boost/asio.hpp>
+#include <boost/property_tree/ptree_fwd.hpp>
 #include "Destination.h"
 #include "I2PService.h"
 #include "I2PTunnel.h"
@@ -133,6 +134,8 @@ namespace client
 
 			void ReadTunnels ();
 			void ReadTunnels (const std::string& tunConf, int& numClientTunnels, int& numServerTunnels);
+			int ReadTunnelsBySection (const std::string& tunConf, boost::property_tree::ptree& pt);
+			void AddSection (boost::property_tree::ptree& pt, const std::string& name, const std::string& chunk, int& numSections);
 			void ReadHttpProxy ();
 			void ReadSocksProxy ();
 			// take the proxy out under the lock, so it can be stopped without holding it

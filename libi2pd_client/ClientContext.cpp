@@ -632,7 +632,7 @@ namespace client
 		LogPrint (eLogInfo, "Clients: ", numServerTunnels, " I2P server tunnels created");
 	}
 
-	static void AddSection (boost::property_tree::ptree& pt, const std::string& name,
+	void ClientContext::AddSection (boost::property_tree::ptree& pt, const std::string& name,
 		const std::string& chunk, int& numSections)
 	{
 		if (chunk.empty ()) return;
@@ -655,7 +655,7 @@ namespace client
 	// Fallback for a file rejected as a whole: a single malformed line makes read_ini throw
 	// and every tunnel is lost, including sections that are correct. Read section by section
 	// instead, so that only unreadable ones are skipped
-	static int ReadTunnelsBySection (const std::string& tunConf, boost::property_tree::ptree& pt)
+	int ClientContext::ReadTunnelsBySection (const std::string& tunConf, boost::property_tree::ptree& pt)
 	{
 		std::ifstream f (tunConf);
 		if (!f.is_open ()) return 0;
