@@ -8,6 +8,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include "Config.h"
@@ -631,6 +632,50 @@ namespace client
 		LogPrint (eLogInfo, "Clients: ", numServerTunnels, " I2P server tunnels created");
 	}
 
+	static void AddSection (boost::property_tree::ptree& pt, const std::string& name,
+		const std::string& chunk, int& numSections)
+	{
+		if (chunk.empty ()) return;
+		boost::property_tree::ptree section;
+		try
+		{
+			std::stringstream ss (chunk);
+			boost::property_tree::read_ini (ss, section);
+		}
+		catch (std::exception& ex)
+		{
+			LogPrint (eLogWarning, "Clients: Skipped ", name.empty () ? "tunnels config header" : name, ": ", ex.what ());
+			return;
+		}
+		for (auto& it: section)
+			pt.push_back (it);
+		numSections++;
+	}
+
+	// Fallback for a file rejected as a whole: a single malformed line makes read_ini throw
+	// and every tunnel is lost, including sections that are correct. Read section by section
+	// instead, so that only unreadable ones are skipped
+	static int ReadTunnelsBySection (const std::string& tunConf, boost::property_tree::ptree& pt)
+	{
+		std::ifstream f (tunConf);
+		if (!f.is_open ()) return 0;
+		int numSections = 0;
+		std::string line, chunk, name;
+		while (std::getline (f, line))
+		{
+			auto start = line.find_first_not_of (" \t");
+			if (start != std::string::npos && line[start] == '[')
+			{
+				AddSection (pt, name, chunk, numSections);
+				chunk.clear ();
+				name = line.substr (start);
+			}
+			chunk += line; chunk += "\n";
+		}
+		AddSection (pt, name, chunk, numSections);
+		return numSections;
+	}
+
 	void ClientContext::ReadTunnels (const std::string& tunConf, int& numClientTunnels, int& numServerTunnels)
 	{
 		boost::property_tree::ptree pt;
@@ -638,7 +683,10 @@ namespace client
 			boost::property_tree::read_ini (tunConf, pt);
 		} catch (std::exception& ex) {
 			LogPrint (eLogWarning, "Clients: Can't read ", tunConf, ": ", ex.what ());
-			return;
+			pt.clear ();
+			int numSections = ReadTunnelsBySection (tunConf, pt);
+			if (!numSections) return;
+			LogPrint (eLogWarning, "Clients: ", tunConf, " read section by section, ", numSections, " section(s) accepted");
 		}
 
 		std::map<std::string, std::shared_ptr<ClientDestination> > destinations; // keys -> destination
