@@ -159,12 +159,12 @@ namespace torrents
 			void HandleDatagram (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort,
 				const uint8_t * buf, size_t len, const i2p::util::Mapping * options);
 			void HandlePingQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
-				std::string_view transactionID, std::string_view id);
+				std::string_view transactionID, const NodeID& nodeID);
 			void HandleGetPeersQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
-				std::string_view transactionID, std::string_view id, std::string_view infoHash);
-			void HandleResponse (std::string_view transactionID, std::string_view id, uint64_t token,
+				std::string_view transactionID, const NodeID& nodeID, const Torrent::InfoHash& infoHash);
+			void HandleResponse (std::string_view transactionID, const NodeID& nodeID, uint64_t token,
 				const std::vector<std::string_view>& values);
-			void HandleAnnouncePeer (std::string_view infoHash, uint64_t token);
+			void HandleAnnouncePeer (std::string_view transactionID, const Torrent::InfoHash& infoHash, uint64_t token);
 
 			void SendDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendRawDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort);

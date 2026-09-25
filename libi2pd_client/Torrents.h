@@ -12,6 +12,7 @@
 #ifndef NO_TORRENTS
 
 #include <inttypes.h>
+#include <string.h>
 #include <openssl/sha.h>
 #include <boost/asio.hpp>
 #include <boost/dynamic_bitset.hpp>
@@ -45,6 +46,17 @@ namespace torrents
 	std::string CreateInteger (int64_t v);
 	std::string CreateDictionary (const std::vector<std::pair<std::string_view, std::string_view> >& items);
 	std::string CreateList (const std::vector<std::string>& items);
+	template<size_t sz>
+	std::pair<size_t, bool> ParseByteArray (std::string_view buf, std::array<uint8_t, sz>& arr)
+	{
+		auto [str, len] = ExtractByteString (buf);
+		if (len && str.size () >= sz)
+		{
+			memcpy (arr.data (), str.data (), sz);
+			return { len, true };
+		}
+		return { len, false };
+	}
 
 
 	constexpr size_t REQUEST_BLOCK_SIZE = 16384;

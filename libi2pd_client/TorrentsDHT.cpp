@@ -349,12 +349,14 @@ namespace torrents
 	void TorrentsDHT::HandleRawDatagram (const uint8_t * buf, size_t len)
 	{
 		// response or error
-		char type = 0;
-		std::string transactionID, query, id, infoHash;
-		uint64_t token = 0;
+		char type = 0; uint64_t token = 0;
+		bool isMalformed = false;
+		NodeID id; Torrent::InfoHash infoHash;
+		std::string transactionID, query;
 		std::vector<std::string_view> values;
 		ParseDictionary (std::string_view ((const char *)buf, len),
-			[&type, &transactionID, &id, &values, &token, &infoHash, &query](std::string_view key, std::string_view buf)->size_t
+			[&type, &transactionID, &id, &values, &token, &infoHash, &query, &isMalformed]
+				(std::string_view key, std::string_view buf)->size_t
 			{
 				if (key == "y")
 				{
@@ -377,12 +379,12 @@ namespace torrents
 				else if (key == "r" || key == "a")
 				{
 					return ParseDictionary (buf,
-						[&id, &values, &token, &infoHash](std::string_view key, std::string_view buf)->size_t
+						[&id, &values, &token, &infoHash, &isMalformed](std::string_view key, std::string_view buf)->size_t
 						{
 							if (key == "id")
 							{
-								auto [value, l] = ExtractByteString (buf);
-								if (l) id = value;
+								auto [l, success] = ParseByteArray (buf, id);
+								if (!success) isMalformed = true;
 								return l;
 							}
 							else if (key == "values")
@@ -400,8 +402,8 @@ namespace torrents
 							}
 							else if (key == "info_hash")
 							{
-								auto [value, l] = ExtractByteString (buf);
-								if (l) infoHash = value;
+								auto [l, success] = ParseByteArray (buf, infoHash);
+								if (!success) isMalformed = true;
 								return l;
 							}
 							return 0;
@@ -409,6 +411,11 @@ namespace torrents
 				}
 				return 0;
 			});
+		if (isMalformed)
+		{
+			LogPrint (eLogInfo, "TorrentsDHT: Malformed raw datagram received");
+			return;
+		}
 		if (type)
 		{
 			switch (type)
@@ -421,7 +428,7 @@ namespace torrents
 				 break;
 				 case 'q':
 					if (query == "announce_peer")
-						HandleAnnouncePeer (infoHash, token);
+						HandleAnnouncePeer (transactionID, infoHash, token);
 					else
 						LogPrint (eLogError, "TorrentsDHT: Query can't come as raw datagram");
 				break;
@@ -436,9 +443,12 @@ namespace torrents
 	{
 		// query
 		char type = 0;
-		std::string transactionID, query, id, infoHash;
+		bool isMalformed = false;
+		std::string transactionID, query;
+		NodeID id; Torrent::InfoHash infoHash;
 		ParseDictionary (std::string_view ((const char *)buf, len),
-			[&type, &transactionID, &query, &id, &infoHash](std::string_view key, std::string_view buf)->size_t
+			[&type, &transactionID, &query, &id, &infoHash, &isMalformed]
+				(std::string_view key, std::string_view buf)->size_t
 			{
 				if (key == "y")
 				{
@@ -461,18 +471,18 @@ namespace torrents
 				else if (key == "a")
 				{
 					return ParseDictionary (buf,
-						[&id, &infoHash](std::string_view key, std::string_view buf)->size_t
+						[&id, &infoHash,&isMalformed](std::string_view key, std::string_view buf)->size_t
 						{
 							if (key == "id")
 							{
-								auto [value, l] = ExtractByteString (buf);
-								if (l) id = value;
+								auto [l, success] = ParseByteArray (buf, id);
+								if (!success) isMalformed = true;
 								return l;
 							}
 							else if (key == "info_hash")
 							{
-								auto [value, l] = ExtractByteString (buf);
-								if (l) infoHash = value;
+								auto [l, success] = ParseByteArray (buf, infoHash);
+								if (!success) isMalformed = true;
 								return l;
 							}
 							return 0;
@@ -480,6 +490,11 @@ namespace torrents
 				}
 				return 0;
 			});
+		if (isMalformed)
+		{
+			LogPrint (eLogInfo, "TorrentsDHT: Malformed datagram received");
+			return;
+		}
 		if (type == 'q')
 		{
 			if (query == "ping")
@@ -494,79 +509,65 @@ namespace torrents
 	}
 
 	void TorrentsDHT::HandlePingQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
-		std::string_view transactionID, std::string_view id)
+		std::string_view transactionID, const NodeID& nodeID)
 	{
 		LogPrint (eLogDebug, "TorrentsDHT: Ping query msg received");
+		m_RoutingTable->AddNode (nodeID, fromIdent, fromPort);
 		SendPingResponse (transactionID, fromIdent, fromPort + 1); // to rport
 	}
 
 	void TorrentsDHT::HandleGetPeersQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
-		std::string_view transactionID, std::string_view id, std::string_view infoHash)
+		std::string_view transactionID, const NodeID& nodeID, const Torrent::InfoHash& infoHash)
 	{
 		LogPrint (eLogDebug, "TorrentsDHT: Get peers query msg received");
-		if (id.size () < NodeID::len)
-		{
-			LogPrint (eLogInfo, "TorrentsDHT: received id is too short ", id.size ());
-			return;
-		}
-		NodeID nodeID;
-		memcpy (nodeID.data (), id.data (), NodeID::len);
 		auto node = m_RoutingTable->AddNode (nodeID, fromIdent, fromPort);
 		if (!node)
 		{
 			LogPrint (eLogError, "TorrentsDHT: Failed to add node ", fromIdent.ToBase64 ());
 			return;
 		}
-		Torrent::InfoHash hash;
-		if (infoHash.size () < hash.size ())
-		{
-			LogPrint (eLogInfo, "TorrentsDHT: Requested info hash is too short ", infoHash.size ());
-			return;
-		}
-		memcpy (hash.data (), infoHash.data (), hash.size ());
 
 		std::shared_ptr<DHTTorrent> torrent;
-		auto it = m_Torrents.find (hash);
+		auto it = m_Torrents.find (infoHash);
 		if (it != m_Torrents.end ())
 			torrent = it->second;
 		else
 		{
 			torrent = std::make_shared<DHTTorrent>();
-			m_Torrents.emplace (hash, torrent);
+			m_Torrents.emplace (infoHash, torrent);
 		}
 		uint64_t token = m_Tunnel.GetLocalDestination () ? m_Tunnel.GetLocalDestination ()->GetRng ()() : 1;
 		torrent->AddIncomingGetPeerNode (token, node);
 
 		if (m_RoutingTable)
 		{
-			auto nodes = m_RoutingTable->FindClosestNodes (hash);
-			if (!nodes.empty () && nodes.front ().second < (m_NodeID ^ hash))
+			auto nodes = m_RoutingTable->FindClosestNodes (infoHash);
+			if (!nodes.empty () && nodes.front ().second < (m_NodeID ^ infoHash))
 				SendGetPeersResponse (transactionID, nodes.front ().first, token, fromIdent, fromPort + 1); // to rport
 			else
 				SendGetPeersResponse (transactionID, torrent, token, fromIdent, fromPort + 1); // to rport
 		}
 	}
 
-	void TorrentsDHT::HandleAnnouncePeer (std::string_view infoHash, uint64_t token)
+	void TorrentsDHT::HandleAnnouncePeer (std::string_view transactionID, const Torrent::InfoHash& infoHash, uint64_t token)
 	{
 		LogPrint (eLogDebug, "TorrentsDHT: Announce peer received");
-		Torrent::InfoHash hash;
-		if (infoHash.size () < hash.size ())
-		{
-			LogPrint (eLogInfo, "TorrentsDHT: Announced info hash is too short ", infoHash.size ());
-			return;
-		}
-		memcpy (hash.data (), infoHash.data (), hash.size ());
-		auto it = m_Torrents.find (hash);
+		auto it = m_Torrents.find (infoHash);
 		if (it != m_Torrents.end ())
 		{
 			auto node = it->second->GetIncomingGetPeerNode (token);
 			if (node)
+			{
 				it->second->AddPeer (node->peer);
+				SendResponseMsg (CreateDictionary ({
+						{ "id", CreateByteString (std::string_view ((const char *)node->id.data (), node->id.size ())) },
+												}),
+					transactionID, node->peer, node->port + 1); // to rport
+			}
 		}
 	}
 
-	void TorrentsDHT::HandleResponse (std::string_view transactionID, std::string_view id,
+	void TorrentsDHT::HandleResponse (std::string_view transactionID, const NodeID& nodeID,
 		uint64_t token, const std::vector<std::string_view>& values)
 	{
 		LogPrint (eLogDebug, "TorrentsDHT: Response msg received");
@@ -576,13 +577,6 @@ namespace torrents
 		auto it = m_Queries.find (t);
 		if (t && it != m_Queries.end ())
 		{
-			if (id.size () < NodeID::len)
-			{
-				LogPrint (eLogInfo, "TorrentsDHT: received id is too short ", id.size ());
-				return;
-			}
-			NodeID nodeID;
-			memcpy (nodeID.data (), id.data (), NodeID::len);
 			if (m_RoutingTable)
 			{
 				const auto& [ident, port, query, torrentw] = it->second;
