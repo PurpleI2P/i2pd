@@ -95,6 +95,15 @@ namespace client
 				version *= 10;
 				version += (ch - '0');
 			}
+			else if (ch == '.')
+			{
+				// no-op: skip periods
+			}
+			else
+			{
+				// if version contains other characters, return error
+				return -1;
+			}
 		}
 		return version;
 	}
@@ -131,7 +140,10 @@ namespace client
 			if (!strcmp (m_Buffer, SAM_HANDSHAKE))
 			{
 				int minVer = 0, maxVer = 0;
-				// try to find MIN and MAX, 3.0 if not found
+				bool verErr = 0;
+				// try to find MIN and MAX, MAX_SAM_VERSION if not found,
+				// since the highest possible version must be returned
+				// given the constraints
 				if (separator)
 				{
 					separator++;
@@ -143,14 +155,35 @@ namespace client
 					if (!minVerStr.empty ())
 						minVer = ExtractVersion (minVerStr);
 				}
+				// if parsing error or impossible version constraints
+				if (minVer == -1 || maxVer == -1 || (minVer && maxVer && minVer > maxVer))
+					verErr = 1;
 				// version negotiation
-				if (maxVer && maxVer <= MAX_SAM_VERSION)
-					m_Version = maxVer;
-				else if (minVer && minVer >= MIN_SAM_VERSION && minVer <= MAX_SAM_VERSION)
-					m_Version = minVer;
-				else if (!maxVer && !minVer)
-					m_Version = MIN_SAM_VERSION;
-				else
+				else if (maxVer && minVer) // if both constraints provided
+				{
+					if (maxVer < MIN_SAM_VERSION || minVer > MAX_SAM_VERSION)
+						verErr = 1;
+					else
+						m_Version = std::min(maxVer, MAX_SAM_VERSION);
+				}
+				else if (maxVer) // if only max provided
+				{
+					if (maxVer < MIN_SAM_VERSION)
+						verErr = 1;
+					else
+						m_Version = std::min(maxVer, MAX_SAM_VERSION);
+				}
+				else if (minVer) // if only min provided
+				{
+					if (minVer > MAX_SAM_VERSION)
+						verErr = 1;
+					else
+						m_Version = MAX_SAM_VERSION;
+				}
+				else // if neither min nor max is provided
+					m_Version = MAX_SAM_VERSION;
+
+				if (verErr)
 				{
 					LogPrint (eLogError, "SAM: Handshake version mismatch ", minVer, " ", maxVer);
 					SendMessageReply (SAM_HANDSHAKE_NOVERSION, true);
