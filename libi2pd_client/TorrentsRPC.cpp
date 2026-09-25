@@ -425,7 +425,6 @@ namespace torrents
 				std::string flags;
 				auto stream = it->GetStream ();
 				bool isIncoming = stream ? stream->IsIncoming () : false;
-				if (isIncoming) flags.push_back ('I');
 				auto identHashStr = stream ? stream->GetRemoteIdentity ()->GetIdentHash ().ToBase64 () : "";
 				peer["address"] = identHashStr.substr (0, 4);
 				peer["port"] = TORRENT_PORT;
@@ -440,6 +439,19 @@ namespace torrents
 				peer["peerIsChoked"] = it->IsRemoteChoked ();
 				peer["clientIsIntersted"] = it->IsInterested ();
 				peer["peerIsInterested"] = it->IsRemoteInterested ();
+				if (it->IsDownloading ())
+					flags.push_back ('D');
+				else if (it->IsInterested ())
+					flags.push_back ('d');
+				else if (!it->IsChoked ())
+					flags.push_back ('K');
+				if (it->IsUploading ())
+					flags.push_back ('U');
+				else if (it->IsRemoteInterested ())
+					flags.push_back ('u');
+				else if (!it->IsRemoteChoked ())
+					flags.push_back ('?');
+				if (isIncoming) flags.push_back ('I');
 				peer["flagStr"] = flags;
 				const auto& remoteBitfield = it->GetRemoteBitfield ();
 				peer["progress"] = remoteBitfield.size () ? ((float)remoteBitfield.count ())/((float)remoteBitfield.size ()) : 0.0;
