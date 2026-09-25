@@ -127,7 +127,7 @@ namespace torrents
 			void ReadTorrentFile (const std::filesystem::path& torrentFilePath);
 			void SaveTorrentFile (std::shared_ptr<Torrent> torrent);
 			void InitTorrentFiles (std::shared_ptr<Torrent> torrent);
-			int InsertTorrent (std::shared_ptr<Torrent> torrent); // returns id > 0 if success and 0 if failed
+			std::pair<int, bool> InsertTorrent (std::shared_ptr<Torrent> torrent); // returns id > 0 if success and 0 if failed, true is innserted
 			void RemoveTorrent (std::shared_ptr<Torrent> torrent, bool deleteFiles);
 			bool CreateAndReserveFile (const std::filesystem::path& filePath, size_t reserve);
 			void CompleteTorrent (std::shared_ptr<Torrent> torrent);

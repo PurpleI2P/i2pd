@@ -137,16 +137,14 @@ namespace torrents
 
 		if (torrent && !torrent->IsValid ())
 		{
-			// a torrent whose parsing stopped, an unsafe name among the rest, must
-			// not be used even in part: it would leave stray files behind
 			LogPrint (eLogError, "TorrentsTunnel: Invalid torrent file ", torrentFilePath, ". Skipped");
 			torrent = nullptr;
 		}
 		if (torrent)
 		{
 			torrent->SetFullPath (m_TorrentsDir/std::filesystem::path (torrent->GetName ()));
-			InitTorrentFiles (torrent);
 			InsertTorrent (torrent);
+			InitTorrentFiles (torrent);
 		}
 	}
 
@@ -333,12 +331,13 @@ namespace torrents
 		if (m_Torrents.find (torrent->GetInfoHash ()) == m_Torrents.end ())
 		{
 			torrent->SetFullPath (m_TorrentsDir/std::filesystem::path (torrent->GetName ()));
-			boost::asio::post (GetDiskIOService (), [this, torrent]()
-				{
-					SaveTorrentFile (torrent);
-					InitTorrentFiles (torrent);
-				});
-			auto id = InsertTorrent (torrent);
+			auto [id, inserted] = InsertTorrent (torrent);
+			if (inserted)
+				boost::asio::post (GetDiskIOService (), [this, torrent]()
+					{
+						SaveTorrentFile (torrent);
+						InitTorrentFiles (torrent);
+					});
 			if (!torrent->GetError ())
 				boost::asio::post (GetService (), [this, torrent] { RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone); });
 			return { torrent, id };
@@ -396,17 +395,18 @@ namespace torrents
 				auto torrent = std::make_shared<Torrent> (infoHash);
 				if (!announce.empty ()) torrent->SetAnnounce (announce);
 				if (!name.empty ()) torrent->SetName (name);
-				auto id = InsertTorrent (torrent);
-				boost::asio::post (GetService (), [this, torrent] { RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone); });
+				auto [id, inserted] = InsertTorrent (torrent);
+				if (inserted)
+					boost::asio::post (GetService (), [this, torrent] { RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone); });
 				return { torrent, id };
 			}
 		}
 		return { nullptr, 0 };
 	}
 
-	int TorrentsTunnel::InsertTorrent (std::shared_ptr<Torrent> torrent)
+	std::pair<int, bool> TorrentsTunnel::InsertTorrent (std::shared_ptr<Torrent> torrent)
 	{
-		if (!torrent) return 0;
+		if (!torrent) return { 0, false };
 		std::lock_guard<std::mutex> l(m_TorrentsMutex);
 		if (m_Torrents.emplace (torrent->GetInfoHash (), torrent).second)
 		{
@@ -416,9 +416,19 @@ namespace torrents
 			m_TorrentsByID.emplace (id, torrent);
 			if (!torrent->GetAnnounce ().empty ())
 				torrent->SetAnnounceTrackerID (AddTracker (torrent->GetAnnounce (), false)); // add announce to trackers
-			return id;
+			return { id, true };
  		}
-		return 0;
+ 		else // already exists, find id
+ 		{
+			auto it = std::find_if (m_TorrentsByID.begin (), m_TorrentsByID.end (),
+				[torrent](const auto& torrentByID)
+				{
+					return torrentByID.second.lock () == torrent;
+				});
+			if (it != m_TorrentsByID.begin ())
+				return  { it->first, false };
+ 		}
+		return  { 0, false };
 	}
 
 	bool TorrentsTunnel::RemoveTorrent (int id, bool deleteFiles)
