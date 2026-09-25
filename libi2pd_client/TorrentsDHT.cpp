@@ -13,6 +13,7 @@
 #include <fstream>
 #include "I2PEndian.h"
 #include "Timestamp.h"
+#include "FS.h"
 #include "TorrentsTunnel.h"
 #include "TorrentsDHT.h"
 
@@ -209,16 +210,26 @@ namespace torrents
 		std::ofstream f(file, std::ofstream::binary);
 		if (f.is_open ())
 		{
+			int numSaved = 0;
 			auto bucket = m_Buckets;
 			while (bucket)
 			{
 				for (auto it: bucket->nodes)
 				{
 					auto nodeInfo = it->GetNodeInfo ();
-					f.write ((const char *)nodeInfo.data (), nodeInfo.size ());
+					if (f.write ((const char *)nodeInfo.data (), nodeInfo.size ()))
+						numSaved++;
+					else
+					{
+						bucket = nullptr;
+						break;
+					}
 				}
+				if (!bucket) break;
 				bucket = bucket->next;
 			}
+			if (numSaved > 0)
+				LogPrint (eLogInfo, "TorrentsDHT: ", numSaved, " DHT nodes saved");
 		}
 	}
 
@@ -228,13 +239,19 @@ namespace torrents
 		if (f.is_open ())
 		{
 			CleanUp ();
+			int numLoaded = 0;
 			NodeInfo nodeInfo;
 			while (f.read ((char *)nodeInfo.data (), nodeInfo.size ()))
 			{
 				auto bytesRead = f.gcount();
 				if (bytesRead == nodeInfo.size ())
+				{
 					AddNode (nodeInfo);
+					numLoaded++;
+				}
 			}
+			if (numLoaded > 0)
+				LogPrint (eLogInfo, "TorrentsDHT: ", numLoaded, " DHT nodes loaded");
 		}
 	}
 
@@ -299,10 +316,14 @@ namespace torrents
 			if (dgramDest)
 				dgramDest->SetReceiver (std::bind_front (&TorrentsDHT::HandleDatagram, this));
 		}
+		if (m_RoutingTable)
+			m_RoutingTable->Load (GetDHTFilename ());
 	}
 
 	void TorrentsDHT::Stop ()
 	{
+		if (m_RoutingTable)
+			m_RoutingTable->Save (GetDHTFilename ());
 		auto dest = m_Tunnel.GetLocalDestination ();
 		if (dest)
 		{
@@ -310,6 +331,15 @@ namespace torrents
 			if (dgramDest)
 				dgramDest->ResetReceiver ();
 		}
+	}
+
+	std::filesystem::path TorrentsDHT::GetDHTFilename () const
+	{
+		std::filesystem::path dhtFilename (i2p::fs::GetDataDir()); dhtFilename /= "torrents";
+		if (!std::filesystem::exists (dhtFilename))
+			std::filesystem::create_directories (dhtFilename);
+		dhtFilename /= m_Tunnel.GetTunnelName (); dhtFilename += ".dht";
+		return dhtFilename;
 	}
 
 	void TorrentsDHT::HandleRawDatagram (const uint8_t * buf, size_t len)

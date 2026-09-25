@@ -176,6 +176,8 @@ namespace torrents
 			void SendGetPeersResponse (std::string_view transactionID, std::shared_ptr<Node> node,
 				uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 
+			std::filesystem::path GetDHTFilename () const;
+
 		private:
 
 			TorrentsTunnel& m_Tunnel;
