@@ -140,7 +140,7 @@ namespace client
 			if (!strcmp (m_Buffer, SAM_HANDSHAKE))
 			{
 				int minVer = 0, maxVer = 0;
-				bool verErr = 0;
+				bool verErr = false;
 				// try to find MIN and MAX, MAX_SAM_VERSION if not found,
 				// since the highest possible version must be returned
 				// given the constraints
@@ -157,26 +157,26 @@ namespace client
 				}
 				// if parsing error or impossible version constraints
 				if (minVer == -1 || maxVer == -1 || (minVer && maxVer && minVer > maxVer))
-					verErr = 1;
+					verErr = true;
 				// version negotiation
 				else if (maxVer && minVer) // if both constraints provided
 				{
 					if (maxVer < MIN_SAM_VERSION || minVer > MAX_SAM_VERSION)
-						verErr = 1;
+						verErr = true;
 					else
 						m_Version = std::min(maxVer, MAX_SAM_VERSION);
 				}
 				else if (maxVer) // if only max provided
 				{
 					if (maxVer < MIN_SAM_VERSION)
-						verErr = 1;
+						verErr = true;
 					else
 						m_Version = std::min(maxVer, MAX_SAM_VERSION);
 				}
 				else if (minVer) // if only min provided
 				{
 					if (minVer > MAX_SAM_VERSION)
-						verErr = 1;
+						verErr = true;
 					else
 						m_Version = MAX_SAM_VERSION;
 				}
