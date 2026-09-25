@@ -309,37 +309,41 @@ namespace torrents
 
 	void TorrentsDHT::Start ()
 	{
+		std::string filename ("nodest");
 		auto dest = m_Tunnel.GetLocalDestination ();
 		if (dest)
 		{
 			auto dgramDest = dest->GetDatagramDestination ();
 			if (dgramDest)
 				dgramDest->SetReceiver (std::bind_front (&TorrentsDHT::HandleDatagram, this));
+			filename = dest->GetIdentHash ().ToBase32 ();
 		}
 		if (m_RoutingTable)
-			m_RoutingTable->Load (GetDHTFilename ());
+			m_RoutingTable->Load (GetDHTFilePath (filename));
 	}
 
 	void TorrentsDHT::Stop ()
 	{
-		if (m_RoutingTable)
-			m_RoutingTable->Save (GetDHTFilename ());
+		std::string filename ("nodest");
 		auto dest = m_Tunnel.GetLocalDestination ();
 		if (dest)
 		{
 			auto dgramDest = dest->GetDatagramDestination ();
 			if (dgramDest)
 				dgramDest->ResetReceiver ();
+			filename = dest->GetIdentHash ().ToBase32 ();
 		}
+		if (m_RoutingTable)
+			m_RoutingTable->Save (GetDHTFilePath (filename));
 	}
 
-	std::filesystem::path TorrentsDHT::GetDHTFilename () const
+	std::filesystem::path TorrentsDHT::GetDHTFilePath (std::string_view filename) const
 	{
-		std::filesystem::path dhtFilename (i2p::fs::GetDataDir()); dhtFilename /= "torrents";
-		if (!std::filesystem::exists (dhtFilename))
-			std::filesystem::create_directories (dhtFilename);
-		dhtFilename /= m_Tunnel.GetTunnelName (); dhtFilename += ".dht";
-		return dhtFilename;
+		std::filesystem::path dhtFilePath (i2p::fs::GetDataDir()); dhtFilePath /= "torrents";
+		if (!std::filesystem::exists (dhtFilePath))
+			std::filesystem::create_directories (dhtFilePath);
+		dhtFilePath /= filename; dhtFilePath += ".dht";
+		return dhtFilePath;
 	}
 
 	void TorrentsDHT::HandleRawDatagram (const uint8_t * buf, size_t len)

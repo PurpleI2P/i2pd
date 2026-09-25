@@ -118,7 +118,6 @@ namespace torrents
 			bool SupportsDHT () const { return (bool)m_DHT; }
 
 			const char* GetName() const override { return m_Name.c_str (); }
-			std::string_view GetTunnelName () const { return m_Name; }
 
 		private:
 
