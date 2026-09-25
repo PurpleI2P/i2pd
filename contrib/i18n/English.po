@@ -481,7 +481,7 @@ msgstr ""
 
 #: daemon/HTTPServer.cpp:767
 msgid ""
-"<b>Note:</b> any action done here are not persistent and not changes your "
+"<b>Note:</b> any action performed here is not persistent and does not change "
 "config files."
 msgstr ""
 
