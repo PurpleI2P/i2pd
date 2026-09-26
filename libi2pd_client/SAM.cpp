@@ -92,6 +92,7 @@ namespace client
 		{
 			if (ch >= '0' && ch <= '9')
 			{
+				if (version > MAX_SAM_VERSION_VALUE) continue; // don't overflow on a long number
 				version *= 10;
 				version += (ch - '0');
 			}
