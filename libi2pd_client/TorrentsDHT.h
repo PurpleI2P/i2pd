@@ -180,7 +180,6 @@ namespace torrents
 			TorrentsTunnel& m_Tunnel;
 			uint16_t m_Port;
 			NodeID m_NodeID;
-			NodeInfo m_NodeInfo; // 20 byte Node ID + 32 byte IdentHash + 2 byte port
 			std::unique_ptr<RoutingTable> m_RoutingTable;
 			std::map<NodeID, std::shared_ptr<Node> > m_Nodes;
 			std::unordered_map<uint16_t, std::tuple<i2p::data::IdentHash, uint16_t, std::string, std::weak_ptr<Torrent> > > m_Queries;

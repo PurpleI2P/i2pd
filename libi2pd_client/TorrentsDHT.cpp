@@ -8,6 +8,7 @@
 
 #ifndef NO_TORRENTS
 
+#include <openssl/rand.h>
 #include <string.h>
 #include <vector>
 #include <fstream>
@@ -227,17 +228,14 @@ namespace torrents
 		auto dest = tunnel.GetLocalDestination ();
 		if (dest)
 		{
-			memcpy (m_NodeID.data (), dest->GetIdentHash (), m_NodeID.size ());
+			memcpy (m_NodeID.data (), dest->GetIdentHash (), 4);
 			m_NodeID[4] ^= (port >> 8);
 			m_NodeID[5] ^= (port & 0xFF);
-			m_NodeInfo = Node (m_NodeID,  dest->GetIdentHash (), port).GetNodeInfo ();
+			RAND_bytes (m_NodeID.data () + 6, m_NodeID.size () - 6);
 			m_RoutingTable = std::make_unique<RoutingTable> (m_NodeID);
 		}
 		else
-		{
 			m_NodeID.fill (0);
-			m_NodeInfo.fill (0);
-		}
 	}
 
 	void TorrentsDHT::Start ()
@@ -284,6 +282,13 @@ namespace torrents
 			std::ofstream f(file, std::ofstream::binary);
 			if (f.is_open ())
 			{
+				auto dest = m_Tunnel.GetLocalDestination ();
+				if (dest)
+				{
+					// save our nodeInfo first
+					NodeInfo nodeInfo = Node (m_NodeID, dest->GetIdentHash (), m_Port).GetNodeInfo ();
+					f.write ((const char *)nodeInfo.data (), nodeInfo.size ());
+				}
 				int numSaved = 0;
 				for (auto it: m_Nodes)
 				{
@@ -302,9 +307,26 @@ namespace torrents
 		std::ifstream f (file, std::ifstream::in | std::ifstream::binary);
 		if (f.is_open ())
 		{
-			if (m_RoutingTable) m_RoutingTable->CleanUp ();
-			int numLoaded = 0;
 			NodeInfo nodeInfo;
+			if (f.read ((char *)nodeInfo.data (), nodeInfo.size ()))
+			{
+				auto dest = m_Tunnel.GetLocalDestination ();
+				if (dest)
+				{
+					Node node (nodeInfo);
+					if (Node (nodeInfo).peer == dest->GetIdentHash ()) // first nodeInfo is ours
+					{
+						m_NodeID = node.id;
+						m_Port = node.port;
+					}
+					else
+						f.seekg (0, std::ios::beg);
+				}
+			}
+			else
+				return;
+			m_RoutingTable = std::make_unique<RoutingTable> (m_NodeID);
+			int numLoaded = 0;
 			while (f.read ((char *)nodeInfo.data (), nodeInfo.size ()))
 			{
 				auto bytesRead = f.gcount();
