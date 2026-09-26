@@ -350,11 +350,11 @@ namespace torrents
 		// response or error
 		char type = 0; uint64_t token = 0;
 		bool isMalformed = false;
-		NodeID id; Torrent::InfoHash infoHash;
+		NodeID id; NodeInfo nodeInfo; Torrent::InfoHash infoHash;
 		std::string transactionID, query;
-		std::vector<std::string_view> values;
+		std::vector<std::string_view> values{""};
 		ParseDictionary (std::string_view ((const char *)buf, len),
-			[&type, &transactionID, &id, &values, &token, &infoHash, &query, &isMalformed]
+			[&type, &transactionID, &id, &values, &token, &infoHash, &query, &isMalformed, &nodeInfo]
 				(std::string_view key, std::string_view buf)->size_t
 			{
 				if (key == "y")
@@ -378,7 +378,7 @@ namespace torrents
 				else if (key == "r" || key == "a")
 				{
 					return ParseDictionary (buf,
-						[&id, &values, &token, &infoHash, &isMalformed](std::string_view key, std::string_view buf)->size_t
+						[&id, &values, &token, &infoHash, &isMalformed, &nodeInfo](std::string_view key, std::string_view buf)->size_t
 						{
 							if (key == "id")
 							{
@@ -390,6 +390,12 @@ namespace torrents
 							{
 								auto [v, l] = ParseStringList (buf);
 								if (l) values = v;
+								return l;
+							}
+							else if (key == "nodes")
+							{
+								auto [l, success] = ParseByteArray (buf, nodeInfo);
+								if (!success) isMalformed = true;
 								return l;
 							}
 							else if (key == "token")
@@ -420,7 +426,7 @@ namespace torrents
 			switch (type)
 			{
 				 case 'r':
-					HandleResponse (transactionID, id, token, values);
+					HandleResponse (transactionID, id, token, values, nodeInfo);
 				 break;
 				 case 'e':
 					LogPrint (eLogDebug, "TorrentsDHT: Error msg received");
@@ -569,7 +575,7 @@ namespace torrents
 	}
 
 	void TorrentsDHT::HandleResponse (std::string_view transactionID, const NodeID& nodeID,
-		uint64_t token, const std::vector<std::string_view>& values)
+		uint64_t token, const std::vector<std::string_view>& values, const NodeInfo& nodeInfo)
 	{
 		LogPrint (eLogDebug, "TorrentsDHT: Response msg received");
 		uint16_t t = 0;
@@ -593,7 +599,32 @@ namespace torrents
 				else if (query == "get_peers")
 				{
 					LogPrint (eLogDebug, "TorrentsDHT: get_peers response received");
-					// TODO:
+					if (!values.empty ())
+					{
+						if (values[0].empty ())	// nodes
+						{
+							auto node = std::make_shared<Node>(nodeInfo);
+							if (m_Nodes.emplace (node->id, node).second && m_RoutingTable)
+								m_RoutingTable->AddNode (node->id);
+						}
+						else //values
+						{
+							auto torrent = torrentw.lock ();
+							if (torrent)
+							{
+								std::unordered_set<i2p::data::IdentHash> newPeers;
+								for (auto it1: values)
+									if (it1.size () == i2p::data::IdentHash::len)
+										newPeers.emplace ((const uint8_t *)it1.data ());
+								if (!newPeers.empty ())
+								{
+									LogPrint (eLogDebug, "TorrentsDHT: ", newPeers.size (), " new peers received");
+									m_Tunnel.ConnectToNewPeers (torrent, newPeers);
+								}
+								SendAnnouncePeerQuery (torrent->GetInfoHash (), token, ident, port + 1); // to rport
+							}
+						}
+					}
 				}
 			}
 		}
@@ -624,7 +655,7 @@ namespace torrents
 	}
 
 	void TorrentsDHT::SendQueryMsg (std::string_view query, std::string_view arguments,
-		const i2p::data::IdentHash& toIdent, uint16_t toPort)
+		const i2p::data::IdentHash& toIdent, uint16_t toPort, bool isRaw)
 	{
 		uint16_t transactionID = m_Tunnel.GetLocalDestination () ? m_Tunnel.GetLocalDestination ()->GetRng ()() : 1;
 		auto msg = CreateDictionary ({
@@ -634,7 +665,10 @@ namespace torrents
 				{ "y", CreateByteString ("q") }
 									});
 		m_Queries.insert_or_assign (transactionID, std::make_tuple (toIdent, toPort, query, std::shared_ptr<Torrent>{}));
-		SendDatagram (msg, toIdent, toPort);
+		if (isRaw)
+			SendRawDatagram (msg, toIdent, toPort);
+		else
+			SendDatagram (msg, toIdent, toPort);
 	}
 
 	void TorrentsDHT::SendResponseMsg (std::string_view response, std::string_view transactionID,
@@ -687,6 +721,26 @@ namespace torrents
 			{ "nodes", CreateByteString (std::string_view ((const char *)nodeInfo.data (), nodeInfo.size ())) }
 											}),
 			transactionID, toIdent, toPort);
+	}
+
+	void TorrentsDHT::SendFindNodeQuery (const NodeID& target, const i2p::data::IdentHash& toIdent, uint16_t toPort)
+	{
+		SendQueryMsg ("find_node", CreateDictionary ({
+			{ "id", CreateByteString (std::string_view ((const char *)m_NodeID.data (), m_NodeID.size ())) },
+			{ "target", CreateByteString (std::string_view ((const char *)target.data (), target.size ())) }
+													}),
+			toIdent, toPort);
+	}
+
+	void TorrentsDHT::SendAnnouncePeerQuery (const Torrent::InfoHash& infoHash, uint64_t token,
+		const i2p::data::IdentHash& toIdent, uint16_t toPort)
+	{
+		SendQueryMsg ("announce_peer", CreateDictionary ({
+			{ "id", CreateByteString (std::string_view ((const char *)m_NodeID.data (), m_NodeID.size ())) },
+			{ "info_hash",  CreateByteString (std::string_view ((const char *)infoHash.data (), infoHash.size ())) },
+			{ "token", CreateByteString (std::string_view ((const char *)&token, 8)) }
+											}),
+			toIdent, toPort, true); // raw
 	}
 }
 }
