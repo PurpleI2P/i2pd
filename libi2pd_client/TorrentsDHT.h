@@ -79,14 +79,14 @@ namespace torrents
 	struct Bucket
 	{
 		Bucket * next;
-		std::list<std::shared_ptr<Node> > nodes;
+		std::list<NodeID> nodes;
 		NodeID start;
 
 		Bucket (): next (nullptr), start{} {}
 		Bucket (const NodeID& start1): next (nullptr), start (start1) {}
 		bool IsFull () const { return nodes.size () >= MAX_BUCKET_CAPACITY; }
 		bool IsInBucket (const NodeID& id) const { return id >= start && (!next || id < next->start); }
-		std::shared_ptr<Node> FindNode (const NodeID& id) const;
+		bool ContainsNode (const NodeID& id) const;
 		std::optional<NodeID> GetMiddleID () const;
 		bool Split ();
 	};
@@ -97,20 +97,15 @@ namespace torrents
 
 			RoutingTable (const NodeID& ourNode);
 			~RoutingTable ();
+			void CleanUp ();
 
-			std::shared_ptr<Node> AddNode (const NodeID& id, const i2p::data::IdentHash& peer, uint16_t port);
-			std::shared_ptr<Node> FindNode (const NodeID& id) const;
-			std::list<std::pair<std::shared_ptr<Node>, Distance> > FindClosestNodes (const Torrent::InfoHash& infoHash, size_t num = 1) const;
-
-			void Save (const std::filesystem::path& file);
-			void Load (const std::filesystem::path& file);
+			bool AddNode (const NodeID& id);
+			std::list<std::pair<NodeID, Distance> > FindClosestNodes (const Torrent::InfoHash& infoHash, size_t num = 1) const;
 
 		private:
 
-			std::shared_ptr<Node> AddNode (const NodeInfo& nodeInfo);
 			Bucket * FindBucket (const Torrent::InfoHash& id) const;
-			void RemoveEmptyBuckers ();
-			void CleanUp ();
+			void RemoveEmptyBuckets ();
 
 		private:
 
@@ -177,6 +172,8 @@ namespace torrents
 				uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 
 			std::filesystem::path GetDHTFilePath (std::string_view filename) const;
+			void Save (const std::filesystem::path& file);
+			void Load (const std::filesystem::path& file);
 
 		private:
 
@@ -185,6 +182,7 @@ namespace torrents
 			NodeID m_NodeID;
 			NodeInfo m_NodeInfo; // 20 byte Node ID + 32 byte IdentHash + 2 byte port
 			std::unique_ptr<RoutingTable> m_RoutingTable;
+			std::map<NodeID, std::shared_ptr<Node> > m_Nodes;
 			std::unordered_map<uint16_t, std::tuple<i2p::data::IdentHash, uint16_t, std::string, std::weak_ptr<Torrent> > > m_Queries;
 			std::map<Torrent::InfoHash, std::shared_ptr<DHTTorrent> > m_Torrents;
 	};

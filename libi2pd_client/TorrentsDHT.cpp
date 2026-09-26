@@ -37,14 +37,14 @@ namespace torrents
 		return nodeInfo;
 	}
 
-	std::shared_ptr<Node> Bucket::FindNode (const NodeID& id) const
+	bool Bucket::ContainsNode (const NodeID& id) const
 	{
 		auto it = std::find_if (nodes.begin (), nodes.end (),
-			[&id](std::shared_ptr<const Node> node)
+			[&id](const NodeID& nodeID)
 			{
-				return node->id == id;
+				return nodeID == id;
 			});
-		return (it != nodes.end ()) ? *it : nullptr;
+		return it != nodes.end ();
 	}
 
 	std::optional<NodeID> Bucket::GetMiddleID () const
@@ -67,7 +67,7 @@ namespace torrents
 		auto it = nodes.begin ();
 		while (it != nodes.end ())
 		{
-			if ((*it)->id < *middleID)
+			if (*it < *middleID)
 				it++; // stay in old bucket
 			else
 			{
@@ -119,7 +119,7 @@ namespace torrents
 		return bucket;
 	}
 
-	void RoutingTable::RemoveEmptyBuckers ()
+	void RoutingTable::RemoveEmptyBuckets ()
 	{
 		if (m_Buckets)
 		{
@@ -142,48 +142,31 @@ namespace torrents
 		}
 	}
 
-	std::shared_ptr<Node> RoutingTable::AddNode (const NodeID& id, const i2p::data::IdentHash& peer, uint16_t port)
+	bool RoutingTable::AddNode (const NodeID& id)
 	{
-		if (id == m_OurNode) return nullptr;
+		if (id == m_OurNode) return false;
 		auto bucket = FindBucket (id);
-		if (!bucket) return nullptr;
-		std::shared_ptr<Node> node = bucket->FindNode (id);
-		if (node) return node;
+		if (!bucket) return false;
+		if (bucket->ContainsNode (id)) return true;
 		if (bucket->IsFull ())
 		{
-			if (!bucket->IsInBucket (m_OurNode)) return nullptr;
+			if (!bucket->IsInBucket (m_OurNode)) return false;
 			do
 			{
-				if (!bucket->Split ()) return nullptr;
+				if (!bucket->Split ()) return false;
 				bucket = FindBucket (id);
 			}
 			while (bucket->IsFull ());
 		}
 		if (bucket)
-		{
-			node = std::make_shared<Node>(id, peer, port);
-			bucket->nodes.emplace_back (node);
-		}
-		RemoveEmptyBuckers ();
-		return node;
+			bucket->nodes.emplace_back (id);
+		RemoveEmptyBuckets ();
+		return true;
 	}
 
-	std::shared_ptr<Node> RoutingTable::AddNode (const NodeInfo& nodeInfo)
+	std::list<std::pair<NodeID, Distance> > RoutingTable::FindClosestNodes (const Torrent::InfoHash& infoHash, size_t num) const
 	{
-		Node node (nodeInfo);
-		return AddNode (node.id, node.peer, node.port);
-	}
-
-	std::shared_ptr<Node> RoutingTable::FindNode (const NodeID& id) const
-	{
-		auto bucket = FindBucket (id);
-		if (!bucket) return nullptr;
-		return bucket->FindNode (id);
-	}
-
-	std::list<std::pair<std::shared_ptr<Node>, Distance> > RoutingTable::FindClosestNodes (const Torrent::InfoHash& infoHash, size_t num) const
-	{
-		std::list<std::pair<std::shared_ptr<Node>, Distance> > ret;
+		std::list<std::pair<NodeID, Distance> > ret;
 		if (num > 0)
 		{
 			auto bucket = FindBucket (infoHash);
@@ -191,9 +174,9 @@ namespace torrents
 			{
 				for (auto it: bucket->nodes)
 				{
-					auto nodeDistance = it->id ^ infoHash;
+					auto nodeDistance = it ^ infoHash;
 					auto it1 = std::find_if (ret.begin (), ret.end (),
-						[&nodeDistance](const std::pair<std::shared_ptr<Node>, Distance>& alreadyFound)
+						[&nodeDistance](const std::pair<NodeID, Distance>& alreadyFound)
 						{
 							return nodeDistance < alreadyFound.second;
 						});
@@ -203,56 +186,6 @@ namespace torrents
 			}
 		}
 		return ret;
-	}
-
-	void RoutingTable::Save (const std::filesystem::path& file)
-	{
-		std::ofstream f(file, std::ofstream::binary);
-		if (f.is_open ())
-		{
-			int numSaved = 0;
-			auto bucket = m_Buckets;
-			while (bucket)
-			{
-				for (auto it: bucket->nodes)
-				{
-					auto nodeInfo = it->GetNodeInfo ();
-					if (f.write ((const char *)nodeInfo.data (), nodeInfo.size ()))
-						numSaved++;
-					else
-					{
-						bucket = nullptr;
-						break;
-					}
-				}
-				if (!bucket) break;
-				bucket = bucket->next;
-			}
-			if (numSaved > 0)
-				LogPrint (eLogInfo, "TorrentsDHT: ", numSaved, " DHT nodes saved");
-		}
-	}
-
-	void RoutingTable::Load (const std::filesystem::path& file)
-	{
-		std::ifstream f (file, std::ifstream::in | std::ifstream::binary);
-		if (f.is_open ())
-		{
-			CleanUp ();
-			int numLoaded = 0;
-			NodeInfo nodeInfo;
-			while (f.read ((char *)nodeInfo.data (), nodeInfo.size ()))
-			{
-				auto bytesRead = f.gcount();
-				if (bytesRead == nodeInfo.size ())
-				{
-					AddNode (nodeInfo);
-					numLoaded++;
-				}
-			}
-			if (numLoaded > 0)
-				LogPrint (eLogInfo, "TorrentsDHT: ", numLoaded, " DHT nodes loaded");
-		}
 	}
 
 	std::string DHTTorrent::GetBEncodedPeers () const
@@ -318,8 +251,7 @@ namespace torrents
 				dgramDest->SetReceiver (std::bind_front (&TorrentsDHT::HandleDatagram, this));
 			filename = dest->GetIdentHash ().ToBase32 ();
 		}
-		if (m_RoutingTable)
-			m_RoutingTable->Load (GetDHTFilePath (filename));
+		Load (GetDHTFilePath (filename));
 	}
 
 	void TorrentsDHT::Stop ()
@@ -333,8 +265,7 @@ namespace torrents
 				dgramDest->ResetReceiver ();
 			filename = dest->GetIdentHash ().ToBase32 ();
 		}
-		if (m_RoutingTable)
-			m_RoutingTable->Save (GetDHTFilePath (filename));
+		Save (GetDHTFilePath (filename));
 	}
 
 	std::filesystem::path TorrentsDHT::GetDHTFilePath (std::string_view filename) const
@@ -344,6 +275,52 @@ namespace torrents
 			std::filesystem::create_directories (dhtFilePath);
 		dhtFilePath /= filename; dhtFilePath += ".dht";
 		return dhtFilePath;
+	}
+
+	void TorrentsDHT::Save (const std::filesystem::path& file)
+	{
+		if (!m_Nodes.empty ())
+		{
+			std::ofstream f(file, std::ofstream::binary);
+			if (f.is_open ())
+			{
+				int numSaved = 0;
+				for (auto it: m_Nodes)
+				{
+					auto nodeInfo = it.second->GetNodeInfo ();
+					if (f.write ((const char *)nodeInfo.data (), nodeInfo.size ()))
+						numSaved++;
+				}
+				if (numSaved > 0)
+					LogPrint (eLogInfo, "TorrentsDHT: ", numSaved, " DHT nodes saved");
+			}
+		}
+	}
+
+	void TorrentsDHT::Load (const std::filesystem::path& file)
+	{
+		std::ifstream f (file, std::ifstream::in | std::ifstream::binary);
+		if (f.is_open ())
+		{
+			if (m_RoutingTable) m_RoutingTable->CleanUp ();
+			int numLoaded = 0;
+			NodeInfo nodeInfo;
+			while (f.read ((char *)nodeInfo.data (), nodeInfo.size ()))
+			{
+				auto bytesRead = f.gcount();
+				if (bytesRead == nodeInfo.size ())
+				{
+					auto node = std::make_shared<Node>(nodeInfo);
+					if (m_Nodes.emplace (node->id, node).second)
+					{
+						numLoaded++;
+						if (m_RoutingTable) m_RoutingTable->AddNode (node->id);
+					}
+				}
+			}
+			if (numLoaded > 0)
+				LogPrint (eLogInfo, "TorrentsDHT: ", numLoaded, " DHT nodes loaded");
+		}
 	}
 
 	void TorrentsDHT::HandleRawDatagram (const uint8_t * buf, size_t len)
@@ -512,7 +489,8 @@ namespace torrents
 		std::string_view transactionID, const NodeID& nodeID)
 	{
 		LogPrint (eLogDebug, "TorrentsDHT: Ping query msg received");
-		m_RoutingTable->AddNode (nodeID, fromIdent, fromPort);
+		if (m_Nodes.emplace (nodeID, std::make_shared<Node> (nodeID, fromIdent, fromPort)).second)
+			m_RoutingTable->AddNode (nodeID);
 		SendPingResponse (transactionID, fromIdent, fromPort + 1); // to rport
 	}
 
@@ -520,12 +498,9 @@ namespace torrents
 		std::string_view transactionID, const NodeID& nodeID, const Torrent::InfoHash& infoHash)
 	{
 		LogPrint (eLogDebug, "TorrentsDHT: Get peers query msg received");
-		auto node = m_RoutingTable->AddNode (nodeID, fromIdent, fromPort);
-		if (!node)
-		{
-			LogPrint (eLogError, "TorrentsDHT: Failed to add node ", fromIdent.ToBase64 ());
-			return;
-		}
+		auto [nodesIt, inserted] = m_Nodes.emplace (nodeID, std::make_shared<Node> (nodeID, fromIdent, fromPort));
+		if (inserted)
+			m_RoutingTable->AddNode (nodeID);
 
 		std::shared_ptr<DHTTorrent> torrent;
 		auto it = m_Torrents.find (infoHash);
@@ -537,13 +512,17 @@ namespace torrents
 			m_Torrents.emplace (infoHash, torrent);
 		}
 		uint64_t token = m_Tunnel.GetLocalDestination () ? m_Tunnel.GetLocalDestination ()->GetRng ()() : 1;
-		torrent->AddIncomingGetPeerNode (token, node);
+		torrent->AddIncomingGetPeerNode (token, nodesIt->second);
 
 		if (m_RoutingTable)
 		{
 			auto nodes = m_RoutingTable->FindClosestNodes (infoHash);
 			if (!nodes.empty () && nodes.front ().second < (m_NodeID ^ infoHash))
-				SendGetPeersResponse (transactionID, nodes.front ().first, token, fromIdent, fromPort + 1); // to rport
+			{
+				auto it1 = m_Nodes.find (nodes.front ().first);
+				if (it1 != m_Nodes.end ())
+					SendGetPeersResponse (transactionID, it1->second, token, fromIdent, fromPort + 1); // to rport
+			}
 			else
 				SendGetPeersResponse (transactionID, torrent, token, fromIdent, fromPort + 1); // to rport
 		}
@@ -583,10 +562,11 @@ namespace torrents
 				if (query == "ping")
 				{
 					LogPrint (eLogDebug, "TorrentsDHT: Ping response received");
-					if (m_RoutingTable->AddNode (nodeID, ident, port))
+					if (m_Nodes.emplace (nodeID, std::make_shared<Node> (nodeID, ident, port)).second)
+					{
+						m_RoutingTable->AddNode (nodeID);
 						LogPrint (eLogDebug, "TorrentsDHT: Node ", ident.ToBase64 (), ":", port, " added");
-					else
-						LogPrint (eLogError, "TorrentsDHT: Failed to add node ", ident.ToBase64 ());
+					}
 				}
 				else if (query == "get_peers")
 				{
