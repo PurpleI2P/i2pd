@@ -101,6 +101,7 @@ namespace client
 	const char SAM_PONG[] = "PONG %s\n";
 
 	constexpr int MAKE_SAM_VERSION_NUMBER (int major, int minor) { return major*10 + minor; }
+	constexpr int MAX_SAM_VERSION_VALUE = 99999; // stop parsing digits above that, any such version is out of range anyway
 	constexpr int MIN_SAM_VERSION = MAKE_SAM_VERSION_NUMBER (3, 0);
 	constexpr int MAX_SAM_VERSION = MAKE_SAM_VERSION_NUMBER (3, 3);
 	constexpr int SAM_VERSION_33 = MAKE_SAM_VERSION_NUMBER (3, 3); // SAM 3.3
