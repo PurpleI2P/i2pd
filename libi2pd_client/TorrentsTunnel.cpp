@@ -255,6 +255,7 @@ namespace torrents
 				auto partFilePath = it->GetFullFilePath (); partFilePath += ".part";
 				if (std::filesystem::exists (partFilePath))
 				{
+					it->Close (); // make sure file is closed before renaming
 					std::error_code ec;
 					std::filesystem::rename (partFilePath, it->GetFullFilePath (), ec);
 					if (ec)
