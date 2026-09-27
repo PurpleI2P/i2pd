@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <vector>
 #include <chrono>
+#include <limits>
 #include "Log.h"
 #include "I2PEndian.h"
 #include "Crypto.h"
@@ -408,7 +409,12 @@ namespace transport
 				// check timestamp
 				auto ts = i2p::util::GetSecondsSinceEpoch ();
 				uint32_t tsA = bufbe32toh (options + 8);
-				if (tsA < ts - NTCP2_CLOCK_SKEW || tsA > ts + NTCP2_CLOCK_SKEW)
+				if (tsA > std::numeric_limits<uint32_t>::max () - NTCP2_CLOCK_SKEW)
+				{
+					LogPrint (eLogError, "NTCP2: SessionRequest tsA is too high", tsA);
+					clockSkew = true;
+				}
+				else if (tsA < ts - NTCP2_CLOCK_SKEW || tsA > ts + NTCP2_CLOCK_SKEW)
 				{
 					LogPrint (eLogWarning, "NTCP2: SessionRequest time difference ", (int)ts - (int)tsA, " exceeds clock skew");
 					clockSkew = true;
@@ -474,6 +480,11 @@ namespace transport
 			// check timestamp
 			auto ts = i2p::util::GetSecondsSinceEpoch ();
 			uint32_t tsB = bufbe32toh (options + 8);
+			if (tsB > std::numeric_limits<uint32_t>::max () - NTCP2_CLOCK_SKEW)
+			{
+				LogPrint (eLogError, "NTCP2: SessionRequest tsB is too high", tsB);
+				return false;
+			}
 			if (tsB < ts - NTCP2_CLOCK_SKEW || tsB > ts + NTCP2_CLOCK_SKEW)
 			{
 				LogPrint (eLogWarning, "NTCP2: SessionCreated time difference ", (int)ts - (int)tsB, " exceeds clock skew");
