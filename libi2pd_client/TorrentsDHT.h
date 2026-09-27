@@ -85,7 +85,7 @@ namespace torrents
 	struct Bucket
 	{
 		Bucket * next;
-		std::list<NodeID> nodes;
+		std::map<NodeID, uint64_t> nodes; // nodeID->update time in monotonic seconds
 		NodeID start;
 
 		Bucket (): next (nullptr), start{} {}
@@ -93,6 +93,7 @@ namespace torrents
 		bool IsFull () const { return nodes.size () >= MAX_BUCKET_CAPACITY; }
 		bool IsInBucket (const NodeID& id) const { return id >= start && (!next || id < next->start); }
 		bool ContainsNode (const NodeID& id) const;
+		void UpdateNode (const NodeID& id);
 		std::optional<NodeID> GetMiddleID () const;
 		bool Split ();
 	};

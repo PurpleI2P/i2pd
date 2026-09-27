@@ -40,12 +40,14 @@ namespace torrents
 
 	bool Bucket::ContainsNode (const NodeID& id) const
 	{
-		auto it = std::find_if (nodes.begin (), nodes.end (),
-			[&id](const NodeID& nodeID)
-			{
-				return nodeID == id;
-			});
-		return it != nodes.end ();
+		return nodes.contains (id);
+	}
+
+	void Bucket::UpdateNode (const NodeID& id)
+	{
+		auto it = nodes.find (id);
+		if (it != nodes.end ())
+			it->second = i2p::util::GetMonotonicSeconds ();
 	}
 
 	std::optional<NodeID> Bucket::GetMiddleID () const
@@ -68,15 +70,11 @@ namespace torrents
 		auto it = nodes.begin ();
 		while (it != nodes.end ())
 		{
-			if (*it < *middleID)
+			if (it->first < *middleID)
 				it++; // stay in old bucket
 			else
-			{
 				// move to new bucket
-				auto node = *it;
-				it = nodes.erase (it);
-				newBucket->nodes.push_back (node);
-			}
+				newBucket->nodes.insert (nodes.extract (it++));
 		}
 		return true;
 	}
@@ -160,7 +158,11 @@ namespace torrents
 		if (id == m_OurNode) return false;
 		auto bucket = FindBucket (id);
 		if (!bucket) return false;
-		if (bucket->ContainsNode (id)) return true;
+		if (bucket->ContainsNode (id))
+		{
+			bucket->UpdateNode (id);
+			return true;
+		}
 		if (bucket->IsFull ())
 		{
 			if (!bucket->IsInBucket (m_OurNode)) return false;
@@ -172,7 +174,7 @@ namespace torrents
 			while (bucket->IsFull ());
 		}
 		if (bucket)
-			bucket->nodes.emplace_back (id);
+			bucket->nodes.emplace (id, i2p::util::GetMonotonicSeconds ());
 		RemoveEmptyBuckets ();
 		return true;
 	}
@@ -187,13 +189,13 @@ namespace torrents
 			{
 				for (auto it: bucket->nodes)
 				{
-					auto nodeDistance = it ^ infoHash;
+					auto nodeDistance = it.first ^ infoHash;
 					auto it1 = std::find_if (ret.begin (), ret.end (),
 						[&nodeDistance](const std::pair<NodeID, Distance>& alreadyFound)
 						{
 							return nodeDistance < alreadyFound.second;
 						});
-					ret.insert (it1, { it, nodeDistance } );
+					ret.insert (it1, { it.first, nodeDistance } );
 				}
 				if (ret.size () > num) ret.resize (num);
 			}
@@ -218,7 +220,7 @@ namespace torrents
 			{
 				auto middleID = bucket->GetMiddleID ();
 				if (middleID && !bucket->ContainsNode (*middleID)) // TODO: pick another id
-					ret.emplace_back (std::make_pair(*middleID, bucket->nodes.front ()));
+					ret.emplace_back (std::make_pair(*middleID, bucket->nodes.begin ()->first));
 			}
 			bucket = bucket->next;
 		}
@@ -229,7 +231,7 @@ namespace torrents
 	{
 		auto bucket = FindBucket (target);
 		if (!bucket || bucket->nodes.empty ()) return m_OurNode;
-		return bucket->nodes.front ();
+		return bucket->nodes.begin ()->first;
 	}
 
 	std::string DHTTorrent::GetBEncodedPeers () const
