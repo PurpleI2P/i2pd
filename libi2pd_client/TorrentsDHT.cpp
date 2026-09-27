@@ -228,7 +228,7 @@ namespace torrents
 		auto dest = tunnel.GetLocalDestination ();
 		if (dest)
 		{
-			memcpy (m_NodeID.data (), dest->GetIdentHash (), 4);
+			memcpy (m_NodeID.data (), dest->GetIdentHash (), 6);
 			m_NodeID[4] ^= (port >> 8);
 			m_NodeID[5] ^= (port & 0xFF);
 			RAND_bytes (m_NodeID.data () + 6, m_NodeID.size () - 6);
@@ -450,9 +450,9 @@ namespace torrents
 		char type = 0;
 		bool isMalformed = false;
 		std::string transactionID, query;
-		NodeID id; Torrent::InfoHash infoHash;
+		NodeID id, target; Torrent::InfoHash infoHash;
 		ParseDictionary (std::string_view ((const char *)buf, len),
-			[&type, &transactionID, &query, &id, &infoHash, &isMalformed]
+			[&type, &transactionID, &query, &id, &infoHash, &isMalformed, &target]
 				(std::string_view key, std::string_view buf)->size_t
 			{
 				if (key == "y")
@@ -476,7 +476,7 @@ namespace torrents
 				else if (key == "a")
 				{
 					return ParseDictionary (buf,
-						[&id, &infoHash,&isMalformed](std::string_view key, std::string_view buf)->size_t
+						[&id, &infoHash, &isMalformed, &target](std::string_view key, std::string_view buf)->size_t
 						{
 							if (key == "id")
 							{
@@ -487,6 +487,12 @@ namespace torrents
 							else if (key == "info_hash")
 							{
 								auto [l, success] = ParseByteArray (buf, infoHash);
+								if (!success) isMalformed = true;
+								return l;
+							}
+							else if (key == "target")
+							{
+								auto [l, success] = ParseByteArray (buf, target);
 								if (!success) isMalformed = true;
 								return l;
 							}
@@ -506,6 +512,8 @@ namespace torrents
 				HandlePingQuery (from.GetIdentHash (), fromPort, transactionID, id);
 			else if (query == "get_peers")
 				HandleGetPeersQuery (from.GetIdentHash (), fromPort, transactionID, id, infoHash);
+			else if (query == "find_node")
+				HandleFindNodeQuery (from.GetIdentHash (), fromPort, transactionID, target);
 			else
 				LogPrint (eLogDebug, "TorrentsDHT: Unexpected query ", query);
 		}
@@ -554,6 +562,12 @@ namespace torrents
 			else
 				SendGetPeersResponse (transactionID, torrent, token, fromIdent, fromPort + 1); // to rport
 		}
+	}
+
+	void TorrentsDHT::HandleFindNodeQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
+		std::string_view transactionID, const NodeID& target)
+	{
+		LogPrint (eLogDebug, "TorrentsDHT: Find node received");
 	}
 
 	void TorrentsDHT::HandleAnnouncePeer (std::string_view transactionID, const Torrent::InfoHash& infoHash, uint64_t token)
