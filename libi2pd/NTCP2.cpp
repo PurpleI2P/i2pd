@@ -411,7 +411,7 @@ namespace transport
 				uint32_t tsA = bufbe32toh (options + 8);
 				if (tsA > std::numeric_limits<uint32_t>::max () - NTCP2_CLOCK_SKEW)
 				{
-					LogPrint (eLogError, "NTCP2: SessionRequest tsA is too high", tsA);
+					LogPrint (eLogError, "NTCP2: SessionRequest tsA is too high ", tsA);
 					clockSkew = true;
 				}
 				else if (tsA < ts - NTCP2_CLOCK_SKEW || tsA > ts + NTCP2_CLOCK_SKEW)
@@ -482,7 +482,7 @@ namespace transport
 			uint32_t tsB = bufbe32toh (options + 8);
 			if (tsB > std::numeric_limits<uint32_t>::max () - NTCP2_CLOCK_SKEW)
 			{
-				LogPrint (eLogError, "NTCP2: SessionRequest tsB is too high", tsB);
+				LogPrint (eLogError, "NTCP2: SessionCreated tsB is too high ", tsB);
 				return false;
 			}
 			if (tsB < ts - NTCP2_CLOCK_SKEW || tsB > ts + NTCP2_CLOCK_SKEW)
