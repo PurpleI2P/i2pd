@@ -25,6 +25,7 @@
 #include <utility>
 #include <optional>
 #include <filesystem>
+#include <boost/asio.hpp>
 #include "Identity.h"
 #include "I2PService.h"
 #include "util.h"
@@ -34,6 +35,11 @@ namespace i2p
 {
 namespace torrents
 {
+	constexpr int DHT_UPDATE_CHECK_INTERVAL = 24; // in seconds
+	constexpr int DHT_EXPLORATORY_INTERVAL = 14*60; // in seconds
+	constexpr int DHT_EXPLORATORY_INTERVAL_VARIANCE = 120; // in seconds
+	constexpr int DHT_INITIAL_EXPLORATORY_INTERVAL = 90; // in seconds
+
 	using Distance = Torrent::InfoHash;
 	struct NodeID: public Torrent::InfoHash
 	{
@@ -98,9 +104,12 @@ namespace torrents
 			RoutingTable (const NodeID& ourNode);
 			~RoutingTable ();
 			void CleanUp ();
+			size_t GetNumBuckets () const;
 
 			bool AddNode (const NodeID& id);
 			std::list<std::pair<NodeID, Distance> > FindClosestNodes (const Torrent::InfoHash& infoHash, size_t num = 1) const;
+			std::optional<NodeID> FindClosestNode (const Torrent::InfoHash& infoHash) const;
+			std::list<NodeID> GetExploratoryTargets () const;
 
 		private:
 
@@ -179,16 +188,23 @@ namespace torrents
 			std::filesystem::path GetDHTFilePath (std::string_view filename) const;
 			void Save (const std::filesystem::path& file);
 			void Load (const std::filesystem::path& file);
+			void Explore ();
+
+			void ScheduleDHTUpdateCheck ();
+			void HandleDHTUpdateCheckTimer (const boost::system::error_code& ecode);
 
 		private:
 
 			TorrentsTunnel& m_Tunnel;
+			boost::asio::steady_timer m_DHTUpdateCheckTimer;
 			uint16_t m_Port;
 			NodeID m_NodeID;
 			std::unique_ptr<RoutingTable> m_RoutingTable;
 			std::map<NodeID, std::shared_ptr<Node> > m_Nodes;
 			std::unordered_map<uint16_t, std::tuple<i2p::data::IdentHash, uint16_t, std::string, std::weak_ptr<Torrent> > > m_Queries;
 			std::map<Torrent::InfoHash, std::shared_ptr<DHTTorrent> > m_Torrents;
+
+			uint64_t m_NextDHTExploratoryTime; // monotonic seconds
 	};
 }
 }

@@ -107,6 +107,18 @@ namespace torrents
 		m_Buckets->nodes.clear ();
 	}
 
+	size_t RoutingTable::GetNumBuckets () const
+	{
+		size_t num = 0;
+		auto bucket = m_Buckets;
+		while (bucket)
+		{
+			num++;
+			bucket = bucket->next;
+		}
+		return num;
+	}
+
 	Bucket * RoutingTable::FindBucket (const Torrent::InfoHash& id) const
 	{
 		if (!m_Buckets) return nullptr;
@@ -189,6 +201,30 @@ namespace torrents
 		return ret;
 	}
 
+	std::optional<NodeID> RoutingTable::FindClosestNode (const Torrent::InfoHash& infoHash) const
+	{
+		auto nodes = FindClosestNodes (infoHash, 1);
+		if (nodes.empty ()) return {};
+		return nodes.front ().first;
+	}
+
+	std::list<NodeID> RoutingTable::GetExploratoryTargets () const
+	{
+		std::list<NodeID> ret;
+		auto bucket = m_Buckets;
+		while (bucket)
+		{
+			if (!bucket->IsFull ())
+			{
+				auto middleID = bucket->GetMiddleID ();
+				if (middleID)
+					ret.emplace_back (*middleID);
+			}
+			bucket = bucket->next;
+		}
+		return ret;
+	}
+
 	std::string DHTTorrent::GetBEncodedPeers () const
 	{
 		std::vector<std::string> peers;
@@ -223,7 +259,8 @@ namespace torrents
 	}
 
 	TorrentsDHT::TorrentsDHT (TorrentsTunnel& tunnel, uint16_t port):
-		m_Tunnel (tunnel), m_Port (port)
+		m_Tunnel (tunnel), m_DHTUpdateCheckTimer (tunnel.GetService ()), m_Port (port),
+		m_NextDHTExploratoryTime (i2p::util::GetMonotonicSeconds () + DHT_INITIAL_EXPLORATORY_INTERVAL)
 	{
 		auto dest = tunnel.GetLocalDestination ();
 		if (dest)
@@ -250,10 +287,12 @@ namespace torrents
 			filename = dest->GetIdentHash ().ToBase32 ();
 		}
 		Load (GetDHTFilePath (filename));
+		ScheduleDHTUpdateCheck ();
 	}
 
 	void TorrentsDHT::Stop ()
 	{
+		m_DHTUpdateCheckTimer.cancel ();
 		std::string filename ("nodest");
 		auto dest = m_Tunnel.GetLocalDestination ();
 		if (dest)
@@ -640,7 +679,17 @@ namespace torrents
 						}
 					}
 				}
+				else if (query == "find_node")
+				{
+					auto node = std::make_shared<Node>(nodeInfo);
+					LogPrint (eLogDebug, "TorrentsDHT: find_node response received ", node->peer.ToBase64 ());
+					if (m_Nodes.emplace (node->id, node).second && m_RoutingTable)
+						m_RoutingTable->AddNode (node->id);
+				}
+				else
+					LogPrint (eLogInfo, "TorrentsDHT: Response to unknown query ", query);
 			}
+			m_Queries.erase (it);
 		}
 		else
 			LogPrint (eLogInfo, "TorrentsDHT: Query now found");
@@ -755,6 +804,46 @@ namespace torrents
 			{ "token", CreateByteString (std::string_view ((const char *)&token, 8)) }
 											}),
 			toIdent, toPort, true); // raw
+	}
+
+	void TorrentsDHT::Explore ()
+	{
+		if (m_RoutingTable)
+		{
+			auto targets = m_RoutingTable->GetExploratoryTargets ();
+			for (auto it: targets)
+			{
+				auto nodeID = m_RoutingTable->FindClosestNode (it);
+				if (nodeID)
+				{
+					auto it1 = m_Nodes.find (*nodeID);
+					if (it1 != m_Nodes.end ())
+						SendFindNodeQuery (it, it1->second->peer, it1->second->port);
+				}
+			}
+		}
+	}
+
+	void TorrentsDHT::ScheduleDHTUpdateCheck ()
+	{
+		m_DHTUpdateCheckTimer.cancel ();
+		m_DHTUpdateCheckTimer.expires_after (std::chrono::seconds (DHT_UPDATE_CHECK_INTERVAL));
+		m_DHTUpdateCheckTimer.async_wait (std::bind_front(&TorrentsDHT::HandleDHTUpdateCheckTimer, this));
+	}
+
+	void TorrentsDHT::HandleDHTUpdateCheckTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			auto ts = i2p::util::GetMonotonicSeconds ();
+			if (ts > m_NextDHTExploratoryTime)
+			{
+				Explore ();
+				m_NextDHTExploratoryTime = ts + DHT_EXPLORATORY_INTERVAL + (m_Tunnel.GetLocalDestination () ?
+					m_Tunnel.GetLocalDestination ()->GetRng ()() % DHT_EXPLORATORY_INTERVAL_VARIANCE : 0);
+			}
+			ScheduleDHTUpdateCheck ();
+		}
 	}
 }
 }
