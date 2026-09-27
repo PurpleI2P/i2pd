@@ -208,21 +208,28 @@ namespace torrents
 		return nodes.front ().first;
 	}
 
-	std::list<NodeID> RoutingTable::GetExploratoryTargets () const
+	std::list<std::pair<NodeID, NodeID> > RoutingTable::GetExploratoryTargets () const
 	{
-		std::list<NodeID> ret;
+		std::list<std::pair<NodeID, NodeID> > ret;
 		auto bucket = m_Buckets;
 		while (bucket)
 		{
-			if (!bucket->IsFull ())
+			if (!bucket->IsFull () && !bucket->nodes.empty ())
 			{
 				auto middleID = bucket->GetMiddleID ();
-				if (middleID)
-					ret.emplace_back (*middleID);
+				if (middleID && !bucket->ContainsNode (*middleID)) // TODO: pick another id
+					ret.emplace_back (std::make_pair(*middleID, bucket->nodes.front ()));
 			}
 			bucket = bucket->next;
 		}
 		return ret;
+	}
+
+	NodeID RoutingTable::FindClosestNodeInBucket (const NodeID& target) const
+	{
+		auto bucket = FindBucket (target);
+		if (!bucket || bucket->nodes.empty ()) return m_OurNode;
+		return bucket->nodes.front ();
 	}
 
 	std::string DHTTorrent::GetBEncodedPeers () const
@@ -606,7 +613,13 @@ namespace torrents
 	void TorrentsDHT::HandleFindNodeQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
 		std::string_view transactionID, const NodeID& target)
 	{
-		LogPrint (eLogDebug, "TorrentsDHT: Find node received");
+		LogPrint (eLogDebug, "TorrentsDHT: Find node query received");
+		if (m_RoutingTable)
+		{
+			auto it = m_Nodes.find (m_RoutingTable->FindClosestNodeInBucket (target));
+			if (it != m_Nodes.end ())
+				SendFindNodeResponse (transactionID, it->second, fromIdent, fromPort + 1); // to rport
+		}
 	}
 
 	void TorrentsDHT::HandleAnnouncePeer (std::string_view transactionID, const Torrent::InfoHash& infoHash, uint64_t token)
@@ -773,7 +786,7 @@ namespace torrents
 			transactionID, toIdent, toPort);
 	}
 
-	void TorrentsDHT::SendGetPeersResponse (std::string_view transactionID, std::shared_ptr<Node> node,
+	void TorrentsDHT::SendGetPeersResponse (std::string_view transactionID, std::shared_ptr<const Node> node,
 		uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort)
 	{
 		if (!node) return;
@@ -795,6 +808,18 @@ namespace torrents
 			toIdent, toPort);
 	}
 
+	void TorrentsDHT::SendFindNodeResponse (std::string_view transactionID, std::shared_ptr<const Node> node,
+		const i2p::data::IdentHash& toIdent, uint16_t toPort)
+	{
+		if (!node) return;
+		NodeInfo nodeInfo = node->GetNodeInfo ();
+		SendResponseMsg (CreateDictionary ({
+			{ "id", CreateByteString (std::string_view ((const char *)m_NodeID.data (), m_NodeID.size ())) },
+			{ "nodes", CreateByteString (std::string_view ((const char *)nodeInfo.data (), nodeInfo.size ())) }
+											}),
+			transactionID, toIdent, toPort);
+	}
+
 	void TorrentsDHT::SendAnnouncePeerQuery (const Torrent::InfoHash& infoHash, uint64_t token,
 		const i2p::data::IdentHash& toIdent, uint16_t toPort)
 	{
@@ -811,15 +836,11 @@ namespace torrents
 		if (m_RoutingTable)
 		{
 			auto targets = m_RoutingTable->GetExploratoryTargets ();
-			for (auto it: targets)
+			for (auto [target, nodeID]: targets)
 			{
-				auto nodeID = m_RoutingTable->FindClosestNode (it);
-				if (nodeID)
-				{
-					auto it1 = m_Nodes.find (*nodeID);
-					if (it1 != m_Nodes.end ())
-						SendFindNodeQuery (it, it1->second->peer, it1->second->port);
-				}
+				auto it = m_Nodes.find (nodeID);
+				if (it != m_Nodes.end ())
+					SendFindNodeQuery (target, it->second->peer, it->second->port);
 			}
 		}
 	}

@@ -36,8 +36,8 @@ namespace i2p
 namespace torrents
 {
 	constexpr int DHT_UPDATE_CHECK_INTERVAL = 24; // in seconds
-	constexpr int DHT_EXPLORATORY_INTERVAL = 14*60; // in seconds
-	constexpr int DHT_EXPLORATORY_INTERVAL_VARIANCE = 120; // in seconds
+	constexpr int DHT_EXPLORATORY_INTERVAL = 4*60; // in seconds
+	constexpr int DHT_EXPLORATORY_INTERVAL_VARIANCE = 40; // in seconds
 	constexpr int DHT_INITIAL_EXPLORATORY_INTERVAL = 90; // in seconds
 
 	using Distance = Torrent::InfoHash;
@@ -109,7 +109,8 @@ namespace torrents
 			bool AddNode (const NodeID& id);
 			std::list<std::pair<NodeID, Distance> > FindClosestNodes (const Torrent::InfoHash& infoHash, size_t num = 1) const;
 			std::optional<NodeID> FindClosestNode (const Torrent::InfoHash& infoHash) const;
-			std::list<NodeID> GetExploratoryTargets () const;
+			std::list<std::pair<NodeID, NodeID> > GetExploratoryTargets () const; // (target, node to send find_node to)
+			NodeID FindClosestNodeInBucket (const NodeID& target) const;
 
 		private:
 
@@ -181,8 +182,10 @@ namespace torrents
 			void SendPingResponse (std::string_view transactionID, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendGetPeersResponse (std::string_view transactionID, std::shared_ptr<DHTTorrent> torrent,
 				uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort);
-			void SendGetPeersResponse (std::string_view transactionID, std::shared_ptr<Node> node,
+			void SendGetPeersResponse (std::string_view transactionID, std::shared_ptr<const Node> node,
 				uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort);
+			void SendFindNodeResponse (std::string_view transactionID, std::shared_ptr<const Node> node,
+				const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendAnnouncePeerQuery (const Torrent::InfoHash& infoHash, uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 
 			std::filesystem::path GetDHTFilePath (std::string_view filename) const;
