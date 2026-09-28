@@ -59,6 +59,31 @@ namespace torrents
 		return { middleID };
 	}
 
+	NodeID Bucket::GetRandomID (std::mt19937& rng) const
+	{
+		/*NodeID randomID;
+		bool isStart = true, isNext = true;
+		for (size_t i = 0; i < randomID.size (); i++)
+		{
+			auto m1 = isStart ? start[i] : 0x00;
+			auto m2 = (isNext && next) ? next->start[i] : 0xFF;
+			randomID[i] = (m1 != m2) ? (rng () % std::abs (m2 - m1)) : m1;
+			if (randomID[i] > start[i])  isStart = false;
+			if (next && randomID[i] < next->start[i]) isNext = false;
+		}
+		return randomID;*/
+		uint8_t bit = std::max (start.FindLowestBit (), next ? next->start.FindLowestBit () : -1) + 1;
+		if (bit >= NodeID::len * 8) return start;
+
+		NodeID randomID;
+		auto d = div (bit, 8);
+		memcpy (randomID.data (), start.data (), d.quot);
+		randomID[d.quot] = (start[d.quot] & (0xFF00 >> d.rem)) | (rng () & (0xFF >> d.rem));
+		for (int i = d.quot + 1; i < 20; i++)
+			randomID[i] = rng ();
+		return randomID;
+	}
+
 	bool Bucket::Split ()
 	{
 		auto middleID = GetMiddleID ();
@@ -250,13 +275,13 @@ namespace torrents
 		{
 			if (!bucket->IsFull () && !bucket->nodes.empty ())
 			{
-				auto middleID = bucket->GetMiddleID ();
-				if (middleID) // TODO: pick another id
-				{
-					auto it = bucket->nodes.begin ();
-					std::advance (it, rng () % bucket->nodes.size ());
-					ret.emplace_back (std::make_pair(*middleID, it->first));
-				}
+				auto randomID = bucket->GetRandomID (rng);
+				auto it = bucket->nodes.begin ();
+				while (it != bucket->nodes.end () && randomID > it->first) it++;
+				if (it != bucket->nodes.end ())
+					ret.emplace_back (std::make_pair (randomID, it->first));
+				else
+					ret.emplace_back (std::make_pair (randomID, bucket->nodes.rbegin ()->first));
 			}
 			bucket = bucket->next;
 		}

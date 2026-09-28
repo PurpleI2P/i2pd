@@ -100,6 +100,7 @@ namespace torrents
 		bool ContainsNode (const NodeID& id) const;
 		void UpdateNode (const NodeID& id);
 		std::optional<NodeID> GetMiddleID () const;
+		NodeID GetRandomID (std::mt19937& rng) const;
 		bool Split ();
 	};
 
