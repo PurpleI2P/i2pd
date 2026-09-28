@@ -66,13 +66,12 @@ namespace torrents
 	{
 		i2p::client::I2PService::Start ();
 		m_DiskIOService.Start ();
-		if (m_DHT) m_DHT->Start ();
-
 		auto dgramDest = GetLocalDestination ()->CreateDatagramDestination (true, i2p::datagram::eDatagramV1); // V1 for DHT
 		if (dgramDest)
 			dgramDest->SetRawReceiver (std::bind (&TorrentsTunnel::HandleRecvFromI2PRaw,
 				std::static_pointer_cast<TorrentsTunnel>(shared_from_this ()),
 				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+		if (m_DHT) m_DHT->Start ();
 
 		Accept ();
 
@@ -92,6 +91,7 @@ namespace torrents
 
 	void TorrentsTunnel::Stop ()
 	{
+		if (m_DHT) m_DHT->Stop ();
 		auto localDestination = GetLocalDestination ();
 		if (localDestination)
 		{
@@ -107,7 +107,6 @@ namespace torrents
 		for (auto it: m_Torrents)
 			StopTorrent (it.second);
 		m_Torrents.clear ();
-		if (m_DHT) m_DHT->Stop ();
 		m_DiskIOService.Stop ();
 		i2p::client::I2PService::ClearHandlers (); // close connections
 		i2p::client::I2PService::Stop ();

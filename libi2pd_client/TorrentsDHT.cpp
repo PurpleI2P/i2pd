@@ -631,19 +631,18 @@ namespace torrents
 	void TorrentsDHT::HandlePingQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
 		std::string_view transactionID, const NodeID& nodeID)
 	{
-		LogPrint (eLogDebug, "TorrentsDHT: Ping query msg received");
-		if (m_Nodes.emplace (nodeID, std::make_shared<Node> (nodeID, fromIdent, fromPort)).second)
-			m_RoutingTable->AddNode (nodeID);
+		LogPrint (eLogDebug, "TorrentsDHT: Ping query msg received from ", fromIdent.ToBase64 ());
+		m_Nodes.emplace (nodeID, std::make_shared<Node> (nodeID, fromIdent, fromPort));
+		m_RoutingTable->AddNode (nodeID);
 		SendPingResponse (transactionID, fromIdent, fromPort + 1); // to rport
 	}
 
 	void TorrentsDHT::HandleGetPeersQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
 		std::string_view transactionID, const NodeID& nodeID, const Torrent::InfoHash& infoHash)
 	{
-		LogPrint (eLogDebug, "TorrentsDHT: Get peers query msg received");
+		LogPrint (eLogDebug, "TorrentsDHT: Get peers query msg received from ", fromIdent.ToBase64 ());
 		auto [nodesIt, inserted] = m_Nodes.emplace (nodeID, std::make_shared<Node> (nodeID, fromIdent, fromPort));
-		if (inserted)
-			m_RoutingTable->AddNode (nodeID);
+		m_RoutingTable->AddNode (nodeID);
 
 		std::shared_ptr<DHTTorrent> torrent;
 		auto it = m_Torrents.find (infoHash);
