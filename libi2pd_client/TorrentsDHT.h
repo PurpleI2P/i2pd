@@ -17,6 +17,7 @@
 #include <string_view>
 #include <tuple>
 #include <memory>
+#include <random>
 #include <array>
 #include <list>
 #include <map>
@@ -114,7 +115,7 @@ namespace torrents
 			bool AddNode (const NodeID& id);
 			std::list<std::pair<NodeID, Distance> > FindClosestNodes (const Torrent::InfoHash& infoHash, size_t num = 1) const;
 			std::optional<NodeID> FindClosestNode (const Torrent::InfoHash& infoHash) const;
-			std::list<std::pair<NodeID, NodeID> > GetExploratoryTargets () const; // (target, node to send find_node to)
+			std::list<std::pair<NodeID, NodeID> > GetExploratoryTargets (std::mt19937& rng) const; // (target, node to send find_node to)
 			NodeID FindClosestNodeInBucket (const NodeID& target) const;
 			std::list<NodeID> DeleteExpiredNodes ();
 

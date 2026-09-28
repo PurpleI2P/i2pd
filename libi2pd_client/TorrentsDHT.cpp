@@ -242,7 +242,7 @@ namespace torrents
 		return nodes.front ().first;
 	}
 
-	std::list<std::pair<NodeID, NodeID> > RoutingTable::GetExploratoryTargets () const
+	std::list<std::pair<NodeID, NodeID> > RoutingTable::GetExploratoryTargets (std::mt19937& rng) const
 	{
 		std::list<std::pair<NodeID, NodeID> > ret;
 		auto bucket = m_Buckets;
@@ -251,8 +251,12 @@ namespace torrents
 			if (!bucket->IsFull () && !bucket->nodes.empty ())
 			{
 				auto middleID = bucket->GetMiddleID ();
-				if (middleID && !bucket->ContainsNode (*middleID)) // TODO: pick another id
-					ret.emplace_back (std::make_pair(*middleID, bucket->nodes.begin ()->first));
+				if (middleID) // TODO: pick another id
+				{
+					auto it = bucket->nodes.begin ();
+					std::advance (it, rng () % bucket->nodes.size ());
+					ret.emplace_back (std::make_pair(*middleID, it->first));
+				}
 			}
 			bucket = bucket->next;
 		}
@@ -694,10 +698,8 @@ namespace torrents
 				{
 					LogPrint (eLogDebug, "TorrentsDHT: Ping response received");
 					if (m_Nodes.emplace (nodeID, std::make_shared<Node> (nodeID, ident, port)).second)
-					{
-						m_RoutingTable->AddNode (nodeID);
 						LogPrint (eLogDebug, "TorrentsDHT: Node ", ident.ToBase64 (), ":", port, " added");
-					}
+					m_RoutingTable->AddNode (nodeID);
 				}
 				else if (query == "get_peers")
 				{
@@ -707,8 +709,8 @@ namespace torrents
 						if (values[0].empty ())	// nodes
 						{
 							auto node = std::make_shared<Node>(nodeInfo);
-							if (m_Nodes.emplace (node->id, node).second && m_RoutingTable)
-								m_RoutingTable->AddNode (node->id);
+							m_Nodes.emplace (node->id, node);
+							if (m_RoutingTable) m_RoutingTable->AddNode (node->id);
 						}
 						else //values
 						{
@@ -870,9 +872,9 @@ namespace torrents
 
 	void TorrentsDHT::Explore ()
 	{
-		if (m_RoutingTable)
+		if (m_RoutingTable && m_Tunnel.GetLocalDestination ())
 		{
-			auto targets = m_RoutingTable->GetExploratoryTargets ();
+			auto targets = m_RoutingTable->GetExploratoryTargets (m_Tunnel.GetLocalDestination ()->GetRng ());
 			for (auto [target, nodeID]: targets)
 			{
 				auto it = m_Nodes.find (nodeID);
