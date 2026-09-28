@@ -153,6 +153,34 @@ namespace torrents
 		}
 	}
 
+	std::list<NodeID> RoutingTable::DeleteExpiredNodes ()
+	{
+		auto ts = i2p::util::GetMonotonicSeconds ();
+		auto bucket = m_Buckets;
+		std::list<NodeID> deleted;
+		while (bucket)
+		{
+			if (ts > bucket->lastUpdateTime + DHT_BUCKET_EXPIRATION_THRESHOLD)
+			{
+				auto it = bucket->nodes.begin ();
+				while (it != bucket->nodes.end ())
+				{
+					if (ts > it->second + DHT_NODE_EXPIRATION_TIME)
+					{
+						deleted.push_back (it->first);
+						it = bucket->nodes.erase (it);
+					}
+					else
+						it++;
+				}
+			}
+			bucket = bucket->next;
+		}
+		if (!deleted.empty ())
+			RemoveEmptyBuckets ();
+		return deleted;
+	}
+
 	bool RoutingTable::AddNode (const NodeID& id)
 	{
 		if (id == m_OurNode) return false;
@@ -174,7 +202,11 @@ namespace torrents
 			while (bucket->IsFull ());
 		}
 		if (bucket)
-			bucket->nodes.emplace (id, i2p::util::GetMonotonicSeconds ());
+		{
+			auto ts = i2p::util::GetMonotonicSeconds ();
+			bucket->nodes.emplace (id, ts);
+			bucket->lastUpdateTime = ts;
+		}
 		RemoveEmptyBuckets ();
 		return true;
 	}
@@ -268,7 +300,8 @@ namespace torrents
 	}
 
 	TorrentsDHT::TorrentsDHT (TorrentsTunnel& tunnel, uint16_t port):
-		m_Tunnel (tunnel), m_DHTUpdateCheckTimer (tunnel.GetService ()), m_Port (port),
+		m_Tunnel (tunnel), m_DHTUpdateCheckTimer (tunnel.GetService ()),
+		m_DHTExpirationCheckTimer (tunnel.GetService ()), m_Port (port),
 		m_NextDHTExploratoryTime (i2p::util::GetMonotonicSeconds () + DHT_INITIAL_EXPLORATORY_INTERVAL)
 	{
 		auto dest = tunnel.GetLocalDestination ();
@@ -297,11 +330,13 @@ namespace torrents
 		}
 		Load (GetDHTFilePath (filename));
 		ScheduleDHTUpdateCheck ();
+		ScheduleDHTExpirationCheck ();
 	}
 
 	void TorrentsDHT::Stop ()
 	{
 		m_DHTUpdateCheckTimer.cancel ();
+		m_DHTExpirationCheckTimer.cancel ();
 		std::string filename ("nodest");
 		auto dest = m_Tunnel.GetLocalDestination ();
 		if (dest)
@@ -698,8 +733,8 @@ namespace torrents
 				{
 					auto node = std::make_shared<Node>(nodeInfo);
 					LogPrint (eLogDebug, "TorrentsDHT: find_node response received ", node->peer.ToBase64 ());
-					if (m_Nodes.emplace (node->id, node).second && m_RoutingTable)
-						m_RoutingTable->AddNode (node->id);
+					m_Nodes.emplace (node->id, node);
+					if (m_RoutingTable) m_RoutingTable->AddNode (node->id);
 				}
 				else
 					LogPrint (eLogInfo, "TorrentsDHT: Response to unknown query ", query);
@@ -866,6 +901,27 @@ namespace torrents
 					m_Tunnel.GetLocalDestination ()->GetRng ()() % DHT_EXPLORATORY_INTERVAL_VARIANCE : 0);
 			}
 			ScheduleDHTUpdateCheck ();
+		}
+	}
+
+	void TorrentsDHT::ScheduleDHTExpirationCheck ()
+	{
+		m_DHTExpirationCheckTimer.cancel ();
+		m_DHTExpirationCheckTimer.expires_after (std::chrono::seconds (DHT_EXPIRATION_CHECK_INTERVAL));
+		m_DHTExpirationCheckTimer.async_wait (std::bind_front(&TorrentsDHT::HandleDHTExpirationCheckTimer, this));
+	}
+
+	void TorrentsDHT::HandleDHTExpirationCheckTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			if (m_RoutingTable)
+			{
+				auto deleted = m_RoutingTable->DeleteExpiredNodes ();
+				for (auto it: deleted)
+					m_Nodes.erase (it);
+			}
+			ScheduleDHTExpirationCheck ();
 		}
 	}
 }

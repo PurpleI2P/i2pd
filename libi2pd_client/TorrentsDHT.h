@@ -36,9 +36,12 @@ namespace i2p
 namespace torrents
 {
 	constexpr int DHT_UPDATE_CHECK_INTERVAL = 24; // in seconds
+	constexpr int DHT_EXPIRATION_CHECK_INTERVAL = 73; // in seconds
 	constexpr int DHT_EXPLORATORY_INTERVAL = 4*60; // in seconds
 	constexpr int DHT_EXPLORATORY_INTERVAL_VARIANCE = 40; // in seconds
 	constexpr int DHT_INITIAL_EXPLORATORY_INTERVAL = 90; // in seconds
+	constexpr int DHT_NODE_EXPIRATION_TIME = 855; // in seconds
+	constexpr int DHT_BUCKET_EXPIRATION_THRESHOLD = 290; // in seconds
 
 	using Distance = Torrent::InfoHash;
 	struct NodeID: public Torrent::InfoHash
@@ -87,6 +90,7 @@ namespace torrents
 		Bucket * next;
 		std::map<NodeID, uint64_t> nodes; // nodeID->update time in monotonic seconds
 		NodeID start;
+		uint64_t lastUpdateTime = 0; // monotonic seconds
 
 		Bucket (): next (nullptr), start{} {}
 		Bucket (const NodeID& start1): next (nullptr), start (start1) {}
@@ -112,6 +116,7 @@ namespace torrents
 			std::optional<NodeID> FindClosestNode (const Torrent::InfoHash& infoHash) const;
 			std::list<std::pair<NodeID, NodeID> > GetExploratoryTargets () const; // (target, node to send find_node to)
 			NodeID FindClosestNodeInBucket (const NodeID& target) const;
+			std::list<NodeID> DeleteExpiredNodes ();
 
 		private:
 
@@ -197,10 +202,13 @@ namespace torrents
 			void ScheduleDHTUpdateCheck ();
 			void HandleDHTUpdateCheckTimer (const boost::system::error_code& ecode);
 
+			void ScheduleDHTExpirationCheck ();
+			void HandleDHTExpirationCheckTimer (const boost::system::error_code& ecode);
+
 		private:
 
 			TorrentsTunnel& m_Tunnel;
-			boost::asio::steady_timer m_DHTUpdateCheckTimer;
+			boost::asio::steady_timer m_DHTUpdateCheckTimer, m_DHTExpirationCheckTimer;
 			uint16_t m_Port;
 			NodeID m_NodeID;
 			std::unique_ptr<RoutingTable> m_RoutingTable;
