@@ -61,17 +61,6 @@ namespace torrents
 
 	NodeID Bucket::GetRandomID (std::mt19937& rng) const
 	{
-		/*NodeID randomID;
-		bool isStart = true, isNext = true;
-		for (size_t i = 0; i < randomID.size (); i++)
-		{
-			auto m1 = isStart ? start[i] : 0x00;
-			auto m2 = (isNext && next) ? next->start[i] : 0xFF;
-			randomID[i] = (m1 != m2) ? (rng () % std::abs (m2 - m1)) : m1;
-			if (randomID[i] > start[i])  isStart = false;
-			if (next && randomID[i] < next->start[i]) isNext = false;
-		}
-		return randomID;*/
 		uint8_t bit = std::max (start.FindLowestBit (), next ? next->start.FindLowestBit () : -1) + 1;
 		if (bit >= NodeID::len * 8) return start;
 
@@ -79,8 +68,14 @@ namespace torrents
 		auto d = div (bit, 8);
 		memcpy (randomID.data (), start.data (), d.quot);
 		randomID[d.quot] = (start[d.quot] & (0xFF00 >> d.rem)) | (rng () & (0xFF >> d.rem));
-		for (int i = d.quot + 1; i < 20; i++)
-			randomID[i] = rng ();
+		for (size_t i = d.quot + 1; i < NodeID::len; i += 4)
+		{
+			uint32_t r = rng ();
+			if (i + 4 <= NodeID::len)
+				memcpy (randomID.data () + i, &r, 4);
+			else
+				memcpy (randomID.data () + i, &r, NodeID::len - i);
+		}
 		return randomID;
 	}
 
