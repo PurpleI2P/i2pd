@@ -120,7 +120,7 @@ namespace hebrew // language namespace
 		{"Start graceful shutdown", "הפעל כיבוי עדין"},
 		{"Force shutdown", "הפעל כיבוי מיידי"},
 		{"Reload external CSS styles", "טען מחדש סגנונות CSS חיצוניים"},
-		{"<b>Note:</b> any action done here are not persistent and not changes your config files.", "<b>הערה</b> כל פעולה אשר מבוצעת כאן אינה המשכית ולא משנה את קובצי התצורה שלך."},
+		{"<b>Note:</b> any action performed here is not persistent and does not change your config files.", "<b>הערה</b> כל פעולה אשר מבוצעת כאן אינה המשכית ולא משנה את קובצי התצורה שלך."},
 		{"Logging level", "דרגת רישום יומן"},
 		{"Transit tunnels limit", "מגבלת מנהרות מעבר"},
 		{"Change", "אישור"},

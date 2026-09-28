@@ -134,7 +134,7 @@ namespace french // language namespace
 		{"Start graceful shutdown", "Démarrer l'arrêt gracieux"},
 		{"Force shutdown", "Forcer l'arrêt"},
 		{"Reload external CSS styles", "Rafraîchir les styles CSS externes"},
-		{"<b>Note:</b> any action done here are not persistent and not changes your config files.", "<b>Note :</b> Toute action effectuée ici n'est pas permanente et ne modifie pas vos fichiers de configuration."},
+		{"<b>Note:</b> any action performed here is not persistent and does not change your config files.", "<b>Note :</b> Toute action effectuée ici n'est pas permanente et ne modifie pas vos fichiers de configuration."},
 		{"Logging level", "Niveau de journalisation"},
 		{"Transit tunnels limit", "Limite sur les tunnels transitoires"},
 		{"Change", "Changer"},

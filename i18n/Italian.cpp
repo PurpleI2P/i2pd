@@ -134,7 +134,7 @@ namespace italian // language namespace
 		{"Start graceful shutdown", "Avvia l'interruzione controllata"},
 		{"Force shutdown", "Forza l'arresto"},
 		{"Reload external CSS styles", "Ricarica gli stili CSS esterni"},
-		{"<b>Note:</b> any action done here are not persistent and not changes your config files.", "<b>Nota:</b> qualsiasi azione effettuata qui non è persistente e non modifica i file di configurazione."},
+		{"<b>Note:</b> any action performed here is not persistent and does not change your config files.", "<b>Nota:</b> qualsiasi azione effettuata qui non è persistente e non modifica i file di configurazione."},
 		{"Logging level", "Livello di log"},
 		{"Transit tunnels limit", "Limite di tunnel di transito"},
 		{"Change", "Modifica"},

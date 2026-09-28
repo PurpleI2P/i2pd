@@ -134,7 +134,7 @@ namespace polish // language namespace
 		{"Start graceful shutdown", "Rozpocznij łagodne wyłączenie"},
 		{"Force shutdown", "Wymuś wyłączenie"},
 		{"Reload external CSS styles", "Odśwież zewnętrzne style CSS"},
-		{"<b>Note:</b> any action done here are not persistent and not changes your config files.", "<b>Uwaga:</b> każda akcja wykonana tutaj nie jest trwała i nie zmienia Twoich plików konfiguracyjnych."},
+		{"<b>Note:</b> any action performed here is not persistent and does not change your config files.", "<b>Uwaga:</b> każda akcja wykonana tutaj nie jest trwała i nie zmienia Twoich plików konfiguracyjnych."},
 		{"Logging level", "Poziom logowania"},
 		{"Transit tunnels limit", "Limit tuneli tranzytowych"},
 		{"Change", "Zmień"},

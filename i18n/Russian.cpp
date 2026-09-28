@@ -134,7 +134,7 @@ namespace russian // language namespace
 		{"Start graceful shutdown", "Запустить плавную остановку"},
 		{"Force shutdown", "Принудительная остановка"},
 		{"Reload external CSS styles", "Перезагрузить внешние CSS стили"},
-		{"<b>Note:</b> any action done here are not persistent and not changes your config files.", "<b>Примечание:</b> любое действие произведенное здесь не является постоянным и не изменяет ваши конфигурационные файлы."},
+		{"<b>Note:</b> any action performed here is not persistent and does not change your config files.", "<b>Примечание:</b> любое действие произведенное здесь не является постоянным и не изменяет ваши конфигурационные файлы."},
 		{"Logging level", "Уровень логирования"},
 		{"Transit tunnels limit", "Лимит транзитных туннелей"},
 		{"Change", "Изменить"},

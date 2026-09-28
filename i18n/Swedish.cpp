@@ -132,7 +132,7 @@ namespace swedish // language namespace
 		{"Start graceful shutdown", "Påbörja välvillig avstängning"},
 		{"Force shutdown", "Tvingad avstängning"},
 		{"Reload external CSS styles", "Ladda om externa CSS-stilar"},
-		{"<b>Note:</b> any action done here are not persistent and not changes your config files.", "<b>Uppmärksamma:</b> inga ändringar här är beständiga eller påverkar dina inställningsfiler."},
+		{"<b>Note:</b> any action performed here is not persistent and does not change your config files.", "<b>Uppmärksamma:</b> inga ändringar här är beständiga eller påverkar dina inställningsfiler."},
 		{"Logging level", "Protokollförningsnivå"},
 		{"Transit tunnels limit", "Begränsa förmedlande tunnlar"},
 		{"Change", "Ändra"},
