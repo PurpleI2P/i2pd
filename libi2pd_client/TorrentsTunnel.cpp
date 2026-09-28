@@ -426,7 +426,7 @@ namespace torrents
 				{
 					return torrentByID.second.lock () == torrent;
 				});
-			if (it != m_TorrentsByID.begin ())
+			if (it != m_TorrentsByID.end ())
 				return  { it->first, false };
  		}
 		return  { 0, false };
