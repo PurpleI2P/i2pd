@@ -43,6 +43,10 @@ namespace torrents
 	constexpr int DHT_INITIAL_EXPLORATORY_INTERVAL = 90; // in seconds
 	constexpr int DHT_NODE_EXPIRATION_TIME = 855; // in seconds
 	constexpr int DHT_BUCKET_EXPIRATION_THRESHOLD = 290; // in seconds
+	constexpr int DHT_TORRENT_PEER_EXPIRATION_TIME = 3*3600; // in seconds
+	constexpr int DHT_INCOMING_GET_PEERS_TOKEN_EXPIRATION_TIME = 600; // in seconds
+	constexpr int DHT_OUTGOING_GET_PEERS_TOKEN_EXPIRATION_TIME = 120; // in seconds
+	constexpr int DHT_EMPTY_TORRENT_EXPIRATION_TIME = 30; // in seconds
 
 	using Distance = Torrent::InfoHash;
 	struct NodeID: public Torrent::InfoHash
@@ -118,7 +122,7 @@ namespace torrents
 			std::optional<NodeID> FindClosestNode (const Torrent::InfoHash& infoHash) const;
 			std::list<std::pair<NodeID, NodeID> > GetExploratoryTargets (std::mt19937& rng) const; // (target, node to send find_node to)
 			NodeID FindClosestNodeInBucket (const NodeID& target) const;
-			std::list<NodeID> DeleteExpiredNodes ();
+			std::list<NodeID> DeleteExpiredNodes (uint64_t ts);
 
 		private:
 
@@ -136,19 +140,21 @@ namespace torrents
 	{
 		public:
 
-			DHTTorrent () = default;
+			DHTTorrent ();
 
 			std::string GetBEncodedPeers () const;
 			void AddIncomingGetPeerNode (GetPeersToken token, std::shared_ptr<Node> node);
 			void AddOutgoingGetPeerNode (GetPeersToken token, std::shared_ptr<Node> node);
 			std::shared_ptr<Node> GetIncomingGetPeerNode (GetPeersToken token) const;
-			void AddPeer (const i2p::data::IdentHash& peer);
+			bool AddPeer (const i2p::data::IdentHash& peer);
+			bool CleanUp (uint64_t ts); // return true if empty
 
 		private:
 
-			std::list<std::pair<i2p::data::IdentHash, uint64_t> > m_Peers; // (ident, update time in monotonic seconds)
-			std::unordered_map<GetPeersToken, std::weak_ptr<Node> > m_IncomingGetPeers; // they request peers and send announces to us
-			std::unordered_map<GetPeersToken, std::weak_ptr<Node> > m_OutgoingGetPeers; // we request peers from and send announces to
+			std::unordered_map<i2p::data::IdentHash, uint64_t> m_Peers; // ident -> update time in monotonic seconds
+			std::unordered_map<GetPeersToken, std::pair<std::weak_ptr<Node>, uint64_t> > m_IncomingGetPeers; // they request peers and send announces to us
+			std::unordered_map<GetPeersToken, std::pair<std::weak_ptr<Node>, uint64_t> > m_OutgoingGetPeers; // we request peers from and send announces to
+			uint64_t m_LastUpdateTime; // monotonic second
 	};
 
 	class TorrentsTunnel;
