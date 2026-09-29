@@ -328,7 +328,8 @@ namespace torrents
 	std::pair<std::shared_ptr<Torrent>, int> TorrentsTunnel::AddTorrent (std::string_view torrentFileContent)
 	{
 		auto torrent = std::make_shared<Torrent> (torrentFileContent);
-		if (m_Torrents.find (torrent->GetInfoHash ()) == m_Torrents.end ())
+		auto it = m_Torrents.find (torrent->GetInfoHash ());
+		if (it == m_Torrents.end ())
 		{
 			torrent->SetFullPath (m_TorrentsDir/std::filesystem::path (torrent->GetName ()));
 			auto [id, inserted] = InsertTorrent (torrent);
@@ -342,6 +343,8 @@ namespace torrents
 				boost::asio::post (GetService (), [this, torrent] { RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone); });
 			return { torrent, id };
 		}
+		else
+			return { it->second, FindTorrentID (it->second) };
 		return { torrent, 0 };
 	}
 
@@ -390,15 +393,21 @@ namespace torrents
 				else if (param.starts_with (namePrefix))
 					name = i2p::http::UrlDecode (param.substr (namePrefix.size ()));
 			}
-			if (isInfoHashFound && m_Torrents.find (infoHash) == m_Torrents.end ())
+			if (isInfoHashFound)
 			{
-				auto torrent = std::make_shared<Torrent> (infoHash);
-				if (!announce.empty ()) torrent->SetAnnounce (announce);
-				if (!name.empty ()) torrent->SetName (name);
-				auto [id, inserted] = InsertTorrent (torrent);
-				if (inserted)
-					boost::asio::post (GetService (), [this, torrent] { RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone); });
-				return { torrent, id };
+				auto it = m_Torrents.find (infoHash);
+				if (it == m_Torrents.end ())
+				{
+					auto torrent = std::make_shared<Torrent> (infoHash);
+					if (!announce.empty ()) torrent->SetAnnounce (announce);
+					if (!name.empty ()) torrent->SetName (name);
+					auto [id, inserted] = InsertTorrent (torrent);
+					if (inserted)
+						boost::asio::post (GetService (), [this, torrent] { RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone); });
+					return { torrent, id };
+				}
+				else
+					return { it->second, FindTorrentID (it->second) };
 			}
 		}
 		return { nullptr, 0 };
@@ -419,15 +428,7 @@ namespace torrents
 			return { id, true };
  		}
  		else // already exists, find id
- 		{
-			auto it = std::find_if (m_TorrentsByID.begin (), m_TorrentsByID.end (),
-				[torrent](const auto& torrentByID)
-				{
-					return torrentByID.second.lock () == torrent;
-				});
-			if (it != m_TorrentsByID.end ())
-				return  { it->first, false };
- 		}
+			return { FindTorrentID (torrent), false };
 		return  { 0, false };
 	}
 
@@ -486,6 +487,21 @@ namespace torrents
 					}
 				}
 			});
+	}
+
+	int TorrentsTunnel::FindTorrentID (std::shared_ptr<Torrent> torrent) const
+	{
+		if (torrent)
+		{
+			auto it = std::find_if (m_TorrentsByID.begin (), m_TorrentsByID.end (),
+				[torrent](const auto& torrentByID)
+				{
+					return torrentByID.second.lock () == torrent;
+				});
+			if (it != m_TorrentsByID.end ())
+				return it->first;
+		}
+		return 0;
 	}
 
 	bool TorrentsTunnel::StopTorrent (int id)
