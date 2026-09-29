@@ -230,6 +230,15 @@ namespace torrents
 		return true;
 	}
 
+	void RoutingTable::RemoveNode (const NodeID& id)
+	{
+		auto bucket = FindBucket (id);
+		if (!bucket) return;
+		bucket->nodes.erase (id);
+		if (bucket->nodes.empty () && bucket != m_Buckets)
+			RemoveEmptyBuckets ();
+	}
+
 	std::list<std::pair<NodeID, Distance> > RoutingTable::FindClosestNodes (const Torrent::InfoHash& infoHash, size_t num) const
 	{
 		std::list<std::pair<NodeID, Distance> > ret;
@@ -270,23 +279,25 @@ namespace torrents
 			if (!bucket->IsFull () && !bucket->nodes.empty ())
 			{
 				auto randomID = bucket->GetRandomID (rng);
-				auto it = bucket->nodes.begin ();
-				while (it != bucket->nodes.end () && randomID > it->first) it++;
-				if (it != bucket->nodes.end ())
-					ret.emplace_back (std::make_pair (randomID, it->first));
-				else
-					ret.emplace_back (std::make_pair (randomID, bucket->nodes.rbegin ()->first));
+				auto closestNodeID = FindClosestNodeInBucket (randomID);
+				if (closestNodeID)
+					ret.emplace_back (std::make_pair (randomID, *closestNodeID));
 			}
 			bucket = bucket->next;
 		}
 		return ret;
 	}
 
-	NodeID RoutingTable::FindClosestNodeInBucket (const NodeID& target) const
+	std::optional<NodeID> RoutingTable::FindClosestNodeInBucket (const NodeID& target) const
 	{
 		auto bucket = FindBucket (target);
-		if (!bucket || bucket->nodes.empty ()) return m_OurNode;
-		return bucket->nodes.begin ()->first;
+		if (!bucket || bucket->nodes.empty ()) return {};
+		auto it = bucket->nodes.begin ();
+		while (it != bucket->nodes.end () && target > it->first) it++;
+		if (it != bucket->nodes.end ())
+			return it->first;
+		else
+			return bucket->nodes.rbegin ()->first;
 	}
 
 	DHTTorrent::DHTTorrent ():
@@ -500,7 +511,7 @@ namespace torrents
 			}
 			m_RoutingTable->RemoveEmptyBuckets ();
 			if (numLoaded > 0)
-				LogPrint (eLogInfo, "TorrentsDHT: ", numLoaded, " DHT nodes loaded");
+				LogPrint (eLogInfo, "TorrentsDHT: ", numLoaded, " DHT nodes loaded to ", m_RoutingTable->GetNumBuckets (), " buckets");
 		}
 	}
 
@@ -728,9 +739,17 @@ namespace torrents
 		LogPrint (eLogDebug, "TorrentsDHT: Find node query received");
 		if (m_RoutingTable)
 		{
-			auto it = m_Nodes.find (m_RoutingTable->FindClosestNodeInBucket (target));
-			if (it != m_Nodes.end ())
-				SendFindNodeResponse (transactionID, it->second, fromIdent, fromPort + 1); // to rport
+			auto closestNodeID = m_RoutingTable->FindClosestNodeInBucket (target);
+			if (closestNodeID)
+			{
+				auto it = m_Nodes.find (*closestNodeID);
+				if (it != m_Nodes.end ())
+					SendFindNodeResponse (transactionID, it->second->GetNodeInfo (), fromIdent, fromPort + 1); // to rport
+			}
+			else if (m_Tunnel.GetLocalDestination ())
+				SendFindNodeResponse (transactionID,
+					Node (m_NodeID, m_Tunnel.GetLocalDestination ()->GetIdentHash (), m_Port).GetNodeInfo (), // send ours
+					fromIdent, fromPort + 1); // to rport
 		}
 	}
 
@@ -774,31 +793,30 @@ namespace torrents
 				}
 				else if (query == "get_peers")
 				{
-					LogPrint (eLogDebug, "TorrentsDHT: get_peers response received");
-					if (!values.empty ())
+					LogPrint (eLogDebug, "TorrentsDHT: get_peers response received from ", ident.ToBase64 ());
+					if (!values.empty () && values[0].empty ()) // nodes
 					{
-						if (values[0].empty ())	// nodes
+						auto node = std::make_shared<Node>(nodeInfo);
+						m_Nodes.emplace (node->id, node);
+						if (m_RoutingTable) m_RoutingTable->AddNode (node->id);
+						LogPrint (eLogDebug, "TorrentsDHT: Node ", node->peer.ToBase64 (), ":", node->port, " added");
+					}
+					else //values
+					{
+						auto torrent = torrentw.lock ();
+						if (torrent)
 						{
-							auto node = std::make_shared<Node>(nodeInfo);
-							m_Nodes.emplace (node->id, node);
-							if (m_RoutingTable) m_RoutingTable->AddNode (node->id);
-						}
-						else //values
-						{
-							auto torrent = torrentw.lock ();
-							if (torrent)
+							std::unordered_set<i2p::data::IdentHash> newPeers;
+							for (auto it1: values)
+								if (it1.size () == i2p::data::IdentHash::len)
+									newPeers.emplace ((const uint8_t *)it1.data ());
+							if (!newPeers.empty ())
 							{
-								std::unordered_set<i2p::data::IdentHash> newPeers;
-								for (auto it1: values)
-									if (it1.size () == i2p::data::IdentHash::len)
-										newPeers.emplace ((const uint8_t *)it1.data ());
-								if (!newPeers.empty ())
-								{
-									LogPrint (eLogDebug, "TorrentsDHT: ", newPeers.size (), " new peers received");
-									m_Tunnel.ConnectToNewPeers (torrent, newPeers);
-								}
-								SendAnnouncePeerQuery (torrent->GetInfoHash (), token, ident, port + 1); // to rport
+								LogPrint (eLogDebug, "TorrentsDHT: ", newPeers.size (), " new peers received");
+								m_Tunnel.ConnectToNewPeers (torrent, newPeers);
 							}
+							LogPrint (eLogDebug, "TorrentsDHT: Send announce to ", ident.ToBase64 ());
+							SendAnnouncePeerQuery (torrent->GetInfoHash (), token, ident, port + 1); // to rport
 						}
 					}
 				}
@@ -809,6 +827,8 @@ namespace torrents
 					m_Nodes.emplace (node->id, node);
 					if (m_RoutingTable) m_RoutingTable->AddNode (node->id);
 				}
+				else if (query == "announce_peer")
+					LogPrint (eLogDebug, "TorrentsDHT: Announce peer response received");
 				else
 					LogPrint (eLogInfo, "TorrentsDHT: Response to unknown query ", query);
 			}
@@ -841,7 +861,7 @@ namespace torrents
 	}
 
 	void TorrentsDHT::SendQueryMsg (std::string_view query, std::string_view arguments,
-		const i2p::data::IdentHash& toIdent, uint16_t toPort, bool isRaw)
+		const i2p::data::IdentHash& toIdent, uint16_t toPort, bool isRaw, std::shared_ptr<Torrent> torrent)
 	{
 		uint16_t transactionID = m_Tunnel.GetLocalDestination () ? m_Tunnel.GetLocalDestination ()->GetRng ()() : 1;
 		auto msg = CreateDictionary ({
@@ -850,7 +870,7 @@ namespace torrents
 				{ "t", CreateByteString (std::string_view ((const char *)&transactionID, 2)) },
 				{ "y", CreateByteString ("q") }
 									});
-		m_Queries.insert_or_assign (transactionID, std::make_tuple (toIdent, toPort, query, std::shared_ptr<Torrent>{}));
+		m_Queries.insert_or_assign (transactionID, std::make_tuple (toIdent, toPort, query, torrent));
 		if (isRaw)
 			SendRawDatagram (msg, toIdent, toPort);
 		else
@@ -883,6 +903,18 @@ namespace torrents
 											}),
 			transactionID, toIdent, toPort);
 	}
+
+	void TorrentsDHT::SendGetPeersQuery (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& toIdent, uint16_t toPort)
+	{
+		if (!torrent) return;
+		const auto& infoHash = torrent->GetInfoHash ();
+		SendQueryMsg ("get_peers", CreateDictionary ({
+			{ "id", CreateByteString (std::string_view ((const char *)m_NodeID.data (), m_NodeID.size ())) },
+			{ "info_hash", CreateByteString (std::string_view ((const char *)infoHash.data (), infoHash.size ())) }
+													}),
+			toIdent, toPort, false, torrent);
+	}
+
 
 	void TorrentsDHT::SendGetPeersResponse (std::string_view transactionID, std::shared_ptr<DHTTorrent> torrent,
 		uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort)
@@ -918,11 +950,9 @@ namespace torrents
 			toIdent, toPort);
 	}
 
-	void TorrentsDHT::SendFindNodeResponse (std::string_view transactionID, std::shared_ptr<const Node> node,
+	void TorrentsDHT::SendFindNodeResponse (std::string_view transactionID, const NodeInfo& nodeInfo,
 		const i2p::data::IdentHash& toIdent, uint16_t toPort)
 	{
-		if (!node) return;
-		NodeInfo nodeInfo = node->GetNodeInfo ();
 		SendResponseMsg (CreateDictionary ({
 			{ "id", CreateByteString (std::string_view ((const char *)m_NodeID.data (), m_NodeID.size ())) },
 			{ "nodes", CreateByteString (std::string_view ((const char *)nodeInfo.data (), nodeInfo.size ())) }
@@ -1004,6 +1034,21 @@ namespace torrents
 					it++;
 			}
 			ScheduleDHTExpirationCheck ();
+		}
+	}
+
+	void TorrentsDHT::GetPeersAndAnnounce (std::shared_ptr<Torrent> torrent)
+	{
+		if (!torrent || !m_RoutingTable) return;
+		auto queriedNodeID = m_RoutingTable->FindClosestNode (torrent->GetInfoHash ());
+		if (!queriedNodeID) return; // DHT is empty
+		auto it = m_Nodes.find (*queriedNodeID);
+		if (it != m_Nodes.end ())
+			SendGetPeersQuery (torrent, it->second->peer, it->second->port);
+		else
+		{
+			LogPrint (eLogError, "TorrentsDHT: No nodeInfo for node from routing table");
+			m_RoutingTable->RemoveNode (*queriedNodeID);
 		}
 	}
 }

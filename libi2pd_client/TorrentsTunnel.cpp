@@ -788,6 +788,11 @@ namespace torrents
 								it.second->SetNextTrackerRequestTime (i, ts + nextInterval);
 							}
 						}
+						if (SupportsDHT () && ts >= it.second->GetNextDHTUpdateTime ()*1000)
+						{
+							if (m_DHT) m_DHT->GetPeersAndAnnounce (it.second);
+							it.second->SetNextDHTUpdateTime (ts/1000 + DHT_TORRENT_UPDATE_INTERVAL + GetLocalDestination ()->GetRng()() % DHT_TORRENT_UPDATE_INTERVAL_VARIANCE);
+						}
 					}
 				}
 			}

@@ -446,7 +446,9 @@ namespace torrents
 	Torrent::Torrent ():
 		m_AnnounceTrackerID (-1), m_Length (0), m_PieceLength (0), m_IsComplete (false),
 		m_IsStopped (false), m_IsSingleFile (true), m_Uploaded (0), m_Downloaded (0),
-		m_NextUpdateStatusTime (0), m_NextReconnectTime (0), m_Error (eTorrentErrorNoError)
+		m_NextUpdateStatusTime (0), m_NextReconnectTime (0),
+		m_NextDHTUpdateTime (i2p::util::GetMonotonicSeconds () + DHT_TORRENT_INITIAL_UPDATE_INTERVAL),
+		m_Error (eTorrentErrorNoError)
 	{
 	}
 
@@ -2180,21 +2182,21 @@ namespace torrents
 
 	void PeerConnection::SendExtendedMsg (uint8_t extendedMsgID, std::string_view payload, std::string_view data)
 	{
-		const static std::string messages = GetTorrentsTunnel ()->SupportsDHT () ?
-			CreateDictionary ({
-				{ EXTENSION_NAME_I2P_DHT, CreateInteger (EXTENSION_MSGID_I2P_DHT) },
-				{ EXTENSION_NAME_I2P_PEX, CreateInteger (EXTENSION_MSGID_I2P_PEX) },
-				{ EXTENSION_NAME_UT_METADATA, CreateInteger (EXTENSION_MSGID_UT_METADATA) }
-							 }):
-			CreateDictionary ({
-				{ EXTENSION_NAME_I2P_PEX, CreateInteger (EXTENSION_MSGID_I2P_PEX) },
-				{ EXTENSION_NAME_UT_METADATA, CreateInteger (EXTENSION_MSGID_UT_METADATA) }
-							 });
 		std::string str;
 		if (!extendedMsgID) // handshake
 		{
 			str = CreateDictionary ({
-				{ "m", messages },
+				{ "m", GetTorrentsTunnel ()->SupportsDHT () ?
+					CreateDictionary ({
+						{ EXTENSION_NAME_I2P_DHT, CreateInteger (EXTENSION_MSGID_I2P_DHT) },
+						{ EXTENSION_NAME_I2P_PEX, CreateInteger (EXTENSION_MSGID_I2P_PEX) },
+						{ EXTENSION_NAME_UT_METADATA, CreateInteger (EXTENSION_MSGID_UT_METADATA) }
+									 }):
+					CreateDictionary ({
+						{ EXTENSION_NAME_I2P_PEX, CreateInteger (EXTENSION_MSGID_I2P_PEX) },
+						{ EXTENSION_NAME_UT_METADATA, CreateInteger (EXTENSION_MSGID_UT_METADATA) }
+									 })
+				},
 				{ "metadata_size",  CreateInteger (m_Torrent->GetInfo ().size ()) },
 				{ "reqq", CreateInteger (MAX_INCOMING_REQUESTS_QUEUE_SIZE) },
 				{ "v", CreateByteString ("i2pd") }

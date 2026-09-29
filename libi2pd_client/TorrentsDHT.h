@@ -118,10 +118,11 @@ namespace torrents
 			size_t GetNumBuckets () const;
 
 			bool AddNode (const NodeID& id);
+			void RemoveNode (const NodeID& id);
 			std::list<std::pair<NodeID, Distance> > FindClosestNodes (const Torrent::InfoHash& infoHash, size_t num = 1) const;
 			std::optional<NodeID> FindClosestNode (const Torrent::InfoHash& infoHash) const;
 			std::list<std::pair<NodeID, NodeID> > GetExploratoryTargets (std::mt19937& rng) const; // (target, node to send find_node to)
-			NodeID FindClosestNodeInBucket (const NodeID& target) const;
+			std::optional<NodeID> FindClosestNodeInBucket (const NodeID& target) const;
 			std::list<NodeID> DeleteExpiredNodes (uint64_t ts);
 			void RemoveEmptyBuckets ();
 
@@ -172,6 +173,7 @@ namespace torrents
 			void HandleRawDatagram (const uint8_t * buf, size_t len);
 
 			void SendPingQuery (const i2p::data::IdentHash& toIdent, uint16_t toPort);
+			void GetPeersAndAnnounce (std::shared_ptr<Torrent> torrent);
 
 		private:
 
@@ -190,15 +192,16 @@ namespace torrents
 			void SendDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendRawDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendQueryMsg (std::string_view query, std::string_view arguments,
-				const i2p::data::IdentHash& toIdent, uint16_t toPort, bool isRaw = false);
+				const i2p::data::IdentHash& toIdent, uint16_t toPort, bool isRaw = false, std::shared_ptr<Torrent> torrent = nullptr);
 			void SendFindNodeQuery (const NodeID& target, const i2p::data::IdentHash& toIdent, uint16_t toPort);
+			void SendGetPeersQuery (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendResponseMsg (std::string_view response, std::string_view transactionID, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendPingResponse (std::string_view transactionID, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendGetPeersResponse (std::string_view transactionID, std::shared_ptr<DHTTorrent> torrent,
 				uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendGetPeersResponse (std::string_view transactionID, std::shared_ptr<const Node> node,
 				uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort);
-			void SendFindNodeResponse (std::string_view transactionID, std::shared_ptr<const Node> node,
+			void SendFindNodeResponse (std::string_view transactionID, const NodeInfo& nodeInfo,
 				const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendAnnouncePeerQuery (const Torrent::InfoHash& infoHash, uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 
