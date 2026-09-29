@@ -498,6 +498,7 @@ namespace torrents
 					}
 				}
 			}
+			m_RoutingTable->RemoveEmptyBuckets ();
 			if (numLoaded > 0)
 				LogPrint (eLogInfo, "TorrentsDHT: ", numLoaded, " DHT nodes loaded");
 		}

@@ -123,11 +123,11 @@ namespace torrents
 			std::list<std::pair<NodeID, NodeID> > GetExploratoryTargets (std::mt19937& rng) const; // (target, node to send find_node to)
 			NodeID FindClosestNodeInBucket (const NodeID& target) const;
 			std::list<NodeID> DeleteExpiredNodes (uint64_t ts);
+			void RemoveEmptyBuckets ();
 
 		private:
 
 			Bucket * FindBucket (const Torrent::InfoHash& id) const;
-			void RemoveEmptyBuckets ();
 
 		private:
 
