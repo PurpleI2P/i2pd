@@ -330,7 +330,10 @@ namespace torrents
 	{
 		auto ts = i2p::util::GetMonotonicSeconds ();
 		m_LastUpdateTime = ts;
-		return m_Peers.emplace (peer, ts).second;
+		auto [it, inserted] = m_Peers.emplace (peer, ts);
+		if (!inserted)
+			it->second = ts;
+		return inserted;
 	}
 
 	bool DHTTorrent::CleanUp (uint64_t ts)
