@@ -494,24 +494,27 @@ namespace torrents
 			}
 			else
 				return;
+
 			m_RoutingTable = std::make_unique<RoutingTable> (m_NodeID);
-			int numLoaded = 0;
+			std::set<std::shared_ptr<Node>, std::function<bool(const std::shared_ptr<Node>&, const std::shared_ptr<Node>&)> >
+				sortedNodes ([](const std::shared_ptr<Node>& n1, const std::shared_ptr<Node>& n2)->bool
+				{
+					return n2->id > n1->id;
+				});
 			while (f.read ((char *)nodeInfo.data (), nodeInfo.size ()))
 			{
 				auto bytesRead = f.gcount();
 				if (bytesRead == nodeInfo.size ())
-				{
-					auto node = std::make_shared<Node>(nodeInfo);
-					if (m_Nodes.emplace (node->id, node).second)
-					{
-						numLoaded++;
-						if (m_RoutingTable) m_RoutingTable->AddNode (node->id);
-					}
-				}
+					sortedNodes.emplace (std::make_shared<Node>(nodeInfo));
 			}
-			m_RoutingTable->RemoveEmptyBuckets ();
-			if (numLoaded > 0)
-				LogPrint (eLogInfo, "TorrentsDHT: ", numLoaded, " DHT nodes loaded to ", m_RoutingTable->GetNumBuckets (), " buckets");
+			if (!sortedNodes.empty ())
+			{
+				for (auto it: sortedNodes)
+					if (m_Nodes.emplace (it->id, it).second)
+						m_RoutingTable->AddNode (it->id);
+				m_RoutingTable->RemoveEmptyBuckets ();
+				LogPrint (eLogInfo, "TorrentsDHT: ", sortedNodes.size (), " DHT nodes loaded to ", m_RoutingTable->GetNumBuckets (), " buckets");
+			}
 		}
 	}
 
