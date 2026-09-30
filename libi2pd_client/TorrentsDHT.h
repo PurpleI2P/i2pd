@@ -48,6 +48,7 @@ namespace torrents
 	constexpr int DHT_OUTGOING_GET_PEERS_TOKEN_EXPIRATION_TIME = 120; // in seconds
 	constexpr int DHT_EMPTY_TORRENT_EXPIRATION_TIME = 30; // in seconds
 	constexpr int DHT_QUERY_EXPIRATION_TIME = 30; // in seconds
+	constexpr size_t DHT_MAX_NUM_GET_PEERS_ATTEMPTS = 7;
 
 	using Distance = Torrent::InfoHash;
 	struct NodeID: public Torrent::InfoHash
@@ -120,8 +121,10 @@ namespace torrents
 
 			bool AddNode (const NodeID& id);
 			void RemoveNode (const NodeID& id);
-			std::list<std::pair<NodeID, Distance> > FindClosestNodes (const Torrent::InfoHash& infoHash, size_t num = 1) const;
-			std::optional<NodeID> FindClosestNode (const Torrent::InfoHash& infoHash) const;
+			std::list<std::pair<NodeID, Distance> > FindClosestNodes (const Torrent::InfoHash& infoHash,
+				size_t num = 1, std::set<NodeID> * excluded = nullptr) const;
+			std::optional<NodeID> FindClosestNode (const Torrent::InfoHash& infoHash,
+				std::set<NodeID> * excluded = nullptr) const;
 			std::list<std::pair<NodeID, NodeID> > GetExploratoryTargets (std::mt19937& rng) const; // (target, node to send find_node to)
 			std::optional<NodeID> FindClosestNodeInBucket (const NodeID& target) const;
 			std::list<NodeID> DeleteExpiredNodes (uint64_t ts);
@@ -173,6 +176,17 @@ namespace torrents
 		"ping", "find_node", "get_peers", "announce_peer"
 	};
 
+	struct GetPeersRequestInfo
+	{
+		std::weak_ptr<Torrent> torrent;
+		std::set<NodeID> tried;
+		uint64_t token;
+
+		GetPeersRequestInfo (std::shared_ptr<Torrent> t, const NodeID& firstNode):
+			torrent (t), token (0) { tried.emplace (firstNode); }
+		bool IsDone () const { return tried.size () >= DHT_MAX_NUM_GET_PEERS_ATTEMPTS; }
+	};
+
 	class TorrentsTunnel;
 	class TorrentsDHT
 	{
@@ -202,14 +216,18 @@ namespace torrents
 				std::string_view transactionID, const NodeID& target);
 			void HandleResponse (std::string_view transactionID, const NodeID& nodeID, uint64_t token,
 				const std::vector<std::string_view>& values, const NodeInfo& nodeInfo);
+			void HandleGetPeersResponseNode (std::shared_ptr<GetPeersRequestInfo> info,
+				const NodeID& nodeID, uint64_t token, const NodeInfo& nodeInfo);
+			void HandleGetPeersResponsePeersAndAnnounce (std::shared_ptr<GetPeersRequestInfo> info,
+				const std::vector<std::string_view>& peers, uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void HandleAnnouncePeer (std::string_view transactionID, const Torrent::InfoHash& infoHash, uint64_t token);
 
 			void SendDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendRawDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort);
-			void SendQueryMsg (KRPCQuery query, std::string_view arguments,
-				const i2p::data::IdentHash& toIdent, uint16_t toPort, bool isRaw = false, std::shared_ptr<Torrent> torrent = nullptr);
+			void SendQueryMsg (KRPCQuery query, std::string_view arguments, const i2p::data::IdentHash& toIdent,
+				uint16_t toPort, bool isRaw = false, std::shared_ptr<GetPeersRequestInfo> info = nullptr);
 			void SendFindNodeQuery (const NodeID& target, const i2p::data::IdentHash& toIdent, uint16_t toPort);
-			void SendGetPeersQuery (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& toIdent, uint16_t toPort);
+			void SendGetPeersQuery (std::shared_ptr<GetPeersRequestInfo> info, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendResponseMsg (std::string_view response, std::string_view transactionID, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendPingResponse (std::string_view transactionID, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendGetPeersResponse (std::string_view transactionID, std::shared_ptr<DHTTorrent> torrent,
@@ -239,8 +257,8 @@ namespace torrents
 			NodeID m_NodeID;
 			std::unique_ptr<RoutingTable> m_RoutingTable;
 			std::map<NodeID, std::shared_ptr<Node> > m_Nodes;
-			// transactionID -> (ident, port, query, torrent for get_peers, time in monotonic seconds)
-			std::unordered_map<uint16_t, std::tuple<i2p::data::IdentHash, uint16_t, KRPCQuery, std::weak_ptr<Torrent>, uint64_t > > m_Queries;
+			// transactionID -> (ident, port, query, get peers request info, time in monotonic seconds)
+			std::unordered_map<uint16_t, std::tuple<i2p::data::IdentHash, uint16_t, KRPCQuery, std::shared_ptr<GetPeersRequestInfo>, uint64_t > > m_Queries;
 			std::map<Torrent::InfoHash, std::shared_ptr<DHTTorrent> > m_Torrents;
 			uint64_t m_NextDHTExploratoryTime; // monotonic seconds
 	};
