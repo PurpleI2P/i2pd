@@ -786,59 +786,66 @@ namespace torrents
 		{
 			if (m_RoutingTable)
 			{
-				const auto& [ident, port, query, torrentw] = it->second;
-				if (query == "ping")
+				const auto& [ident, port, query, torrentw, time] = it->second;
+				switch (query)
 				{
-					LogPrint (eLogDebug, "TorrentsDHT: Ping response received");
-					if (m_Nodes.emplace (nodeID, std::make_shared<Node> (nodeID, ident, port)).second)
-						LogPrint (eLogDebug, "TorrentsDHT: Node ", ident.ToBase64 (), ":", port, " added");
-					m_RoutingTable->AddNode (nodeID);
-				}
-				else if (query == "get_peers")
-				{
-					LogPrint (eLogDebug, "TorrentsDHT: get_peers response received from ", ident.ToBase64 ());
-					if (!values.empty () && values[0].empty ()) // nodes
+					case eKRPCQueryPing:
+					{
+						LogPrint (eLogDebug, "TorrentsDHT: Ping response received");
+						if (m_Nodes.emplace (nodeID, std::make_shared<Node> (nodeID, ident, port)).second)
+							LogPrint (eLogDebug, "TorrentsDHT: Node ", ident.ToBase64 (), ":", port, " added");
+						m_RoutingTable->AddNode (nodeID);
+						break;
+					}
+					case eKRPCQueryGetPeers:
+					{
+						LogPrint (eLogDebug, "TorrentsDHT: get_peers response received from ", ident.ToBase64 ());
+						if (!values.empty () && values[0].empty ()) // nodes
+						{
+							auto node = std::make_shared<Node>(nodeInfo);
+							m_Nodes.emplace (node->id, node);
+							if (m_RoutingTable) m_RoutingTable->AddNode (node->id);
+							LogPrint (eLogDebug, "TorrentsDHT: Node ", node->peer.ToBase64 (), ":", node->port, " added");
+						}
+						else //values
+						{
+							auto torrent = torrentw.lock ();
+							if (torrent)
+							{
+								std::unordered_set<i2p::data::IdentHash> newPeers;
+								for (auto it1: values)
+									if (it1.size () == i2p::data::IdentHash::len)
+										newPeers.emplace ((const uint8_t *)it1.data ());
+								if (!newPeers.empty ())
+								{
+									LogPrint (eLogDebug, "TorrentsDHT: ", newPeers.size (), " new peers received");
+									m_Tunnel.ConnectToNewPeers (torrent, newPeers);
+								}
+								LogPrint (eLogDebug, "TorrentsDHT: Send announce to ", ident.ToBase64 ());
+								SendAnnouncePeerQuery (torrent->GetInfoHash (), token, ident, port + 1); // to rport
+							}
+						}
+						break;
+					}
+					case eKRPCQueryFindNode:
 					{
 						auto node = std::make_shared<Node>(nodeInfo);
+						LogPrint (eLogDebug, "TorrentsDHT: find_node response received ", node->peer.ToBase64 ());
 						m_Nodes.emplace (node->id, node);
 						if (m_RoutingTable) m_RoutingTable->AddNode (node->id);
-						LogPrint (eLogDebug, "TorrentsDHT: Node ", node->peer.ToBase64 (), ":", node->port, " added");
+						break;
 					}
-					else //values
-					{
-						auto torrent = torrentw.lock ();
-						if (torrent)
-						{
-							std::unordered_set<i2p::data::IdentHash> newPeers;
-							for (auto it1: values)
-								if (it1.size () == i2p::data::IdentHash::len)
-									newPeers.emplace ((const uint8_t *)it1.data ());
-							if (!newPeers.empty ())
-							{
-								LogPrint (eLogDebug, "TorrentsDHT: ", newPeers.size (), " new peers received");
-								m_Tunnel.ConnectToNewPeers (torrent, newPeers);
-							}
-							LogPrint (eLogDebug, "TorrentsDHT: Send announce to ", ident.ToBase64 ());
-							SendAnnouncePeerQuery (torrent->GetInfoHash (), token, ident, port + 1); // to rport
-						}
-					}
+					case eKRPCQueryAnnouncePeer:
+						LogPrint (eLogDebug, "TorrentsDHT: Announce peer response received");
+					break;
+					default:
+						LogPrint (eLogInfo, "TorrentsDHT: Response to unknown KRPC query ", (int)query);
 				}
-				else if (query == "find_node")
-				{
-					auto node = std::make_shared<Node>(nodeInfo);
-					LogPrint (eLogDebug, "TorrentsDHT: find_node response received ", node->peer.ToBase64 ());
-					m_Nodes.emplace (node->id, node);
-					if (m_RoutingTable) m_RoutingTable->AddNode (node->id);
-				}
-				else if (query == "announce_peer")
-					LogPrint (eLogDebug, "TorrentsDHT: Announce peer response received");
-				else
-					LogPrint (eLogInfo, "TorrentsDHT: Response to unknown query ", query);
 			}
 			m_Queries.erase (it);
 		}
 		else
-			LogPrint (eLogInfo, "TorrentsDHT: Query now found");
+			LogPrint (eLogInfo, "TorrentsDHT: Query not found");
 	}
 
 	void TorrentsDHT::SendDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort)
@@ -863,17 +870,18 @@ namespace torrents
 		}
 	}
 
-	void TorrentsDHT::SendQueryMsg (std::string_view query, std::string_view arguments,
+	void TorrentsDHT::SendQueryMsg (KRPCQuery query, std::string_view arguments,
 		const i2p::data::IdentHash& toIdent, uint16_t toPort, bool isRaw, std::shared_ptr<Torrent> torrent)
 	{
 		uint16_t transactionID = m_Tunnel.GetLocalDestination () ? m_Tunnel.GetLocalDestination ()->GetRng ()() : 1;
 		auto msg = CreateDictionary ({
 				{ "a", arguments },
-				{ "q", CreateByteString (query) },
+				{ "q", CreateByteString (KRPCQueryStr[query]) },
 				{ "t", CreateByteString (std::string_view ((const char *)&transactionID, 2)) },
 				{ "y", CreateByteString ("q") }
 									});
-		m_Queries.insert_or_assign (transactionID, std::make_tuple (toIdent, toPort, query, torrent));
+		m_Queries.insert_or_assign (transactionID, std::make_tuple (toIdent, toPort,
+			query, torrent, i2p::util::GetMonotonicSeconds ()));
 		if (isRaw)
 			SendRawDatagram (msg, toIdent, toPort);
 		else
@@ -893,7 +901,7 @@ namespace torrents
 
 	void TorrentsDHT::SendPingQuery (const i2p::data::IdentHash& toIdent, uint16_t toPort)
 	{
-		SendQueryMsg ("ping", CreateDictionary ({
+		SendQueryMsg (eKRPCQueryPing, CreateDictionary ({
 			{ "id", CreateByteString (std::string_view ((const char *)m_NodeID.data (), m_NodeID.size ())) }
 												}),
 			toIdent, toPort);
@@ -911,7 +919,7 @@ namespace torrents
 	{
 		if (!torrent) return;
 		const auto& infoHash = torrent->GetInfoHash ();
-		SendQueryMsg ("get_peers", CreateDictionary ({
+		SendQueryMsg (eKRPCQueryGetPeers, CreateDictionary ({
 			{ "id", CreateByteString (std::string_view ((const char *)m_NodeID.data (), m_NodeID.size ())) },
 			{ "info_hash", CreateByteString (std::string_view ((const char *)infoHash.data (), infoHash.size ())) }
 													}),
@@ -946,7 +954,7 @@ namespace torrents
 
 	void TorrentsDHT::SendFindNodeQuery (const NodeID& target, const i2p::data::IdentHash& toIdent, uint16_t toPort)
 	{
-		SendQueryMsg ("find_node", CreateDictionary ({
+		SendQueryMsg (eKRPCQueryFindNode, CreateDictionary ({
 			{ "id", CreateByteString (std::string_view ((const char *)m_NodeID.data (), m_NodeID.size ())) },
 			{ "target", CreateByteString (std::string_view ((const char *)target.data (), target.size ())) }
 													}),
@@ -966,7 +974,7 @@ namespace torrents
 	void TorrentsDHT::SendAnnouncePeerQuery (const Torrent::InfoHash& infoHash, uint64_t token,
 		const i2p::data::IdentHash& toIdent, uint16_t toPort)
 	{
-		SendQueryMsg ("announce_peer", CreateDictionary ({
+		SendQueryMsg (eKRPCQueryAnnouncePeer, CreateDictionary ({
 			{ "id", CreateByteString (std::string_view ((const char *)m_NodeID.data (), m_NodeID.size ())) },
 			{ "info_hash",  CreateByteString (std::string_view ((const char *)infoHash.data (), infoHash.size ())) },
 			{ "token", CreateByteString (std::string_view ((const char *)&token, 8)) }
@@ -1028,13 +1036,25 @@ namespace torrents
 				for (auto it: deleted)
 					m_Nodes.erase (it);
 			}
-			auto it = m_Torrents.begin ();
-			while (it != m_Torrents.end ())
 			{
-				if (it->second->CleanUp (ts))
-					it = m_Torrents.erase (it);
-				else
-					it++;
+				auto it = m_Torrents.begin ();
+				while (it != m_Torrents.end ())
+				{
+					if (it->second->CleanUp (ts))
+						it = m_Torrents.erase (it);
+					else
+						it++;
+				}
+			}
+			{
+				auto it = m_Queries.begin ();
+				while (it != m_Queries.end ())
+				{
+					if (ts > std::get<4>(it->second) + DHT_QUERY_EXPIRATION_TIME)
+						it = m_Queries.erase (it);
+					else
+						it++;
+				}
 			}
 			ScheduleDHTExpirationCheck ();
 		}

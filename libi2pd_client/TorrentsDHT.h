@@ -47,6 +47,7 @@ namespace torrents
 	constexpr int DHT_INCOMING_GET_PEERS_TOKEN_EXPIRATION_TIME = 600; // in seconds
 	constexpr int DHT_OUTGOING_GET_PEERS_TOKEN_EXPIRATION_TIME = 120; // in seconds
 	constexpr int DHT_EMPTY_TORRENT_EXPIRATION_TIME = 30; // in seconds
+	constexpr int DHT_QUERY_EXPIRATION_TIME = 30; // in seconds
 
 	using Distance = Torrent::InfoHash;
 	struct NodeID: public Torrent::InfoHash
@@ -158,6 +159,20 @@ namespace torrents
 			uint64_t m_LastUpdateTime; // monotonic second
 	};
 
+	enum KRPCQuery
+	{
+		eKRPCQueryPing = 0,
+		eKRPCQueryFindNode,
+		eKRPCQueryGetPeers,
+		eKRPCQueryAnnouncePeer,
+		eNumKRPCQueries
+	};
+
+	constexpr std::array<std::string_view, eNumKRPCQueries> KRPCQueryStr
+	{
+		"ping", "find_node", "get_peers", "announce_peer"
+	};
+
 	class TorrentsTunnel;
 	class TorrentsDHT
 	{
@@ -191,7 +206,7 @@ namespace torrents
 
 			void SendDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendRawDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort);
-			void SendQueryMsg (std::string_view query, std::string_view arguments,
+			void SendQueryMsg (KRPCQuery query, std::string_view arguments,
 				const i2p::data::IdentHash& toIdent, uint16_t toPort, bool isRaw = false, std::shared_ptr<Torrent> torrent = nullptr);
 			void SendFindNodeQuery (const NodeID& target, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendGetPeersQuery (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& toIdent, uint16_t toPort);
@@ -224,9 +239,9 @@ namespace torrents
 			NodeID m_NodeID;
 			std::unique_ptr<RoutingTable> m_RoutingTable;
 			std::map<NodeID, std::shared_ptr<Node> > m_Nodes;
-			std::unordered_map<uint16_t, std::tuple<i2p::data::IdentHash, uint16_t, std::string, std::weak_ptr<Torrent> > > m_Queries;
+			// transactionID -> (ident, port, query, torrent for get_peers, time in monotonic seconds)
+			std::unordered_map<uint16_t, std::tuple<i2p::data::IdentHash, uint16_t, KRPCQuery, std::weak_ptr<Torrent>, uint64_t > > m_Queries;
 			std::map<Torrent::InfoHash, std::shared_ptr<DHTTorrent> > m_Torrents;
-
 			uint64_t m_NextDHTExploratoryTime; // monotonic seconds
 	};
 }
