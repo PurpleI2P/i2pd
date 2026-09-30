@@ -48,7 +48,7 @@ namespace torrents
 	constexpr int DHT_OUTGOING_GET_PEERS_TOKEN_EXPIRATION_TIME = 120; // in seconds
 	constexpr int DHT_EMPTY_TORRENT_EXPIRATION_TIME = 30; // in seconds
 	constexpr int DHT_QUERY_EXPIRATION_TIME = 30; // in seconds
-	constexpr size_t DHT_MAX_NUM_GET_PEERS_ATTEMPTS = 7;
+	constexpr size_t DHT_MAX_NUM_GET_PEERS_ATTEMPTS = 12;
 
 	using Distance = Torrent::InfoHash;
 	struct NodeID: public Torrent::InfoHash
@@ -118,6 +118,7 @@ namespace torrents
 			~RoutingTable ();
 			void CleanUp ();
 			size_t GetNumBuckets () const;
+			size_t GetNumNodes () const;
 
 			bool AddNode (const NodeID& id);
 			void RemoveNode (const NodeID& id);
@@ -211,7 +212,7 @@ namespace torrents
 			void HandlePingQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
 				std::string_view transactionID, const NodeID& nodeID);
 			void HandleGetPeersQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
-				std::string_view transactionID, const NodeID& nodeID, const Torrent::InfoHash& infoHash);
+				std::string_view transactionID, std::shared_ptr<Node> from, const Torrent::InfoHash& infoHash);
 			void HandleFindNodeQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
 				std::string_view transactionID, const NodeID& target);
 			void HandleResponse (std::string_view transactionID, const NodeID& nodeID, uint64_t token,

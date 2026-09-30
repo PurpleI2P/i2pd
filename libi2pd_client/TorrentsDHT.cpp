@@ -137,6 +137,18 @@ namespace torrents
 		return num;
 	}
 
+	size_t RoutingTable::GetNumNodes () const
+	{
+		size_t num = 0;
+		auto bucket = m_Buckets;
+		while (bucket)
+		{
+			num += bucket->nodes.size ();
+			bucket = bucket->next;
+		}
+		return num;
+	}
+
 	Bucket * RoutingTable::FindBucket (const Torrent::InfoHash& id) const
 	{
 		if (!m_Buckets) return nullptr;
@@ -179,7 +191,7 @@ namespace torrents
 		std::list<NodeID> deleted;
 		while (bucket)
 		{
-			if (ts > bucket->lastUpdateTime + DHT_BUCKET_EXPIRATION_THRESHOLD)
+			if (ts > bucket->lastUpdateTime + DHT_BUCKET_EXPIRATION_THRESHOLD && bucket->IsFull ())
 			{
 				auto it = bucket->nodes.begin ();
 				while (it != bucket->nodes.end ())
@@ -513,10 +525,10 @@ namespace torrents
 			if (!sortedNodes.empty ())
 			{
 				for (auto it: sortedNodes)
-					if (m_Nodes.emplace (it->id, it).second)
-						m_RoutingTable->AddNode (it->id);
+					if (m_RoutingTable->AddNode (it->id))
+						m_Nodes.emplace (it->id, it);
 				m_RoutingTable->RemoveEmptyBuckets ();
-				LogPrint (eLogInfo, "TorrentsDHT: ", sortedNodes.size (), " DHT nodes loaded to ", m_RoutingTable->GetNumBuckets (), " buckets");
+				LogPrint (eLogInfo, "TorrentsDHT: ", m_Nodes.size (), " DHT nodes loaded to ", m_RoutingTable->GetNumBuckets (), " buckets");
 			}
 		}
 	}
@@ -684,10 +696,15 @@ namespace torrents
 		}
 		if (type == 'q')
 		{
+			auto [nodesIt, inserted] = m_Nodes.emplace (id, std::make_shared<Node> (id, from.GetIdentHash (), fromPort));
+			if (inserted)
+				LogPrint (eLogDebug, "TorrentsDHT: Node ", from.GetIdentHash ().ToBase64 (), ":", fromPort, " added");
+			if (m_RoutingTable) m_RoutingTable->AddNode (id);
+
 			if (query == "ping")
 				HandlePingQuery (from.GetIdentHash (), fromPort, transactionID, id);
 			else if (query == "get_peers")
-				HandleGetPeersQuery (from.GetIdentHash (), fromPort, transactionID, id, infoHash);
+				HandleGetPeersQuery (from.GetIdentHash (), fromPort, transactionID, nodesIt->second, infoHash);
 			else if (query == "find_node")
 				HandleFindNodeQuery (from.GetIdentHash (), fromPort, transactionID, target);
 			else
@@ -701,18 +718,13 @@ namespace torrents
 		std::string_view transactionID, const NodeID& nodeID)
 	{
 		LogPrint (eLogDebug, "TorrentsDHT: Ping query msg received from ", fromIdent.ToBase64 ());
-		m_Nodes.emplace (nodeID, std::make_shared<Node> (nodeID, fromIdent, fromPort));
-		m_RoutingTable->AddNode (nodeID);
 		SendPingResponse (transactionID, fromIdent, fromPort + 1); // to rport
 	}
 
 	void TorrentsDHT::HandleGetPeersQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
-		std::string_view transactionID, const NodeID& nodeID, const Torrent::InfoHash& infoHash)
+		std::string_view transactionID, std::shared_ptr<Node> from, const Torrent::InfoHash& infoHash)
 	{
 		LogPrint (eLogDebug, "TorrentsDHT: Get peers query msg received from ", fromIdent.ToBase64 ());
-		auto [nodesIt, inserted] = m_Nodes.emplace (nodeID, std::make_shared<Node> (nodeID, fromIdent, fromPort));
-		m_RoutingTable->AddNode (nodeID);
-
 		std::shared_ptr<DHTTorrent> torrent;
 		auto it = m_Torrents.find (infoHash);
 		if (it != m_Torrents.end ())
@@ -723,7 +735,7 @@ namespace torrents
 			m_Torrents.emplace (infoHash, torrent);
 		}
 		uint64_t token = m_Tunnel.GetLocalDestination () ? m_Tunnel.GetLocalDestination ()->GetRng ()() : 1;
-		torrent->AddIncomingGetPeerNode (token, nodesIt->second);
+		torrent->AddIncomingGetPeerNode (token, from);
 
 		if (m_RoutingTable)
 		{
@@ -834,9 +846,9 @@ namespace torrents
 		const NodeID& nodeID, uint64_t token, const NodeInfo& nodeInfo)
 	{
 		auto node = std::make_shared<Node>(nodeInfo);
-		m_Nodes.emplace (node->id, node);
+		if (m_Nodes.emplace (node->id, node).second)
+			LogPrint (eLogDebug, "TorrentsDHT: Node ", node->peer.ToBase64 (), ":", node->port, " added");
 		if (m_RoutingTable) m_RoutingTable->AddNode (node->id);
-		LogPrint (eLogDebug, "TorrentsDHT: Node ", node->peer.ToBase64 (), ":", node->port, " added");
 		if (info)
 		{
 			info->tried.emplace (nodeID);
@@ -853,10 +865,12 @@ namespace torrents
 						if (it != m_Nodes.end ())
 							SendGetPeersQuery (info, it->second->peer, it->second->port);
 					}
+					else
+						LogPrint (eLogDebug, "TorrentsDHT: No more nodes to send get_peers");
 				}
 			}
 			else
-				LogPrint (eLogDebug, "TorrentsDHT: No more nodes to send get_peers");
+				LogPrint (eLogDebug, "TorrentsDHT: Closest node not found after ", DHT_MAX_NUM_GET_PEERS_ATTEMPTS, " get_peers attempts");
 		}
 	}
 
@@ -1069,6 +1083,8 @@ namespace torrents
 				auto deleted = m_RoutingTable->DeleteExpiredNodes (ts);
 				for (auto it: deleted)
 					m_Nodes.erase (it);
+				LogPrint (eLogDebug, "TorrentsDHT: Stats total nodes ", m_Nodes.size (),
+					" buckets ", m_RoutingTable->GetNumBuckets (), " nodes ", m_RoutingTable->GetNumNodes ());
 			}
 			{
 				auto it = m_Torrents.begin ();
