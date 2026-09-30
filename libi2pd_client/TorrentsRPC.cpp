@@ -319,7 +319,7 @@ namespace torrents
 			{ "totalSize", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetLength ()); } },
 			{ "percentDone", [](std::shared_ptr<Torrent> torrent)
 				{
-					 if (!torrent->GetLength ()) return boost::json::value (1.0);
+					 if (!torrent->GetLength ()) return boost::json::value (0.0);
 					 return boost::json::value ((float)(torrent->GetLength () - torrent->GetLeft ())/(float)torrent->GetLength ());
 				}
 			},
