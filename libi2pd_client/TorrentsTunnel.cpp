@@ -356,7 +356,7 @@ namespace torrents
 		{
 			Torrent::InfoHash infoHash;
 			bool isInfoHashFound = false;
-			std::string announce, name;
+			std::string announce, name, hexStr;
 			magnet = magnet.substr (magnetPrefix.size ());
 			while (!magnet.empty())
 			{
@@ -377,7 +377,7 @@ namespace torrents
 				static constexpr std::string_view namePrefix { "dn=" };
 				if (param.starts_with (hashPrefix))
 				{
-					std::string_view hexStr = param.substr (hashPrefix.size (), infoHash.size ()*2);
+					hexStr = param.substr (hashPrefix.size (), infoHash.size ()*2);
 					try
 					{
 						boost::algorithm::unhex (hexStr.begin(), hexStr.end(), infoHash.begin());
@@ -400,7 +400,7 @@ namespace torrents
 				{
 					auto torrent = std::make_shared<Torrent> (infoHash);
 					if (!announce.empty ()) torrent->SetAnnounce (announce);
-					if (!name.empty ()) torrent->SetName (name);
+					torrent->SetName (name.empty () ? hexStr : name);
 					auto [id, inserted] = InsertTorrent (torrent);
 					if (inserted)
 						boost::asio::post (GetService (), [this, torrent] { RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone); });
