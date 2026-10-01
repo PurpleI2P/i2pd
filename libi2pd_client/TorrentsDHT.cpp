@@ -187,11 +187,11 @@ namespace torrents
 
 	std::list<NodeID> RoutingTable::DeleteExpiredNodes (uint64_t ts)
 	{
-		auto bucket = m_Buckets;
 		std::list<NodeID> deleted;
+		auto bucket = m_Buckets;
 		while (bucket)
 		{
-			if (ts > bucket->lastUpdateTime + DHT_BUCKET_EXPIRATION_THRESHOLD && bucket->IsFull ())
+			if (ts > bucket->lastUpdateTime + DHT_BUCKET_EXPIRATION_THRESHOLD)
 			{
 				auto it = bucket->nodes.begin ();
 				while (it != bucket->nodes.end ())
@@ -210,6 +210,23 @@ namespace torrents
 		if (!deleted.empty ())
 			RemoveEmptyBuckets ();
 		return deleted;
+	}
+
+	std::list<NodeID> RoutingTable::GetNodesToPing (uint64_t ts)
+	{
+		std::list<NodeID> toPing;
+		auto bucket = m_Buckets;
+		while (bucket)
+		{
+			if (ts > bucket->lastUpdateTime + DHT_BUCKET_EXPIRATION_THRESHOLD)
+			{
+				for (const auto& it: bucket->nodes)
+					if (ts > it.second + DHT_NODE_SEND_PING_TIME)
+						toPing.push_back (it.first);
+			}
+			bucket = bucket->next;
+		}
+		return toPing;
 	}
 
 	bool RoutingTable::AddNode (const NodeID& id)
@@ -336,14 +353,6 @@ namespace torrents
 		m_LastUpdateTime = ts;
 	}
 
-	void DHTTorrent::AddOutgoingGetPeerNode (GetPeersToken token, std::shared_ptr<Node> node)
-	{
-		if (!node) return;
-		auto ts = i2p::util::GetMonotonicSeconds ();
-		m_OutgoingGetPeers.emplace (token, std::make_pair (node, ts));
-		m_LastUpdateTime = ts;
-	}
-
 	std::shared_ptr<Node> DHTTorrent::GetIncomingGetPeerNode (GetPeersToken token) const
 	{
 		auto it = m_IncomingGetPeers.find (token);
@@ -384,25 +393,15 @@ namespace torrents
 					it++;
 			}
 		}
-		{
-			auto it = m_OutgoingGetPeers.begin ();
-			while (it != m_OutgoingGetPeers.end ())
-			{
-				if (ts > it->second.second + DHT_OUTGOING_GET_PEERS_TOKEN_EXPIRATION_TIME)
-					it = m_OutgoingGetPeers.erase (it);
-				else
-					it++;
-			}
-		}
-		if (m_Peers.empty () && m_IncomingGetPeers.empty () && m_OutgoingGetPeers.empty () &&
-			ts > m_LastUpdateTime + DHT_EMPTY_TORRENT_EXPIRATION_TIME)
+		if (m_Peers.empty () && m_IncomingGetPeers.empty () && ts > m_LastUpdateTime + DHT_EMPTY_TORRENT_EXPIRATION_TIME)
 			return true;
 		return false;
 	}
 
 	TorrentsDHT::TorrentsDHT (TorrentsTunnel& tunnel, uint16_t port):
 		m_Tunnel (tunnel), m_DHTUpdateCheckTimer (tunnel.GetService ()),
-		m_DHTExpirationCheckTimer (tunnel.GetService ()), m_Port (port),
+		m_DHTExpirationCheckTimer (tunnel.GetService ()),
+		m_DHTSendPingCheckTimer (tunnel.GetService ()), m_Port (port),
 		m_NextDHTExploratoryTime (i2p::util::GetMonotonicSeconds () + DHT_INITIAL_EXPLORATORY_INTERVAL)
 	{
 		auto dest = tunnel.GetLocalDestination ();
@@ -432,12 +431,14 @@ namespace torrents
 		Load (GetDHTFilePath (filename));
 		ScheduleDHTUpdateCheck ();
 		ScheduleDHTExpirationCheck ();
+		ScheduleDHTSendPingCheck ();
 	}
 
 	void TorrentsDHT::Stop ()
 	{
 		m_DHTUpdateCheckTimer.cancel ();
 		m_DHTExpirationCheckTimer.cancel ();
+		m_DHTSendPingCheckTimer.cancel ();
 		std::string filename ("nodest");
 		auto dest = m_Tunnel.GetLocalDestination ();
 		if (dest)
@@ -755,14 +756,22 @@ namespace torrents
 		std::string_view transactionID, const NodeID& target)
 	{
 		LogPrint (eLogDebug, "TorrentsDHT: Find node query received");
+		auto it = m_Nodes.find (target);
+		if (it != m_Nodes.end ())
+		{
+			// found exact match
+			SendFindNodeResponse (transactionID, it->second->GetNodeInfo (), fromIdent, fromPort + 1); // to rport
+			return;
+		}
+
 		if (m_RoutingTable)
 		{
 			auto closestNodeID = m_RoutingTable->FindClosestNodeInBucket (target);
 			if (closestNodeID)
 			{
-				auto it = m_Nodes.find (*closestNodeID);
-				if (it != m_Nodes.end ())
-					SendFindNodeResponse (transactionID, it->second->GetNodeInfo (), fromIdent, fromPort + 1); // to rport
+				auto it1 = m_Nodes.find (*closestNodeID);
+				if (it1 != m_Nodes.end ())
+					SendFindNodeResponse (transactionID, it1->second->GetNodeInfo (), fromIdent, fromPort + 1); // to rport
 			}
 			else if (m_Tunnel.GetLocalDestination ())
 				SendFindNodeResponse (transactionID,
@@ -1081,7 +1090,7 @@ namespace torrents
 			if (m_RoutingTable)
 			{
 				auto deleted = m_RoutingTable->DeleteExpiredNodes (ts);
-				for (auto it: deleted)
+				for (const auto& it: deleted)
 					m_Nodes.erase (it);
 				LogPrint (eLogDebug, "TorrentsDHT: Stats total nodes ", m_Nodes.size (),
 					" buckets ", m_RoutingTable->GetNumBuckets (), " nodes ", m_RoutingTable->GetNumNodes ());
@@ -1107,6 +1116,32 @@ namespace torrents
 				}
 			}
 			ScheduleDHTExpirationCheck ();
+		}
+	}
+
+	void TorrentsDHT::ScheduleDHTSendPingCheck ()
+	{
+		m_DHTSendPingCheckTimer.cancel ();
+		m_DHTSendPingCheckTimer.expires_after (std::chrono::seconds (DHT_SEND_PING_CHECK_INTERVAL));
+		m_DHTSendPingCheckTimer.async_wait (std::bind_front(&TorrentsDHT::HandleDHTSendPingCheckTimer, this));
+	}
+
+	void TorrentsDHT::HandleDHTSendPingCheckTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			auto ts = i2p::util::GetMonotonicSeconds ();
+			if (m_RoutingTable)
+			{
+				auto toPing = m_RoutingTable->GetNodesToPing (ts);
+				for (const auto& it: toPing)
+				{
+					auto it1 = m_Nodes.find (it);
+					if (it1 != m_Nodes.end ())
+						SendPingQuery (it1->second->peer, it1->second->port);
+				}
+			}
+			ScheduleDHTSendPingCheck ();
 		}
 	}
 
