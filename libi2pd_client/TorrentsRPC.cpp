@@ -9,7 +9,7 @@
 #ifndef NO_TORRENTS
 
 #include <boost/version.hpp>
-#if !defined(ANDROID) && (BOOST_VERSION >= 108100) // boost::json since 1.75, we allow it since 1.81 due to std::string_view compatibility
+#if !defined(ANDROID) && (BOOST_VERSION >= 108100) // boost::json since 1.75, boost::url since 1.81
 #include <boost/json.hpp>
 #include <boost/url.hpp>
 #include <boost/url/encode.hpp>
@@ -600,7 +600,11 @@ namespace torrents
 			{ "BI", "BiglyBT" },
 			{ "AZ", "Vuze" },
 			{ "LT", "libtorrent" },
-			{ "IO", "insulaocculta" }
+			{ "IO", "insulaocculta" },
+			{ "KT", "KTorrent" },
+			{ "ET", "EepTorrent" },
+			{ "TR", "Transmission" },
+			{ "DE", "Deluge" }
 		};
 
 		if (peerID.size () >= i2psnark.size () && !memcmp (peerID.data (), i2psnark.data (), i2psnark.size ()))
@@ -615,6 +619,8 @@ namespace torrents
 			if (it != twoChars.end ())
 				return it->second;
 		}
+		else if (peerIDStr.substr (0, 3) == "TIX")
+			return "Tixati";
 
 		return "Unknown";
 	}
