@@ -11,6 +11,9 @@
 #include <boost/version.hpp>
 #if !defined(ANDROID) && (BOOST_VERSION >= 108100) // boost::json since 1.75, we allow it since 1.81 due to std::string_view compatibility
 #include <boost/json.hpp>
+#include <boost/url.hpp>
+#include <boost/url/encode.hpp>
+#include <boost/url/grammar/alnum_chars.hpp>
 #define JSON_SUPPORTED
 #endif
 #include <boost/algorithm/hex.hpp>
@@ -328,6 +331,28 @@ namespace torrents
 					std::string hexHash;
 					boost::algorithm::hex (torrent->GetInfoHash ().begin(), torrent->GetInfoHash ().end(), std::back_inserter(hexHash));
 					return boost::json::value(hexHash);
+				}
+			},
+			{
+				"magnetLink", [](std::shared_ptr<Torrent> torrent)
+				{
+					std::string hexHash;
+					boost::algorithm::hex (torrent->GetInfoHash ().begin(), torrent->GetInfoHash ().end(), std::back_inserter(hexHash));
+					std::string magnet("magnet:?xt=urn:btih:");
+					magnet += hexHash;
+					if (!torrent->GetName ().empty ())
+					{
+						magnet += "&dn=";
+						boost::urls::encoding_opts opts;
+						opts.space_as_plus = true;
+						magnet += boost::urls::encode (torrent->GetName (), boost::urls::grammar::alnum_chars, opts);
+					}
+					if (!torrent->GetAnnounce ().empty ())
+					{
+						magnet += "&tr=";
+						magnet += boost::core::string_view (boost::urls::url (torrent->GetAnnounce ()));
+					}
+					return boost::json::value(magnet);
 				}
 			},
 			{ "pieces", [](std::shared_ptr<Torrent> torrent)
