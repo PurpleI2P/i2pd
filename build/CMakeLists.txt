@@ -294,7 +294,7 @@ else()
   endif()
 endif()
 
-find_package(Boost REQUIRED COMPONENTS atomic filesystem program_options OPTIONAL_COMPONENTS json)
+find_package(Boost REQUIRED COMPONENTS atomic filesystem program_options OPTIONAL_COMPONENTS json url)
 
 if(NOT DEFINED Boost_FOUND)
   message(SEND_ERROR "Boost is not found, or your boost version was below 1.46. Please download Boost!")
@@ -302,6 +302,10 @@ endif()
 
 if(Boost_json_FOUND AND NOT WITH_STATIC)
   add_definitions(-DBOOST_JSON_DYN_LINK)
+endif() 
+
+if(Boost_url_FOUND AND NOT WITH_STATIC)
+  add_definitions(-DBOOST_URL_DYN_LINK)
 endif() 
 
 find_package(OpenSSL REQUIRED)
