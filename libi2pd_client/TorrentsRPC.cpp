@@ -622,7 +622,11 @@ namespace torrents
 		else if (peerIDStr.substr (0, 3) == "TIX")
 			return "Tixati";
 
-		return "Unknown";
+		std::string unknown("Unknown (");
+		for (auto ch: peerIDStr)
+			unknown.push_back (std::isprint ((uint8_t)ch) ? ch : '?');
+		unknown.push_back (')');
+		return unknown;
 	}
 
 	std::string JSONRPCHandler::HandleTorrentStop (boost::json::object&& jsonRequest)
