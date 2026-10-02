@@ -21,9 +21,39 @@ jobs:
   freebsd:
     uses: ./.github/workflows/build-freebsd.yml
 
+  installer:
+    name: Windows installer
+    needs: windows
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Download binaries
+      uses: actions/download-artifact@v4
+      with:
+        pattern: i2pd-*.exe
+        path: artifacts
+
+    - name: Build installer
+      shell: pwsh
+      run: |
+        choco install innosetup -y --no-progress
+        Copy-Item artifacts/i2pd-x86.exe/i2pd.exe i2pd_x32.exe
+        Copy-Item artifacts/i2pd-x64.exe/i2pd.exe i2pd_x64.exe
+        Copy-Item artifacts/i2pd-xp.exe/i2pd.exe i2pd_xp.exe
+        & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/dI2Pd_TextVer=$env:GITHUB_REF_NAME" "/dI2Pd_Ver=$env:GITHUB_REF_NAME.0" build\win_installer.iss
+
+    - name: Upload installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: i2pd-installer
+        path: build/setup_i2pd_v*.exe
+
   release:
     name: Draft release
-    needs: [windows, macos, linux, debian, freebsd]
+    needs: [windows, macos, linux, debian, freebsd, installer]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -57,6 +87,7 @@ jobs:
           rel=${dir##*-}
           tar -czf release/i2pd_${TAG}_freebsd${rel%%.*}_amd64.tar.gz -C $dir i2pd
         done
+        cp artifacts/i2pd-installer/setup_i2pd_v*.exe release/
         cp artifacts/i2pd-linux-all/* release/
         cp artifacts/i2pd_trixie_*/i2pd_*.deb release/
         cd release
