@@ -20,8 +20,17 @@ on:
 
 jobs:
   build:
-    name: Build universal binary
-    runs-on: macos-15
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # the universal binary needs cross-compilation, so it is built for releases only
+        include: ${{ fromJSON(github.ref_type == 'tag' && '[{"name":"universal","runner":"macos-15","archs":"arm64 x86_64"}]' || '[{"name":"arm64","runner":"macos-15","archs":"arm64"},{"name":"x86_64","runner":"macos-15-intel","archs":"x86_64"}]') }}
+
+    env:
+      ARCHS: ${{ matrix.archs }}
 
     steps:
     - name: Checkout
@@ -32,24 +41,34 @@ jobs:
 
     - name: Check binary
       run: |
-        lipo -archs i2pd | grep -w arm64
-        lipo -archs i2pd | grep -w x86_64
+        for arch in $ARCHS; do lipo -archs i2pd | grep -w $arch; done
         otool -L i2pd
         test -z "$(otool -L i2pd | grep -E '^[[:space:]]' | grep -vE '^[[:space:]]+(/usr/lib/|/System/Library/)')"
         vtool -show-build i2pd | grep -E 'architecture|minos|sdk'
-        test "$(vtool -show-build i2pd | grep -c 'minos 12\.0$')" = 2
+        set -- $ARCHS
+        test "$(vtool -show-build i2pd | grep -c 'minos 12\.0$')" = $#
         ./i2pd --version
         ./i2pd --version | grep -E '^OpenSSL (3\.([5-9]|[1-9][0-9])|[4-9])\.'
         ./i2pd --version | grep -E '^Boost version 1\.(8[1-9]|9[0-9])\.'
 
+    - name: Run
+      run: |
+        mkdir datadir
+        ./i2pd --datadir=datadir --log=file --logfile=datadir/i2pd.log --loglevel=info &
+        sleep 15
+        kill -0 $!
+        grep 'Daemon: Starting NetDB' datadir/i2pd.log
+        kill -9 $!
+
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: i2pd-macos
+        name: i2pd-macos-${{ matrix.name }}
         path: i2pd
 
   test:
-    name: Run on ${{ matrix.target-name }}
+    name: Run universal binary on ${{ matrix.target-name }}
+    if: github.ref_type == 'tag'
     needs: build
     runs-on: ${{ matrix.target }}
 
@@ -66,7 +85,7 @@ jobs:
     - name: Download binary
       uses: actions/download-artifact@v4
       with:
-        name: i2pd-macos
+        name: i2pd-macos-universal
 
     - name: Run
       run: |

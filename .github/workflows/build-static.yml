@@ -22,41 +22,27 @@ on:
 jobs:
   build:
     name: musl ${{ matrix.arch }}
-    runs-on: ${{ matrix.runner }}
+    runs-on: ${{ matrix.arch == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
 
     strategy:
       fail-fast: false
       matrix:
-        include:
-        - arch: x86_64
-          runner: ubuntu-latest
-          platform: linux/amd64
-        - arch: aarch64
-          runner: ubuntu-24.04-arm
-          platform: linux/arm64
-        - arch: armhf
-          runner: ubuntu-latest
-          platform: linux/arm/v6
-          qemu: true
-        - arch: x86
-          runner: ubuntu-latest
-          platform: linux/386
-          setarch: linux32
-        - arch: s390x
-          runner: ubuntu-latest
-          platform: linux/s390x
-          qemu: true
+        # armhf and s390x run under QEMU, so they are built for releases only
+        arch: ${{ fromJSON(github.ref_type == 'tag' && '["x86_64", "aarch64", "x86", "armhf", "s390x"]' || '["x86_64", "aarch64", "x86"]') }}
+
+    env:
+      PLATFORM: ${{ fromJSON('{"x86_64":"linux/amd64","aarch64":"linux/arm64","x86":"linux/386","armhf":"linux/arm/v6","s390x":"linux/s390x"}')[matrix.arch] }}
 
     steps:
     - name: Checkout
       uses: actions/checkout@v4
 
     - name: Set up QEMU
-      if: ${{ matrix.qemu }}
+      if: ${{ matrix.arch == 'armhf' || matrix.arch == 's390x' }}
       uses: docker/setup-qemu-action@v3
 
     - name: Build in Alpine
-      run: docker run --rm --platform ${{ matrix.platform }} -v "$PWD":/src -w /src alpine:3.22 ${{ matrix.setarch }} sh contrib/static/build-musl.sh
+      run: docker run --rm --platform $PLATFORM -v "$PWD":/src -w /src alpine:3.22 ${{ matrix.arch == 'x86' && 'linux32' || '' }} sh contrib/static/build-musl.sh
 
     - name: Check binary
       run: |

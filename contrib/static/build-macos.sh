@@ -1,5 +1,5 @@
 #!/bin/sh
-# Universal i2pd for macOS with OpenSSL, Boost and miniupnpc built from source and linked statically
+# i2pd for macOS, universal unless ARCHS is set, with OpenSSL, Boost and miniupnpc built from source and linked statically
 set -e
 
 OPENSSL_VERSION=3.5.8
@@ -7,7 +7,7 @@ BOOST_VERSION=1.92.0
 BOOST_SHA256=ea7b982002cc9dfbe59b0b217b206f470dc75f3de0bb2973d844118934d82411
 MINIUPNPC_VERSION=2.3.3
 MINIUPNPC_SHA256=d52a0afa614ad6c088cc9ddff1ae7d29c8c595ac5fdd321170a05f41e634bd1a
-ARCHS="arm64 x86_64"
+ARCHS=${ARCHS:-"arm64 x86_64"}
 JOBS=4
 export MACOSX_DEPLOYMENT_TARGET=12.0
 
@@ -63,5 +63,10 @@ for ARCH in $ARCHS; do
 done
 
 cd "$SRC"
-lipo -create -output i2pd i2pd-arm64 i2pd-x86_64
-rm i2pd-arm64 i2pd-x86_64
+set -- $ARCHS
+if [ $# -eq 1 ]; then
+	mv i2pd-$1 i2pd
+else
+	lipo -create -output i2pd $(printf 'i2pd-%s ' "$@")
+	for ARCH in "$@"; do rm i2pd-$ARCH; done
+fi

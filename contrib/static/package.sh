@@ -1,5 +1,5 @@
 #!/bin/sh
-# Packages static binaries from BIN/i2pd-static-<arch>/i2pd, run inside debian (deb) or rocky/fedora (rpm)
+# Packages the static binaries present in BIN/i2pd-static-<arch>/i2pd, run inside debian (deb) or rocky/fedora (rpm)
 # usage: package.sh deb|rpm BIN OUT, with VERSION (deb), RPM_VERSION and RPM_RELEASE in the environment
 set -e
 
@@ -30,6 +30,7 @@ if [ "$FORMAT" = deb ]; then
 		"$VERSION" "$(sed -n 's/^Maintainer: //p' $PKG/debian/control)" "$(date -R)" > $PKG/debian/changelog
 	for a in $ARCHS; do
 		alpine=${a%%:*}; rest=${a#*:}; deb=${rest%%:*}
+		[ -f "$BIN/i2pd-static-$alpine/i2pd" ] || continue
 		install -m 755 "$BIN/i2pd-static-$alpine/i2pd" $PKG/bin/i2pd-$deb
 		(cd $PKG && dpkg-buildpackage -b -us -uc -a$deb -d)
 		mv $WORK/i2pd_$VERSION-1_$deb.deb "$OUT/i2pd_${VERSION}_linux-all_$deb.deb"
@@ -40,6 +41,7 @@ elif [ "$FORMAT" = rpm ]; then
 	mkdir -p $WORK/sources
 	for a in $ARCHS; do
 		alpine=${a%%:*}; rpm=${a##*:}
+		[ -f "$BIN/i2pd-static-$alpine/i2pd" ] || continue
 		install -m 755 "$BIN/i2pd-static-$alpine/i2pd" $WORK/sources/i2pd-$rpm
 		rpmbuild -bb --target $rpm -D "ver $RPM_VERSION" -D "rel $RPM_RELEASE" -D "srcdir $SRC" \
 			-D "_topdir $WORK/rpmbuild" -D "_sourcedir $WORK/sources" -D "_rpmdir $WORK/rpms" "$SRC/contrib/static/i2pd.spec"
