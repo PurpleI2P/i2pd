@@ -52,7 +52,7 @@ jobs:
         path: build/setup_i2pd_v*.exe
 
   release:
-    name: Draft release
+    name: Release
     needs: [windows, macos, linux, debian, freebsd, installer]
     runs-on: ubuntu-latest
     permissions:
@@ -94,9 +94,8 @@ jobs:
         sha512sum -b * > SHA512SUMS
         ls -l
 
-    - name: Create draft release
+    - name: Publish release
       uses: softprops/action-gh-release@v2
       with:
-        draft: true
         files: release/*
         fail_on_unmatched_files: true
