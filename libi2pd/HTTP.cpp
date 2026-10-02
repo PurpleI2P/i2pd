@@ -290,7 +290,7 @@ namespace http
 
 	bool URL::is_i2p() const
 	{
-		return host.rfind(".i2p") == ( host.size() - 4 );
+		return host.ends_with (".i2p");
 	}
 
 	void HTTPMsg::add_header(const char *name, const std::string & value, bool replace) {
