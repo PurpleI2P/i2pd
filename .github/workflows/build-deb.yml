@@ -14,21 +14,26 @@ on:
     - libi2pd_client/**
     - Makefile
     - Makefile.linux
-    tags:
-    - '*'
   pull_request:
     branches:
     - '*'
+  workflow_call:
 
 jobs:
   build:
-    name: ${{ matrix.dist }}
-    runs-on: ubuntu-latest
+    name: ${{ matrix.dist }} ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
 
     strategy:
       fail-fast: false
       matrix:
-        dist: ['bookworm','trixie']
+        dist: ['trixie']
+        arch: ['amd64', 'arm64']
+        include:
+        - arch: amd64
+          runner: ubuntu-latest
+        - arch: arm64
+          runner: ubuntu-24.04-arm
 
     steps:
     - name: Checkout
@@ -41,22 +46,20 @@ jobs:
       uses: prompt/actions-commit-hash@v3.0.0
 
     - name: Build package
-      env:
-        MAKEFLAGS: "TORRENTS=N"
       uses: jtdor/build-deb-action@v1
       with:
         docker-image: debian:${{ matrix.dist }}-slim
         buildpackage-opts: --build=binary --no-sign
-        before-build-hook: debchange --controlmaint --local "+${{ steps.commit.outputs.short }}~${{ matrix.dist }}" -b --distribution ${{ matrix.dist }} "CI build"
+        before-build-hook: debchange --controlmaint --local "${{ startsWith(github.ref, 'refs/tags/') && matrix.dist || format('+{0}~{1}', steps.commit.outputs.short, matrix.dist) }}" -b --distribution ${{ matrix.dist }} "CI build"
         extra-build-deps: devscripts git
     - name: Upload package
       uses: actions/upload-artifact@v4
       with:
-        name: i2pd_${{ matrix.dist }}
+        name: i2pd_${{ matrix.dist }}_${{ matrix.arch }}
         path: debian/artifacts/i2pd_*.deb
 
     - name: Upload debugging symbols
       uses: actions/upload-artifact@v4
       with:
-        name: i2pd-dbgsym_${{ matrix.dist }}
+        name: i2pd-dbgsym_${{ matrix.dist }}_${{ matrix.arch }}
         path: debian/artifacts/i2pd-dbgsym_*.deb
