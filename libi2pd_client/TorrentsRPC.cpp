@@ -56,7 +56,7 @@ namespace torrents
 			boost::json::array GetTrackerStats (std::shared_ptr<Torrent> torrent) const;
 			boost::json::array GetFiles (std::shared_ptr<Torrent> torrent) const;
 			static boost::json::array GetFileStats (std::shared_ptr<Torrent> torrent);
-			static std::string_view RecognizeClientByPeerID (const PeerConnection::PeerID& peerID);
+			static std::string RecognizeClientByPeerID (const PeerConnection::PeerID& peerID);
 
 			std::string HandleTorrentAdd (boost::json::object&& jsonRequest);
 			std::string HandleTorrentRemove (boost::json::object&& jsonRequest);
@@ -333,8 +333,7 @@ namespace torrents
 					return boost::json::value(hexHash);
 				}
 			},
-			{
-				"magnetLink", [](std::shared_ptr<Torrent> torrent)
+			{ "magnetLink", [](std::shared_ptr<Torrent> torrent)
 				{
 					std::string hexHash;
 					boost::algorithm::hex (torrent->GetInfoHash ().begin(), torrent->GetInfoHash ().end(), std::back_inserter(hexHash));
@@ -590,7 +589,7 @@ namespace torrents
 		return files;
 	}
 
-	std::string_view JSONRPCHandler::RecognizeClientByPeerID (const PeerConnection::PeerID& peerID)
+	std::string JSONRPCHandler::RecognizeClientByPeerID (const PeerConnection::PeerID& peerID)
 	{
 		static constexpr std::array<uint8_t,12> i2psnark { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x03, 0x03 };
 		static const std::map<std::string_view, std::string_view> twoChars =
@@ -617,7 +616,7 @@ namespace torrents
 		{
 			auto it = twoChars.find (peerIDStr.substr (1,2));
 			if (it != twoChars.end ())
-				return it->second;
+				return std::string (it->second);
 		}
 		else if (peerIDStr.substr (0, 3) == "TIX")
 			return "Tixati";
