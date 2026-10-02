@@ -706,7 +706,7 @@ namespace torrents
 
 	size_t TorrentsTunnel::ConnectToPeers (std::shared_ptr<Torrent> torrent)
 	{
-		if (!torrent) return 0;
+		if (!torrent || torrent->IsComplete ()) return 0;
 		auto peersToConnect = torrent->GetNonConnectedPeers (); // from trackers
 		if (!peersToConnect.empty ())
 		{
@@ -718,7 +718,7 @@ namespace torrents
 
 	size_t TorrentsTunnel::ConnectToPeers (std::shared_ptr<Torrent> torrent, size_t trackerID)
 	{
-		if (!torrent) return 0;
+		if (!torrent || torrent->IsComplete ()) return 0;
 		auto peersToConnect = torrent->GetNonConnectedPeers (trackerID);
 		if (!peersToConnect.empty ())
 		{
@@ -731,7 +731,7 @@ namespace torrents
 	void TorrentsTunnel::ConnectToNewPeers (std::shared_ptr<Torrent> torrent,
 		std::unordered_set<i2p::data::IdentHash>& newPeers, PeerConnectionOrigin origin)
 	{
-		if (!torrent) return;
+		if (!torrent || torrent->IsComplete ()) return;
 		if (!newPeers.empty ())
 		{
 			for (const auto& it: newPeers)

@@ -857,14 +857,17 @@ namespace torrents
 		auto torrent = info ? info->torrent.lock () : nullptr;
 		if (torrent)
 		{
-			std::unordered_set<i2p::data::IdentHash> newPeers;
-			for (auto it: peers)
-				if (it.size () == i2p::data::IdentHash::len)
-					newPeers.emplace ((const uint8_t *)it.data ());
-			if (!newPeers.empty ())
+			if (!torrent->IsComplete ())
 			{
-				LogPrint (eLogDebug, "TorrentsDHT: ", newPeers.size (), " new peers received");
-				m_Tunnel.ConnectToNewPeers (torrent, newPeers, ePeerConnectionOriginDHT);
+				std::unordered_set<i2p::data::IdentHash> newPeers;
+				for (auto it: peers)
+					if (it.size () == i2p::data::IdentHash::len)
+						newPeers.emplace ((const uint8_t *)it.data ());
+				if (!newPeers.empty ())
+				{
+					LogPrint (eLogDebug, "TorrentsDHT: ", newPeers.size (), " new peers received");
+					m_Tunnel.ConnectToNewPeers (torrent, newPeers, ePeerConnectionOriginDHT);
+				}
 			}
 			LogPrint (eLogDebug, "TorrentsDHT: Send announce to ", toIdent.ToBase64 ());
 			SendAnnouncePeerQuery (torrent->GetInfoHash (), token, toIdent, toPort);

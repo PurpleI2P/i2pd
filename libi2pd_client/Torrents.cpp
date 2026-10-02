@@ -2311,6 +2311,7 @@ namespace torrents
 
 	void PeerConnection::HandleI2PPEXExtension (const uint8_t * buf, size_t len)
 	{
+		if (m_Torrent->IsComplete ()) return;
 		std::unordered_set<i2p::data::IdentHash> newPeers;
 		ParseDictionary (std::string_view ((const char *)buf, len),
 			[&newPeers](std::string_view key, std::string_view buf)->size_t
