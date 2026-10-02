@@ -23,7 +23,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: with UPnP
+    name: FreeBSD ${{ matrix.release }} with UPnP
+
+    strategy:
+      fail-fast: false
+      matrix:
+        release: ['14.4', '15.0']
 
     steps:
     - name: Checkout
@@ -33,18 +38,26 @@ jobs:
       id: test
       uses: vmactions/freebsd-vm@v1
       with:
+        release: ${{ matrix.release }}
         usesh: true
         mem: 2048
         sync: rsync
         copyback: true
-        prepare: pkg install -y devel/cmake devel/gmake devel/boost-libs security/openssl net/miniupnpc
+        prepare: |
+          sed -i '' 's|/quarterly"|/latest"|' /etc/pkg/FreeBSD.conf
+          pkg update -f
+          pkg install -y devel/cmake devel/gmake devel/boost-libs security/openssl35 net/miniupnpc
         run: |
+          set -e
           cd build
-          cmake -DWITH_UPNP=ON -DCMAKE_BUILD_TYPE=Release .
+          cmake -DWITH_UPNP=ON -DCMAKE_BUILD_TYPE=Release -DOPENSSL_ROOT_DIR=/usr/local .
           gmake -j2
+          ./i2pd --version
+          ./i2pd --version | grep -E '^OpenSSL (3\.([5-9]|[1-9][0-9])|[4-9])\.'
+          ./i2pd --version | grep -E '^Boost version 1\.(8[1-9]|9[0-9])\.'
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: i2pd-freebsd
+        name: i2pd-freebsd-${{ matrix.release }}
         path: build/i2pd
