@@ -1308,6 +1308,11 @@ namespace transport
 				case eNTCP2BlkDateTime:
 				{
 					LogPrint (eLogDebug, "NTCP2: Datetime");
+					if (size < 4)
+					{
+						LogPrint (eLogWarning, "NTCP2: Datetime block is too short ", size);
+						break;
+					}
 					if (m_IsEstablished)
 					{
 						uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
