@@ -1,0 +1,64 @@
+name: Build static binaries
+
+on:
+  push:
+    branches:
+    - '*'
+    paths:
+    - .github/workflows/build-static.yml
+    - contrib/static/**
+    - daemon/**
+    - i18n/**
+    - libi2pd/**
+    - libi2pd_client/**
+    - Makefile
+    - Makefile.linux
+    tags:
+    - '*'
+  pull_request:
+    branches:
+    - '*'
+
+jobs:
+  build:
+    name: musl ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - arch: x86_64
+          runner: ubuntu-latest
+        - arch: aarch64
+          runner: ubuntu-24.04-arm
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Build in Alpine
+      run: docker run --rm -v "$PWD":/src -w /src alpine:3.22 sh contrib/static/build-musl.sh
+
+    - name: Check binary
+      run: |
+        file i2pd | grep 'statically linked'
+        readelf -d i2pd | grep 'There is no dynamic section'
+        ./i2pd --version
+        ./i2pd --version | grep -E '^OpenSSL (3\.([5-9]|[1-9][0-9])|[4-9])\.'
+        ./i2pd --version | grep -E '^Boost version 1\.(8[1-9]|9[0-9])\.'
+
+    - name: Run
+      run: |
+        mkdir datadir
+        ./i2pd --datadir=datadir --log=file --logfile=datadir/i2pd.log --loglevel=info &
+        sleep 15
+        kill -0 $!
+        grep 'Daemon: Starting NetDB' datadir/i2pd.log
+        kill -9 $!
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: i2pd-static-${{ matrix.arch }}
+        path: i2pd
