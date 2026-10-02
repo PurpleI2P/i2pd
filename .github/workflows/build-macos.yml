@@ -6,48 +6,75 @@ on:
     - '*'
     paths:
     - .github/workflows/build-macos.yml
+    - contrib/static/build-macos.sh
     - daemon/**
     - i18n/**
     - libi2pd/**
     - libi2pd_client/**
     - Makefile
     - Makefile.homebrew
-    tags:
-    - '*'
   pull_request:
     branches:
     - '*'
+  workflow_call:
 
 jobs:
   build:
-    name: Build on ${{ matrix.target-name }}
-    runs-on: ${{ matrix.target }}
-
-    strategy:
-      fail-fast: true
-      matrix:
-        include:
-          - target: macos-15
-            target-name: ARM64
-          - target: macos-15-intel
-            target-name: Intel x86_64
+    name: Build universal binary
+    runs-on: macos-15
 
     steps:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Install required formulae
-      run: |
-        find /usr/local/bin -lname '*/Library/Frameworks/Python.framework/*' -delete
-        brew update
-        brew install boost miniupnpc openssl@3.5
-
-    - name: List installed formulae
-      run: brew list
-
     - name: Build application
-      run: make HOMEBREW=1 USE_UPNP=yes USE_STATIC=yes PREFIX=$GITHUB_WORKSPACE/output -j3
+      run: sh contrib/static/build-macos.sh
 
-    - name: Print binary linking
-      run: otool -L i2pd
-    
+    - name: Check binary
+      run: |
+        lipo -archs i2pd | grep -w arm64
+        lipo -archs i2pd | grep -w x86_64
+        otool -L i2pd
+        test -z "$(otool -L i2pd | grep -E '^[[:space:]]' | grep -vE '^[[:space:]]+(/usr/lib/|/System/Library/)')"
+        vtool -show-build i2pd | grep -E 'architecture|minos|sdk'
+        test "$(vtool -show-build i2pd | grep -c 'minos 12\.0$')" = 2
+        ./i2pd --version
+        ./i2pd --version | grep -E '^OpenSSL (3\.([5-9]|[1-9][0-9])|[4-9])\.'
+        ./i2pd --version | grep -E '^Boost version 1\.(8[1-9]|9[0-9])\.'
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: i2pd-macos
+        path: i2pd
+
+  test:
+    name: Run on ${{ matrix.target-name }}
+    needs: build
+    runs-on: ${{ matrix.target }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: macos-14
+            target-name: macOS 14 ARM64
+          - target: macos-15-intel
+            target-name: macOS 15 Intel x86_64
+
+    steps:
+    - name: Download binary
+      uses: actions/download-artifact@v4
+      with:
+        name: i2pd-macos
+
+    - name: Run
+      run: |
+        chmod +x i2pd
+        ./i2pd --version
+        mkdir datadir
+        ./i2pd --datadir=datadir --log=file --logfile=datadir/i2pd.log --loglevel=info &
+        sleep 15
+        kill -0 $!
+        grep 'Daemon: Starting NetDB' datadir/i2pd.log
+        kill -9 $!
