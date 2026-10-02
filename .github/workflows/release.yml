@@ -18,9 +18,12 @@ jobs:
   debian:
     uses: ./.github/workflows/build-deb.yml
 
+  freebsd:
+    uses: ./.github/workflows/build-freebsd.yml
+
   release:
     name: Draft release
-    needs: [windows, macos, linux, debian]
+    needs: [windows, macos, linux, debian, freebsd]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -49,6 +52,11 @@ jobs:
         done
         chmod +x artifacts/i2pd-macos/i2pd
         tar -czf release/i2pd_${TAG}_osx.tar.gz -C artifacts/i2pd-macos i2pd
+        for dir in artifacts/i2pd-freebsd-*; do
+          chmod +x $dir/i2pd
+          rel=${dir##*-}
+          tar -czf release/i2pd_${TAG}_freebsd${rel%%.*}_amd64.tar.gz -C $dir i2pd
+        done
         cp artifacts/i2pd-linux-all/* release/
         cp artifacts/i2pd_trixie_*/i2pd_*.deb release/
         cd release

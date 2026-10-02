@@ -14,16 +14,16 @@ on:
     - libi2pd_client/**
     - Makefile
     - Makefile.bsd
-    tags:
-    - '*'
+    - contrib/static/build-freebsd.sh
   pull_request:
     branches:
     - '*'
+  workflow_call:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: FreeBSD ${{ matrix.release }} with UPnP
+    name: FreeBSD ${{ matrix.release }} static
 
     strategy:
       fail-fast: false
@@ -34,27 +34,31 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Test in FreeBSD
-      id: test
+    - name: Build in FreeBSD
       uses: vmactions/freebsd-vm@v1
       with:
         release: ${{ matrix.release }}
         usesh: true
-        mem: 2048
+        mem: 4096
         sync: rsync
         copyback: true
         prepare: |
           sed -i '' 's|/quarterly"|/latest"|' /etc/pkg/FreeBSD.conf
           pkg update -f
-          pkg install -y devel/cmake devel/gmake devel/boost-libs security/openssl35 net/miniupnpc
+          pkg install -y devel/cmake devel/gmake perl5 devel/boost-libs net/miniupnpc
         run: |
           set -e
-          cd build
-          cmake -DWITH_UPNP=ON -DCMAKE_BUILD_TYPE=Release -DOPENSSL_ROOT_DIR=/usr/local .
-          gmake -j2
-          ./i2pd --version
-          ./i2pd --version | grep -E '^OpenSSL (3\.([5-9]|[1-9][0-9])|[4-9])\.'
-          ./i2pd --version | grep -E '^Boost version 1\.(8[1-9]|9[0-9])\.'
+          sh contrib/static/build-freebsd.sh
+          file build/i2pd | grep 'statically linked'
+          build/i2pd --version
+          build/i2pd --version | grep -E '^OpenSSL (3\.([5-9]|[1-9][0-9])|[4-9])\.'
+          build/i2pd --version | grep -E '^Boost version 1\.(8[1-9]|9[0-9])\.'
+          mkdir /tmp/datadir
+          build/i2pd --datadir=/tmp/datadir --log=file --logfile=/tmp/datadir/i2pd.log --loglevel=info &
+          sleep 15
+          kill -0 $!
+          grep 'Daemon: Starting NetDB' /tmp/datadir/i2pd.log
+          kill -9 $!
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
