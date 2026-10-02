@@ -1024,7 +1024,7 @@ namespace torrents
 		if (inserted)
 			LogPrint (eLogDebug, "TorrentsDHT: Node ", node->peer.ToBase64 (), ":", node->port, " added");
 		it->second->lastUpdateTime = i2p::util::GetMonotonicSeconds ();
-		if (m_RoutingTable) m_RoutingTable->AddNode (node);
+		if (m_RoutingTable) m_RoutingTable->AddNode (it->second);
 		return it->second;
 	}
 
