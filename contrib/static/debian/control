@@ -1,0 +1,17 @@
+Source: i2pd
+Section: net
+Priority: optional
+Maintainer: r4sas <r4sas@i2pmail.org>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.5.1
+Homepage: https://i2pd.website/
+Rules-Requires-Root: binary-targets
+
+Package: i2pd
+Architecture: amd64 arm64 armhf i386 s390x
+Depends: adduser, ${misc:Depends}
+Description: Full-featured C++ implementation of I2P client (static build)
+ I2P (Invisible Internet Protocol) is a universal anonymous network layer.
+ .
+ This package ships a fully static binary (musl, bundled OpenSSL, Boost,
+ zlib and miniupnpc) that does not depend on the distribution release.

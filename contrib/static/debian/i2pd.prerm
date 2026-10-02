@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+
+if [ ! -d /run/systemd/system ] && [ -x /etc/init.d/i2pd ]; then
+  case "$1" in
+    remove|upgrade|deconfigure) invoke-rc.d i2pd stop || true ;;
+  esac
+fi
+
+#DEBHELPER#
+
+exit 0

@@ -1,0 +1,9 @@
+
+Files: usr/bin/i2pd
+Comment: The binary statically links the following third-party components.
+ OpenSSL - Apache-2.0
+ Boost (program_options, json, url) - BSL-1.0
+ zlib - Zlib
+ miniupnpc - BSD-3-Clause
+ musl - MIT
+ libstdc++ and libgcc - GPL-3.0+ with GCC Runtime Library Exception

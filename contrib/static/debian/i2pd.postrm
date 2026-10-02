@@ -1,0 +1,15 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "purge" ]; then
+	update-rc.d i2pd remove >/dev/null || true
+	rm -f /etc/default/i2pd
+	rm -rf /etc/i2pd
+	rm -rf /var/lib/i2pd
+	rm -rf /var/log/i2pd
+	rm -rf /run/i2pd
+fi
+
+#DEBHELPER#
+
+exit 0
