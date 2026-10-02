@@ -299,7 +299,7 @@ namespace torrents
 		auto bucket = m_Buckets;
 		while (bucket)
 		{
-			if (!bucket->IsFull () && !bucket->nodes.empty ())
+			if ((!bucket->IsFull () || bucket->IsInBucket (m_OurNode)) && !bucket->nodes.empty ())
 			{
 				auto randomID = bucket->GetRandomID (rng);
 				auto closestNode = FindClosestNodeInBucket (randomID);
@@ -506,7 +506,7 @@ namespace torrents
 			std::set<std::shared_ptr<Node>, std::function<bool(const std::shared_ptr<Node>&, const std::shared_ptr<Node>&)> >
 				sortedNodes ([](const std::shared_ptr<Node>& n1, const std::shared_ptr<Node>& n2)->bool
 				{
-					return n2->id > n1->id;
+					return n1->id > n2->id;
 				});
 			while (f.read ((char *)nodeInfo.data (), nodeInfo.size ()))
 			{

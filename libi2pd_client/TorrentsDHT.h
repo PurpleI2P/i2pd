@@ -40,7 +40,7 @@ namespace torrents
 	constexpr int DHT_UPDATE_CHECK_INTERVAL = 24; // in seconds
 	constexpr int DHT_EXPIRATION_CHECK_INTERVAL = 73; // in seconds
 	constexpr int DHT_SEND_PING_CHECK_INTERVAL = 38; // in seconds
-	constexpr int DHT_EXPLORATORY_INTERVAL = 4*60; // in seconds
+	constexpr int DHT_EXPLORATORY_INTERVAL = 130; // in seconds
 	constexpr int DHT_EXPLORATORY_INTERVAL_VARIANCE = 40; // in seconds
 	constexpr int DHT_INITIAL_EXPLORATORY_INTERVAL = 90; // in seconds
 	constexpr int DHT_NODE_SEND_PING_TIME = 740; // in seconds
