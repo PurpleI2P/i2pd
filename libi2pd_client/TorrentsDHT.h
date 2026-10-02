@@ -100,10 +100,11 @@ namespace torrents
 		Bucket * next;
 		std::map<NodeID, std::shared_ptr<Node> > nodes;
 		NodeID start;
-		uint64_t lastUpdateTime = 0; // monotonic seconds
+		uint64_t lastUpdateTime; // monotonic seconds
 
-		Bucket (): next (nullptr), start{} {}
-		Bucket (const NodeID& start1): next (nullptr), start (start1) {}
+		Bucket (): next (nullptr), start{}, lastUpdateTime (i2p::util::GetMonotonicSeconds ()) {}
+		Bucket (const NodeID& start1): next (nullptr), start (start1),
+			lastUpdateTime (i2p::util::GetMonotonicSeconds ()) {}
 		bool IsFull () const { return nodes.size () >= MAX_BUCKET_CAPACITY; }
 		bool IsInBucket (const NodeID& id) const { return id >= start && (!next || id < next->start); }
 		std::optional<NodeID> GetMiddleID () const;

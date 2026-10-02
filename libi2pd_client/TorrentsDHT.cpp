@@ -22,7 +22,8 @@ namespace i2p
 {
 namespace torrents
 {
-	Node::Node (const NodeInfo& nodeInfo)
+	Node::Node (const NodeInfo& nodeInfo):
+		lastUpdateTime (i2p::util::GetMonotonicSeconds ())
 	{
 		memcpy (id.data (), nodeInfo.data (), id.size ());
 		memcpy ((uint8_t *)peer, nodeInfo.data () + id.size (), peer.len);
