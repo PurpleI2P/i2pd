@@ -475,7 +475,13 @@ namespace torrents
 					flags.push_back ('u');
 				else if (!it->IsRemoteChoked ())
 					flags.push_back ('?');
-				if (isIncoming) flags.push_back ('I');
+				switch (it->GetOrigin ())
+				{
+					case ePeerConnectionOriginIncoming: flags.push_back ('I'); break;
+					case ePeerConnectionOriginPEX: flags.push_back ('X'); break;
+					case ePeerConnectionOriginDHT: flags.push_back ('H'); break;
+					default: ;
+				};
 				peer["flagStr"] = flags;
 				const auto& remoteBitfield = it->GetRemoteBitfield ();
 				peer["progress"] = remoteBitfield.size () ? ((float)remoteBitfield.count ())/((float)remoteBitfield.size ()) : 0.0;

@@ -369,6 +369,14 @@ namespace torrents
 			TorrentError m_Error;
 	};
 
+	enum PeerConnectionOrigin
+	{
+		ePeerConnectionOriginTracker = 0,
+		ePeerConnectionOriginIncoming,
+		ePeerConnectionOriginPEX,
+		ePeerConnectionOriginDHT
+	};
+
 	class TorrentsTunnel;
 	class PeerConnection: public i2p::client::I2PServiceHandler, public std::enable_shared_from_this<PeerConnection>
 	{
@@ -380,7 +388,7 @@ namespace torrents
 
 			PeerConnection (std::shared_ptr<i2p::client::I2PService> owner,  std::shared_ptr<i2p::stream::Stream> stream); // incoming
 			PeerConnection (std::shared_ptr<i2p::client::I2PService> owner,  std::shared_ptr<i2p::stream::Stream> stream,
-				std::shared_ptr<Torrent> torrent); // outgoing
+				std::shared_ptr<Torrent> torrent, PeerConnectionOrigin origin = ePeerConnectionOriginTracker); // outgoing
 			~PeerConnection ();
 
 			void Connect ();
@@ -398,6 +406,7 @@ namespace torrents
 			const PeerID& GetRemotePeerID () const { return m_RemotePeerID; }
 			std::string_view GetRemoteName () const { return m_RemoteName; }
 			std::optional<i2p::data::IdentHash> GetRemoteIdentHash () const;
+			PeerConnectionOrigin GetOrigin () const { return m_Origin; }
 
 			// stats
 			void ResetStats ();
@@ -466,6 +475,7 @@ namespace torrents
 		private:
 
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
+			PeerConnectionOrigin m_Origin;
 			uint8_t m_ReceiveBuffer[PEER_CONNECTION_RECEIVE_BUFFER_SIZE];
 			size_t m_ReceiveBufferOffset, m_NextMsgLength;
 			std::shared_ptr<Torrent> m_Torrent;

@@ -112,7 +112,7 @@ namespace torrents
 			bool RemoveTorrent (int id, bool deleteFiles);
 			bool StopTorrent (int id);
 			bool StartTorrent (int id);
-			void ConnectToNewPeers (std::shared_ptr<Torrent> torrent, std::unordered_set<i2p::data::IdentHash>& newPeers);
+			void ConnectToNewPeers (std::shared_ptr<Torrent> torrent, std::unordered_set<i2p::data::IdentHash>& newPeers, PeerConnectionOrigin origin);
 			void SendDHTPingQuery (const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			std::pair<uint16_t, uint16_t> GetDHTPorts () const { return { m_DHT ? m_DHT->GetPort () : 0, m_DHT ? m_DHT->GetRPort () : 0 }; }
 			bool SupportsDHT () const { return (bool)m_DHT; }
@@ -150,7 +150,7 @@ namespace torrents
 			void ScheduleStatusUpdate ();
 			void HandleTorrentsStatusUpdateTimer (const boost::system::error_code& ecode);
 
-			void ConnectToPeer (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& peer);
+			void ConnectToPeer (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& peer, PeerConnectionOrigin origin);
 			size_t ConnectToPeers (std::shared_ptr<Torrent> torrent);
 			size_t ConnectToPeers (std::shared_ptr<Torrent> torrent, size_t trackerID);
 			void UpdatePeersPerPiece (std::shared_ptr<Torrent> torrent);

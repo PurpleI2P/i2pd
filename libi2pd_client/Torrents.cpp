@@ -1193,10 +1193,11 @@ namespace torrents
 
 	PeerConnection::PeerConnection (std::shared_ptr<i2p::client::I2PService> owner,
 		std::shared_ptr<i2p::stream::Stream> stream): i2p::client::I2PServiceHandler (owner),
-		m_Stream (stream), m_ReceiveBufferOffset (0), m_NextMsgLength (0), m_MaxNumRequests (MIN_NUM_REQUESTS),
-		m_IsHandshakeSent (false), m_IsEstablished (false), m_IsChoked (true), m_IsRemoteChoked (true),
-		m_IsInterested (false), m_IsRemoteInterested (false), m_LastReceiveTime (0), m_LastSendTime (0),
-		m_NumRequests (0), m_NumPieces (0), m_LastRequestedPieceIndex (-1),
+		m_Stream (stream), m_Origin (ePeerConnectionOriginIncoming), m_ReceiveBufferOffset (0),
+		m_NextMsgLength (0), m_MaxNumRequests (MIN_NUM_REQUESTS), m_IsHandshakeSent (false),
+		m_IsEstablished (false), m_IsChoked (true), m_IsRemoteChoked (true),
+		m_IsInterested (false), m_IsRemoteInterested (false), m_LastReceiveTime (0),
+		m_LastSendTime (0), m_NumRequests (0), m_NumPieces (0), m_LastRequestedPieceIndex (-1),
 		m_RemoteMsgIDUtMetadata (0), m_RemoteMsgIDI2PPEX (0), m_RemoteMsgIDI2PDHT (0),
 		m_RemoteMetadataSize (0), m_IsFast (false), m_SuggestedPieceIndex (-1),
 		m_Downloaded (0), m_Uploaded (0)
@@ -1205,10 +1206,11 @@ namespace torrents
 	}
 
 	PeerConnection::PeerConnection (std::shared_ptr<i2p::client::I2PService> owner,
-		std::shared_ptr<i2p::stream::Stream> stream, std::shared_ptr<Torrent> torrent):
-		PeerConnection (owner, stream)
+		std::shared_ptr<i2p::stream::Stream> stream, std::shared_ptr<Torrent> torrent,
+		PeerConnectionOrigin origin): PeerConnection (owner, stream)
 	{
 		m_Torrent = torrent;
+		m_Origin = origin;
 	}
 
 	PeerConnection::~PeerConnection ()
@@ -2329,7 +2331,7 @@ namespace torrents
 		if (!newPeers.empty ())
 		{
 			LogPrint (eLogDebug, "Torrents: I2P_PEX ", newPeers.size (), " new peers received");
-			GetTorrentsTunnel ()->ConnectToNewPeers (m_Torrent, newPeers);
+			GetTorrentsTunnel ()->ConnectToNewPeers (m_Torrent, newPeers, ePeerConnectionOriginPEX);
 		}
 	}
 

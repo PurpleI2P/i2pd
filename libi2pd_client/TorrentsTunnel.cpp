@@ -680,7 +680,8 @@ namespace torrents
 		}
 	}
 
-	void TorrentsTunnel::ConnectToPeer (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& peer)
+	void TorrentsTunnel::ConnectToPeer (std::shared_ptr<Torrent> torrent, const i2p::data::IdentHash& peer,
+		PeerConnectionOrigin origin)
 	{
 		if (!torrent || torrent->IsConnectedToPeer (peer)) return;
 		LogPrint (eLogDebug, "TorrentsTunnel: Connecting to peer ", peer.ToBase32 () + ".b32.i2p");
@@ -689,12 +690,12 @@ namespace torrents
 			LogPrint (eLogInfo, "TorrentsTunnel: Can't connect to self");
 			return;
 		}
-		CreateStream ([this, torrent, peer](std::shared_ptr<i2p::stream::Stream> stream)
+		CreateStream ([this, torrent, peer, origin](std::shared_ptr<i2p::stream::Stream> stream)
 			{
 				if (stream)
 				{
 					LogPrint (eLogDebug, "TorrentsTunnel: Connected to peer ", peer.ToBase32 () + ".b32.i2p");
-					auto connection = std::make_shared<PeerConnection>(shared_from_this (), stream, torrent);
+					auto connection = std::make_shared<PeerConnection>(shared_from_this (), stream, torrent, origin);
 					AddHandler (connection);
 					connection->Connect ();
 				}
@@ -706,11 +707,11 @@ namespace torrents
 	size_t TorrentsTunnel::ConnectToPeers (std::shared_ptr<Torrent> torrent)
 	{
 		if (!torrent) return 0;
-		auto peersToConnect = torrent->GetNonConnectedPeers ();
+		auto peersToConnect = torrent->GetNonConnectedPeers (); // from trackers
 		if (!peersToConnect.empty ())
 		{
 			for (const auto& it: peersToConnect)
-				ConnectToPeer (torrent, it);
+				ConnectToPeer (torrent, it, ePeerConnectionOriginTracker);
 		}
 		return peersToConnect.size ();
 	}
@@ -722,19 +723,20 @@ namespace torrents
 		if (!peersToConnect.empty ())
 		{
 			for (const auto& it: peersToConnect)
-				ConnectToPeer (torrent, it);
+				ConnectToPeer (torrent, it, ePeerConnectionOriginTracker);
 		}
 		return peersToConnect.size ();
 	}
 
-	void TorrentsTunnel::ConnectToNewPeers (std::shared_ptr<Torrent> torrent, std::unordered_set<i2p::data::IdentHash>& newPeers)
+	void TorrentsTunnel::ConnectToNewPeers (std::shared_ptr<Torrent> torrent,
+		std::unordered_set<i2p::data::IdentHash>& newPeers, PeerConnectionOrigin origin)
 	{
 		if (!torrent) return;
 		if (!newPeers.empty ())
 		{
 			for (const auto& it: newPeers)
 				if (!torrent->IsConnectedToPeer (it))
-					ConnectToPeer (torrent, it);
+					ConnectToPeer (torrent, it, origin);
 		}
 	}
 

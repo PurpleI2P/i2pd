@@ -864,7 +864,7 @@ namespace torrents
 			if (!newPeers.empty ())
 			{
 				LogPrint (eLogDebug, "TorrentsDHT: ", newPeers.size (), " new peers received");
-				m_Tunnel.ConnectToNewPeers (torrent, newPeers);
+				m_Tunnel.ConnectToNewPeers (torrent, newPeers, ePeerConnectionOriginDHT);
 			}
 			LogPrint (eLogDebug, "TorrentsDHT: Send announce to ", toIdent.ToBase64 ());
 			SendAnnouncePeerQuery (torrent->GetInfoHash (), token, toIdent, toPort);
