@@ -231,11 +231,15 @@ jobs:
       id: cache-openssl
       with:
         path: MINGW-packages/mingw-w64-openssl/*.zst
-        key: winxp-openssl-${{ steps.version-openssl.outputs.version }}
+        key: winxp-openssl-${{ steps.version-openssl.outputs.version }}-no-uplink
     - name: Build WinXP-capable openssl package
       if: steps.cache-openssl.outputs.cache-hit != 'true'
       run: |
+        set -e
         cd MINGW-packages/mingw-w64-openssl
+        # ms/uplink.c imports msvcrt.dll!wcscpy_s, which Windows XP does not have
+        sed -i 's/^    shared \\$/    shared no-uplink \\/' PKGBUILD
+        grep -q '^    shared no-uplink \\$' PKGBUILD
         curl https://openssl-library.org/source/pubkeys.asc | gpg --import
         MINGW_ARCH=mingw32 makepkg-mingw -sCLf --noconfirm --nocheck
     - name: Install openssl package
@@ -274,6 +278,7 @@ jobs:
       run: |
         mkdir -p obj/Win32 obj/libi2pd obj/libi2pd_client obj/daemon
         make USE_UPNP=yes DEBUG=no USE_GIT_VERSION=yes USE_WINXP_FLAGS=yes -j3
+        if objdump -p i2pd.exe | grep -w wcscpy_s; then exit 1; fi
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
