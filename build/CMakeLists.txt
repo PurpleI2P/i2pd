@@ -350,6 +350,7 @@ else()
   # fix: error C2039: 'string_view': is not a member of 'std'
   # MSVC defaults to C++20
   set(I2PD_CXX_STANDARD 20)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus")
 endif()
 
 set_target_properties(libi2pd libi2pdclient libi2pdlang PROPERTIES CXX_STANDARD ${I2PD_CXX_STANDARD})
