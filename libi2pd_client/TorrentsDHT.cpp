@@ -185,7 +185,7 @@ namespace torrents
 				auto it = bucket->nodes.begin ();
 				while (it != bucket->nodes.end ())
 				{
-					if (ts > it->second->lastUpdateTime + DHT_NODE_EXPIRATION_TIME)
+					if (ts > it->second->lastUpdateTime + DHT_ROUTING_TABLE_NODE_EXPIRATION_TIME)
 					{
 						numDeleted++;
 						it = bucket->nodes.erase (it);

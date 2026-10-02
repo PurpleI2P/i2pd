@@ -44,7 +44,8 @@ namespace torrents
 	constexpr int DHT_EXPLORATORY_INTERVAL_VARIANCE = 40; // in seconds
 	constexpr int DHT_INITIAL_EXPLORATORY_INTERVAL = 90; // in seconds
 	constexpr int DHT_NODE_SEND_PING_TIME = 740; // in seconds
-	constexpr int DHT_NODE_EXPIRATION_TIME = 855; // in seconds
+	constexpr int DHT_ROUTING_TABLE_NODE_EXPIRATION_TIME = 855; // in seconds
+	constexpr int DHT_NODE_EXPIRATION_TIME = 1315; // in seconds
 	constexpr int DHT_BUCKET_EXPIRATION_THRESHOLD = 290; // in seconds
 	constexpr int DHT_TORRENT_PEER_EXPIRATION_TIME = 3*3600; // in seconds
 	constexpr int DHT_INCOMING_GET_PEERS_TOKEN_EXPIRATION_TIME = 600; // in seconds
