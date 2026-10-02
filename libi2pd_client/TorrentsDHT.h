@@ -30,6 +30,7 @@
 #include "Identity.h"
 #include "I2PService.h"
 #include "util.h"
+#include "Timestamp.h"
 #include "Torrents.h"
 
 namespace i2p
@@ -84,9 +85,10 @@ namespace torrents
 		NodeID id;
 		i2p::data::IdentHash peer;
 		uint16_t port;
+		uint64_t lastUpdateTime; // monotonic seconds
 
 		Node (const NodeID& id1, const i2p::data::IdentHash& peer1, uint16_t port1):
-			id (id1), peer (peer1), port (port1) {}
+			id (id1), peer (peer1), port (port1), lastUpdateTime (i2p::util::GetMonotonicSeconds ()) {}
 		Node (const NodeInfo& nodeInfo);
 
 		NodeInfo GetNodeInfo () const;
@@ -96,7 +98,7 @@ namespace torrents
 	struct Bucket
 	{
 		Bucket * next;
-		std::map<NodeID, uint64_t> nodes; // nodeID->update time in monotonic seconds
+		std::map<NodeID, std::shared_ptr<Node> > nodes;
 		NodeID start;
 		uint64_t lastUpdateTime = 0; // monotonic seconds
 
@@ -104,8 +106,6 @@ namespace torrents
 		Bucket (const NodeID& start1): next (nullptr), start (start1) {}
 		bool IsFull () const { return nodes.size () >= MAX_BUCKET_CAPACITY; }
 		bool IsInBucket (const NodeID& id) const { return id >= start && (!next || id < next->start); }
-		bool ContainsNode (const NodeID& id) const;
-		void UpdateNode (const NodeID& id);
 		std::optional<NodeID> GetMiddleID () const;
 		NodeID GetRandomID (std::mt19937& rng) const;
 		bool Split ();
@@ -121,15 +121,15 @@ namespace torrents
 			size_t GetNumBuckets () const;
 			size_t GetNumNodes () const;
 
-			bool AddNode (const NodeID& id);
+			bool AddNode (std::shared_ptr<Node> node);
 			void RemoveNode (const NodeID& id);
-			std::list<std::pair<NodeID, Distance> > FindClosestNodes (const Torrent::InfoHash& infoHash,
+			std::list<std::pair<std::shared_ptr<Node>, Distance> > FindClosestNodes (const Torrent::InfoHash& infoHash,
 				size_t num = 1, std::set<NodeID> * excluded = nullptr) const;
-			std::optional<NodeID> FindClosestNode (const Torrent::InfoHash& infoHash,
+			std::shared_ptr<Node> FindClosestNode (const Torrent::InfoHash& infoHash,
 				std::set<NodeID> * excluded = nullptr) const;
-			std::list<std::pair<NodeID, NodeID> > GetExploratoryTargets (std::mt19937& rng) const; // (target, node to send find_node to)
-			std::optional<NodeID> FindClosestNodeInBucket (const NodeID& target) const;
-			std::list<NodeID> DeleteExpiredNodes (uint64_t ts);
+			std::list<std::pair<NodeID, std::shared_ptr<Node> > > GetExploratoryTargets (std::mt19937& rng) const; // (target, node to send find_node to)
+			std::shared_ptr<Node> FindClosestNodeInBucket (const NodeID& target) const;
+			size_t DeleteExpiredNodes (uint64_t ts);
 			std::list<NodeID> GetNodesToPing (uint64_t ts);
 			void RemoveEmptyBuckets ();
 
@@ -243,6 +243,7 @@ namespace torrents
 			void Save (const std::filesystem::path& file);
 			void Load (const std::filesystem::path& file);
 			void Explore ();
+			std::shared_ptr<Node> UpdateNode (std::shared_ptr<Node> node); // return true if added
 
 			void ScheduleDHTUpdateCheck ();
 			void HandleDHTUpdateCheckTimer (const boost::system::error_code& ecode);
