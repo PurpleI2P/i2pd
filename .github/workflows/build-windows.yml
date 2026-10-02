@@ -15,11 +15,10 @@ on:
     - Win32/**
     - Makefile
     - Makefile.mingw
-    tags:
-    - '*'
   pull_request:
     branches:
     - '*'
+  workflow_call:
 
 defaults:
   run:
@@ -28,16 +27,17 @@ defaults:
 jobs:
   build:
     name: ${{ matrix.arch }}
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
         include: [
-          { msystem: UCRT64, arch: ucrt-x86_64, arch_short: x64-ucrt, compiler: gcc },
-          { msystem: CLANG64, arch: clang-x86_64, arch_short: x64-clang, compiler: clang },
-          { msystem: MINGW64, arch: x86_64, arch_short: x64, compiler: gcc },
-          # { msystem: MINGW32, arch: i686, arch_short: x86, compiler: gcc }
+          { msystem: UCRT64, arch: ucrt-x86_64, arch_short: x64-ucrt, compiler: gcc, os: windows-latest },
+          { msystem: CLANG64, arch: clang-x86_64, arch_short: x64-clang, compiler: clang, os: windows-latest },
+          { msystem: MINGW64, arch: x86_64, arch_short: x64, compiler: gcc, os: windows-latest },
+          { msystem: MINGW32, arch: i686, arch_short: x86, compiler: gcc, os: windows-latest },
+          { msystem: CLANGARM64, arch: clang-aarch64, arch_short: arm64, compiler: clang, os: windows-11-arm }
         ]
 
     steps:
@@ -50,11 +50,43 @@ jobs:
       uses: msys2/setup-msys2@v2
       with:
         msystem: ${{ matrix.msystem }}
-        install: base-devel git mingw-w64-${{ matrix.arch }}-${{ matrix.compiler }} mingw-w64-${{ matrix.arch }}-boost mingw-w64-${{ matrix.arch }}-openssl mingw-w64-${{ matrix.arch }}-miniupnpc
+        install: >-
+          base-devel git mingw-w64-${{ matrix.arch }}-${{ matrix.compiler }} mingw-w64-${{ matrix.arch }}-openssl
+          ${{ matrix.msystem == 'MINGW32' && 'mingw-w64-i686-cmake mingw-w64-i686-ninja' || format('mingw-w64-{0}-boost mingw-w64-{0}-miniupnpc', matrix.arch) }}
         update: true
 
+    # MSYS2 no longer ships Boost and miniupnpc for i686
+    - name: Build Boost and miniupnpc
+      if: ${{ matrix.msystem == 'MINGW32' }}
+      env:
+        BOOST_VERSION: 1.92.0
+        BOOST_SHA256: ea7b982002cc9dfbe59b0b217b206f470dc75f3de0bb2973d844118934d82411
+        MINIUPNPC_VERSION: 2.3.3
+        MINIUPNPC_SHA256: d52a0afa614ad6c088cc9ddff1ae7d29c8c595ac5fdd321170a05f41e634bd1a
+      run: |
+        set -e
+        curl -fsSL -o boost.tar.xz https://github.com/boostorg/boost/releases/download/boost-$BOOST_VERSION/boost-$BOOST_VERSION-b2-nodocs.tar.xz
+        echo "$BOOST_SHA256  boost.tar.xz" | sha256sum -c -
+        tar xJf boost.tar.xz
+        cd boost-$BOOST_VERSION
+        ./bootstrap.sh --with-toolset=gcc
+        ./b2 -j4 toolset=gcc target-os=windows threadapi=win32 address-model=32 architecture=x86 \
+          link=static threading=multi variant=release --layout=system \
+          --with-filesystem --with-program_options --with-json --with-url stage
+        cp -r boost $MINGW_PREFIX/include/
+        # Makefile.mingw links the MSYS2 library names with the -mt suffix
+        for lib in filesystem program_options json url; do cp stage/lib/libboost_$lib.a $MINGW_PREFIX/lib/libboost_$lib-mt.a; done
+        cd ..
+        curl -fsSL -o miniupnpc.tar.gz https://github.com/miniupnp/miniupnp/releases/download/miniupnpc_${MINIUPNPC_VERSION//./_}/miniupnpc-$MINIUPNPC_VERSION.tar.gz
+        echo "$MINIUPNPC_SHA256  miniupnpc.tar.gz" | sha256sum -c -
+        tar xzf miniupnpc.tar.gz
+        cmake -S miniupnpc-$MINIUPNPC_VERSION -B miniupnpc-build -G Ninja -DCMAKE_INSTALL_PREFIX=$MINGW_PREFIX \
+          -DUPNPC_BUILD_SHARED=OFF -DUPNPC_BUILD_TESTS=OFF -DUPNPC_BUILD_SAMPLE=OFF
+        cmake --build miniupnpc-build
+        cmake --install miniupnpc-build
+
     - name: Install additional clang packages
-      if: ${{ matrix.msystem == 'CLANG64' }}
+      if: ${{ matrix.compiler == 'clang' }}
       run: pacman --noconfirm -S mingw-w64-${{ matrix.arch }}-gcc-compat
 
     - name: Build application
@@ -70,16 +102,16 @@ jobs:
 
   build-cmake:
     name: CMake ${{ matrix.arch }}
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
         include: [
-          { msystem: UCRT64, arch: ucrt-x86_64, arch_short: x64-ucrt, compiler: gcc },
-          { msystem: CLANG64, arch: clang-x86_64, arch_short: x64-clang, compiler: clang },
-          { msystem: MINGW64, arch: x86_64, arch_short: x64, compiler: gcc },
-          # { msystem: MINGW32, arch: i686, arch_short: x86, compiler: gcc }
+          { msystem: UCRT64, arch: ucrt-x86_64, arch_short: x64-ucrt, compiler: gcc, os: windows-latest },
+          { msystem: CLANG64, arch: clang-x86_64, arch_short: x64-clang, compiler: clang, os: windows-latest },
+          { msystem: MINGW64, arch: x86_64, arch_short: x64, compiler: gcc, os: windows-latest },
+          { msystem: CLANGARM64, arch: clang-aarch64, arch_short: arm64, compiler: clang, os: windows-11-arm }
         ]
 
     steps:
@@ -108,7 +140,6 @@ jobs:
         path: build/i2pd.exe
 
   build-xp:
-    if: false
     name: XP
     runs-on: windows-latest
 
@@ -125,62 +156,57 @@ jobs:
       uses: msys2/setup-msys2@v2
       with:
         msystem: MINGW32
-        install: base-devel git mingw-w64-i686-gcc mingw-w64-i686-boost mingw-w64-i686-openssl mingw-w64-i686-miniupnpc
+        install: base-devel git mingw-w64-i686-gcc mingw-w64-i686-openssl mingw-w64-i686-cmake mingw-w64-i686-ninja
         cache: true
         update: true
 
-    - name: Clone MinGW packages repository and revert boost to 1.85.0
-      run: |
-        git clone https://github.com/msys2/MINGW-packages
-        cd MINGW-packages
-        git checkout 4cbb366edf2f268ac3146174b40ce38604646fc5 mingw-w64-boost
-        cd mingw-w64-boost
-        sed -i 's/boostorg.jfrog.io\/artifactory\/main/archives.boost.io/' PKGBUILD
+    - name: Clone MinGW packages repository
+      run: git clone https://github.com/msys2/MINGW-packages
 
     # headers
     - name: Get headers package version
       id:  version-headers
       run: |
-        echo "version=$(pacman -Si mingw-w64-i686-headers-git | grep -Po '^Version\s*: \K.+')" >> $GITHUB_OUTPUT
+        echo "version=$(pacman -Si mingw-w64-i686-headers | grep -Po '^Version\s*: \K.+')" >> $GITHUB_OUTPUT
     - name: Cache headers package
       uses: actions/cache@v4
       id: cache-headers
       with:
-        path: MINGW-packages/mingw-w64-headers-git/*.zst
+        path: MINGW-packages/mingw-w64-headers/*.zst
         key: winxp-headers-${{ steps.version-headers.outputs.version }}
     - name: Build WinXP-capable headers package
       if: steps.cache-headers.outputs.cache-hit != 'true'
       run: |
-        cd MINGW-packages/mingw-w64-headers-git
+        cd MINGW-packages/mingw-w64-headers
         sed -i 's/0x601/0x501/' PKGBUILD
         MINGW_ARCH=mingw32 makepkg-mingw -sCLf --noconfirm --nocheck
     - name: Install headers package
-      run: pacman --noconfirm -U MINGW-packages/mingw-w64-headers-git/mingw-w64-i686-*-any.pkg.tar.zst
+      run: pacman --noconfirm -U MINGW-packages/mingw-w64-headers/mingw-w64-i686-*-any.pkg.tar.zst
 
     # CRT
     - name: Get crt package version
       id:  version-crt
       run: |
-        echo "version=$(pacman -Si mingw-w64-i686-crt-git | grep -Po '^Version\s*: \K.+')" >> $GITHUB_OUTPUT
+        echo "version=$(pacman -Si mingw-w64-i686-crt | grep -Po '^Version\s*: \K.+')" >> $GITHUB_OUTPUT
     - name: Cache crt package
       uses: actions/cache@v4
       id: cache-crt
       with:
-        path: MINGW-packages/mingw-w64-crt-git/*.zst
+        path: MINGW-packages/mingw-w64-crt/*.zst
         key: winxp-crt-${{ steps.version-crt.outputs.version }}
     - name: Build WinXP-capable crt package
       if: steps.cache-crt.outputs.cache-hit != 'true'
       run: |
-        cd MINGW-packages/mingw-w64-crt-git
+        cd MINGW-packages/mingw-w64-crt
         MINGW_ARCH=mingw32 makepkg-mingw -sCLf --noconfirm --nocheck
     - name: Install crt package
-      run: pacman --noconfirm -U MINGW-packages/mingw-w64-crt-git/mingw-w64-i686-*-any.pkg.tar.zst
+      run: pacman --noconfirm -U MINGW-packages/mingw-w64-crt/mingw-w64-i686-*-any.pkg.tar.zst
 
     # winpthreads
     - name: Get winpthreads package version
       id:  version-winpthreads
       run: |
-        echo "version=$(pacman -Si mingw-w64-i686-winpthreads-git | grep -Po '^Version\s*: \K.+')" >> $GITHUB_OUTPUT
+        echo "version=$(pacman -Si mingw-w64-i686-winpthreads | grep -Po '^Version\s*: \K.+')" >> $GITHUB_OUTPUT
     - name: Cache winpthreads package
       uses: actions/cache@v4
       id: cache-winpthreads
@@ -216,25 +242,32 @@ jobs:
       run: pacman --noconfirm -U MINGW-packages/mingw-w64-openssl/mingw-w64-i686-*-any.pkg.tar.zst
 
     # Boost
-    #- name: Get boost package version
-    #  id:  version-boost
-    #  run: |
-    #    echo "version=$(pacman -Si mingw-w64-i686-boost | grep -Po '^Version\s*: \K.+')" >> $GITHUB_OUTPUT
-    - name: Cache boost package
-      uses: actions/cache@v4
-      id: cache-boost
-      with:
-        path: MINGW-packages/mingw-w64-boost/*.zst
-        key: winxp-boost-1.85.0+crt-${{ steps.version-headers.outputs.version }}+ossl-${{ steps.version-openssl.outputs.version }}
-    - name: Build WinXP-capable boost package
-      if: steps.cache-boost.outputs.cache-hit != 'true'
+    - name: Build Boost and miniupnpc
+      env:
+        BOOST_VERSION: 1.85.0
+        BOOST_SHA256: be0d91732d5b0cc6fbb275c7939974457e79b54d6f07ce2e3dfdd68bef883b0b
+        MINIUPNPC_VERSION: 2.3.3
+        MINIUPNPC_SHA256: d52a0afa614ad6c088cc9ddff1ae7d29c8c595ac5fdd321170a05f41e634bd1a
       run: |
-        cd MINGW-packages/mingw-w64-boost
-        MINGW_ARCH=mingw32 makepkg-mingw -sCLf --noconfirm --nocheck
-    - name: Remove boost packages
-      run: pacman --noconfirm -R mingw-w64-i686-boost mingw-w64-i686-boost-libs
-    - name: Install boost package
-      run: pacman --noconfirm -U MINGW-packages/mingw-w64-boost/mingw-w64-i686-*-any.pkg.tar.zst
+        set -e
+        curl -fsSL -o boost.tar.gz https://archives.boost.io/release/$BOOST_VERSION/source/boost_${BOOST_VERSION//./_}.tar.gz
+        echo "$BOOST_SHA256  boost.tar.gz" | sha256sum -c -
+        tar xzf boost.tar.gz
+        cd boost_${BOOST_VERSION//./_}
+        ./bootstrap.sh --with-toolset=gcc
+        ./b2 -j4 toolset=gcc target-os=windows threadapi=win32 address-model=32 architecture=x86 \
+          link=static threading=multi variant=release --layout=system \
+          --with-filesystem --with-program_options --with-json --with-url stage
+        cp -r boost $MINGW_PREFIX/include/
+        for lib in filesystem program_options json url; do cp stage/lib/libboost_$lib.a $MINGW_PREFIX/lib/libboost_$lib-mt.a; done
+        cd ..
+        curl -fsSL -o miniupnpc.tar.gz https://github.com/miniupnp/miniupnp/releases/download/miniupnpc_${MINIUPNPC_VERSION//./_}/miniupnpc-$MINIUPNPC_VERSION.tar.gz
+        echo "$MINIUPNPC_SHA256  miniupnpc.tar.gz" | sha256sum -c -
+        tar xzf miniupnpc.tar.gz
+        cmake -S miniupnpc-$MINIUPNPC_VERSION -B miniupnpc-build -G Ninja -DCMAKE_INSTALL_PREFIX=$MINGW_PREFIX \
+          -DUPNPC_BUILD_SHARED=OFF -DUPNPC_BUILD_TESTS=OFF -DUPNPC_BUILD_SAMPLE=OFF
+        cmake --build miniupnpc-build
+        cmake --install miniupnpc-build
 
     # Building i2pd
     - name: Build application

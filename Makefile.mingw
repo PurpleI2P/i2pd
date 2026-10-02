@@ -3,9 +3,14 @@ USE_WIN32_APP := yes
 
 WINDRES = windres
 
-CXXFLAGS := $(CXX_DEBUG) -fPIC -msse
+CXXFLAGS := $(CXX_DEBUG) -fPIC
 INCFLAGS := -I$(DAEMON_SRC_DIR) -IWin32
-LDFLAGS := ${LD_DEBUG} -static -fPIC -msse
+LDFLAGS := ${LD_DEBUG} -static -fPIC
+
+ifeq (,$(findstring aarch64,$(SYS)))
+	CXXFLAGS += -msse
+	LDFLAGS += -msse
+endif
 
 NEEDED_CXXFLAGS += -std=c++23
 
