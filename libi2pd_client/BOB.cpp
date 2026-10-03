@@ -1011,7 +1011,10 @@ namespace client
 			SendReplyOK ("tunnel type set to HTTP proxy");
 		}
 		else
+		{
+			m_TunnelType = TunnelType::STANDARD;
 			SendReplyError ("no tunnel type has been set");
+		}
 	}
 
 	BOBCommandChannel::BOBCommandChannel (const std::string& address, uint16_t port):
@@ -1128,11 +1131,7 @@ namespace client
 
 	void BOBCommandChannel::RemoveProxy(const std::string& name)
 	{
-		auto it = m_proxy.find (name);
-		if (it != m_proxy.end ())
-		{
-			m_proxy.erase (it);
-		}
+		m_proxy.erase (name);
 	}
 
 	void BOBCommandChannel::Accept ()
