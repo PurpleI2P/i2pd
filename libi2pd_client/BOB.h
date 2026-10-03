@@ -16,7 +16,6 @@
 #include <string>
 #include <string_view>
 #include <vector>
-#include <optional>
 #include <boost/asio.hpp>
 #include "util.h"
 #include "I2PTunnel.h"
@@ -212,6 +211,13 @@ namespace client
 	class BOBCommandChannel;
 	class BOBCommandSession: public std::enable_shared_from_this<BOBCommandSession>
 	{
+		enum class TunnelType
+		{
+			STANDARD = 0,
+			SOCKS = 1,
+			HTTP_PROXY = 2
+		};
+
 		public:
 
 			BOBCommandSession (BOBCommandChannel& owner);
@@ -275,13 +281,7 @@ namespace client
 			i2p::data::PrivateKeys m_Keys;
 			i2p::util::Mapping m_Options;
 			std::shared_ptr<BOBDestination> m_CurrentDestination;
-
-			enum class TunnelType
-			{
-				SOCKS = 0,
-				HTTP_PROXY = 1
-			};
-			std::optional<TunnelType> m_tunnelType;
+			TunnelType m_TunnelType;
 	};
 	typedef void (BOBCommandSession::*BOBCommandHandler)(const char * operand, size_t len);
 

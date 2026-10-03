@@ -261,7 +261,8 @@ namespace client
 		m_Owner (owner), m_Socket (m_Owner.GetService ()),
 		m_ReceiveBuffer(BOB_COMMAND_BUFFER_SIZE + 1), m_SendBuffer(BOB_COMMAND_BUFFER_SIZE + 1),
 		m_IsOpen (true), m_IsQuiet (false), m_IsActive (false),
-		m_InPort (0), m_OutPort (0), m_CurrentDestination (nullptr)
+		m_InPort (0), m_OutPort (0), m_CurrentDestination (nullptr),
+		m_TunnelType (TunnelType::STANDARD)
 	{
 	}
 
@@ -492,50 +493,52 @@ namespace client
 				m_Nickname, m_InHost, m_OutHost, m_InPort, m_OutPort, m_IsQuiet);
 			m_Owner.AddDestination (m_Nickname, m_CurrentDestination);
 		}
-		if (!m_tunnelType.has_value())
+		switch (m_TunnelType)
 		{
-			if (m_InPort)
-				m_CurrentDestination->CreateInboundTunnel (m_InPort, m_InHost);
-			if (m_OutPort && !m_OutHost.empty ())
-				m_CurrentDestination->CreateOutboundTunnel (m_OutHost, m_OutPort, m_IsQuiet);
-			m_CurrentDestination->Start ();
-		}
-		else
-		{
-			switch (*m_tunnelType)
+			case TunnelType::STANDARD:
 			{
-				case TunnelType::SOCKS:
-					try
-					{
-						auto SocksProxy = std::make_shared<i2p::proxy::SOCKSProxy>(m_Nickname, m_InHost, m_InPort,
-							false, m_OutHost, m_OutPort, m_CurrentDestination->GetLocalDestination());
-						SocksProxy->Start();
-						m_Owner.SetProxy(m_Nickname, std::move(SocksProxy));
-					}
-					catch (std::exception& e)
-					{
-						LogPrint(eLogCritical, "Clients: Exception in SOCKS Proxy: ", e.what());
-						ThrowFatal ("Unable to start SOCKS Proxy at ", m_InHost, ":", m_InPort, ": ", e.what ());
-					}
-					break;
-				case TunnelType::HTTP_PROXY:
-					try
-					{
-						auto HttpProxy = std::make_shared<i2p::proxy::HTTPProxy>(m_Nickname, m_InHost, m_InPort,
-							m_OutHost, true, true, m_CurrentDestination->GetLocalDestination());
-						HttpProxy->Start();
-						m_Owner.SetProxy(m_Nickname, std::move(HttpProxy));
-					}
-					catch (std::exception& e)
-					{
-						LogPrint(eLogCritical, "Clients: Exception in HTTP Proxy: ", e.what());
-						ThrowFatal ("Unable to start HTTP Proxy at ", m_InHost, ":", m_InPort, ": ", e.what ());
-					}
-					break;
-				default:
-					SendReplyError("Unsupported tunnel type.");
-					return;
+				if (m_InPort)
+					m_CurrentDestination->CreateInboundTunnel (m_InPort, m_InHost);
+				if (m_OutPort && !m_OutHost.empty ())
+					m_CurrentDestination->CreateOutboundTunnel (m_OutHost, m_OutPort, m_IsQuiet);
+				m_CurrentDestination->Start ();
+				break;
 			}
+			case TunnelType::SOCKS:
+			{
+				try
+				{
+					auto SocksProxy = std::make_shared<i2p::proxy::SOCKSProxy>(m_Nickname, m_InHost, m_InPort,
+						false, m_OutHost, m_OutPort, m_CurrentDestination->GetLocalDestination());
+					SocksProxy->Start();
+					m_Owner.SetProxy(m_Nickname, std::move(SocksProxy));
+				}
+				catch (std::exception& e)
+				{
+					LogPrint(eLogCritical, "Clients: Exception in SOCKS Proxy: ", e.what());
+					ThrowFatal ("Unable to start SOCKS Proxy at ", m_InHost, ":", m_InPort, ": ", e.what ());
+				}
+				break;
+			}
+			case TunnelType::HTTP_PROXY:
+			{
+				try
+				{
+					auto HttpProxy = std::make_shared<i2p::proxy::HTTPProxy>(m_Nickname, m_InHost, m_InPort,
+						m_OutHost, true, true, m_CurrentDestination->GetLocalDestination());
+					HttpProxy->Start();
+					m_Owner.SetProxy(m_Nickname, std::move(HttpProxy));
+				}
+				catch (std::exception& e)
+				{
+					LogPrint(eLogCritical, "Clients: Exception in HTTP Proxy: ", e.what());
+					ThrowFatal ("Unable to start HTTP Proxy at ", m_InHost, ":", m_InPort, ": ", e.what ());
+				}
+				break;
+			}
+			default:
+				SendReplyError("Unsupported tunnel type.");
+				return;
 		}
 		SendReplyOK ("Tunnel starting");
 		m_IsActive = true;
@@ -997,21 +1000,18 @@ namespace client
 	{
 		std::string_view sv(operand, len);
 		LogPrint (eLogDebug, "BOB: settunneltype ", operand);
-			if (sv == "socks")
-			{
-				m_tunnelType = TunnelType::SOCKS;
-				SendReplyOK ("tunnel type set to SOCKS");
-			}
-			else if (sv == "httpproxy")
-			{
-				m_tunnelType = TunnelType::HTTP_PROXY;
-				SendReplyOK ("tunnel type set to HTTP proxy");
-			}
-			else
-			{
-				m_tunnelType.reset();
-				SendReplyError ("no tunnel type has been set");
-			}
+		if (sv == "socks")
+		{
+			m_TunnelType = TunnelType::SOCKS;
+			SendReplyOK ("tunnel type set to SOCKS");
+		}
+		else if (sv == "httpproxy")
+		{
+			m_TunnelType = TunnelType::HTTP_PROXY;
+			SendReplyOK ("tunnel type set to HTTP proxy");
+		}
+		else
+			SendReplyError ("no tunnel type has been set");
 	}
 
 	BOBCommandChannel::BOBCommandChannel (const std::string& address, uint16_t port):
