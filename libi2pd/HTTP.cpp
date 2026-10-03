@@ -607,12 +607,16 @@ namespace http
 		while (!in.eof ())
 		{
 			std::getline (in, hexLen);
-			errno = 0;
-			long int len = strtoul(hexLen.c_str(), (char **) NULL, 16);
-			if (errno != 0)
-				return false; /* conversion error */
-			if (len == 0)
-				return true; /* end of stream */
+			long len = 0;
+			try
+			{
+				len = std::stoi (hexLen, nullptr, 16);
+			}
+			catch (std::exception& ex)
+			{
+				return false;
+			}
+			if (!len) return true; // end of stream
 			if (len < 0 || len > 10 * 1024 * 1024) /* < 10Mb */
 				return false; /* too large chunk */
 			char * buf = new char[len];
