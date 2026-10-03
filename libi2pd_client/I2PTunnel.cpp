@@ -405,7 +405,7 @@ namespace client
 						{
 							/* close connection, if not Connection: (U|u)pgrade (for websocket) */
 							auto x = line.find("pgrade");
-							if (x != std::string::npos && std::tolower(line[x - 1]) == 'u')
+							if (x != std::string::npos && x && std::tolower(line[x - 1]) == 'u')
 								m_OutHeader << line << "\r\n";
 							else
 								m_OutHeader << "Connection: close\r\n";

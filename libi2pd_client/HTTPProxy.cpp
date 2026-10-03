@@ -353,7 +353,7 @@ namespace proxy
 		/* close connection, if not Connection: (U|u)pgrade (for websocket) */
 		auto h = req.GetHeader ("Connection");
 		auto x = h.find("pgrade");
-		if (!(x != std::string::npos && std::tolower(h[x - 1]) == 'u'))
+		if (x == std::string::npos || !x || std::tolower(h[x - 1]) != 'u')
 			req.UpdateHeader("Connection", "close");
 	}
 
