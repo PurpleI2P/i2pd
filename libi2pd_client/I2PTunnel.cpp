@@ -401,7 +401,7 @@ namespace client
 					if (line == "\r") endOfHeader = true;
 					else
 					{
-						if (!m_ConnectionSent && !line.compare(0, 10, "Connection"))
+						if (!m_ConnectionSent && line.starts_with ("Connection"))
 						{
 							/* close connection, if not Connection: (U|u)pgrade (for websocket) */
 							auto x = line.find("pgrade");
@@ -412,7 +412,7 @@ namespace client
 
 							m_ConnectionSent = true;
 						}
-						else if (!m_ProxyConnectionSent && !line.compare(0, 16, "Proxy-Connection"))
+						else if (!m_ProxyConnectionSent && line.starts_with ("Proxy-Connection"))
 						{
 							m_OutHeader << "Proxy-Connection: close\r\n";
 							m_ProxyConnectionSent = true;
@@ -569,7 +569,7 @@ namespace client
 						};
 						bool matched = false;
 						for (const auto& it: excluded)
-							if (!line.compare(0, it.length (), it))
+							if (line.starts_with (it))
 							{
 								matched = true;
 								break;
