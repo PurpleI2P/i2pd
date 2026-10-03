@@ -114,31 +114,29 @@ namespace torrents
 
 	std::string JSONRPCHandler::HandleRequest (std::string_view request)
 	{
+		const static std::map<std::string_view, std::string (JSONRPCHandler::*)(boost::json::object&& jsonRequest)> methods =
+		{
+			{ "torrent-add", &JSONRPCHandler::HandleTorrentAdd },
+			{ "torrent-remove", &JSONRPCHandler::HandleTorrentRemove },
+			{ "torrent-get", &JSONRPCHandler::HandleTorrentGet },
+			{ "torrent-stop", &JSONRPCHandler::HandleTorrentStop },
+			{ "torrent-start", &JSONRPCHandler::HandleTorrentStart  },
+			{ "session-get", &JSONRPCHandler::HandleSessionGet },
+			{ "session-stats", &JSONRPCHandler::HandleSessionStats },
+			{ "torrent-set", &JSONRPCHandler::HandleTorrentSet }
+		};
+
 		try
 		{
 			auto jsonRequest = boost::json::parse (request).as_object ();
 			auto method = jsonRequest.at ("method").as_string ();
-			if (method == "torrent-add")
-				return HandleTorrentAdd (std::move (jsonRequest));
-			else if (method == "torrent-remove")
-				return HandleTorrentRemove (std::move (jsonRequest));
-			else if (method == "torrent-get")
-				return HandleTorrentGet (std::move (jsonRequest));
-			else if (method == "torrent-stop")
-				return HandleTorrentStop (std::move (jsonRequest));
-			else if (method == "torrent-start")
-				return HandleTorrentStart (std::move (jsonRequest));
-			else if (method == "session-get")
-				return HandleSessionGet (std::move (jsonRequest));
-			else if (method == "session-stats")
-				return HandleSessionStats (std::move (jsonRequest));
-			else if (method == "torrent-set")
-				return HandleTorrentSet (std::move (jsonRequest));
-			else
+			auto it = methods.find (method);
+			if (it == methods.end ())
 			{
 				LogPrint (eLogInfo, "TorrentsRPC: Method not found ", method);
 				return ErrorResponse (GetTag (jsonRequest), "Method not found");
 			}
+			return (this->*(it->second))(std::move (jsonRequest));
 		}
 		catch (const std::exception& ex)
 		{
