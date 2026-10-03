@@ -935,8 +935,9 @@ namespace torrents
 		if (have) // all
 		{
 			// delete resume file
-			if (!std::filesystem::remove (resumeFilePath))
-				LogPrint (eLogError, "Torrents: Can't delete resume file ", resumeFilePath);
+			std::error_code ec;
+			if (!std::filesystem::remove (resumeFilePath, ec))
+				LogPrint (eLogError, "Torrents: Can't delete resume file ", resumeFilePath, " : ", ec.message ());
 		}
 		else
 		{
@@ -2413,21 +2414,26 @@ namespace torrents
 	{
 		if (m_IsChoked || !m_Torrent || m_Torrent->IsComplete ()) return false;
 		if (m_NumRequests >= m_MaxNumRequests) return false;
-		std::vector<uint8_t> buf;
-		buf.reserve (REQUEST_MSG_LENGTH*(m_MaxNumRequests - m_NumRequests));
+		if (m_MaxNumRequests > MAX_NUM_REQUESTS)
+		{
+			LogPrint (eLogError, "Torrents: Max number or requests ", m_MaxNumRequests, " exceeds ", MAX_NUM_REQUESTS);
+			m_MaxNumRequests = MAX_NUM_REQUESTS;
+			if (m_NumRequests >= m_MaxNumRequests) return false;
+		}
+		uint8_t buf[REQUEST_MSG_LENGTH*MAX_NUM_REQUESTS];
 		size_t bufOffset = 0;
 		while (m_NumRequests < m_MaxNumRequests)
 		{
 			auto nextBlock = GetNextBlockToRequest ();
 			if (!nextBlock) break;
 			auto [index, offset, len] = *nextBlock;
-			FillRequestMsg (buf.data () + bufOffset, index, offset, len);
+			FillRequestMsg (buf + bufOffset, index, offset, len);
 			bufOffset += REQUEST_MSG_LENGTH;
 			m_LastRequestedPieceIndex = index;
 			m_NumRequests++;
 		}
 		if (bufOffset > 0)
-			WriteToStream (buf.data (), bufOffset);
+			WriteToStream (buf, bufOffset);
 		return bufOffset > 0;
 	}
 
