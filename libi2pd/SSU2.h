@@ -66,23 +66,23 @@ namespace transport
 		{
 			public:
 
-				ReceiveService (const std::string& name): RunnableService (name) {};
-				auto& GetService () { return GetIOService (); };
-				void Start () { StartIOService (); };
-				void Stop () { StopIOService (); };
+				ReceiveService (const std::string& name): RunnableService (name) {}
+				auto& GetService () { return GetIOService (); }
+				void Start () { StartIOService (); }
+				void Stop () { StopIOService (); }
 		};
 
 		public:
 
 			SSU2Server ();
-			~SSU2Server () {};
+			~SSU2Server () {}
 
 			void Start ();
 			void Stop ();
-			auto& GetService () { return GetIOService (); };
+			auto& GetService () { return GetIOService (); }
 			void SetLocalAddress (const boost::asio::ip::address& localAddress);
 			bool SetProxy (const std::string& address, uint16_t port);
-			bool UsesProxy () const { return m_IsThroughProxy; };
+			bool UsesProxy () const { return m_IsThroughProxy; }
 			bool IsSupported (const boost::asio::ip::address& addr) const;
 			uint16_t GetPort (bool v4) const;
 			bool IsForcedFirewalled (bool v4) const { return v4 ? m_IsForcedFirewalled4 : m_IsForcedFirewalled6; }
@@ -95,7 +95,7 @@ namespace transport
 				const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len);
 			void ChaCha20 (const uint8_t * msg, size_t msgLen, const uint8_t * key, const uint8_t * nonce, uint8_t * out);
 			bool IsMaxNumIntroducers (bool v4) const { return (v4 ? m_Introducers.size () : m_IntroducersV6.size ()) >= SSU2_MAX_NUM_INTRODUCERS; }
-			bool IsSyncClockFromPeers () const { return m_IsSyncClockFromPeers; };
+			bool IsSyncClockFromPeers () const { return m_IsSyncClockFromPeers; }
 			void AdjustTimeOffset (int64_t offset, std::shared_ptr<const i2p::data::IdentityEx> from);
 
 			using SSU2Sessions = std::unordered_map<uint64_t, std::shared_ptr<SSU2Session> >;
@@ -138,9 +138,9 @@ namespace transport
 			void RescheduleIntroducersUpdateTimer ();
 			void RescheduleIntroducersUpdateTimerV6 ();
 
-			i2p::util::MemoryPool<SSU2SentPacket>& GetSentPacketsPool () { return m_SentPacketsPool; };
-			i2p::util::MemoryPool<SSU2IncompleteMessage>& GetIncompleteMessagesPool () { return m_IncompleteMessagesPool; };
-			i2p::util::MemoryPool<SSU2IncompleteMessage::Fragment>& GetFragmentsPool () { return m_FragmentsPool; };
+			i2p::util::MemoryPool<SSU2SentPacket>& GetSentPacketsPool () { return m_SentPacketsPool; }
+			i2p::util::MemoryPool<SSU2IncompleteMessage>& GetIncompleteMessagesPool () { return m_IncompleteMessagesPool; }
+			i2p::util::MemoryPool<SSU2IncompleteMessage::Fragment>& GetFragmentsPool () { return m_FragmentsPool; }
 
 			void SetVersion (int version);
             int GetVersion () const { return m_Version; }
@@ -238,7 +238,7 @@ namespace transport
 			{
 				return boost::asio::post (GetService (),
 					boost::asio::use_future ([this, &sessions]() { sessions = m_Sessions; }));
-			};
+			}
 	};
 }
 }

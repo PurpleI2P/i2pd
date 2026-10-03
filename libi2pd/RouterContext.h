@@ -93,10 +93,10 @@ namespace garlic
 			{
 				public:
 
-					RouterService (): RunnableServiceWithWork ("Router") {};
-					auto& GetService () { return GetIOService (); };
-					void Start () { StartIOService (); };
-					void Stop () { StopIOService (); };
+					RouterService (): RunnableServiceWithWork ("Router") {}
+					auto& GetService () { return GetIOService (); }
+					void Start () { StartIOService (); }
+					void Stop () { StopIOService (); }
 			};
 
 		public:
@@ -106,8 +106,8 @@ namespace garlic
 			void Start ();
 			void Stop ();
 
-			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
-			i2p::data::LocalRouterInfo& GetRouterInfo () { return m_RouterInfo; };
+			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; }
+			i2p::data::LocalRouterInfo& GetRouterInfo () { return m_RouterInfo; }
 			std::shared_ptr<i2p::data::RouterInfo> GetSharedRouterInfo ()
 			{
 				return std::shared_ptr<i2p::data::RouterInfo> (&m_RouterInfo,
@@ -120,34 +120,34 @@ namespace garlic
 			}
 			std::shared_ptr<i2p::data::RouterInfo::Buffer> CopyRouterInfoBuffer () const;
 
-			const uint8_t * GetNTCP2StaticPublicKey () const { return m_NTCP2Keys ? m_NTCP2Keys->staticPublicKey : nullptr; };
-			const uint8_t * GetNTCP2StaticPrivateKey () const { return m_NTCP2Keys ? m_NTCP2Keys->staticPrivateKey : nullptr; };
-			const uint8_t * GetNTCP2IV () const { return m_NTCP2Keys ? m_NTCP2Keys->iv : nullptr; };
+			const uint8_t * GetNTCP2StaticPublicKey () const { return m_NTCP2Keys ? m_NTCP2Keys->staticPublicKey : nullptr; }
+			const uint8_t * GetNTCP2StaticPrivateKey () const { return m_NTCP2Keys ? m_NTCP2Keys->staticPrivateKey : nullptr; }
+			const uint8_t * GetNTCP2IV () const { return m_NTCP2Keys ? m_NTCP2Keys->iv : nullptr; }
 			i2p::crypto::X25519Keys& GetNTCP2StaticKeys ();
 
-			const uint8_t * GetSSU2StaticPublicKey () const { return m_SSU2Keys ? m_SSU2Keys->staticPublicKey : nullptr; };
-			const uint8_t * GetSSU2StaticPrivateKey () const { return m_SSU2Keys ? m_SSU2Keys->staticPrivateKey : nullptr; };
-			const uint8_t * GetSSU2IntroKey () const { return m_SSU2Keys ? m_SSU2Keys->intro : nullptr; };
+			const uint8_t * GetSSU2StaticPublicKey () const { return m_SSU2Keys ? m_SSU2Keys->staticPublicKey : nullptr; }
+			const uint8_t * GetSSU2StaticPrivateKey () const { return m_SSU2Keys ? m_SSU2Keys->staticPrivateKey : nullptr; }
+			const uint8_t * GetSSU2IntroKey () const { return m_SSU2Keys ? m_SSU2Keys->intro : nullptr; }
 			i2p::crypto::X25519Keys& GetSSU2StaticKeys ();
 
 			uint32_t GetUptime () const; // in seconds
-			uint64_t GetLastUpdateTime () const { return m_LastUpdateTime; };
-			uint64_t GetBandwidthLimit () const { return m_BandwidthLimit; };
-			uint64_t GetTransitBandwidthLimit () const { return (m_BandwidthLimit*m_ShareRatio)/100LL; };
-			bool GetTesting () const { return m_Testing; };
+			uint64_t GetLastUpdateTime () const { return m_LastUpdateTime; }
+			uint64_t GetBandwidthLimit () const { return m_BandwidthLimit; }
+			uint64_t GetTransitBandwidthLimit () const { return (m_BandwidthLimit*m_ShareRatio)/100LL; }
+			bool GetTesting () const { return m_Testing; }
 			void SetTesting (bool testing);
-			RouterStatus GetStatus () const { return m_Status; };
+			RouterStatus GetStatus () const { return m_Status; }
 			void SetStatus (RouterStatus status);
-			RouterError GetError () const { return m_Error; };
-			void SetError (RouterError error) { m_Error = error; };
-			bool GetTestingV6 () const { return m_TestingV6; };
+			RouterError GetError () const { return m_Error; }
+			void SetError (RouterError error) { m_Error = error; }
+			bool GetTestingV6 () const { return m_TestingV6; }
 			void SetTestingV6 (bool testing);
-			RouterStatus GetStatusV6 () const { return m_StatusV6; };
+			RouterStatus GetStatusV6 () const { return m_StatusV6; }
 			void SetStatusV6 (RouterStatus status);
-			RouterError GetErrorV6 () const { return m_ErrorV6; };
-			void SetErrorV6 (RouterError error) { m_ErrorV6 = error; };
-			int GetNetID () const { return m_NetID; };
-			void SetNetID (int netID) { m_NetID = netID; };
+			RouterError GetErrorV6 () const { return m_ErrorV6; }
+			void SetErrorV6 (RouterError error) { m_ErrorV6 = error; }
+			int GetNetID () const { return m_NetID; }
+			void SetNetID (int netID) { m_NetID = netID; }
 			bool DecryptTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data);
 			bool DecryptTunnelShortRequestRecord (const uint8_t * encrypted, uint8_t * data);
 
@@ -162,39 +162,39 @@ namespace garlic
 			bool IsUnreachable () const;
 			void SetUnreachable (bool v4, bool v6);
 			void SetReachable (bool v4, bool v6);
-			bool IsFloodfill () const { return m_IsFloodfill; };
+			bool IsFloodfill () const { return m_IsFloodfill; }
 			void SetFloodfill (bool floodfill);
 			void SetFamily (const std::string& family);
 			std::string GetFamily () const;
 			void SetBandwidth (int limit); /* in kilobytes */
 			void SetBandwidth (char L); /* by letter */
 			void SetShareRatio (int percents); // 0 - 100
-			bool AcceptsTunnels () const { return m_AcceptsTunnels; };
-			void SetAcceptsTunnels (bool acceptsTunnels) { m_AcceptsTunnels = acceptsTunnels; };
+			bool AcceptsTunnels () const { return m_AcceptsTunnels; }
+			void SetAcceptsTunnels (bool acceptsTunnels) { m_AcceptsTunnels = acceptsTunnels; }
 			int GetCongestionLevel (bool longTerm) const;
-			bool SupportsV6 () const { return m_RouterInfo.IsV6 (); };
-			bool SupportsV4 () const { return m_RouterInfo.IsV4 (); };
-			bool SupportsMesh () const { return m_RouterInfo.IsMesh (); };
+			bool SupportsV6 () const { return m_RouterInfo.IsV6 (); }
+			bool SupportsV4 () const { return m_RouterInfo.IsV4 (); }
+			bool SupportsMesh () const { return m_RouterInfo.IsMesh (); }
 			void SetSupportsV6 (bool supportsV6);
 			void SetSupportsV4 (bool supportsV4);
 			void SetSupportsMesh (bool supportsmesh, const boost::asio::ip::address_v6& host);
 			void SetMTU (int mtu, bool v4);
-			void SetHidden(bool hide) { m_IsHiddenMode = hide; };
-			bool IsHidden() const { return m_IsHiddenMode; };
-			bool IsLimitedConnectivity () const { return m_Status == eRouterStatusProxy || m_Status == eRouterStatusStan; };
-			i2p::crypto::NoiseSymmetricState& GetCurrentNoiseState () { return m_CurrentNoiseState; };
+			void SetHidden(bool hide) { m_IsHiddenMode = hide; }
+			bool IsHidden() const { return m_IsHiddenMode; }
+			bool IsLimitedConnectivity () const { return m_Status == eRouterStatusProxy || m_Status == eRouterStatusStan; }
+			i2p::crypto::NoiseSymmetricState& GetCurrentNoiseState () { return m_CurrentNoiseState; }
 
 			void UpdateNTCP2V6Address (const boost::asio::ip::address& host); // called from Daemon. TODO: remove
 			void UpdateStats ();
 			void UpdateTimestamp (uint64_t ts); // in seconds, called from NetDb before publishing
 
 			// implements LocalDestination
-			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const override{ return m_Keys.GetPublic (); };
+			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const override{ return m_Keys.GetPublic (); }
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, i2p::data::CryptoKeyType preferredCrypto) const override;
-			void SetLeaseSetUpdated (bool post) override {};
+			void SetLeaseSetUpdated (bool post) override {}
 
 			// implements GarlicDestination
-			std::shared_ptr<const i2p::data::LocalLeaseSet> GetLeaseSet () override { return nullptr; };
+			std::shared_ptr<const i2p::data::LocalLeaseSet> GetLeaseSet () override { return nullptr; }
 			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () const override;
 
 			// override GarlicDestination
@@ -221,7 +221,7 @@ namespace garlic
 			void UpdateSSU2Keys ();
 			bool Load ();
 			void SaveKeys ();
-			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Keys.Sign (buf, len, signature); };
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Keys.Sign (buf, len, signature); }
 			uint16_t SelectRandomPort () const;
 			void PublishNTCP2Address (std::shared_ptr<i2p::data::RouterInfo::Address> address, int port, bool publish, int version) const;
             void UpdateSSU2AddressCapsIntroducer (std::shared_ptr<i2p::data::RouterInfo::Address> address, bool isIntroducer) const;

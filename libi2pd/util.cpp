@@ -666,7 +666,6 @@ namespace net
 			case 0x260070ff:
 			// Hurricane Electric
 				return 1480;
-			break;
 			default: ;
 		}
 		return 1500;

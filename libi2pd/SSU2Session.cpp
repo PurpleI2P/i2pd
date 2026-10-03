@@ -531,7 +531,7 @@ namespace transport
 					m_SentPackets.emplace (packetNum, packet);
 					packet = newPacket; // just ack block
 				}
-			};
+			}
 			if (packet->payloadSize > ackBlockSize)
 			{
 				// last
@@ -692,10 +692,8 @@ namespace transport
 		{
 			case eSSU2SessionRequest:
 				return ProcessSessionRequest (header, buf, len);
-			break;
 			case eSSU2TokenRequest:
 				return ProcessTokenRequest (header, buf, len);
-			break;
 			case eSSU2PeerTest:
 			{
 				// TODO: remove later
@@ -1994,7 +1992,7 @@ namespace transport
 				}
 			break;
 			default: ;
-		};
+		}
 	}
 
 	void SSU2Session::HandleRouterInfo (const uint8_t * buf, size_t len)

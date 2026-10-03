@@ -1419,7 +1419,7 @@ namespace stream
 			break;
 			default:
 				LogPrint (eLogWarning, "Streaming: Unexpected stream status=", (int)m_Status, " for sSID=", m_SendStreamID);
-		};
+		}
 	}
 
 	void Stream::SendClose ()

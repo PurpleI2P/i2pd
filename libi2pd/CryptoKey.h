@@ -21,7 +21,7 @@ namespace crypto
 	{
 		public:
 
-			virtual ~CryptoKeyEncryptor () {};
+			virtual ~CryptoKeyEncryptor () {}
 			virtual void Encrypt (const uint8_t * data, uint8_t * encrypted) = 0;
 	};
 
@@ -29,7 +29,7 @@ namespace crypto
 	{
 		public:
 
-			virtual ~CryptoKeyDecryptor () {};
+			virtual ~CryptoKeyDecryptor () {}
 			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data) = 0;
 			virtual size_t GetPublicKeyLen () const = 0; // we need it to set key in LS2
 	};
@@ -53,7 +53,7 @@ namespace crypto
 
 			ElGamalDecryptor (const uint8_t * priv);
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data) override; // 514 bytes encrypted, 222 bytes data
-			size_t GetPublicKeyLen () const override { return 256; };
+			size_t GetPublicKeyLen () const override { return 256; }
 
 		private:
 
@@ -84,7 +84,7 @@ namespace crypto
 			ECIESP256Decryptor (const uint8_t * priv);
 			~ECIESP256Decryptor ();
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data) override;
-			size_t GetPublicKeyLen () const override { return 64; };
+			size_t GetPublicKeyLen () const override { return 64; }
 
 		private:
 
@@ -117,7 +117,7 @@ namespace crypto
 			ECIESGOSTR3410Decryptor (const uint8_t * priv);
 			~ECIESGOSTR3410Decryptor ();
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data) override;
-			size_t GetPublicKeyLen () const override { return 64; };
+			size_t GetPublicKeyLen () const override { return 64; }
 
 		private:
 
@@ -133,7 +133,7 @@ namespace crypto
 		public:
 
 			ECIESX25519AEADRatchetEncryptor (const uint8_t * pub);
-			~ECIESX25519AEADRatchetEncryptor () {};
+			~ECIESX25519AEADRatchetEncryptor () {}
 			void Encrypt (const uint8_t *, uint8_t * pub) override;
 			// copies m_PublicKey to pub
 
@@ -147,11 +147,11 @@ namespace crypto
 		public:
 
 			ECIESX25519AEADRatchetDecryptor (const uint8_t * priv, bool calculatePublic = false);
-			~ECIESX25519AEADRatchetDecryptor () {};
+			~ECIESX25519AEADRatchetDecryptor () {}
 			bool Decrypt (const uint8_t * epub, uint8_t * sharedSecret) override;
 			// agree with static and return in sharedSecret (32 bytes)
-			size_t GetPublicKeyLen () const override { return 32; };
-			const uint8_t * GetPubicKey () const { return m_StaticKeys.GetPublicKey (); };
+			size_t GetPublicKeyLen () const override { return 32; }
+			const uint8_t * GetPubicKey () const { return m_StaticKeys.GetPublicKey (); }
 
 		private:
 
@@ -172,7 +172,7 @@ namespace crypto
 			case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM768_X25519_AEAD:
 			case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM1024_X25519_AEAD:
 				return 32;
-		};
+		}
 		return 0;
 	}
 
@@ -188,7 +188,7 @@ namespace crypto
 			case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM768_X25519_AEAD:
 			case i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM1024_X25519_AEAD:
 				return 32;
-		};
+		}
 		return 0;
 	}
 

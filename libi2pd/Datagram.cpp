@@ -452,7 +452,7 @@ namespace datagram
 				break;
 				default:
 					LogPrint (eLogInfo, "Datagram: unknown protocol type ", protocolType);
-			};
+			}
 		}
 		else
 			LogPrint (eLogWarning, "Datagram: decompression failed");

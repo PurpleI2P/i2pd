@@ -51,8 +51,8 @@ namespace client
 
 		Address (std::string_view b32);
 		Address (const i2p::data::IdentHash& hash);
-		bool IsIdentHash () const { return addressType == eAddressIndentHash; };
-		bool IsValid () const { return addressType != eAddressInvalid; };
+		bool IsIdentHash () const { return addressType == eAddressIndentHash; }
+		bool IsValid () const { return addressType != eAddressInvalid; }
 		std::string ToBase32 () const;
 
 		bool operator==(const Address& other) const;
@@ -66,7 +66,7 @@ namespace client
 
 			typedef std::map<std::string, std::shared_ptr<Address>, std::less<> > Addresses;
 
-			virtual ~AddressBookStorage () {};
+			virtual ~AddressBookStorage () {}
 			virtual std::shared_ptr<const i2p::data::IdentityEx> GetAddress (const i2p::data::IdentHash& ident) = 0;
 			virtual void AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address) = 0;
 			virtual void RemoveAddress (const i2p::data::IdentHash& ident) = 0;

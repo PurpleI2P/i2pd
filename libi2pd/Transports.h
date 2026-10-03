@@ -155,12 +155,12 @@ namespace transport
 			bool IsBoundSSU2() const { return m_SSU2Server != nullptr; }
 			bool IsBoundNTCP2() const { return m_NTCP2Server != nullptr; }
 
-			bool IsOnline() const { return m_IsOnline; };
+			bool IsOnline() const { return m_IsOnline; }
 			void SetOnline (bool online);
 
 			int GetLocalDelay () const; // in milliseconds
 
-			auto& GetService () { return *m_Service; };
+			auto& GetService () { return *m_Service; }
 			std::shared_ptr<i2p::crypto::X25519Keys> GetNextX25519KeysPair ();
 			void ReuseX25519KeysPair (std::shared_ptr<i2p::crypto::X25519Keys> pair);
 
@@ -172,20 +172,20 @@ namespace transport
 			bool IsConnected (const i2p::data::IdentHash& ident) const;
 			void UpdatePeerParams (std::shared_ptr<const i2p::data::RouterInfo> r);
 
-			void UpdateSentBytes (uint64_t numBytes) { m_TotalSentBytes += numBytes; };
-			void UpdateReceivedBytes (uint64_t numBytes) { m_TotalReceivedBytes += numBytes; };
-			uint64_t GetTotalSentBytes () const { return m_TotalSentBytes; };
-			uint64_t GetTotalReceivedBytes () const { return m_TotalReceivedBytes; };
+			void UpdateSentBytes (uint64_t numBytes) { m_TotalSentBytes += numBytes; }
+			void UpdateReceivedBytes (uint64_t numBytes) { m_TotalReceivedBytes += numBytes; }
+			uint64_t GetTotalSentBytes () const { return m_TotalSentBytes; }
+			uint64_t GetTotalReceivedBytes () const { return m_TotalReceivedBytes; }
 			uint64_t GetTotalTransitTransmittedBytes () const { return m_TotalTransitTransmittedBytes; }
-			void UpdateTotalTransitTransmittedBytes (uint32_t add) { m_TotalTransitTransmittedBytes += add; };
-			uint32_t GetInBandwidth () const { return m_InBandwidth; };
-			uint32_t GetOutBandwidth () const { return m_OutBandwidth; };
-			uint32_t GetTransitBandwidth () const { return m_TransitBandwidth; };
-			uint32_t GetInBandwidth15s () const { return m_InBandwidth15s; };
-			uint32_t GetOutBandwidth15s () const { return m_OutBandwidth15s; };
-			uint32_t GetTransitBandwidth15s () const { return m_TransitBandwidth15s; };
+			void UpdateTotalTransitTransmittedBytes (uint32_t add) { m_TotalTransitTransmittedBytes += add; }
+			uint32_t GetInBandwidth () const { return m_InBandwidth; }
+			uint32_t GetOutBandwidth () const { return m_OutBandwidth; }
+			uint32_t GetTransitBandwidth () const { return m_TransitBandwidth; }
+			uint32_t GetInBandwidth15s () const { return m_InBandwidth15s; }
+			uint32_t GetOutBandwidth15s () const { return m_OutBandwidth15s; }
+			uint32_t GetTransitBandwidth15s () const { return m_TransitBandwidth15s; }
 			int GetCongestionLevel (bool longTerm) const;
-			size_t GetNumPeers () const { return m_Peers.size (); };
+			size_t GetNumPeers () const { return m_Peers.size (); }
 			std::shared_ptr<const i2p::data::RouterInfo> GetRandomPeer (bool isHighBandwidth, i2p::data::PeerOrdering * peerOrdering = nullptr) const;
 
 			/** get a trusted first hop for restricted routes */
@@ -202,8 +202,8 @@ namespace transport
 
 			void PeerTest (bool ipv4 = true, bool ipv6 = true);
 
-			void SetCheckReserved (bool check) { m_CheckReserved = check; };
-			bool IsCheckReserved () const { return m_CheckReserved; };
+			void SetCheckReserved (bool check) { m_CheckReserved = check; }
+			bool IsCheckReserved () const { return m_CheckReserved; }
 			bool IsInReservedRange (const boost::asio::ip::address& host) const;
 
 			bool IsBanned (const boost::asio::ip::address& addr);
@@ -281,9 +281,9 @@ namespace transport
 		public:
 
 			// for HTTP only
-			const NTCP2Server * GetNTCP2Server () const { return m_NTCP2Server; };
-			SSU2Server * GetSSU2Server () const { return m_SSU2Server; };
-			const decltype(m_Peers)& GetPeers () const { return m_Peers; };
+			const NTCP2Server * GetNTCP2Server () const { return m_NTCP2Server; }
+			SSU2Server * GetSSU2Server () const { return m_SSU2Server; }
+			const decltype(m_Peers)& GetPeers () const { return m_Peers; }
 	};
 
 	extern Transports transports;

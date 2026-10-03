@@ -89,19 +89,19 @@ namespace tunnel
 			std::shared_ptr<TunnelConfig> GetTunnelConfig () const { return m_Config; }
 			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > GetPeers () const;
 			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > GetInvertedPeers () const;
-			i2p::data::RouterInfo::CompatibleTransports GetFarEndTransports () const { return m_FarEndTransports; };
-			TunnelState GetState () const { return m_State; };
+			i2p::data::RouterInfo::CompatibleTransports GetFarEndTransports () const { return m_FarEndTransports; }
+			TunnelState GetState () const { return m_State; }
 			void SetState (TunnelState state);
 			bool IsEstablished () const;
-			bool IsFailed () const { return m_State == eTunnelStateFailed; };
-			bool IsRecreated () const { return m_IsRecreated; };
-			void SetRecreated (bool recreated) { m_IsRecreated = recreated; };
-			int GetNumHops () const { return m_Hops.size (); };
+			bool IsFailed () const { return m_State == eTunnelStateFailed; }
+			bool IsRecreated () const { return m_IsRecreated; }
+			void SetRecreated (bool recreated) { m_IsRecreated = recreated; }
+			int GetNumHops () const { return m_Hops.size (); }
 			virtual bool IsInbound() const = 0;
 			virtual bool Recreate () = 0;
 
-			std::shared_ptr<TunnelPool> GetTunnelPool () const { return m_Pool; };
-			void SetTunnelPool (std::shared_ptr<TunnelPool> pool) { m_Pool = pool; };
+			std::shared_ptr<TunnelPool> GetTunnelPool () const { return m_Pool; }
+			void SetTunnelPool (std::shared_ptr<TunnelPool> pool) { m_Pool = pool; }
 
 			bool HandleTunnelBuildResponse (uint8_t * msg, size_t len);
 
@@ -138,13 +138,13 @@ namespace tunnel
 		public:
 
 			OutboundTunnel (std::shared_ptr<TunnelConfig> config):
-				Tunnel (config), m_Gateway (*this), m_EndpointIdentHash (config->GetLastIdentHash ()) {};
+				Tunnel (config), m_Gateway (*this), m_EndpointIdentHash (config->GetLastIdentHash ()) {}
 
 			void SendTunnelDataMsgTo (const uint8_t * gwHash, uint32_t gwTunnel, std::shared_ptr<i2p::I2NPMessage> msg);
 			virtual void SendTunnelDataMsgsTo (const uint8_t * gwHash, uint32_t gwTunnel, const std::vector<std::shared_ptr<i2p::I2NPMessage> >& msgs);
 			virtual void SendTunnelDataMsgs (const std::vector<TunnelMessageBlock>& msgs); // multiple messages
-			const i2p::data::IdentHash& GetEndpointIdentHash () const { return m_EndpointIdentHash; };
-			virtual size_t GetNumSentBytes () const { return m_Gateway.GetNumSentBytes (); };
+			const i2p::data::IdentHash& GetEndpointIdentHash () const { return m_EndpointIdentHash; }
+			virtual size_t GetNumSentBytes () const { return m_Gateway.GetNumSentBytes (); }
 
 			// implements TunnelBase
 			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg) override;
@@ -167,14 +167,14 @@ namespace tunnel
 	{
 		public:
 
-			InboundTunnel (std::shared_ptr<TunnelConfig> config): Tunnel (config), m_Endpoint (true) {};
+			InboundTunnel (std::shared_ptr<TunnelConfig> config): Tunnel (config), m_Endpoint (true) {}
 			void HandleTunnelDataMsg (std::shared_ptr<I2NPMessage>&& msg) override;
-			virtual size_t GetNumReceivedBytes () const { return m_Endpoint.GetNumReceivedBytes (); };
+			virtual size_t GetNumReceivedBytes () const { return m_Endpoint.GetNumReceivedBytes (); }
 			bool IsInbound() const override { return true; }
 			bool Recreate () override;
 
 			// override TunnelBase
-			void Cleanup () override { m_Endpoint.Cleanup (); };
+			void Cleanup () override { m_Endpoint.Cleanup (); }
 
 		protected:
 
@@ -194,7 +194,7 @@ namespace tunnel
 
 			ZeroHopsInboundTunnel ();
 			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg) override;
-			size_t GetNumReceivedBytes () const override { return m_NumReceivedBytes; };
+			size_t GetNumReceivedBytes () const override { return m_NumReceivedBytes; }
 
 		private:
 
@@ -208,7 +208,7 @@ namespace tunnel
 			ZeroHopsOutboundTunnel ();
 			void SendTunnelDataMsgsTo (const uint8_t * gwHash, uint32_t gwTunnel, const std::vector<std::shared_ptr<i2p::I2NPMessage> >& msgs) override;
 			void SendTunnelDataMsgs (const std::vector<TunnelMessageBlock>& msgs) override;
-			size_t GetNumSentBytes () const override { return m_NumSentBytes; };
+			size_t GetNumSentBytes () const override { return m_NumSentBytes; }
 
 		private:
 
@@ -228,7 +228,7 @@ namespace tunnel
 			std::shared_ptr<OutboundTunnel> GetPendingOutboundTunnel (uint32_t replyMsgID);
 			std::shared_ptr<InboundTunnel> GetNextInboundTunnel ();
 			std::shared_ptr<OutboundTunnel> GetNextOutboundTunnel ();
-			std::shared_ptr<TunnelPool> GetExploratoryPool () const { return m_ExploratoryPool; };
+			std::shared_ptr<TunnelPool> GetExploratoryPool () const { return m_ExploratoryPool; }
 			std::shared_ptr<TunnelBase> GetTunnel (uint32_t tunnelID);
 			bool AddTunnel (std::shared_ptr<TunnelBase> tunnel);
 			void RemoveTunnel (uint32_t tunnelID);
@@ -250,7 +250,7 @@ namespace tunnel
 			std::shared_ptr<I2NPMessage> NewI2NPTunnelMessage (bool endpoint);
 
 			void SetMaxNumTransitTunnels (uint32_t maxNumTransitTunnels);
-			uint32_t GetMaxNumTransitTunnels () const { return m_MaxNumTransitTunnels; };
+			uint32_t GetMaxNumTransitTunnels () const { return m_MaxNumTransitTunnels; }
 			int GetCongestionLevel() const { return m_MaxNumTransitTunnels ? CONGESTION_LEVEL_FULL * m_TransitTunnels.GetNumTransitTunnels () / m_MaxNumTransitTunnels : CONGESTION_LEVEL_FULL; }
 			std::mt19937& GetRng () { return m_Rng; }
 
@@ -338,14 +338,14 @@ namespace tunnel
 				std::lock_guard<std::mutex> l(m_TunnelsMutex);
 				return std::vector<std::shared_ptr<InboundTunnel> > (m_InboundTunnels.begin (), m_InboundTunnels.end ());
 			}
-			auto GetTransitTunnelsList () const { return m_TransitTunnels.GetTransitTunnelsList (); };
+			auto GetTransitTunnelsList () const { return m_TransitTunnels.GetTransitTunnelsList (); }
 
 			size_t CountTransitTunnels() const;
 			size_t CountInboundTunnels() const;
 			size_t CountOutboundTunnels() const;
 
-			size_t GetQueueSize () const { return m_Queue.GetSize (); };
-			size_t GetTBMQueueSize () const { return m_TransitTunnels.GetTunnelBuildMsgQueueSize (); };
+			size_t GetQueueSize () const { return m_Queue.GetSize (); }
+			size_t GetTBMQueueSize () const { return m_TransitTunnels.GetTunnelBuildMsgQueueSize (); }
 			int GetTunnelCreationSuccessRate () const { return std::round(m_TunnelCreationSuccessRate * 100); } // in percents
 			double GetPreciseTunnelCreationSuccessRate () const { return m_TunnelCreationSuccessRate * 100; } // in percents
 			int GetTotalTunnelCreationSuccessRate () const // in percents

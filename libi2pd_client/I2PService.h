@@ -125,10 +125,10 @@ namespace client
 			{ }
 			virtual ~I2PServiceHandler() { }
 			//If you override this make sure you call it from the children
-			virtual void Handle() {}; //Start handling the socket
-			virtual void Start () {};
+			virtual void Handle() {} //Start handling the socket
+			virtual void Start () {}
 
-			void Terminate () { Kill (); };
+			void Terminate () { Kill (); }
 
 		protected:
 
@@ -276,7 +276,7 @@ namespace client
 				ClearHandlers();
 				I2PService::Stop ();
 			}
-			const typename Protocol::endpoint& GetLocalEndpoint () const { return m_LocalEndpoint; };
+			const typename Protocol::endpoint& GetLocalEndpoint () const { return m_LocalEndpoint; }
 
 			const char* GetName() const override { return "Generic TCP/IP accepting daemon"; }
 

@@ -60,7 +60,7 @@ namespace data
 		uint8_t certificate[3];	// byte 1 - type, bytes 2-3 - length
 
 		Identity () = default;
-		Identity (const Keys& keys) { *this = keys; };
+		Identity (const Keys& keys) { *this = keys; }
 		Identity& operator=(const Keys& keys);
 		size_t FromBuffer (const uint8_t * buf, size_t len);
 		IdentHash Hash () const;
@@ -114,13 +114,13 @@ namespace data
 			size_t ToBuffer (uint8_t * buf, size_t len) const;
 			size_t FromBase64(std::string_view s);
 			std::string ToBase64 () const;
-			const Identity& GetStandardIdentity () const { return m_StandardIdentity; };
+			const Identity& GetStandardIdentity () const { return m_StandardIdentity; }
 
-			const IdentHash& GetIdentHash () const { return m_IdentHash; };
-			const uint8_t * GetEncryptionPublicKey () const { return m_StandardIdentity.publicKey; };
-			uint8_t * GetEncryptionPublicKeyBuffer () { return m_StandardIdentity.publicKey; };
+			const IdentHash& GetIdentHash () const { return m_IdentHash; }
+			const uint8_t * GetEncryptionPublicKey () const { return m_StandardIdentity.publicKey; }
+			uint8_t * GetEncryptionPublicKeyBuffer () { return m_StandardIdentity.publicKey; }
 			std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> CreateEncryptor (const uint8_t * key) const;
-			size_t GetFullLen () const { return m_ExtendedLen + DEFAULT_IDENTITY_SIZE; };
+			size_t GetFullLen () const { return m_ExtendedLen + DEFAULT_IDENTITY_SIZE; }
 			size_t GetSigningPublicKeyLen () const;
 			const uint8_t * GetSigningPublicKeyBuffer () const; // returns NULL for P521
 			size_t GetSigningPrivateKeyLen () const;
@@ -166,9 +166,9 @@ namespace data
 	{
 		public:
 
-			size_t GetLen () const { return m_Buf.size (); };
-			const uint8_t * GetBuffer () const { return m_Buf.data (); };
-			bool operator== (const B33OfflineKeys& other) const { return m_Buf == other.m_Buf; };
+			size_t GetLen () const { return m_Buf.size (); }
+			const uint8_t * GetBuffer () const { return m_Buf.data (); }
+			bool operator== (const B33OfflineKeys& other) const { return m_Buf == other.m_Buf; }
 			size_t FromBuffer (const uint8_t * buf, size_t len, const IdentHash& ident);
 			size_t ToBuffer (uint8_t * buf, size_t len) const;
 
@@ -182,17 +182,17 @@ namespace data
 		public:
 
 			PrivateKeys () = default;
-			PrivateKeys (const PrivateKeys& other) { *this = other; };
-			PrivateKeys (const Keys& keys) { *this = keys; };
+			PrivateKeys (const PrivateKeys& other) { *this = other; }
+			PrivateKeys (const Keys& keys) { *this = keys; }
 			PrivateKeys& operator=(const Keys& keys);
 			PrivateKeys& operator=(const PrivateKeys& other);
 			~PrivateKeys () = default;
 
-			std::shared_ptr<const IdentityEx> GetPublic () const { return m_Public; };
-			const uint8_t * GetPrivateKey () const { return m_PrivateKey; };
-			const uint8_t * GetSigningPrivateKey () const { return m_SigningPrivateKey.data (); };
+			std::shared_ptr<const IdentityEx> GetPublic () const { return m_Public; }
+			const uint8_t * GetPrivateKey () const { return m_PrivateKey; }
+			const uint8_t * GetSigningPrivateKey () const { return m_SigningPrivateKey.data (); }
 			size_t GetSignatureLen () const; // might not match identity
-			bool IsOfflineSignature () const { return m_TransientSignatureLen > 0; };
+			bool IsOfflineSignature () const { return m_TransientSignatureLen > 0; }
 			uint8_t * GetPadding();
 			void RecalculateIdentHash(uint8_t * buf=nullptr) { m_Public->RecalculateIdentHash(buf); }
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
@@ -214,8 +214,8 @@ namespace data
 
 			// offline keys
 			PrivateKeys CreateOfflineKeys (SigningKeyType type, uint32_t expires) const;
-			const std::vector<uint8_t>& GetOfflineSignature () const { return m_OfflineSignature; };
-			const B33OfflineKeys& GetB33OfflineKeys () const { return m_B33OfflineKeys; };
+			const std::vector<uint8_t>& GetOfflineSignature () const { return m_OfflineSignature; }
+			const B33OfflineKeys& GetB33OfflineKeys () const { return m_B33OfflineKeys; }
 			void UpdateOfflineSignature (const PrivateKeys& other); // refresh transient material, keep identity
 
 		private:
@@ -244,11 +244,11 @@ namespace data
 
 			OfflinePrivateKeys (const PrivateKeys& keys, const char * date); // date is 8 chars "YYYYMMDD"
 
-			bool IsOfflineSignature () const { return !m_TransientPrivateKey.empty (); }; // false if that day can't be signed
-			const uint8_t * GetSigningPrivateKey () const { return m_TransientPrivateKey.empty () ? PrivateKeys::GetSigningPrivateKey () : m_TransientPrivateKey.data (); };
-			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Signer->Sign (buf, len, signature); };
-			size_t GetSignatureLen () const { return m_SignatureLen; };
-			const std::vector<uint8_t>& GetOfflineSignature () const { return m_OfflineSignature; };
+			bool IsOfflineSignature () const { return !m_TransientPrivateKey.empty (); } // false if that day can't be signed
+			const uint8_t * GetSigningPrivateKey () const { return m_TransientPrivateKey.empty () ? PrivateKeys::GetSigningPrivateKey () : m_TransientPrivateKey.data (); }
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Signer->Sign (buf, len, signature); }
+			size_t GetSignatureLen () const { return m_SignatureLen; }
+			const std::vector<uint8_t>& GetOfflineSignature () const { return m_OfflineSignature; }
 
 		private:
 
@@ -263,28 +263,28 @@ namespace data
 	{
 		public:
 
-			RoutingDestination () {};
-			virtual ~RoutingDestination () {};
+			RoutingDestination () {}
+			virtual ~RoutingDestination () {}
 
 			virtual std::shared_ptr<const IdentityEx> GetIdentity () const = 0;
 			virtual void Encrypt (const uint8_t * data, uint8_t * encrypted) const = 0; // encrypt data for
 			virtual bool IsDestination () const = 0; // for garlic
 
-			const IdentHash& GetIdentHash () const { return GetIdentity ()->GetIdentHash (); };
-			virtual CryptoKeyType GetEncryptionType () const { return GetIdentity ()->GetCryptoKeyType (); }; // override in LeaseSet2
+			const IdentHash& GetIdentHash () const { return GetIdentity ()->GetIdentHash (); }
+			virtual CryptoKeyType GetEncryptionType () const { return GetIdentity ()->GetCryptoKeyType (); } // override in LeaseSet2
 	};
 
 	class LocalDestination
 	{
 		public:
 
-			virtual ~LocalDestination() {};
+			virtual ~LocalDestination() {}
 			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data, CryptoKeyType preferredCrypto = CRYPTO_KEY_TYPE_ELGAMAL) const = 0;
 			virtual std::shared_ptr<const IdentityEx> GetIdentity () const = 0;
 
-			const IdentHash& GetIdentHash () const { return GetIdentity ()->GetIdentHash (); };
-			virtual bool SupportsEncryptionType (CryptoKeyType keyType) const { return GetIdentity ()->GetCryptoKeyType () == keyType; }; // override for LeaseSet
-			virtual const uint8_t * GetEncryptionPublicKey (CryptoKeyType keyType) const { return GetIdentity ()->GetEncryptionPublicKey (); }; // override for LeaseSet
+			const IdentHash& GetIdentHash () const { return GetIdentity ()->GetIdentHash (); }
+			virtual bool SupportsEncryptionType (CryptoKeyType keyType) const { return GetIdentity ()->GetCryptoKeyType () == keyType; } // override for LeaseSet
+			virtual const uint8_t * GetEncryptionPublicKey (CryptoKeyType keyType) const { return GetIdentity ()->GetEncryptionPublicKey (); } // override for LeaseSet
 	};
 }
 }

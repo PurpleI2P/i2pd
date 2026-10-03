@@ -36,8 +36,8 @@ namespace crypto
 			GOSTR3410Curve (BIGNUM * a, BIGNUM * b, BIGNUM * p, BIGNUM * q, BIGNUM * x, BIGNUM * y);
 			~GOSTR3410Curve ();
 
-			size_t GetKeyLen () const { return m_KeyLen; };
-			const EC_GROUP * GetGroup () const { return m_Group; };
+			size_t GetKeyLen () const { return m_KeyLen; }
+			const EC_GROUP * GetGroup () const { return m_Group; }
 			EC_POINT * MulP (const BIGNUM * n) const;
 			bool GetXY (const EC_POINT * p, BIGNUM * x, BIGNUM * y) const;
 			EC_POINT * CreatePoint (const BIGNUM * x, const BIGNUM * y) const;

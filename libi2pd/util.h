@@ -259,8 +259,8 @@ namespace util
 	{
 		public:
 
-			SaveStateHelper (T& orig): m_Original (orig), m_Copy (orig) {};
-			~SaveStateHelper () { m_Original = m_Copy; };
+			SaveStateHelper (T& orig): m_Original (orig), m_Copy (orig) {}
+			~SaveStateHelper () { m_Original = m_Copy; }
 
 		private:
 

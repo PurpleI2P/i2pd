@@ -68,16 +68,16 @@ namespace data
 			void Connected ();
 			void Duplicated ();
 
-			uint64_t GetLastUpdateTime () const { return m_LastUpdateTime; };
-			bool IsUpdated () const { return m_IsUpdated; };
+			uint64_t GetLastUpdateTime () const { return m_LastUpdateTime; }
+			bool IsUpdated () const { return m_IsUpdated; }
 			void SetUpdated (bool updated) { m_IsUpdated = updated; }
-			uint64_t GetLastAccessTime () const { return m_LastAccessTime; };
-			void SetLastAccessTime (uint64_t ts) { m_LastAccessTime = ts; };
-			uint64_t GetLastPersistTime () const { return m_LastPersistTime; };
-			void SetLastPersistTime (uint64_t ts) { m_LastPersistTime = ts; };
+			uint64_t GetLastAccessTime () const { return m_LastAccessTime; }
+			void SetLastAccessTime (uint64_t ts) { m_LastAccessTime = ts; }
+			uint64_t GetLastPersistTime () const { return m_LastPersistTime; }
+			void SetLastPersistTime (uint64_t ts) { m_LastPersistTime = ts; }
 
 			bool IsUseful() const;
-			bool IsDuplicated () const { return m_IsDuplicated; };
+			bool IsDuplicated () const { return m_IsDuplicated; }
 
 			const boost::asio::ip::udp::endpoint& GetLastEndpoint () const { return m_LastEndpoint; }
 			void SetLastEndpoint (const boost::asio::ip::udp::endpoint& ep) { m_LastEndpoint = ep; }
@@ -88,7 +88,7 @@ namespace data
 
 			void UpdateTime ();
 
-			bool IsAlwaysDeclining () const { return !m_NumTunnelsAgreed && m_NumTunnelsDeclined >= 5; };
+			bool IsAlwaysDeclining () const { return !m_NumTunnelsAgreed && m_NumTunnelsDeclined >= 5; }
 			bool IsLowPartcipationRate () const;
 			bool IsLowReplyRate () const;
 			bool IsDeclinedRecently (uint64_t ts);

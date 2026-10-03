@@ -112,12 +112,12 @@ namespace data
 			void PostDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg); // to NetdbReq thread
 
 			void Reseed ();
-			Families& GetFamilies () { return m_Families; };
+			Families& GetFamilies () { return m_Families; }
 
 			// for web interface
-			int GetNumRouters () const { return m_RouterInfos.size (); };
-			int GetNumFloodfills () const { return m_Floodfills.GetSize (); };
-			int GetNumLeaseSets () const { return m_LeaseSets.size (); };
+			int GetNumRouters () const { return m_RouterInfos.size (); }
+			int GetNumFloodfills () const { return m_Floodfills.GetSize (); }
+			int GetNumLeaseSets () const { return m_LeaseSets.size (); }
 
 			/** visit all lease sets we currently store */
 			void VisitLeaseSets(LeaseSetVisitor v);
@@ -128,24 +128,24 @@ namespace data
 			/** visit N random router that match using filter, then visit them with a visitor, return number of RouterInfos that were visited */
 			size_t VisitRandomRouterInfos(RouterInfoFilter f, RouterInfoVisitor v, size_t n);
 
-			void ClearRouterInfos () { m_RouterInfos.clear (); };
+			void ClearRouterInfos () { m_RouterInfos.clear (); }
 			template<typename... TArgs>
 			std::shared_ptr<RouterInfo::Buffer> NewRouterInfoBuffer (TArgs&&... args)
 			{
 				return m_RouterInfoBuffersPool.AcquireSharedMt (std::forward<TArgs>(args)...);
 			}
 			bool PopulateRouterInfoBuffer (std::shared_ptr<RouterInfo> r);
-			std::shared_ptr<RouterInfo::Address> NewRouterInfoAddress () { return m_RouterInfoAddressesPool.AcquireSharedMt (); };
+			std::shared_ptr<RouterInfo::Address> NewRouterInfoAddress () { return m_RouterInfoAddressesPool.AcquireSharedMt (); }
 			RouterInfo::AddressesPtr NewRouterInfoAddresses ()
 			{
 				return RouterInfo::AddressesPtr{m_RouterInfoAddressVectorsPool.AcquireMt (),
 					std::bind <void (i2p::util::MemoryPoolMt<RouterInfo::Addresses>::*)(RouterInfo::Addresses *)>
 						(&i2p::util::MemoryPoolMt<RouterInfo::Addresses>::ReleaseMt,
 						&m_RouterInfoAddressVectorsPool, std::placeholders::_1)};
-			};
-			std::shared_ptr<Lease> NewLease (const Lease& lease) { return m_LeasesPool.AcquireSharedMt (lease); };
-			std::shared_ptr<IdentityEx> NewIdentity (const uint8_t * buf, size_t len) { return m_IdentitiesPool.AcquireSharedMt (buf, len); };
-			std::shared_ptr<RouterProfile> NewRouterProfile () { return m_RouterProfilesPool.AcquireSharedMt (); };
+			}
+			std::shared_ptr<Lease> NewLease (const Lease& lease) { return m_LeasesPool.AcquireSharedMt (lease); }
+			std::shared_ptr<IdentityEx> NewIdentity (const uint8_t * buf, size_t len) { return m_IdentitiesPool.AcquireSharedMt (buf, len); }
+			std::shared_ptr<RouterProfile> NewRouterProfile () { return m_RouterProfilesPool.AcquireSharedMt (); }
 
 		private:
 

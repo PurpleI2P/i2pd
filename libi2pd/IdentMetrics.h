@@ -29,9 +29,9 @@ namespace data
 			uint64_t metric_ll[4];
 		};
 
-		void SetMin () { memset (metric, 0, 32); };
-		void SetMax () { memset (metric, 0xFF, 32); };
-		bool operator< (const XORMetric& other) const { return memcmp (metric, other.metric, 32) < 0; };
+		void SetMin () { memset (metric, 0, 32); }
+		void SetMax () { memset (metric, 0xFF, 32); }
+		bool operator< (const XORMetric& other) const { return memcmp (metric, other.metric, 32) < 0; }
 	};
 
 	IdentHash CreateRoutingKey (const IdentHash& ident, bool nextDay = false);
@@ -51,8 +51,8 @@ namespace data
 			const Tag<16>& GetKey () const { return m_PeerOrderingKey; }
 
 			int GetPeerOrderingGroup (const IdentHash& routerIdent);
-			bool IsFirstHop (const IdentHash& routerIdent) { return !GetPeerOrderingGroup (routerIdent); };
-			bool IsLastHop (const IdentHash& routerIdent) { return GetPeerOrderingGroup (routerIdent) & 0x02; }; // IBGW or OBEP
+			bool IsFirstHop (const IdentHash& routerIdent) { return !GetPeerOrderingGroup (routerIdent); }
+			bool IsLastHop (const IdentHash& routerIdent) { return GetPeerOrderingGroup (routerIdent) & 0x02; } // IBGW or OBEP
 
 		private:
 

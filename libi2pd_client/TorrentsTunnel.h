@@ -95,7 +95,7 @@ namespace torrents
 
 			void Start () override;
 			void Stop () override;
-			auto& GetDiskIOService () { return m_DiskIOService.GetService (); };
+			auto& GetDiskIOService () { return m_DiskIOService.GetService (); }
 
 			const std::string& GetPeerID () const { return m_PeerID; }
 			const std::filesystem::path& GetTorrentsDir () const { return m_TorrentsDir; }

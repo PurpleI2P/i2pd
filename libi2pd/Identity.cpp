@@ -466,19 +466,16 @@ namespace data
 		{
 			case CRYPTO_KEY_TYPE_ELGAMAL:
 				return std::make_shared<i2p::crypto::ElGamalEncryptor>(key);
-			break;
 			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD:
 			case CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD:
 			case CRYPTO_KEY_TYPE_ECIES_MLKEM768_X25519_AEAD:
 			case CRYPTO_KEY_TYPE_ECIES_MLKEM1024_X25519_AEAD:
 				return std::make_shared<i2p::crypto::ECIESX25519AEADRatchetEncryptor>(key);
-			break;
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
 				return std::make_shared<i2p::crypto::ECIESP256Encryptor>(key);
-			break;
 			default:
 				LogPrint (eLogError, "Identity: Unknown crypto key type ", (int)keyType);
-		};
+		}
 		return nullptr;
 	}
 
@@ -763,13 +760,10 @@ namespace data
 		{
 			case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
 				return new i2p::crypto::ECDSAP256Signer (priv);
-			break;
 			case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
 				return new i2p::crypto::ECDSAP384Signer (priv);
-			break;
 			case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
 				return new i2p::crypto::ECDSAP521Signer (priv);
-			break;
 			case SIGNING_KEY_TYPE_RSA_SHA256_2048:
 			case SIGNING_KEY_TYPE_RSA_SHA384_3072:
 			case SIGNING_KEY_TYPE_RSA_SHA512_4096:
@@ -777,16 +771,12 @@ namespace data
 			break;
 			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 				return new i2p::crypto::EDDSA25519Signer (priv, nullptr);
-			break;
 			case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256:
 				return new i2p::crypto::GOSTR3410_256_Signer (i2p::crypto::eGOSTR3410CryptoProA, priv);
-			break;
 			case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512:
 				return new i2p::crypto::GOSTR3410_512_Signer (i2p::crypto::eGOSTR3410TC26A512, priv);
-			break;
 			case SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
 				return new i2p::crypto::RedDSA25519Signer (priv);
-			break;
 			default:
 				LogPrint (eLogError, "Identity: Signing key type ", (int)keyType, " is not supported");
 		}
@@ -824,19 +814,16 @@ namespace data
 		{
 			case CRYPTO_KEY_TYPE_ELGAMAL:
 				return std::make_shared<i2p::crypto::ElGamalDecryptor>(key);
-			break;
 			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD:
 			case CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD:
 			case CRYPTO_KEY_TYPE_ECIES_MLKEM768_X25519_AEAD:
 			case CRYPTO_KEY_TYPE_ECIES_MLKEM1024_X25519_AEAD:
 				return std::make_shared<i2p::crypto::ECIESX25519AEADRatchetDecryptor>(key);
-			break;
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
 				return std::make_shared<i2p::crypto::ECIESP256Decryptor>(key);
-			break;
 			default:
 				LogPrint (eLogError, "Identity: Unknown crypto key type ", (int)cryptoType);
-		};
+		}
 		return nullptr;
 	}
 

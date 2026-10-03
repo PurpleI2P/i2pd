@@ -91,26 +91,26 @@ namespace stream
 		bool resent;
 		i2p::garlic::ECIESX25519AEADRatchetSession * from;
 
-		Packet (): len (0), offset (0), sendTime (0), resent (false), from (nullptr) {};
-		uint8_t * GetBuffer () { return buf + offset; };
-		size_t GetLength () const { return len > offset ? len - offset : 0; };
+		Packet (): len (0), offset (0), sendTime (0), resent (false), from (nullptr) {}
+		uint8_t * GetBuffer () { return buf + offset; }
+		size_t GetLength () const { return len > offset ? len - offset : 0; }
 
-		uint32_t GetSendStreamID () const { return bufbe32toh (buf); };
-		uint32_t GetReceiveStreamID () const { return bufbe32toh (buf + 4); };
-		uint32_t GetSeqn () const { return bufbe32toh (buf + 8); };
-		uint32_t GetAckThrough () const { return bufbe32toh (buf + 12); };
-		uint8_t GetNACKCount () const { return buf[16]; };
-		uint32_t GetNACK (int i) const { return bufbe32toh (buf + 17 + 4 * i); };
-		const uint8_t * GetNACKs () const { return buf + 17; };
-		const uint8_t * GetOption () const { return buf + 17 + GetNACKCount ()*4 + 3; }; // 3 = resendDelay + flags
-		uint16_t GetFlags () const { return bufbe16toh (GetOption () - 2); };
-		uint16_t GetOptionSize () const { return bufbe16toh (GetOption ()); };
-		const uint8_t * GetOptionData () const { return GetOption () + 2; };
-		const uint8_t * GetPayload () const { return GetOptionData () + GetOptionSize (); };
+		uint32_t GetSendStreamID () const { return bufbe32toh (buf); }
+		uint32_t GetReceiveStreamID () const { return bufbe32toh (buf + 4); }
+		uint32_t GetSeqn () const { return bufbe32toh (buf + 8); }
+		uint32_t GetAckThrough () const { return bufbe32toh (buf + 12); }
+		uint8_t GetNACKCount () const { return buf[16]; }
+		uint32_t GetNACK (int i) const { return bufbe32toh (buf + 17 + 4 * i); }
+		const uint8_t * GetNACKs () const { return buf + 17; }
+		const uint8_t * GetOption () const { return buf + 17 + GetNACKCount ()*4 + 3; } // 3 = resendDelay + flags
+		uint16_t GetFlags () const { return bufbe16toh (GetOption () - 2); }
+		uint16_t GetOptionSize () const { return bufbe16toh (GetOption ()); }
+		const uint8_t * GetOptionData () const { return GetOption () + 2; }
+		const uint8_t * GetPayload () const { return GetOptionData () + GetOptionSize (); }
 
-		bool IsSYN () const { return GetFlags () & PACKET_FLAG_SYNCHRONIZE; };
-		bool IsNoAck () const { return GetFlags () & PACKET_FLAG_NO_ACK; };
-		bool IsEcho () const { return GetFlags () & PACKET_FLAG_ECHO; };
+		bool IsSYN () const { return GetFlags () & PACKET_FLAG_SYNCHRONIZE; }
+		bool IsNoAck () const { return GetFlags () & PACKET_FLAG_NO_ACK; }
+		bool IsEcho () const { return GetFlags () & PACKET_FLAG_ECHO; }
 	};
 
 	struct PacketCmp
@@ -118,7 +118,7 @@ namespace stream
 		bool operator() (const Packet * p1, const Packet * p2) const
 		{
 			return p1->GetSeqn () < p2->GetSeqn ();
-		};
+		}
 	};
 
 #ifdef __cpp_lib_move_only_function // with C++23
@@ -150,22 +150,22 @@ namespace stream
 			delete[] buf;
 			if (handler) handler(boost::system::error_code (), len);
 		}
-		size_t GetRemainingSize () const { return len - offset; };
-		const uint8_t * GetRemaningBuffer () const { return buf + offset; };
-		void Cancel () { if (handler) handler (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), offset); handler = nullptr; };
+		size_t GetRemainingSize () const { return len - offset; }
+		const uint8_t * GetRemaningBuffer () const { return buf + offset; }
+		void Cancel () { if (handler) handler (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), offset); handler = nullptr; }
 	};
 
 	class SendBufferQueue
 	{
 		public:
 
-			SendBufferQueue (): m_Size (0) {};
-			~SendBufferQueue () { CleanUp (); };
+			SendBufferQueue (): m_Size (0) {}
+			~SendBufferQueue () { CleanUp (); }
 
 			void Add (std::shared_ptr<SendBuffer>&& buf);
 			size_t Get (uint8_t * buf, size_t len);
-			size_t GetSize () const { return m_Size; };
-			bool IsEmpty () const { return m_Buffers.empty (); };
+			size_t GetSize () const { return m_Size; }
+			bool IsEmpty () const { return m_Buffers.empty (); }
 			void CleanUp ();
 
 		private:
@@ -194,16 +194,16 @@ namespace stream
 			Stream (boost::asio::io_context& service, StreamingDestination& local); // incoming
 
 			~Stream ();
-			uint32_t GetSendStreamID () const { return m_SendStreamID; };
-			uint32_t GetRecvStreamID () const { return m_RecvStreamID; };
-			std::shared_ptr<const i2p::data::LeaseSet> GetRemoteLeaseSet () const { return m_RemoteLeaseSet; };
-			std::shared_ptr<const i2p::data::IdentityEx> GetRemoteIdentity () const { return m_RemoteIdentity; };
-			bool IsOpen () const { return m_Status == eStreamStatusOpen; };
-			bool IsEstablished () const { return m_SendStreamID; };
-			bool IsIncoming () const { return m_IsIncoming; };
-			StreamStatus GetStatus () const { return m_Status; };
-			StreamingDestination& GetLocalDestination () { return m_LocalDestination; };
-			boost::asio::io_context& GetService () { return m_Service; };
+			uint32_t GetSendStreamID () const { return m_SendStreamID; }
+			uint32_t GetRecvStreamID () const { return m_RecvStreamID; }
+			std::shared_ptr<const i2p::data::LeaseSet> GetRemoteLeaseSet () const { return m_RemoteLeaseSet; }
+			std::shared_ptr<const i2p::data::IdentityEx> GetRemoteIdentity () const { return m_RemoteIdentity; }
+			bool IsOpen () const { return m_Status == eStreamStatusOpen; }
+			bool IsEstablished () const { return m_SendStreamID; }
+			bool IsIncoming () const { return m_IsIncoming; }
+			StreamStatus GetStatus () const { return m_Status; }
+			StreamingDestination& GetLocalDestination () { return m_LocalDestination; }
+			boost::asio::io_context& GetService () { return m_Service; }
 			void ResetRoutingPath ();
 
 			void HandleNextPacket (Packet * packet);
@@ -215,22 +215,22 @@ namespace stream
 
 			template<typename Buffer, typename ReceiveHandler>
 			void AsyncReceive (const Buffer& buffer, ReceiveHandler&& handler, int timeout = 0, size_t minSize = 0);
-			size_t ReadSome (uint8_t * buf, size_t len) { return ConcatenatePackets (buf, len); };
+			size_t ReadSome (uint8_t * buf, size_t len) { return ConcatenatePackets (buf, len); }
 			size_t Receive (uint8_t * buf, size_t len, int timeout);
 
-			void AsyncClose() { boost::asio::post(m_Service, std::bind(&Stream::Close, shared_from_this())); };
+			void AsyncClose() { boost::asio::post(m_Service, std::bind(&Stream::Close, shared_from_this())); }
 
 			/** only call close from destination thread, use Stream::AsyncClose for other threads */
 			void Close ();
-			void Cancel () { m_ReceiveTimer.cancel (); };
+			void Cancel () { m_ReceiveTimer.cancel (); }
 
-			size_t GetNumSentBytes () const { return m_NumSentBytes; };
-			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
-			size_t GetSendQueueSize () const { return m_SentPackets.size (); };
-			size_t GetReceiveQueueSize () const { return m_ReceiveQueue.size (); };
-			size_t GetSendBufferSize () const { return m_SendBuffer.GetSize (); };
-			int GetWindowSize () const { return m_WindowSize; };
-			int GetRTT () const { return m_RTT; };
+			size_t GetNumSentBytes () const { return m_NumSentBytes; }
+			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; }
+			size_t GetSendQueueSize () const { return m_SentPackets.size (); }
+			size_t GetReceiveQueueSize () const { return m_ReceiveQueue.size (); }
+			size_t GetSendBufferSize () const { return m_SendBuffer.GetSize (); }
+			int GetWindowSize () const { return m_WindowSize; }
+			int GetRTT () const { return m_RTT; }
 
 			void Terminate (bool deleteFromDestination = true);
 
@@ -332,19 +332,19 @@ namespace stream
 			void SendPing (std::shared_ptr<const i2p::data::LeaseSet> remote);
 			void DeleteStream (std::shared_ptr<Stream> stream);
 			bool DeleteStream (uint32_t recvStreamID);
-			size_t GetNumStreams () const { return m_Streams.size (); };
+			size_t GetNumStreams () const { return m_Streams.size (); }
 			void SetAcceptor (const Acceptor& acceptor);
 			void ResetAcceptor ();
-			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };
+			bool IsAcceptorSet () const { return m_Acceptor != nullptr; }
 			void AcceptOnce (const Acceptor& acceptor);
 			void AcceptOnceAcceptor (std::shared_ptr<Stream> stream, Acceptor acceptor, Acceptor prev);
 			std::shared_ptr<Stream> AcceptStream (int timeout = 0); // sync
 			void SetPongHandler (const PongHandler& handler);
 			void ResetPongHandler ();
 
-			std::shared_ptr<i2p::client::ClientDestination> GetOwner () const { return m_Owner; };
-			void SetOwner (std::shared_ptr<i2p::client::ClientDestination> owner) { m_Owner = owner; };
-			uint16_t GetLocalPort () const { return m_LocalPort; };
+			std::shared_ptr<i2p::client::ClientDestination> GetOwner () const { return m_Owner; }
+			void SetOwner (std::shared_ptr<i2p::client::ClientDestination> owner) { m_Owner = owner; }
+			uint16_t GetLocalPort () const { return m_LocalPort; }
 
 			void HandleDataMessagePayload (const uint8_t * buf, size_t len, i2p::garlic::ECIESX25519AEADRatchetSession * from);
 			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len, uint16_t toPort, bool checksum = true, bool gzip = false);
@@ -388,7 +388,7 @@ namespace stream
 			i2p::data::GzipDeflator m_Deflator;
 
 			// for HTTP only
-			const decltype(m_Streams)& GetStreams () const { return m_Streams; };
+			const decltype(m_Streams)& GetStreams () const { return m_Streams; }
 
 			// copy for other threads, unlike GetStreams which hands out the map itself
 			std::vector<std::shared_ptr<const Stream> > GetStreamsList ();

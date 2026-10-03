@@ -264,7 +264,6 @@ namespace transport
 		{
 			case i2p::data::RouterInfo::eTransportNTCP2:
 				return "TCP";
-				break;
 			case i2p::data::RouterInfo::eTransportSSU2:
 			default:
 				return "UDP";

@@ -49,8 +49,8 @@ namespace http
 		std::string frag;
 		bool ipv6;
 
-		URL(): schema(""), user(""), pass(""), host(""), port(0), path(""), hasquery(false), query(""), frag(""), ipv6(false) {};
-		URL (std::string_view url): URL () { parse (url); };
+		URL(): schema(""), user(""), pass(""), host(""), port(0), path(""), hasquery(false), query(""), frag(""), ipv6(false) {}
+		URL (std::string_view url): URL () { parse (url); }
 		URL (const URL& ) = default;
 		URL (URL&& ) = default;
 		URL& operator=(const URL& ) = default;
@@ -102,7 +102,7 @@ namespace http
 		std::string method;
 		std::string uri;
 
-		HTTPReq (): version("HTTP/1.0"), method("GET"), uri("/") {};
+		HTTPReq (): version("HTTP/1.0"), method("GET"), uri("/") {}
 
 		/**
 		 * @brief Tries to parse HTTP request from string
@@ -119,10 +119,10 @@ namespace http
 		void AddHeader (const std::string& name, const std::string& value);
 		void UpdateHeader (const std::string& name, const std::string& value);
 		void RemoveHeader (const std::string& name, const std::string& exempt); // remove all headers starting with name, but exempt
-		void RemoveHeader (const std::string& name) { RemoveHeader (name, ""); };
+		void RemoveHeader (const std::string& name) { RemoveHeader (name, ""); }
 		std::string GetHeader (std::string_view name) const;
 		size_t GetNumHeaders (std::string_view name) const;
-		size_t GetNumHeaders () const { return headers.size (); };
+		size_t GetNumHeaders () const { return headers.size (); }
 	};
 
 	struct HTTPRes : HTTPMsg {

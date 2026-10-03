@@ -38,7 +38,7 @@ namespace torrents
 	{
 		public:
 
-			JSONRPCHandler (std::shared_ptr<TorrentsTunnel> tunnel): m_Tunnel (tunnel) {};
+			JSONRPCHandler (std::shared_ptr<TorrentsTunnel> tunnel): m_Tunnel (tunnel) {}
 
 			std::string HandleRequest (std::string_view request);
 
@@ -109,7 +109,7 @@ namespace torrents
 			else
 				torrentIds.push_back (ids.as_int64 ());
 		}
-		return torrentIds;;
+		return torrentIds;
 	}
 
 	std::string JSONRPCHandler::HandleRequest (std::string_view request)
@@ -481,7 +481,7 @@ namespace torrents
 					case ePeerConnectionOriginPEX: flags.push_back ('X'); break;
 					case ePeerConnectionOriginDHT: flags.push_back ('H'); break;
 					default: ;
-				};
+				}
 				peer["flagStr"] = flags;
 				const auto& remoteBitfield = it->GetRemoteBitfield ();
 				peer["progress"] = remoteBitfield.size () ? ((float)remoteBitfield.count ())/((float)remoteBitfield.size ()) : 0.0;

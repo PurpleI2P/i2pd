@@ -91,12 +91,12 @@ namespace transport
 
 		void SetVersion (int version);
 
-		const uint8_t * GetPub () const { return m_EphemeralKeys->GetPublicKey (); };
-		const uint8_t * GetRemotePub () const { return m_RemoteEphemeralPublicKey; }; // Y for Alice
-		uint8_t * GetRemotePub () { return m_RemoteEphemeralPublicKey; }; // to set or X for Bob
+		const uint8_t * GetPub () const { return m_EphemeralKeys->GetPublicKey (); }
+		const uint8_t * GetRemotePub () const { return m_RemoteEphemeralPublicKey; } // Y for Alice
+		uint8_t * GetRemotePub () { return m_RemoteEphemeralPublicKey; } // to set or X for Bob
 
-		const uint8_t * GetCK () const { return m_CK; };
-		const uint8_t * GetH () const { return m_H; };
+		const uint8_t * GetCK () const { return m_CK; }
+		const uint8_t * GetH () const { return m_H; }
 
 		bool KDF1Alice ();
 		bool KDF1Bob ();
@@ -153,14 +153,14 @@ namespace transport
 			void Close (); // for accept
 			void DeleteNextReceiveBuffer (uint64_t ts);
 
-			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
-			const boost::asio::ip::tcp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
-			void SetRemoteEndpoint (const boost::asio::ip::tcp::endpoint& ep) { m_RemoteEndpoint = ep; };
+			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; }
+			const boost::asio::ip::tcp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; }
+			void SetRemoteEndpoint (const boost::asio::ip::tcp::endpoint& ep) { m_RemoteEndpoint = ep; }
 
-			bool IsEstablished () const override { return m_IsEstablished; };
+			bool IsEstablished () const override { return m_IsEstablished; }
 			i2p::data::RouterInfo::SupportedTransports GetTransportType () const override;
-			boost::asio::ip::address GetRemoteAddress () const override { return m_RemoteEndpoint.address (); };
-			bool IsTerminated () const { return m_IsTerminated; };
+			boost::asio::ip::address GetRemoteAddress () const override { return m_RemoteEndpoint.address (); }
+			bool IsTerminated () const { return m_IsTerminated; }
 
 			void ClientLogin (); // Alice
 			void ServerLogin (int version); // Bob
@@ -267,11 +267,11 @@ namespace transport
 				public:
 
 					EstablisherService (uint32_t seed): RunnableServiceWithWork ("NTCP2e"),
-						m_Rng (seed) {};
-					auto& GetService () { return GetIOService (); };
-					std::mt19937& GetRng () { return m_Rng; };
-					void Start () { StartIOService (); };
-					void Stop () { StopIOService (); };
+						m_Rng (seed) {}
+					auto& GetService () { return GetIOService (); }
+					std::mt19937& GetRng () { return m_Rng; }
+					void Start () { StartIOService (); }
+					void Stop () { StopIOService (); }
 
 				private:
 
@@ -292,10 +292,10 @@ namespace transport
 
 			void Start ();
 			void Stop ();
-			auto& GetService () { return GetIOService (); };
-			auto& GetEstablisherService () { return m_EstablisherService.GetService (); };
-			std::mt19937& GetRng () { return m_Rng; };
-			std::mt19937& GetEstablisherRng () { return m_EstablisherService.GetRng (); };
+			auto& GetService () { return GetIOService (); }
+			auto& GetEstablisherService () { return m_EstablisherService.GetService (); }
+			std::mt19937& GetRng () { return m_Rng; }
+			std::mt19937& GetEstablisherRng () { return m_EstablisherService.GetRng (); }
 			void AEADChaCha20Poly1305Encrypt (const std::vector<std::pair<uint8_t *, size_t> >& bufs,
 				const uint8_t * key, const uint8_t * nonce, uint8_t * mac);
 			bool AEADChaCha20Poly1305Decrypt (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen,
@@ -309,7 +309,7 @@ namespace transport
 			void ConnectWithProxy (std::shared_ptr<NTCP2Session> conn);
 			void Connect(std::shared_ptr<NTCP2Session> conn);
 
-			bool UsingProxy() const { return m_ProxyType != eNoProxy; };
+			bool UsingProxy() const { return m_ProxyType != eNoProxy; }
 			void UseProxy(ProxyType proxy, const std::string& address, uint16_t port, const std::string& user, const std::string& pass);
 
 			void SetLocalAddress (const boost::asio::ip::address& localAddress);
@@ -353,7 +353,7 @@ namespace transport
 		public:
 
 			// for HTTP/I2PControl
-			const decltype(m_NTCP2Sessions)& GetNTCP2Sessions () const { return m_NTCP2Sessions; };
+			const decltype(m_NTCP2Sessions)& GetNTCP2Sessions () const { return m_NTCP2Sessions; }
 	};
 }
 }

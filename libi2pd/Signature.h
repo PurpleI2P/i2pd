@@ -27,11 +27,11 @@ namespace crypto
 	{
 		public:
 
-			virtual ~Verifier () {};
+			virtual ~Verifier () {}
 			virtual bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const = 0;
 			virtual size_t GetPublicKeyLen () const = 0;
 			virtual size_t GetSignatureLen () const = 0;
-			virtual size_t GetPrivateKeyLen () const { return GetSignatureLen ()/2; };
+			virtual size_t GetPrivateKeyLen () const { return GetSignatureLen ()/2; }
 			virtual void SetPublicKey (const uint8_t * signingKey) = 0;
 	};
 
@@ -39,7 +39,7 @@ namespace crypto
 	{
 		public:
 
-			virtual ~Signer () {};
+			virtual ~Signer () {}
 			virtual void Sign (const uint8_t * buf, int len, uint8_t * signature) const = 0;
 	};
 
@@ -57,8 +57,8 @@ namespace crypto
 			// implements Verifier
 			void SetPublicKey (const uint8_t * signingKey) override;
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const override;
-			size_t GetPublicKeyLen () const override { return DSA_PUBLIC_KEY_LENGTH; };
-			size_t GetSignatureLen () const override { return DSA_SIGNATURE_LENGTH; };
+			size_t GetPublicKeyLen () const override { return DSA_PUBLIC_KEY_LENGTH; }
+			size_t GetSignatureLen () const override { return DSA_SIGNATURE_LENGTH; }
 
 		private:
 
@@ -107,8 +107,8 @@ namespace crypto
 			void SetPublicKey (const uint8_t * signingKey);
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
 
-			size_t GetPublicKeyLen () const { return m_KeyLen; };
-			size_t GetSignatureLen () const { return m_KeyLen; }; // signature length = key length
+			size_t GetPublicKeyLen () const { return m_KeyLen; }
+			size_t GetSignatureLen () const { return m_KeyLen; } // signature length = key length
 
 		private:
 
@@ -141,7 +141,7 @@ namespace crypto
 	{
 		public:
 
-			ECDSAP256Verifier (): ECDSAVerifier (NID_X9_62_prime256v1, ECDSAP256_KEY_LENGTH, EVP_sha256()) {};
+			ECDSAP256Verifier (): ECDSAVerifier (NID_X9_62_prime256v1, ECDSAP256_KEY_LENGTH, EVP_sha256()) {}
 	};
 
 	class ECDSAP256Signer: public ECDSASigner
@@ -149,7 +149,7 @@ namespace crypto
 		public:
 
 			ECDSAP256Signer (const uint8_t * signingPrivateKey):
-				ECDSASigner (NID_X9_62_prime256v1, ECDSAP256_KEY_LENGTH, EVP_sha256(), signingPrivateKey) {};
+				ECDSASigner (NID_X9_62_prime256v1, ECDSAP256_KEY_LENGTH, EVP_sha256(), signingPrivateKey) {}
 	};
 
 	inline void CreateECDSAP256RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
@@ -162,7 +162,7 @@ namespace crypto
 	{
 		public:
 
-			ECDSAP384Verifier (): ECDSAVerifier (NID_secp384r1, ECDSAP384_KEY_LENGTH, EVP_sha384()) {};
+			ECDSAP384Verifier (): ECDSAVerifier (NID_secp384r1, ECDSAP384_KEY_LENGTH, EVP_sha384()) {}
 	};
 
 	class ECDSAP384Signer: public ECDSASigner
@@ -170,7 +170,7 @@ namespace crypto
 		public:
 
 			ECDSAP384Signer (const uint8_t * signingPrivateKey):
-				ECDSASigner (NID_secp384r1, ECDSAP384_KEY_LENGTH, EVP_sha384(), signingPrivateKey) {};
+				ECDSASigner (NID_secp384r1, ECDSAP384_KEY_LENGTH, EVP_sha384(), signingPrivateKey) {}
 	};
 
 	inline void CreateECDSAP384RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
@@ -183,7 +183,7 @@ namespace crypto
 	{
 		public:
 
-			ECDSAP521Verifier (): ECDSAVerifier (NID_secp521r1, ECDSAP521_KEY_LENGTH, EVP_sha512()) {};
+			ECDSAP521Verifier (): ECDSAVerifier (NID_secp521r1, ECDSAP521_KEY_LENGTH, EVP_sha512()) {}
 	};
 
 	class ECDSAP521Signer: public ECDSASigner
@@ -191,7 +191,7 @@ namespace crypto
 		public:
 
 			ECDSAP521Signer (const uint8_t * signingPrivateKey):
-				ECDSASigner (NID_secp521r1, ECDSAP521_KEY_LENGTH, EVP_sha512(), signingPrivateKey) {};
+				ECDSASigner (NID_secp521r1, ECDSAP521_KEY_LENGTH, EVP_sha512(), signingPrivateKey) {}
 	};
 
 	inline void CreateECDSAP521RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
@@ -370,8 +370,8 @@ namespace crypto
 
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
 
-			size_t GetPublicKeyLen () const { return EDDSA25519_PUBLIC_KEY_LENGTH; };
-			size_t GetSignatureLen () const { return EDDSA25519_SIGNATURE_LENGTH; };
+			size_t GetPublicKeyLen () const { return EDDSA25519_PUBLIC_KEY_LENGTH; }
+			size_t GetSignatureLen () const { return EDDSA25519_SIGNATURE_LENGTH; }
 
 		private:
 
@@ -379,7 +379,7 @@ namespace crypto
 
 		protected:
 
-			EVP_PKEY * GetPkey () const { return m_Pkey; };
+			EVP_PKEY * GetPkey () const { return m_Pkey; }
 	};
 
 #if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
@@ -400,7 +400,7 @@ namespace crypto
 			~EDDSA25519SignerCompat ();
 
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
-			const uint8_t * GetPublicKey () const { return m_PublicKeyEncoded; }; // for keys creation
+			const uint8_t * GetPublicKey () const { return m_PublicKeyEncoded; } // for keys creation
 
 		private:
 
@@ -420,7 +420,7 @@ namespace crypto
 
 		protected:
 
-			EVP_PKEY * GetPkey () const { return m_Pkey; };
+			EVP_PKEY * GetPkey () const { return m_Pkey; }
 
 		private:
 
@@ -593,14 +593,14 @@ namespace crypto
 				GetEd25519 ()->EncodePublicKey (publicKey, m_PublicKeyEncoded, ctx);
 				BN_CTX_free (ctx);
 			}
-			~RedDSA25519Signer () {};
+			~RedDSA25519Signer () {}
 
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const
 			{
 				GetEd25519 ()->SignRedDSA (m_PrivateKey, m_PublicKeyEncoded, buf, len, signature);
 			}
 
-			const uint8_t * GetPublicKey () const { return m_PublicKeyEncoded; }; // for keys creation
+			const uint8_t * GetPublicKey () const { return m_PublicKeyEncoded; } // for keys creation
 
 		private:
 

@@ -22,8 +22,8 @@ namespace i2p
 namespace transport
 {
 	class TransportSession;
-}	
-	
+}
+
 namespace tunnel
 {
 	const size_t TUNNEL_DATA_MSG_SIZE = 1028;
@@ -50,20 +50,20 @@ namespace tunnel
 
 			TunnelBase (uint32_t tunnelID, uint32_t nextTunnelID, const i2p::data::IdentHash& nextIdent):
 				m_TunnelID (tunnelID), m_NextTunnelID (nextTunnelID), m_NextIdent (nextIdent),
-				m_CreationTime (i2p::util::GetSecondsSinceEpoch ()) {};
-			virtual ~TunnelBase () {};
-			virtual void Cleanup () {};
+				m_CreationTime (i2p::util::GetSecondsSinceEpoch ()) {}
+			virtual ~TunnelBase () {}
+			virtual void Cleanup () {}
 
 			virtual void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg) = 0;
 			virtual void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg) = 0;
-			virtual void FlushTunnelDataMsgs () {};
+			virtual void FlushTunnelDataMsgs () {}
 			virtual void EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out) = 0;
-			uint32_t GetNextTunnelID () const { return m_NextTunnelID; };
-			const i2p::data::IdentHash& GetNextIdentHash () const { return m_NextIdent; };
-			virtual uint32_t GetTunnelID () const { return m_TunnelID; }; // as known at our side
+			uint32_t GetNextTunnelID () const { return m_NextTunnelID; }
+			const i2p::data::IdentHash& GetNextIdentHash () const { return m_NextIdent; }
+			virtual uint32_t GetTunnelID () const { return m_TunnelID; } // as known at our side
 
-			uint32_t GetCreationTime () const { return m_CreationTime; };
-			void SetCreationTime (uint32_t t) { m_CreationTime = t; };
+			uint32_t GetCreationTime () const { return m_CreationTime; }
+			void SetCreationTime (uint32_t t) { m_CreationTime = t; }
 
 		private:
 
@@ -86,7 +86,7 @@ namespace tunnel
 
 	class TunnelTransportSender final
 	{
-		public: 
+		public:
 
 			TunnelTransportSender () = default;
 			~TunnelTransportSender () = default;
@@ -96,12 +96,12 @@ namespace tunnel
 
 			std::shared_ptr<const i2p::transport::TransportSession> GetCurrentTransport () const { return m_CurrentTransport.lock (); }
 			void Reset ();
-			
+
 		private:
-			
+
 			std::weak_ptr<i2p::transport::TransportSession> m_CurrentTransport;
 			std::future<std::shared_ptr<i2p::transport::TransportSession> > m_PendingTransport;
-	};	
+	};
 }
 }
 

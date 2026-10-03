@@ -82,12 +82,12 @@ namespace client
 		uint32_t m_NumWindowDrops = 0, m_NumAckTimeouts = 0;
 
 		UDPConnection (boost::asio::io_context& service, std::shared_ptr<i2p::datagram::DatagramDestination> destination):
-			m_Destination (destination), m_LastRepliableDatagramTime (0), m_AckTimer (service) {};
-		void SetIdentity (const i2p::data::IdentHash& ident) { Identity = ident; isIdentity = true; };
-		void SetMaxWindow (size_t w) { m_MaxWindow = w; };
+			m_Destination (destination), m_LastRepliableDatagramTime (0), m_AckTimer (service) {}
+		void SetIdentity (const i2p::data::IdentHash& ident) { Identity = ident; isIdentity = true; }
+		void SetMaxWindow (size_t w) { m_MaxWindow = w; }
 
-		virtual ~UDPConnection () { Stop (); };
-		virtual void Start () {};
+		virtual ~UDPConnection () { Stop (); }
+		virtual void Start () {}
 		virtual void Stop ();
 
 		void Acked (uint32_t seqn);
@@ -227,7 +227,7 @@ namespace client
 				if (dest) dest->Acquire ();
 				m_LocalDest = dest;
 			}
-			const boost::asio::ip::udp::endpoint& GetLocalEndpoint () const { return m_LocalEndpoint; };
+			const boost::asio::ip::udp::endpoint& GetLocalEndpoint () const { return m_LocalEndpoint; }
 
 			void ExpireStale (const uint64_t delta=I2P_UDP_SESSION_TIMEOUT);
 			void SetKeepAliveInterval (uint32_t keepAliveInterval);

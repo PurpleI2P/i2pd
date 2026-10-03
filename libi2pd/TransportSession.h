@@ -94,7 +94,7 @@ namespace transport
 				m_CreationTime = m_LastActivityTimestamp;
 			}
 
-			virtual ~TransportSession () {};
+			virtual ~TransportSession () {}
 			virtual void Done () = 0;
 
 			std::string GetIdentHashBase64() const { return m_RemoteIdentity ? m_RemoteIdentity->GetIdentHash().ToBase64() : ""; }
@@ -110,53 +110,53 @@ namespace transport
 				m_RemoteIdentity = ident;
 			}
 
-			size_t GetNumSentBytes () const { return m_NumSentBytes; };
+			size_t GetNumSentBytes () const { return m_NumSentBytes; }
 			void UpdateNumSentBytes (size_t len)
 			{
 				m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 				m_NumSentBytes += len;
 				UpdateBandwidth ();
 			}
-			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
+			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; }
 			void UpdateNumReceivedBytes (size_t len)
 			{
 				m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 				m_NumReceivedBytes += len;
 				UpdateBandwidth ();
 			}
-			size_t GetSendQueueSize () const { return m_SendQueueSize; };
-			void SetSendQueueSize (size_t s) { m_SendQueueSize = s; };
-			bool IsOutgoing () const { return m_IsOutgoing; };
+			size_t GetSendQueueSize () const { return m_SendQueueSize; }
+			void SetSendQueueSize (size_t s) { m_SendQueueSize = s; }
+			bool IsOutgoing () const { return m_IsOutgoing; }
 			bool IsSlow () const { return m_HandshakeInterval > TRANSPORT_SESSION_SLOWNESS_THRESHOLD &&
-				m_HandshakeInterval < TRANSPORT_SESSION_MAX_HANDSHAKE_INTERVAL; };
+				m_HandshakeInterval < TRANSPORT_SESSION_MAX_HANDSHAKE_INTERVAL; }
 			bool IsBandwidthExceeded (bool isHighBandwidth) const
 			{
 				auto limit = isHighBandwidth ? i2p::data::HIGH_BANDWIDTH_LIMIT*1024 : i2p::data::LOW_BANDWIDTH_LIMIT*1024; // convert to bytes
 				return std::max (m_InBandwidth, m_OutBandwidth) > limit;
 			}
 
-			int GetTerminationTimeout () const { return m_TerminationTimeout; };
-			void SetTerminationTimeout (int terminationTimeout) { m_TerminationTimeout = terminationTimeout; };
+			int GetTerminationTimeout () const { return m_TerminationTimeout; }
+			void SetTerminationTimeout (int terminationTimeout) { m_TerminationTimeout = terminationTimeout; }
 			bool IsTerminationTimeoutExpired (uint64_t ts) const
 			{
 				return ts >= m_LastActivityTimestamp + GetTerminationTimeout () ||
 					ts + GetTerminationTimeout () < m_LastActivityTimestamp;
-			};
+			}
 
-			uint32_t GetCreationTime () const { return m_CreationTime; };
-			void SetCreationTime (uint32_t ts) { m_CreationTime = ts; }; // for introducers
+			uint32_t GetCreationTime () const { return m_CreationTime; }
+			void SetCreationTime (uint32_t ts) { m_CreationTime = ts; } // for introducers
 
-			uint64_t GetLastActivityTimestamp () const { return m_LastActivityTimestamp; };
-			void SetLastActivityTimestamp (uint64_t ts) { m_LastActivityTimestamp = ts; };
+			uint64_t GetLastActivityTimestamp () const { return m_LastActivityTimestamp; }
+			void SetLastActivityTimestamp (uint64_t ts) { m_LastActivityTimestamp = ts; }
 
-			uint8_t GetVersion () const { return m_Version; };
+			uint8_t GetVersion () const { return m_Version; }
 
-			virtual uint32_t GetRelayTag () const { return 0; };
+			virtual uint32_t GetRelayTag () const { return 0; }
 			virtual void SendLocalRouterInfo (bool update = false)
 			{
 				std::list<std::shared_ptr<I2NPMessage> > msgs{ CreateDatabaseStoreMsg () };
 				SendI2NPMessages (msgs);
-			};
+			}
 			virtual void SendI2NPMessages (std::list<std::shared_ptr<I2NPMessage> >& msgs) = 0;
 			virtual bool IsEstablished () const = 0;
 			virtual i2p::data::RouterInfo::SupportedTransports GetTransportType () const = 0;

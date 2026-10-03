@@ -513,7 +513,7 @@ namespace config {
 			ThrowFatal ("Error while parsing config file: ", e.what());
 			std::cerr << e.what() << std::endl;
 			exit(EXIT_FAILURE);
-		};
+		}
 	}
 
 	void Finalize()

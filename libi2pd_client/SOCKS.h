@@ -29,7 +29,7 @@ namespace proxy
 
 			SOCKSServer(const std::string& name, const std::string& address, uint16_t port, bool outEnable, const std::string& outAddress, uint16_t outPort,
 				std::shared_ptr<i2p::client::ClientDestination> localDestination = nullptr);
-			~SOCKSServer() {};
+			~SOCKSServer() {}
 
 			void SetUpstreamProxy(const std::string & addr, const uint16_t port);
 			boost::asio::ip::udp::endpoint GetNextLocalUDPEndpoint ();

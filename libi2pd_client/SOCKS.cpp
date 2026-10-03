@@ -128,7 +128,7 @@ namespace proxy
 			void HandleSockRecv(const boost::system::error_code & ecode, std::size_t bytes_transfered);
 			void Terminate();
 			void AsyncSockRead();
-			std::shared_ptr<SOCKSServer> GetServer () { return std::static_pointer_cast<SOCKSServer>(GetOwner ()); };
+			std::shared_ptr<SOCKSServer> GetServer () { return std::static_pointer_cast<SOCKSServer>(GetOwner ()); }
 			boost::asio::const_buffer GenerateSOCKS4Response(errTypes error, uint32_t ip, uint16_t port);
 			boost::asio::const_buffer GenerateSOCKS5Response(errTypes error, addrTypes type, const address &addr, uint16_t port);
 			bool Socks5ChooseAuth();

@@ -56,7 +56,7 @@ namespace data
 				return l1->tunnelID < l2->tunnelID;
 			else
 				return l1->tunnelGateway < l2->tunnelGateway;
-		};
+		}
 	};
 
 	typedef std::function<bool(const Lease & l)> LeaseInspectFunc;
@@ -73,37 +73,37 @@ namespace data
 		public:
 
 			LeaseSet (const uint8_t * buf, size_t len, bool storeLeases = true);
-			virtual ~LeaseSet () { delete[] m_EncryptionKey; delete[] m_Buffer; };
+			virtual ~LeaseSet () { delete[] m_EncryptionKey; delete[] m_Buffer; }
 			virtual void Update (const uint8_t * buf, size_t len, std::shared_ptr<LocalDestination> dest, bool verifySignature);
 			virtual bool IsNewer (const uint8_t * buf, size_t len) const;
 			void PopulateLeases (); // from buffer
 
-			const uint8_t * GetBuffer () const { return m_Buffer; };
-			size_t GetBufferLen () const { return m_BufferLen; };
-			bool IsValid () const { return m_IsValid; };
-			bool IsIncompatibleCrypto () const { return m_IsIncompatibleCrypto; };
-			void SetIsIncompatibleCrypto (bool isIncompatibleCrypto) { m_IsIncompatibleCrypto = isIncompatibleCrypto; };
+			const uint8_t * GetBuffer () const { return m_Buffer; }
+			size_t GetBufferLen () const { return m_BufferLen; }
+			bool IsValid () const { return m_IsValid; }
+			bool IsIncompatibleCrypto () const { return m_IsIncompatibleCrypto; }
+			void SetIsIncompatibleCrypto (bool isIncompatibleCrypto) { m_IsIncompatibleCrypto = isIncompatibleCrypto; }
 			const std::vector<std::shared_ptr<const Lease> > GetNonExpiredLeases (bool withThreshold = true) const;
 			const std::vector<std::shared_ptr<const Lease> > GetNonExpiredLeasesExcluding (LeaseInspectFunc exclude, bool withThreshold = true) const;
 			bool HasExpiredLeases () const;
 			bool IsExpired () const;
-			bool IsEmpty () const { return m_Leases.empty (); };
-			uint64_t GetExpirationTime () const { return m_ExpirationTime; };
+			bool IsEmpty () const { return m_Leases.empty (); }
+			uint64_t GetExpirationTime () const { return m_ExpirationTime; }
 			bool ExpiresSoon(const uint64_t dlt=1000 * 5, const uint64_t fudge = 0) const ;
 			bool operator== (const LeaseSet& other) const
-			{ return m_BufferLen == other.m_BufferLen && !memcmp (m_Buffer, other.m_Buffer, m_BufferLen); };
-			virtual uint8_t GetStoreType () const { return NETDB_STORE_TYPE_LEASESET; };
-			virtual uint32_t GetPublishedTimestamp () const { return 0; }; // should be set for LeaseSet2 only
-			virtual std::shared_ptr<const i2p::crypto::Verifier> GetTransientVerifier () const { return nullptr; };
-			virtual bool IsPublishedEncrypted () const { return false; };
+			{ return m_BufferLen == other.m_BufferLen && !memcmp (m_Buffer, other.m_Buffer, m_BufferLen); }
+			virtual uint8_t GetStoreType () const { return NETDB_STORE_TYPE_LEASESET; }
+			virtual uint32_t GetPublishedTimestamp () const { return 0; } // should be set for LeaseSet2 only
+			virtual std::shared_ptr<const i2p::crypto::Verifier> GetTransientVerifier () const { return nullptr; }
+			virtual bool IsPublishedEncrypted () const { return false; }
 
 			// implements RoutingDestination
-			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_Identity; };
+			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_Identity; }
 			void Encrypt (const uint8_t * data, uint8_t * encrypted) const;
-			bool IsDestination () const { return true; };
+			bool IsDestination () const { return true; }
 
 			// used in webconsole
-			void ExpireLease () { m_ExpirationTime = i2p::util::GetSecondsSinceEpoch (); };
+			void ExpireLease () { m_ExpirationTime = i2p::util::GetSecondsSinceEpoch (); }
 
 		protected:
 
@@ -115,10 +115,10 @@ namespace data
 			LeaseSet (bool storeLeases);
 			void SetBuffer (const uint8_t * buf, size_t len);
 			void SetBufferLen (size_t len);
-			void SetIdentity (std::shared_ptr<const IdentityEx> identity) { m_Identity = identity; };
-			void SetExpirationTime (uint64_t t) { m_ExpirationTime = t; };
-			void SetIsValid (bool isValid) { m_IsValid = isValid; };
-			bool IsStoreLeases () const { return m_StoreLeases; };
+			void SetIdentity (std::shared_ptr<const IdentityEx> identity) { m_Identity = identity; }
+			void SetExpirationTime (uint64_t t) { m_ExpirationTime = t; }
+			void SetIsValid (bool isValid) { m_IsValid = isValid; }
+			bool IsStoreLeases () const { return m_StoreLeases; }
 
 		private:
 
@@ -155,22 +155,22 @@ namespace data
 		public:
 
 			LeaseSet2 (uint8_t storeType): LeaseSet (true), m_StoreType (storeType),
-				m_EncryptionType (0), m_PreferredEncryptionType (0) {}; // for HTTPServer only
+				m_EncryptionType (0), m_PreferredEncryptionType (0) {} // for HTTPServer only
 			LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len, bool storeLeases = true,
 				std::shared_ptr<LocalDestination> dest = nullptr, CryptoKeyType preferredCrypto = CRYPTO_KEY_TYPE_ECIES_X25519_AEAD);
 			LeaseSet2 (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key,
 				std::shared_ptr<LocalDestination> dest = nullptr, const uint8_t * secret = nullptr, CryptoKeyType preferredCrypto = CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // store type 5, called from local netdb only
-			uint8_t GetStoreType () const override { return m_StoreType; };
-			uint32_t GetPublishedTimestamp () const override { return m_PublishedTimestamp; };
-			bool IsPublic () const { return m_IsPublic; };
-			bool IsPublishedEncrypted () const override { return m_IsPublishedEncrypted; };
-			std::shared_ptr<const i2p::crypto::Verifier> GetTransientVerifier () const override { return m_TransientVerifier; };
+			uint8_t GetStoreType () const override { return m_StoreType; }
+			uint32_t GetPublishedTimestamp () const override { return m_PublishedTimestamp; }
+			bool IsPublic () const { return m_IsPublic; }
+			bool IsPublishedEncrypted () const override { return m_IsPublishedEncrypted; }
+			std::shared_ptr<const i2p::crypto::Verifier> GetTransientVerifier () const override { return m_TransientVerifier; }
 			void Update (const uint8_t * buf, size_t len, std::shared_ptr<LocalDestination> dest, bool verifySignature) override;
 			bool IsNewer (const uint8_t * buf, size_t len) const override;
 
 			// implements RoutingDestination
 			void Encrypt (const uint8_t * data, uint8_t * encrypted) const override;
-			CryptoKeyType GetEncryptionType () const override { return m_EncryptionType; };
+			CryptoKeyType GetEncryptionType () const override { return m_EncryptionType; }
 
 		private:
 
@@ -226,25 +226,25 @@ namespace data
 
 			LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * encryptionPublicKey, std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels);
 			LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len);
-			virtual ~LocalLeaseSet () { delete[] m_Buffer; };
+			virtual ~LocalLeaseSet () { delete[] m_Buffer; }
 
-			virtual uint8_t * GetBuffer () const { return m_Buffer; };
-			uint8_t * GetSignature () { return GetBuffer () + GetBufferLen () - GetSignatureLen (); };
-			virtual size_t GetBufferLen () const { return m_BufferLen; };
-			size_t GetSignatureLen () const { return m_Identity->GetSignatureLen (); };
-			uint8_t * GetLeases () { return m_Leases; };
+			virtual uint8_t * GetBuffer () const { return m_Buffer; }
+			uint8_t * GetSignature () { return GetBuffer () + GetBufferLen () - GetSignatureLen (); }
+			virtual size_t GetBufferLen () const { return m_BufferLen; }
+			size_t GetSignatureLen () const { return m_Identity->GetSignatureLen (); }
+			uint8_t * GetLeases () { return m_Leases; }
 
-			const IdentHash& GetIdentHash () const { return m_Identity->GetIdentHash (); };
-			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_Identity; };
+			const IdentHash& GetIdentHash () const { return m_Identity->GetIdentHash (); }
+			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_Identity; }
 			bool IsExpired () const;
-			uint64_t GetExpirationTime () const { return m_ExpirationTime; };
-			void SetExpirationTime (uint64_t expirationTime) { m_ExpirationTime = expirationTime; };
+			uint64_t GetExpirationTime () const { return m_ExpirationTime; }
+			void SetExpirationTime (uint64_t expirationTime) { m_ExpirationTime = expirationTime; }
 			bool operator== (const LeaseSet& other) const
-			{ return GetBufferLen () == other.GetBufferLen () && !memcmp (GetBuffer (), other.GetBuffer (), GetBufferLen ()); };
+			{ return GetBufferLen () == other.GetBufferLen () && !memcmp (GetBuffer (), other.GetBuffer (), GetBufferLen ()); }
 
-			virtual uint8_t GetStoreType () const { return NETDB_STORE_TYPE_LEASESET; };
-			virtual const IdentHash& GetStoreHash () const { return GetIdentHash (); }; // differ from ident hash for encrypted LeaseSet2
-			virtual std::shared_ptr<const LocalLeaseSet> GetInnerLeaseSet () const { return nullptr; }; // non-null for encrypted LeaseSet2
+			virtual uint8_t GetStoreType () const { return NETDB_STORE_TYPE_LEASESET; }
+			virtual const IdentHash& GetStoreHash () const { return GetIdentHash (); } // differ from ident hash for encrypted LeaseSet2
+			virtual std::shared_ptr<const LocalLeaseSet> GetInnerLeaseSet () const { return nullptr; } // non-null for encrypted LeaseSet2
 
 		private:
 
@@ -268,16 +268,16 @@ namespace data
 
 			LocalLeaseSet2 (uint8_t storeType, std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len); // from I2CP
 
-			virtual ~LocalLeaseSet2 () { delete[] m_Buffer; };
+			virtual ~LocalLeaseSet2 () { delete[] m_Buffer; }
 
-			uint8_t * GetBuffer () const { return m_Buffer + 1; };
-			size_t GetBufferLen () const { return m_BufferLen; };
+			uint8_t * GetBuffer () const { return m_Buffer + 1; }
+			size_t GetBufferLen () const { return m_BufferLen; }
 
-			uint8_t GetStoreType () const { return m_Buffer[0]; };
+			uint8_t GetStoreType () const { return m_Buffer[0]; }
 
 		protected:
 
-			LocalLeaseSet2 (std::shared_ptr<const IdentityEx> identity): LocalLeaseSet (identity, nullptr, 0), m_Buffer (nullptr), m_BufferLen(0) {}; // called from LocalEncryptedLeaseSet2
+			LocalLeaseSet2 (std::shared_ptr<const IdentityEx> identity): LocalLeaseSet (identity, nullptr, 0), m_Buffer (nullptr), m_BufferLen(0) {} // called from LocalEncryptedLeaseSet2
 
 		protected:
 
@@ -300,8 +300,8 @@ namespace data
 
 			LocalEncryptedLeaseSet2 (std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len); // from I2CP
 
-			const IdentHash& GetStoreHash () const { return m_StoreHash; };
-			std::shared_ptr<const LocalLeaseSet> GetInnerLeaseSet () const { return m_InnerLeaseSet; };
+			const IdentHash& GetStoreHash () const { return m_StoreHash; }
+			std::shared_ptr<const LocalLeaseSet> GetInnerLeaseSet () const { return m_InnerLeaseSet; }
 
 		private:
 

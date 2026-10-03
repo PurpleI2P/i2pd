@@ -256,15 +256,15 @@ namespace transport
 			virtual ~SSU2Session ();
 
 			bool SetVersion (uint8_t version);
-			void SetRemoteEndpoint (const boost::asio::ip::udp::endpoint& ep) { m_RemoteEndpoint = ep; };
-			const boost::asio::ip::udp::endpoint& GetRemoteEndpoint () const { return m_RemoteEndpoint; };
+			void SetRemoteEndpoint (const boost::asio::ip::udp::endpoint& ep) { m_RemoteEndpoint = ep; }
+			const boost::asio::ip::udp::endpoint& GetRemoteEndpoint () const { return m_RemoteEndpoint; }
 			void AdjustMaxPayloadSize (size_t maxMtu = SSU2_MAX_PACKET_SIZE);
-			i2p::data::RouterInfo::CompatibleTransports GetRemoteTransports () const { return m_RemoteTransports; };
-			i2p::data::RouterInfo::CompatibleTransports GetRemotePeerTestTransports () const { return m_RemotePeerTestTransports; };
-			int GetRemoteVersion () const { return m_RemoteVersion; };
-			std::shared_ptr<const i2p::data::RouterInfo::Address> GetAddress () const { return m_Address; };
-			void SetOnEstablished (OnEstablished e) { m_OnEstablished = e; };
-			OnEstablished GetOnEstablished () const { return m_OnEstablished; };
+			i2p::data::RouterInfo::CompatibleTransports GetRemoteTransports () const { return m_RemoteTransports; }
+			i2p::data::RouterInfo::CompatibleTransports GetRemotePeerTestTransports () const { return m_RemotePeerTestTransports; }
+			int GetRemoteVersion () const { return m_RemoteVersion; }
+			std::shared_ptr<const i2p::data::RouterInfo::Address> GetAddress () const { return m_Address; }
+			void SetOnEstablished (OnEstablished e) { m_OnEstablished = e; }
+			OnEstablished GetOnEstablished () const { return m_OnEstablished; }
 
 			virtual void Connect ();
 			bool Introduce (std::shared_ptr<SSU2Session> session, uint32_t relayTag);
@@ -278,15 +278,15 @@ namespace transport
 			void SendLocalRouterInfo (bool update) override;
 			void SendI2NPMessages (std::list<std::shared_ptr<I2NPMessage> >& msgs) override;
 			void MoveSendQueue (std::shared_ptr<SSU2Session> other);
-			uint32_t GetRelayTag () const override { return m_RelayTag; };
+			uint32_t GetRelayTag () const override { return m_RelayTag; }
 			size_t Resend (uint64_t ts); // return number of resent packets
-			uint64_t GetLastResendTime () const { return m_LastResendTime; };
-			bool IsEstablished () const override { return m_State == eSSU2SessionStateEstablished; };
+			uint64_t GetLastResendTime () const { return m_LastResendTime; }
+			bool IsEstablished () const override { return m_State == eSSU2SessionStateEstablished; }
 			i2p::data::RouterInfo::SupportedTransports GetTransportType () const override;
-			boost::asio::ip::address GetRemoteAddress () const override { return m_RemoteEndpoint.address (); };
-			uint64_t GetConnID () const { return m_SourceConnID; };
-			SSU2SessionState GetState () const { return m_State; };
-			void SetState (SSU2SessionState state) { m_State = state; };
+			boost::asio::ip::address GetRemoteAddress () const override { return m_RemoteEndpoint.address (); }
+			uint64_t GetConnID () const { return m_SourceConnID; }
+			SSU2SessionState GetState () const { return m_State; }
+			void SetState (SSU2SessionState state) { m_State = state; }
 
 			virtual bool ProcessFirstIncomingMessage (uint64_t connID, uint8_t * buf, size_t len);
 			bool ProcessSessionCreated (uint8_t * buf, size_t len);
@@ -302,7 +302,7 @@ namespace transport
 			RouterStatus GetRouterStatus () const;
 			void SetRouterStatus (RouterStatus status) const;
 			size_t GetMaxPayloadSize () const { return m_MaxPayloadSize; }
-			void SetIsDataReceived (bool dataReceived) { m_IsDataReceived = dataReceived; };
+			void SetIsDataReceived (bool dataReceived) { m_IsDataReceived = dataReceived; }
 
 			uint64_t GetSourceConnID () const { return m_SourceConnID; }
 			void SetSourceConnID (uint64_t sourceConnID) { m_SourceConnID = sourceConnID; }

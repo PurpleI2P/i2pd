@@ -87,8 +87,8 @@ namespace log {
 			Log ();
 			~Log ();
 
-			LogType GetLogType () const { return m_Destination; };
-			LogLevel GetLogLevel () const { return m_MinLevel; };
+			LogType GetLogType () const { return m_Destination; }
+			LogLevel GetLogLevel () const { return m_MinLevel; }
 
 			void Start ();
 			void Stop ();
@@ -115,7 +115,7 @@ namespace log {
 			 * @brief Sets format for timestamps in log
 			 * @param format String with timestamp format
 			 */
-			void SetTimeFormat (std::string format) { m_TimeFormat = format; };
+			void SetTimeFormat (std::string format) { m_TimeFormat = format; }
 
 	#ifndef _WIN32
 			/**
@@ -163,7 +163,7 @@ namespace log {
 inline bool CheckLogLevel (LogLevel level) noexcept
 {
 	return level <= i2p::log::Logger().GetLogLevel ();
-}	
+}
 
 /** internal usage only -- folding args array to single string */
 template<typename TValue>
@@ -180,7 +180,7 @@ void LogPrint (std::stringstream& s, TValue&& arg) noexcept
 template<typename... TArgs>
 void LogPrint (LogLevel level, TArgs&&... args) noexcept
 {
-	if (!CheckLogLevel (level)) return; 
+	if (!CheckLogLevel (level)) return;
 
 	// fold message to single string
 	std::stringstream ss;

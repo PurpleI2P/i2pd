@@ -126,10 +126,10 @@ namespace client
 			SAMSocket (SAMBridge& owner);
 			~SAMSocket ();
 
-			Socket_t& GetSocket () { return m_Socket; };
+			Socket_t& GetSocket () { return m_Socket; }
 			void ReceiveHandshake ();
-			void SetSocketType (SAMSocketType socketType) { m_SocketType = socketType; };
-			SAMSocketType GetSocketType () const { return m_SocketType; };
+			void SetSocketType (SAMSocketType socketType) { m_SocketType = socketType; }
+			SAMSocketType GetSocketType () const { return m_SocketType; }
 
 			void Terminate (const char* reason);
 
@@ -225,11 +225,11 @@ namespace client
 		std::list<std::pair<std::shared_ptr<SAMSocket>, uint64_t> > acceptQueue; // socket, receive time in seconds
 
 		SAMSession (SAMBridge & parent, std::string_view name, SAMSessionType type);
-		virtual ~SAMSession () {};
+		virtual ~SAMSession () {}
 
 		virtual std::shared_ptr<ClientDestination> GetLocalDestination () = 0;
 		virtual void StopLocalDestination () = 0;
-		virtual void Close () { CloseStreams (); };
+		virtual void Close () { CloseStreams (); }
 
 		void CloseStreams ();
 		// Resolves a datagram destination - a full base64 destination, a plain b32
@@ -246,7 +246,7 @@ namespace client
 		SAMSingleSession (SAMBridge & parent, std::string_view name, SAMSessionType type, std::shared_ptr<ClientDestination> dest);
 		~SAMSingleSession ();
 
-		std::shared_ptr<ClientDestination> GetLocalDestination () { return localDestination; };
+		std::shared_ptr<ClientDestination> GetLocalDestination () { return localDestination; }
 		void StopLocalDestination ();
 	};
 
@@ -254,7 +254,7 @@ namespace client
 	{
 		std::set<std::string, std::less<> > subsessions;
 		SAMMasterSession (SAMBridge & parent, std::string_view name, std::shared_ptr<ClientDestination> dest):
-			SAMSingleSession (parent, name, SAMSessionType::eSAMSessionTypeMaster, dest) {};
+			SAMSingleSession (parent, name, SAMSessionType::eSAMSessionTypeMaster, dest) {}
 		void Close ();
 	};
 
@@ -279,7 +279,7 @@ namespace client
 			void Start ();
 			void Stop ();
 
-			auto& GetService () { return GetIOService (); };
+			auto& GetService () { return GetIOService (); }
 			std::shared_ptr<SAMSession> CreateSession (std::string_view id, SAMSessionType type, std::string_view destination, // empty string means transient
 				const i2p::util::Mapping& params);
 			bool AddSession (std::shared_ptr<SAMSession> session);

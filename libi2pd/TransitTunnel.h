@@ -33,7 +33,7 @@ namespace tunnel
 				const i2p::data::IdentHash& nextIdent, uint32_t nextTunnelID,
 				const i2p::crypto::AESKey& layerKey, const i2p::crypto::AESKey& ivKey);
 
-			virtual size_t GetNumTransmittedBytes () const { return 0; };
+			virtual size_t GetNumTransmittedBytes () const { return 0; }
 			virtual std::string GetNextPeerName () const;
 
 			// implements TunnelBase
@@ -55,10 +55,10 @@ namespace tunnel
 				const i2p::data::IdentHash& nextIdent, uint32_t nextTunnelID,
 				const i2p::crypto::AESKey& layerKey, const i2p::crypto::AESKey& ivKey):
 				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID,
-				layerKey, ivKey), m_NumTransmittedBytes (0) {};
+				layerKey, ivKey), m_NumTransmittedBytes (0) {}
 			~TransitTunnelParticipant ();
 
-			size_t GetNumTransmittedBytes () const override { return m_NumTransmittedBytes; };
+			size_t GetNumTransmittedBytes () const override { return m_NumTransmittedBytes; }
 			std::string GetNextPeerName () const override;
 			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg) override;
 			void FlushTunnelDataMsgs () override;
@@ -78,11 +78,11 @@ namespace tunnel
 				const i2p::data::IdentHash& nextIdent, uint32_t nextTunnelID,
 				const i2p::crypto::AESKey& layerKey, const i2p::crypto::AESKey& ivKey):
 				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID,
-				layerKey, ivKey), m_Gateway(*this) {};
+				layerKey, ivKey), m_Gateway(*this) {}
 
 			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg) override;
 			void FlushTunnelDataMsgs () override;
-			size_t GetNumTransmittedBytes () const override { return m_Gateway.GetNumSentBytes (); };
+			size_t GetNumTransmittedBytes () const override { return m_Gateway.GetNumSentBytes (); }
 			std::string GetNextPeerName () const override;
 
 		private:
@@ -98,7 +98,7 @@ namespace tunnel
 			TransitTunnelEndpoint (uint32_t receiveTunnelID,
 				const i2p::data::IdentHash& nextIdent, uint32_t nextTunnelID,
 				const i2p::crypto::AESKey& layerKey, const i2p::crypto::AESKey& ivKey):
-				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey) {};
+				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey) {}
 
 			void Cleanup () override;
 
@@ -169,7 +169,7 @@ namespace tunnel
 				std::lock_guard<std::mutex> l(m_TransitTunnelsMutex);
 				return std::vector<std::shared_ptr<TransitTunnel> > (m_TransitTunnels.begin (), m_TransitTunnels.end ());
 			}
-			size_t GetTunnelBuildMsgQueueSize () const { return m_TunnelBuildMsgQueue.GetSize (); };
+			size_t GetTunnelBuildMsgQueueSize () const { return m_TunnelBuildMsgQueue.GetSize (); }
 	};
 }
 }

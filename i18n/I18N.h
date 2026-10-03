@@ -29,7 +29,7 @@ namespace i18n
 				const LocaleStrings& strings,
 				const std::map<std::string, std::vector<std::string>>& plurals,
 				std::function<int(int)> formula
-			): m_Language (language), m_RTL (rtl), m_Strings (strings), m_Plurals (plurals), m_Formula (formula) { };
+			): m_Language (language), m_RTL (rtl), m_Strings (strings), m_Plurals (plurals), m_Formula (formula) { }
 
 			// Get activated language name for webconsole
 			std::string GetLanguage() const

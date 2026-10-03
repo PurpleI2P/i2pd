@@ -62,10 +62,10 @@ namespace crypto
 		EDDSAPoint operator-() const
 		{
 			BIGNUM * x1 = NULL, * y1 = NULL, * z1 = NULL, * t1 = NULL;
-			if (x) { x1 = BN_dup (x); BN_set_negative (x1, !BN_is_negative (x)); };
+			if (x) { x1 = BN_dup (x); BN_set_negative (x1, !BN_is_negative (x)); }
 			if (y) y1 = BN_dup (y);
 			if (z) z1 = BN_dup (z);
-			if (t) { t1 = BN_dup (t); BN_set_negative (t1, !BN_is_negative (t)); };
+			if (t) { t1 = BN_dup (t); BN_set_negative (t1, !BN_is_negative (t)); }
 			return EDDSAPoint {x1, y1, z1, t1};
 		}
 	};

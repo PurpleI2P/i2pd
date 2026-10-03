@@ -32,7 +32,7 @@ namespace tunnel
 		int recordIndex; // record # in tunnel build message
 
 		TunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r);
-		virtual ~TunnelHopConfig () {};
+		virtual ~TunnelHopConfig () {}
 
 		void SetNextIdent (const i2p::data::IdentHash& ident);
 		void SetReplyHop (uint32_t replyTunnelID, const i2p::data::IdentHash& replyIdent);
@@ -43,18 +43,18 @@ namespace tunnel
 		virtual void CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID) = 0;
 		virtual bool DecryptBuildResponseRecord (uint8_t * records) const = 0;
 		virtual void DecryptRecord (uint8_t * records, int index) const = 0;
-		virtual std::pair<const uint8_t *, uint64_t> GetGarlicKey () const { return { nullptr, 0}; }; // return [key,tag]
+		virtual std::pair<const uint8_t *, uint64_t> GetGarlicKey () const { return { nullptr, 0}; } // return [key,tag]
 	};
 
 	struct ShortECIESTunnelHopConfig: public TunnelHopConfig, public i2p::crypto::NoiseSymmetricState
 	{
 		ShortECIESTunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r):
-			TunnelHopConfig (r) {};
+			TunnelHopConfig (r) {}
 
 		void EncryptECIES (const uint8_t * clearText, uint8_t * encrypted);
 
 		uint8_t GetRetCode (const uint8_t * records) const override
-		{ return (records + recordIndex*SHORT_TUNNEL_BUILD_RECORD_SIZE)[SHORT_RESPONSE_RECORD_RET_OFFSET]; };
+		{ return (records + recordIndex*SHORT_TUNNEL_BUILD_RECORD_SIZE)[SHORT_RESPONSE_RECORD_RET_OFFSET]; }
 		void CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID) override;
 		bool DecryptBuildResponseRecord (uint8_t * records) const override;
 		void DecryptRecord (uint8_t * records, int index) const override; // Chacha20
@@ -161,7 +161,7 @@ namespace tunnel
 				return peers;
 			}
 
-			size_t GetRecordSize () const { return SHORT_TUNNEL_BUILD_RECORD_SIZE; };
+			size_t GetRecordSize () const { return SHORT_TUNNEL_BUILD_RECORD_SIZE; }
 
 			void CreatePhonyHop ();
 			void DeletePhonyHop ();
@@ -188,13 +188,13 @@ namespace tunnel
 	{
 		public:
 
-			ZeroHopsTunnelConfig () { RAND_bytes ((uint8_t *)&m_TunnelID, 4);};
+			ZeroHopsTunnelConfig () { RAND_bytes ((uint8_t *)&m_TunnelID, 4);}
 
-			bool IsInbound () const { return true; }; // TODO:
-			uint32_t GetTunnelID () const { return m_TunnelID; };
-			uint32_t GetNextTunnelID () const { return m_TunnelID; };
-			const i2p::data::IdentHash& GetNextIdentHash () const { return i2p::context.GetIdentHash (); };
-			const i2p::data::IdentHash& GetLastIdentHash () const { return i2p::context.GetIdentHash (); };
+			bool IsInbound () const { return true; } // TODO:
+			uint32_t GetTunnelID () const { return m_TunnelID; }
+			uint32_t GetNextTunnelID () const { return m_TunnelID; }
+			const i2p::data::IdentHash& GetNextIdentHash () const { return i2p::context.GetIdentHash (); }
+			const i2p::data::IdentHash& GetLastIdentHash () const { return i2p::context.GetIdentHash (); }
 
 
 		private:

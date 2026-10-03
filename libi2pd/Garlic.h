@@ -59,7 +59,7 @@ namespace garlic
 
 	struct SessionTag: public i2p::data::Tag<32>
 	{
-		SessionTag (const uint8_t * buf, uint32_t ts = 0): Tag<32>(buf), creationTime (ts) {};
+		SessionTag (const uint8_t * buf, uint32_t ts = 0): Tag<32>(buf), creationTime (ts) {}
 		SessionTag () = default;
 		SessionTag (const SessionTag& ) = default;
 		SessionTag& operator= (const SessionTag& ) = default;
@@ -79,7 +79,7 @@ namespace garlic
 			{
 				SetKey (key);
 			}
-			const i2p::crypto::AESKey& GetKey () const { return m_Key; };
+			const i2p::crypto::AESKey& GetKey () const { return m_Key; }
 
 		private:
 
@@ -114,22 +114,22 @@ namespace garlic
 			GarlicRoutingSession ();
 			virtual ~GarlicRoutingSession ();
 			virtual std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg) = 0;
-			virtual bool CleanupUnconfirmedTags () { return false; }; // for I2CP, override in ElGamalAESSession and ECIESX25519AEADRatchetSession
+			virtual bool CleanupUnconfirmedTags () { return false; } // for I2CP, override in ElGamalAESSession and ECIESX25519AEADRatchetSession
 			virtual bool MessageConfirmed (uint32_t msgID);
-			virtual bool IsRatchets () const { return false; };
-			virtual bool IsReadyToSend () const { return true; };
-			virtual bool IsTerminated () const { return !GetOwner (); };
-			virtual bool IsInactive (uint64_t ts) const { return false; }; // override in ECIESX25519AEADRatchetSession
-			virtual uint64_t GetLastActivityTimestamp () const { return 0; }; // non-zero for rathets only
-			virtual void SetAckRequestInterval (int interval) {}; // in milliseconds, override in ECIESX25519AEADRatchetSession
+			virtual bool IsRatchets () const { return false; }
+			virtual bool IsReadyToSend () const { return true; }
+			virtual bool IsTerminated () const { return !GetOwner (); }
+			virtual bool IsInactive (uint64_t ts) const { return false; } // override in ECIESX25519AEADRatchetSession
+			virtual uint64_t GetLastActivityTimestamp () const { return 0; } // non-zero for rathets only
+			virtual void SetAckRequestInterval (int interval) {} // in milliseconds, override in ECIESX25519AEADRatchetSession
 			virtual std::vector<std::shared_ptr<I2NPMessage> > WrapMultipleMessages (const std::vector<std::shared_ptr<const I2NPMessage> >& msgs);
 
 			void SetLeaseSetUpdated ()
 			{
 				if (m_LeaseSetUpdateStatus != eLeaseSetDoNotSend) m_LeaseSetUpdateStatus = eLeaseSetUpdated;
-			};
-			bool IsLeaseSetNonConfirmed () const { return m_LeaseSetUpdateStatus == eLeaseSetSubmitted; };
-			bool IsLeaseSetUpdated () const { return m_LeaseSetUpdateStatus == eLeaseSetUpdated; };
+			}
+			bool IsLeaseSetNonConfirmed () const { return m_LeaseSetUpdateStatus == eLeaseSetSubmitted; }
+			bool IsLeaseSetUpdated () const { return m_LeaseSetUpdateStatus == eLeaseSetUpdated; }
 			uint64_t GetLeaseSetSubmissionTime () const { return m_LeaseSetSubmissionTime; }
 			void CleanupUnconfirmedLeaseSet (uint64_t ts);
 
@@ -175,7 +175,7 @@ namespace garlic
 		public:
 
 			// for HTTP only
-			virtual size_t GetNumOutgoingTags () const { return 0; };
+			virtual size_t GetNumOutgoingTags () const { return 0; }
 	};
 	//using GarlicRoutingSessionPtr = std::shared_ptr<GarlicRoutingSession>;
 	typedef std::shared_ptr<GarlicRoutingSession> GarlicRoutingSessionPtr; // TODO: replace to using after switch to 4.8
@@ -184,8 +184,8 @@ namespace garlic
 	{
 		struct UnconfirmedTags
 		{
-			UnconfirmedTags (int n): numTags (n), tagsCreationTime (0) { sessionTags = new SessionTag[numTags]; };
-			~UnconfirmedTags () { delete[] sessionTags; };
+			UnconfirmedTags (int n): numTags (n), tagsCreationTime (0) { sessionTags = new SessionTag[numTags]; }
+			~UnconfirmedTags () { delete[] sessionTags; }
 			uint32_t msgID;
 			int numTags;
 			SessionTag * sessionTags;
@@ -197,7 +197,7 @@ namespace garlic
 			ElGamalAESSession (GarlicDestination * owner, std::shared_ptr<const i2p::data::RoutingDestination> destination,
 				int numTags, bool attachLeaseSet);
 			ElGamalAESSession (const uint8_t * sessionKey, const SessionTag& sessionTag); // one time encryption
-			~ElGamalAESSession () {};
+			~ElGamalAESSession () {}
 
 			std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg);
 
@@ -230,7 +230,7 @@ namespace garlic
 		public:
 
 			// for HTTP only
-			size_t GetNumOutgoingTags () const { return m_SessionTags.size (); };
+			size_t GetNumOutgoingTags () const { return m_SessionTags.size (); }
 	};
 	typedef std::shared_ptr<ElGamalAESSession> ElGamalAESSessionPtr;
 
@@ -252,13 +252,13 @@ namespace garlic
 			~GarlicDestination ();
 
 			void CleanUp ();
-			std::mt19937& GetRng () { return m_Rng; };
-			bool IsIdling () const { return m_IsIdling; };
-			void SetIsIdling (bool isIdling) { m_IsIdling = isIdling; };
-			void SetNumTags (int numTags) { m_NumTags = numTags; };
-			int GetNumTags () const { return m_NumTags; };
-			void SetNumRatchetInboundTags (int numTags) { m_NumRatchetInboundTags = numTags; };
-			int GetNumRatchetInboundTags () const { return m_NumRatchetInboundTags; };
+			std::mt19937& GetRng () { return m_Rng; }
+			bool IsIdling () const { return m_IsIdling; }
+			void SetIsIdling (bool isIdling) { m_IsIdling = isIdling; }
+			void SetNumTags (int numTags) { m_NumTags = numTags; }
+			int GetNumTags () const { return m_NumTags; }
+			void SetNumRatchetInboundTags (int numTags) { m_NumRatchetInboundTags = numTags; }
+			int GetNumRatchetInboundTags () const { return m_NumRatchetInboundTags; }
 			i2p::crypto::HKDFContext& GetHKDFContext () { return m_HKDFContext; }
 			std::shared_ptr<GarlicRoutingSession> GetRoutingSession (std::shared_ptr<const i2p::data::RoutingDestination> destination,
 				bool attachLeaseSet, bool requestNewIfNotFound = true);
@@ -294,7 +294,7 @@ namespace garlic
 				return GetIdentity ()->GetCryptoKeyType () >= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ? GetIdentity ()->GetCryptoKeyType () : 0;
 			}
 
-			virtual void ScheduleSessionResponseTimer (std::shared_ptr<ECIESX25519AEADRatchetSession> session) {};
+			virtual void ScheduleSessionResponseTimer (std::shared_ptr<ECIESX25519AEADRatchetSession> session) {}
 
 		protected:
 

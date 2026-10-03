@@ -657,7 +657,7 @@ namespace client
 			I2PClientTunnelHandler (std::shared_ptr<I2PService> parent, std::shared_ptr<const Address> address,
 				uint16_t destinationPort, std::shared_ptr<boost::asio::ip::tcp::socket> socket):
 				I2PServiceHandler(parent), m_Address(address),
-				m_DestinationPort (destinationPort), m_Socket(socket) {};
+				m_DestinationPort (destinationPort), m_Socket(socket) {}
 			void Handle() override;
 			void Terminate();
 		private:
@@ -1042,4 +1042,3 @@ namespace client
 	}
 }
 }
-

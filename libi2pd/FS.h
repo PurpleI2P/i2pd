@@ -61,7 +61,7 @@ namespace fs {
 
 			typedef std::function<void(const std::string &)> FilenameVisitor;
 			HashedStorage(const char *n, const char *p1, const char *p2, const char *s):
-				name(n), prefix1(p1), prefix2(p2), suffix(s) {};
+				name(n), prefix1(p1), prefix2(p2), suffix(s) {}
 
 			/** create subdirs in storage */
 			bool Init(const char* chars, size_t cnt);

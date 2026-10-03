@@ -97,7 +97,7 @@ namespace client
 
 			void ReloadConfig ();
 
-			std::shared_ptr<ClientDestination> GetSharedLocalDestination () const { return m_SharedLocalDestination; };
+			std::shared_ptr<ClientDestination> GetSharedLocalDestination () const { return m_SharedLocalDestination; }
 			std::shared_ptr<ClientDestination> CreateNewLocalDestination (bool isPublic = false, // transient
 				i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519,
 				i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL,
@@ -120,16 +120,16 @@ namespace client
 				i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519,
 				i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL);
 
-			AddressBook& GetAddressBook () { return m_AddressBook; };
-			const BOBCommandChannel * GetBOBCommandChannel () const { return m_BOBCommandChannel; };
-			const SAMBridge * GetSAMBridge () const { return m_SamBridge; };
-			const I2CPServer * GetI2CPServer () const { return m_I2CPServer; };
+			AddressBook& GetAddressBook () { return m_AddressBook; }
+			const BOBCommandChannel * GetBOBCommandChannel () const { return m_BOBCommandChannel; }
+			const SAMBridge * GetSAMBridge () const { return m_SamBridge; }
+			const I2CPServer * GetI2CPServer () const { return m_I2CPServer; }
 
 			std::vector<std::shared_ptr<DatagramSessionInfo> > GetForwardInfosFor(const i2p::data::IdentHash & destination);
 
 			// i18n
-			std::shared_ptr<const i2p::i18n::Locale> GetLanguage () { return m_Language; };
-			void SetLanguage (const std::shared_ptr<const i2p::i18n::Locale> language) { m_Language = language; };
+			std::shared_ptr<const i2p::i18n::Locale> GetLanguage () { return m_Language; }
+			void SetLanguage (const std::shared_ptr<const i2p::i18n::Locale> language) { m_Language = language; }
 
 		private:
 
@@ -200,8 +200,8 @@ namespace client
 				std::lock_guard<std::mutex> l(m_DestinationsMutex);
 				return std::vector<std::pair<i2p::data::IdentHash, std::shared_ptr<ClientDestination> > > (m_Destinations.begin (), m_Destinations.end ());
 			}
-			const decltype(m_ClientTunnels)& GetClientTunnels () const { return m_ClientTunnels; };
-			const decltype(m_ServerTunnels)& GetServerTunnels () const { return m_ServerTunnels; };
+			const decltype(m_ClientTunnels)& GetClientTunnels () const { return m_ClientTunnels; }
+			const decltype(m_ServerTunnels)& GetServerTunnels () const { return m_ServerTunnels; }
 			const decltype(m_ClientForwards)& GetClientForwards () const { return m_ClientForwards; }
 			const decltype(m_ServerForwards)& GetServerForwards () const { return m_ServerForwards; }
 #ifndef NO_TORRENTS

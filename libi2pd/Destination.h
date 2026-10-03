@@ -123,7 +123,7 @@ namespace client
 		// leaseSet = nullptr means not found
 		struct LeaseSetRequest
 		{
-			LeaseSetRequest (boost::asio::io_context& service): requestTime (0), requestTimeoutTimer (service) {};
+			LeaseSetRequest (boost::asio::io_context& service): requestTime (0), requestTimeoutTimer (service) {}
 			std::unordered_set<i2p::data::IdentHash> excluded;
 			uint64_t requestTime;
 			boost::asio::steady_timer requestTimeoutTimer;
@@ -143,8 +143,8 @@ namespace client
 
 			LeaseSetDestination (boost::asio::io_context& service, bool isPublic, const i2p::util::Mapping * params = nullptr);
 			~LeaseSetDestination ();
-			const std::string& GetNickname () const { return m_Nickname; };
-			auto& GetService () const { return m_Service; };
+			const std::string& GetNickname () const { return m_Nickname; }
+			auto& GetService () const { return m_Service; }
 
 			virtual void Start ();
 			virtual void Stop ();
@@ -152,8 +152,8 @@ namespace client
 			/** i2cp reconfigure */
 			virtual bool Reconfigure(const i2p::util::Mapping& i2cpOpts);
 
-			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () { return m_Pool; };
-			bool IsReady () const { return m_LeaseSet && !m_LeaseSet->IsExpired () && m_Pool->HasOutboundTunnels (); };
+			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () { return m_Pool; }
+			bool IsReady () const { return m_LeaseSet && !m_LeaseSet->IsExpired () && m_Pool->HasOutboundTunnels (); }
 			std::shared_ptr<i2p::data::LeaseSet> FindLeaseSet (const i2p::data::IdentHash& ident);
 			bool RequestDestination (const i2p::data::IdentHash& dest, RequestComplete requestComplete = nullptr);
 			bool RequestDestinationWithEncryptedLeaseSet (std::shared_ptr<const i2p::data::BlindedPublicKey> dest, RequestComplete requestComplete = nullptr);
@@ -171,8 +171,8 @@ namespace client
 			void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg) override;
 			void SetLeaseSetUpdated (bool post) override;
 
-			bool IsPublic () const { return m_IsPublic; };
-			void SetPublic (bool pub) { m_IsPublic = pub; };
+			bool IsPublic () const { return m_IsPublic; }
+			void SetPublic (bool pub) { m_IsPublic = pub; }
 
 		protected:
 
@@ -182,10 +182,10 @@ namespace client
 				size_t len, uint32_t msgID, i2p::garlic::ECIESX25519AEADRatchetSession * from) override;
 
 			void SetLeaseSet (std::shared_ptr<const i2p::data::LocalLeaseSet> newLeaseSet);
-			int GetLeaseSetType () const { return m_LeaseSetType; };
-			void SetLeaseSetType (int leaseSetType) { m_LeaseSetType = leaseSetType; };
-			int GetAuthType () const { return m_AuthType; };
-			virtual void CleanupDestination () {}; // additional clean up in derived classes
+			int GetLeaseSetType () const { return m_LeaseSetType; }
+			void SetLeaseSetType (int leaseSetType) { m_LeaseSetType = leaseSetType; }
+			int GetAuthType () const { return m_AuthType; }
+			virtual void CleanupDestination () {} // additional clean up in derived classes
 			virtual i2p::data::CryptoKeyType GetPreferredCryptoType () const = 0;
 			// I2CP
 			virtual void HandleDataMessage (const uint8_t * buf, size_t len, i2p::garlic::ECIESX25519AEADRatchetSession * from) = 0;
@@ -237,7 +237,7 @@ namespace client
 		public:
 
 			// for HTTP only
-			int GetNumRemoteLeaseSets () const { std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex); return m_RemoteLeaseSets.size (); };
+			int GetNumRemoteLeaseSets () const { std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex); return m_RemoteLeaseSets.size (); }
 			// copy for other threads, unlike GetLeaseSets which hands out the container itself
 			std::vector<std::shared_ptr<i2p::data::LeaseSet> > GetLeaseSetsList () const
 			{
@@ -248,8 +248,8 @@ namespace client
 					leaseSets.push_back (it.second);
 				return leaseSets;
 			}
-			bool IsEncryptedLeaseSet () const { return m_LeaseSetType == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2; };
-			bool IsPerClientAuth () const { return m_AuthType > 0; };
+			bool IsEncryptedLeaseSet () const { return m_LeaseSetType == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2; }
+			bool IsPerClientAuth () const { return m_AuthType > 0; }
 			std::future<std::vector<i2p::garlic::ECIESX25519AEADRatchetSessionPtr> > GetECIESx25519SessionsList () const
 			{
 				return boost::asio::post (GetService (),
@@ -269,15 +269,15 @@ namespace client
 			void Stop () override;
 			void StopInternal (); // the teardown itself, always on the destination's thread
 
-			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
+			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; }
 			void SetPrivateKeys (const i2p::data::PrivateKeys& keys);
 			void UpdateOfflineSignature (const i2p::data::PrivateKeys& keys);
-			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Keys.Sign (buf, len, signature); };
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Keys.Sign (buf, len, signature); }
 
 			// ref counter
-			int Acquire () { return ++m_RefCounter; };
-			int Release () { return --m_RefCounter; };
-			int GetRefCounter () const { return m_RefCounter; };
+			int Acquire () { return ++m_RefCounter; }
+			int Release () { return --m_RefCounter; }
+			int GetRefCounter () const { return m_RefCounter; }
 
 			// streaming
 			std::shared_ptr<i2p::stream::StreamingDestination> CreateStreamingDestination (uint16_t port, bool gzip = true); // additional
@@ -306,13 +306,13 @@ namespace client
             int GetStreamingMaxResends () const { return m_StreamingMaxResends; }
 
 			// datagram
-			std::shared_ptr<i2p::datagram::DatagramDestination> GetDatagramDestination () const { return m_DatagramDestination; };
+			std::shared_ptr<i2p::datagram::DatagramDestination> GetDatagramDestination () const { return m_DatagramDestination; }
 			std::shared_ptr<i2p::datagram::DatagramDestination> CreateDatagramDestination (bool gzip = true,
 				i2p::datagram::DatagramVersion version = i2p::datagram::eDatagramV1);
 
 			// implements LocalDestination
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, i2p::data::CryptoKeyType preferredCrypto) const override;
-			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const override { return m_Keys.GetPublic (); };
+			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const override { return m_Keys.GetPublic (); }
 			bool SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const override;
 			const uint8_t * GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const override;
 

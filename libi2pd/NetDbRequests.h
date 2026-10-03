@@ -30,13 +30,13 @@ namespace data
 	const uint64_t MAX_REQUEST_TIME = MAX_NUM_REQUEST_ATTEMPTS * (MIN_REQUEST_TIME + MANAGE_REQUESTS_INTERVAL + MANAGE_REQUESTS_INTERVAL_VARIANCE);
 	const uint64_t MIN_DIRECT_REQUEST_TIME = 600; // in milliseconds
 	const uint64_t EXPLORATORY_REQUEST_INTERVAL = 55; // in seconds
-	const uint64_t EXPLORATORY_REQUEST_INTERVAL_VARIANCE = 170; // in seconds 
+	const uint64_t EXPLORATORY_REQUEST_INTERVAL_VARIANCE = 170; // in seconds
 	const uint64_t DISCOVERED_REQUEST_INTERVAL = 360; // in milliseconds
 	const uint64_t DISCOVERED_REQUEST_INTERVAL_VARIANCE = 540; // in milliseconds
 	const uint64_t MAX_EXPLORATORY_REQUEST_TIME = 30000; // in milliseconds
 	const uint64_t REQUEST_CACHE_TIME = MAX_REQUEST_TIME + 40000; // in milliseconds
 	const uint64_t REQUESTED_DESTINATIONS_POOL_CLEANUP_INTERVAL = 191; // in seconds
-	
+
 	class RequestedDestination
 	{
 		public:
@@ -46,29 +46,29 @@ namespace data
 			RequestedDestination (const IdentHash& destination, bool isExploratory = false, bool direct = true);
 			~RequestedDestination ();
 
-			const IdentHash& GetDestination () const { return m_Destination; };
-			const std::unordered_set<IdentHash>& GetExcludedPeers () const { return m_ExcludedPeers; };
-			int GetNumAttempts () const { return m_NumAttempts; };
+			const IdentHash& GetDestination () const { return m_Destination; }
+			const std::unordered_set<IdentHash>& GetExcludedPeers () const { return m_ExcludedPeers; }
+			int GetNumAttempts () const { return m_NumAttempts; }
 			void ClearExcludedPeers ();
-			bool IsExploratory () const { return m_IsExploratory; };
-			bool IsDirect () const { return m_IsDirect; };
-			bool IsActive () const { return m_IsActive; };
-			bool IsSentDirectly () const { return m_IsSentDirectly; };
+			bool IsExploratory () const { return m_IsExploratory; }
+			bool IsDirect () const { return m_IsDirect; }
+			bool IsActive () const { return m_IsActive; }
+			bool IsSentDirectly () const { return m_IsSentDirectly; }
 			bool IsExcluded (const IdentHash& ident) const;
-			uint64_t GetCreationTime () const { return m_CreationTime; };
-			uint64_t GetLastRequestTime () const { return m_LastRequestTime; };
+			uint64_t GetCreationTime () const { return m_CreationTime; }
+			uint64_t GetLastRequestTime () const { return m_LastRequestTime; }
 			std::shared_ptr<I2NPMessage> CreateRequestMessage (std::shared_ptr<const RouterInfo>, std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel);
 			std::shared_ptr<I2NPMessage> CreateRequestMessage (const IdentHash& floodfill);
 
-			void AddRequestComplete (const RequestComplete& requestComplete) { m_RequestComplete.push_back (requestComplete); };
-			void ResetRequestComplete () { m_RequestComplete.clear (); };
+			void AddRequestComplete (const RequestComplete& requestComplete) { m_RequestComplete.push_back (requestComplete); }
+			void ResetRequestComplete () { m_RequestComplete.clear (); }
 			void Success (std::shared_ptr<RouterInfo> r);
 			void Fail ();
 
 		private:
 
 			void InvokeRequestComplete (std::shared_ptr<RouterInfo> r);
-			
+
 		private:
 
 			IdentHash m_Destination;
@@ -86,21 +86,21 @@ namespace data
 
 			NetDbRequests ();
 			~NetDbRequests ();
-			
+
 			void Start ();
 			void Stop ();
 
 			void RequestComplete (const IdentHash& ident, std::shared_ptr<RouterInfo> r);
 			void PostDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg);
 			void PostRequestDestination (const IdentHash& destination, const RequestedDestination::RequestComplete& requestComplete, bool direct);
-			
-		private:	
 
-			std::shared_ptr<RequestedDestination> CreateRequest (const IdentHash& destination, bool isExploratory, 
+		private:
+
+			std::shared_ptr<RequestedDestination> CreateRequest (const IdentHash& destination, bool isExploratory,
 				bool direct = false, RequestedDestination::RequestComplete requestComplete = nullptr);
 			std::shared_ptr<RequestedDestination> FindRequest (const IdentHash& ident) const;
 			bool SendNextRequest (std::shared_ptr<RequestedDestination> dest);
-			
+
 			void HandleDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg);
 			void RequestRouter (const IdentHash& router);
 			void RequestDestination (const IdentHash& destination, const RequestedDestination::RequestComplete& requestComplete, bool direct);
@@ -115,7 +115,7 @@ namespace data
 			void HandleCleanupTimer (const boost::system::error_code& ecode);
 			void ScheduleDiscoveredRoutersRequest ();
 			void HandleDiscoveredRoutersTimer (const boost::system::error_code& ecode);
-			
+
 		private:
 
 			i2p::util::MemoryPoolMt<RequestedDestination> m_RequestedDestinationsPool;

@@ -135,7 +135,7 @@ namespace data
 
 			struct Introducer
 			{
-				Introducer (): iTag (0), iExp (0) { iH.Fill(0); };
+				Introducer (): iTag (0), iExp (0) { iH.Fill(0); }
 				IdentHash iH;
 				uint32_t iTag;
 				uint32_t iExp;
@@ -176,17 +176,17 @@ namespace data
 					return !(*this == other);
 				}
 
-				bool IsNTCP2 () const { return transportStyle == eTransportNTCP2; };
-				bool IsSSU2 () const { return transportStyle == eTransportSSU2; };
-				bool IsPublishedNTCP2 () const { return IsNTCP2 () && published; };
-				bool IsReachableSSU () const { return (bool)ssu && (published || UsesIntroducer ()); };
-				bool UsesIntroducer () const { return (bool)ssu && !ssu->introducers.empty (); };
+				bool IsNTCP2 () const { return transportStyle == eTransportNTCP2; }
+				bool IsSSU2 () const { return transportStyle == eTransportSSU2; }
+				bool IsPublishedNTCP2 () const { return IsNTCP2 () && published; }
+				bool IsReachableSSU () const { return (bool)ssu && (published || UsesIntroducer ()); }
+				bool UsesIntroducer () const { return (bool)ssu && !ssu->introducers.empty (); }
 
-				bool IsIntroducer () const { return caps & eSSUIntroducer; };
-				bool IsPeerTesting () const { return caps & eSSUTesting; };
+				bool IsIntroducer () const { return caps & eSSUIntroducer; }
+				bool IsPeerTesting () const { return caps & eSSUTesting; }
 
-				bool IsV4 () const { return (caps & AddressCaps::eV4) || (host.is_v4 () && !host.is_unspecified ()); };
-				bool IsV6 () const { return (caps & AddressCaps::eV6) || (host.is_v6 () && !host.is_unspecified ()); };
+				bool IsV4 () const { return (caps & AddressCaps::eV4) || (host.is_v4 () && !host.is_unspecified ()); }
+				bool IsV6 () const { return (caps & AddressCaps::eV6) || (host.is_v6 () && !host.is_unspecified ()); }
 
 				bool IsSameSubnet (const Address& other)
 				{
@@ -203,10 +203,10 @@ namespace data
 
 					Buffer () = default;
 					Buffer (const uint8_t * buf, size_t len);
-					Buffer (const Buffer& other): Buffer (other.data (), other.m_BufferLen) {};
+					Buffer (const Buffer& other): Buffer (other.data (), other.m_BufferLen) {}
 
-					size_t GetBufferLen () const { return m_BufferLen; };
-					void SetBufferLen (size_t len) { m_BufferLen = len; };
+					size_t GetBufferLen () const { return m_BufferLen; }
+					void SetBufferLen (size_t len) { m_BufferLen = len; }
 
 				private:
 
@@ -226,13 +226,13 @@ namespace data
 			RouterInfo (const uint8_t * buf, size_t len);
 			virtual ~RouterInfo ();
 
-			std::shared_ptr<const IdentityEx> GetRouterIdentity () const { return m_RouterIdentity; };
+			std::shared_ptr<const IdentityEx> GetRouterIdentity () const { return m_RouterIdentity; }
 			void SetRouterIdentity (std::shared_ptr<const IdentityEx> identity);
-			std::string GetIdentHashBase64 () const { return GetIdentHash ().ToBase64 (); };
-			uint64_t GetTimestamp () const { return m_Timestamp; };
-			int GetVersion () const { return m_Version; };
-			virtual void SetProperty (std::string_view key, std::string_view value) {};
-			virtual void ClearProperties () {};
+			std::string GetIdentHashBase64 () const { return GetIdentHash ().ToBase64 (); }
+			uint64_t GetTimestamp () const { return m_Timestamp; }
+			int GetVersion () const { return m_Version; }
+			virtual void SetProperty (std::string_view key, std::string_view value) {}
+			virtual void ClearProperties () {}
 			AddressesPtr GetAddresses () const; // should be called for local RI only, otherwise must return shared_ptr
 			std::shared_ptr<const Address> GetNTCP2V4Address () const;
 			std::shared_ptr<const Address> GetNTCP2V6Address () const;
@@ -254,35 +254,35 @@ namespace data
 			void SetUnreachableAddressesTransportCaps (uint8_t transports); // bitmask of AddressCaps
 			void UpdateSupportedTransports ();
 			void UpdateIntroducers (uint64_t ts); // ts in seconds
-			bool IsFloodfill () const { return m_IsFloodfill; };
-			void SetFloodfill () { m_IsFloodfill = true; };
-			void ResetFloodfill () { m_IsFloodfill = false; };
-			bool IsECIES () const { return m_RouterIdentity->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD; };
+			bool IsFloodfill () const { return m_IsFloodfill; }
+			void SetFloodfill () { m_IsFloodfill = true; }
+			void ResetFloodfill () { m_IsFloodfill = false; }
+			bool IsECIES () const { return m_RouterIdentity->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD; }
 			bool IsNTCP2 (bool v4only = true) const;
-			bool IsNTCP2V6 () const { return m_SupportedTransports & eNTCP2V6; };
-			bool IsSSU2V4 () const { return m_SupportedTransports & eSSU2V4; };
-			bool IsSSU2V6 () const { return m_SupportedTransports & eSSU2V6; };
-			bool IsV6 () const { return m_SupportedTransports & (eNTCP2V6 | eSSU2V6); };
-			bool IsV4 () const { return m_SupportedTransports & (eNTCP2V4 | eSSU2V4); };
-			bool IsMesh () const { return m_SupportedTransports & eNTCP2V6Mesh; };
+			bool IsNTCP2V6 () const { return m_SupportedTransports & eNTCP2V6; }
+			bool IsSSU2V4 () const { return m_SupportedTransports & eSSU2V4; }
+			bool IsSSU2V6 () const { return m_SupportedTransports & eSSU2V6; }
+			bool IsV6 () const { return m_SupportedTransports & (eNTCP2V6 | eSSU2V6); }
+			bool IsV4 () const { return m_SupportedTransports & (eNTCP2V4 | eSSU2V4); }
+			bool IsMesh () const { return m_SupportedTransports & eNTCP2V6Mesh; }
 			void EnableV6 ();
 			void DisableV6 ();
 			void EnableV4 ();
 			void DisableV4 ();
 			void EnableMesh ();
 			void DisableMesh ();
-			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };
+			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; }
 			bool IsSameSubnet (const RouterInfo& other) const;
-			bool IsReachableFrom (const RouterInfo& other) const { return m_ReachableTransports & other.m_SupportedTransports; };
-			bool IsReachableBy (CompatibleTransports transports) const { return m_ReachableTransports & transports; };
-			CompatibleTransports GetCompatibleTransports (bool incoming) const { return incoming ? m_ReachableTransports : m_SupportedTransports; };
-			CompatibleTransports GetPublishedTransports () const { return m_PublishedTransports; };
-			bool HasValidAddresses () const { return m_SupportedTransports; };
-			bool IsHidden () const { return m_Caps & eHidden; };
-			bool IsHighBandwidth () const { return m_Caps & RouterInfo::eHighBandwidth; };
-			bool IsExtraBandwidth () const { return m_Caps & RouterInfo::eExtraBandwidth; };
+			bool IsReachableFrom (const RouterInfo& other) const { return m_ReachableTransports & other.m_SupportedTransports; }
+			bool IsReachableBy (CompatibleTransports transports) const { return m_ReachableTransports & transports; }
+			CompatibleTransports GetCompatibleTransports (bool incoming) const { return incoming ? m_ReachableTransports : m_SupportedTransports; }
+			CompatibleTransports GetPublishedTransports () const { return m_PublishedTransports; }
+			bool HasValidAddresses () const { return m_SupportedTransports; }
+			bool IsHidden () const { return m_Caps & eHidden; }
+			bool IsHighBandwidth () const { return m_Caps & RouterInfo::eHighBandwidth; }
+			bool IsExtraBandwidth () const { return m_Caps & RouterInfo::eExtraBandwidth; }
 			bool IsEligibleFloodfill () const;
-			bool IsDeclaredFloodfill () const { return m_Caps & RouterInfo::eFloodfill; };
+			bool IsDeclaredFloodfill () const { return m_Caps & RouterInfo::eFloodfill; }
 			bool IsPublished (bool v4) const;
 			bool IsPublishedOn (CompatibleTransports transports) const;
 			bool IsNAT2NATOnly (const RouterInfo& other) const; // only NAT-to-NAT connection is possible
@@ -290,58 +290,58 @@ namespace data
 			bool IsSSU2Introducer (bool v4) const;
 			bool IsHighCongestion (bool highBandwidth) const;
 
-			uint8_t GetCaps () const { return m_Caps; };
-			char GetBandwidthCap() const { return m_BandwidthCap; };
-			void SetCaps (uint8_t caps) { m_Caps = caps; };
+			uint8_t GetCaps () const { return m_Caps; }
+			char GetBandwidthCap() const { return m_BandwidthCap; }
+			void SetCaps (uint8_t caps) { m_Caps = caps; }
 
-			Congestion GetCongestion () const { return m_Congestion; };
+			Congestion GetCongestion () const { return m_Congestion; }
 
-			void SetUnreachable (bool unreachable) { m_IsUnreachable = unreachable; };
-			bool IsUnreachable () const { return m_IsUnreachable; };
-			void ExcludeReachableTransports (CompatibleTransports transports) { m_ReachableTransports &= ~transports; };
+			void SetUnreachable (bool unreachable) { m_IsUnreachable = unreachable; }
+			bool IsUnreachable () const { return m_IsUnreachable; }
+			void ExcludeReachableTransports (CompatibleTransports transports) { m_ReachableTransports &= ~transports; }
 
-			const uint8_t * GetBuffer () const { return m_Buffer ? m_Buffer->data () : nullptr; };
+			const uint8_t * GetBuffer () const { return m_Buffer ? m_Buffer->data () : nullptr; }
 			const uint8_t * LoadBuffer (const std::string& fullPath); // load if necessary
-			size_t GetBufferLen () const { return m_Buffer ? m_Buffer->GetBufferLen () : 0; };
-			void DeleteBuffer () { m_Buffer = nullptr; m_IsBufferScheduledToDelete = false; };
-			std::shared_ptr<Buffer> GetSharedBuffer () const { return m_Buffer; };
+			size_t GetBufferLen () const { return m_Buffer ? m_Buffer->GetBufferLen () : 0; }
+			void DeleteBuffer () { m_Buffer = nullptr; m_IsBufferScheduledToDelete = false; }
+			std::shared_ptr<Buffer> GetSharedBuffer () const { return m_Buffer; }
 			std::shared_ptr<Buffer> CopyBuffer () const;
-			void ScheduleBufferToDelete () { m_IsBufferScheduledToDelete = true; };
-			void CancelBufferToDelete () { m_IsBufferScheduledToDelete = false; };
-			bool IsBufferScheduledToDelete () const { return m_IsBufferScheduledToDelete; };
+			void ScheduleBufferToDelete () { m_IsBufferScheduledToDelete = true; }
+			void CancelBufferToDelete () { m_IsBufferScheduledToDelete = false; }
+			bool IsBufferScheduledToDelete () const { return m_IsBufferScheduledToDelete; }
 
-			bool IsUpdated () const { return m_IsUpdated; };
-			void SetUpdated (bool updated) { m_IsUpdated = updated; };
+			bool IsUpdated () const { return m_IsUpdated; }
+			void SetUpdated (bool updated) { m_IsUpdated = updated; }
 			bool SaveToFile (const std::string& fullPath);
 			static bool SaveToFile (const std::string& fullPath, std::shared_ptr<Buffer> buf);
 
 			std::shared_ptr<RouterProfile> GetProfile () const;
-			void DropProfile () { m_Profile = nullptr; };
-			bool HasProfile () const { return (bool)m_Profile; };
+			void DropProfile () { m_Profile = nullptr; }
+			bool HasProfile () const { return (bool)m_Profile; }
 
 			bool Update (const uint8_t * buf, size_t len);
 			bool IsNewer (const uint8_t * buf, size_t len) const;
 
 			/** return true if we are in a router family and the signature is valid */
-			bool IsFamily (FamilyID famid) const { return m_FamilyID && m_FamilyID == famid; };
-			bool IsSameFamily (const RouterInfo& other) const { return IsFamily (other.m_FamilyID); };
+			bool IsFamily (FamilyID famid) const { return m_FamilyID && m_FamilyID == famid; }
+			bool IsSameFamily (const RouterInfo& other) const { return IsFamily (other.m_FamilyID); }
 
 			// implements RoutingDestination
-			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_RouterIdentity; };
+			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_RouterIdentity; }
 			void Encrypt (const uint8_t * data, uint8_t * encrypted) const;
 
-			bool IsDestination () const { return false; };
+			bool IsDestination () const { return false; }
 
 		protected:
 
 			RouterInfo ();
-			uint8_t * GetBufferPointer (size_t offset = 0 ) { return m_Buffer->data () + offset; };
+			uint8_t * GetBufferPointer (size_t offset = 0 ) { return m_Buffer->data () + offset; }
 			void UpdateBuffer (const uint8_t * buf, size_t len);
-			void SetBufferLen (size_t len) { if (m_Buffer) m_Buffer->SetBufferLen (len); };
+			void SetBufferLen (size_t len) { if (m_Buffer) m_Buffer->SetBufferLen (len); }
 			void RefreshTimestamp ();
-			CompatibleTransports GetReachableTransports () const { return m_ReachableTransports; };
-			void SetReachableTransports (CompatibleTransports transports) { m_ReachableTransports = transports; };
-			void SetCongestion (Congestion c) { m_Congestion = c; };
+			CompatibleTransports GetReachableTransports () const { return m_ReachableTransports; }
+			void SetReachableTransports (CompatibleTransports transports) { m_ReachableTransports = transports; }
+			void SetCongestion (Congestion c) { m_Congestion = c; }
 
 		private:
 
@@ -397,7 +397,7 @@ namespace data
 			void SetProperty (std::string_view key, std::string_view value) override;
 			void DeleteProperty (const std::string& key);
 			std::string GetProperty (const std::string& key) const;
-			void ClearProperties () override { m_Properties.clear (); };
+			void ClearProperties () override { m_Properties.clear (); }
 			void UpdateFloodfillProperty (bool floodfill);
 
 			bool AddSSU2Introducer (const Introducer& introducer, bool v4);

@@ -200,8 +200,8 @@ namespace torrents
 			void Start ();
 			void Stop ();
 
-			uint16_t GetPort () const { return m_Port; };
-			uint16_t GetRPort () const { return m_Port + 1; };
+			uint16_t GetPort () const { return m_Port; }
+			uint16_t GetRPort () const { return m_Port + 1; }
 			void HandleRawDatagram (const uint8_t * buf, size_t len);
 
 			void SendPingQuery (const i2p::data::IdentHash& toIdent, uint16_t toPort);

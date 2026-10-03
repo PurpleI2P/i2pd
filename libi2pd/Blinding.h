@@ -28,10 +28,10 @@ namespace data
 			BlindedPublicKey (std::string_view b33); // from b33 without .b32.i2p
 			std::string ToB33 () const;
 
-			const uint8_t * GetPublicKey () const { return m_PublicKey.data (); };
-			size_t GetPublicKeyLen () const { return m_PublicKey.size (); };
-			SigningKeyType GetSigType () const { return m_SigType; };
-			SigningKeyType GetBlindedSigType () const { return m_BlindedSigType; };
+			const uint8_t * GetPublicKey () const { return m_PublicKey.data (); }
+			size_t GetPublicKeyLen () const { return m_PublicKey.size (); }
+			SigningKeyType GetSigType () const { return m_SigType; }
+			SigningKeyType GetBlindedSigType () const { return m_BlindedSigType; }
 			bool IsValid () const; // signature type must be blindable
 
 			void GetSubcredential (const uint8_t * blinded, size_t len, uint8_t * subcredential) const; // 32 bytes

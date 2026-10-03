@@ -18,9 +18,9 @@
 
 // Kademlia DHT (XOR distance)
 
-namespace i2p 
+namespace i2p
 {
-namespace data 
+namespace data
 {
 	struct DHTNode
 	{
@@ -28,13 +28,13 @@ namespace data
 		std::shared_ptr<RouterInfo> router;
 
 		DHTNode ();
-		~DHTNode (); 
+		~DHTNode ();
 
-		bool IsEmpty () const { return !zero && !one && !router; };
+		bool IsEmpty () const { return !zero && !one && !router; }
 		void MoveRouterUp (bool fromOne);
 	};
 
-	class DHTTable 
+	class DHTTable
 	{
 		typedef std::function<bool (const std::shared_ptr<RouterInfo>&)> Filter;
 		public:
@@ -46,12 +46,12 @@ namespace data
 			bool Remove (const IdentHash& h);
 			std::shared_ptr<RouterInfo> FindClosest (const IdentHash& h, const Filter& filter = nullptr) const;
 			std::vector<std::shared_ptr<RouterInfo> > FindClosest (const IdentHash& h, size_t num, const Filter& filter = nullptr) const;
-			
-			void Print (std::stringstream& s);	
-			size_t GetSize () const { return m_Size; };
+
+			void Print (std::stringstream& s);
+			size_t GetSize () const { return m_Size; }
 			void Clear ();
 			void Cleanup (const Filter& filter);
-			
+
 		private:
 
 			void Insert (const std::shared_ptr<RouterInfo>& r, DHTNode * root, int level); // recursive
@@ -59,15 +59,15 @@ namespace data
 			std::shared_ptr<RouterInfo> FindClosest (const IdentHash& h, DHTNode * root, int level) const;
 			void FindClosest (const IdentHash& h, size_t num, DHTNode * root, int level, std::vector<std::shared_ptr<RouterInfo> >& hashes) const;
 			void Cleanup (DHTNode * root);
-			void Print (std::stringstream& s, DHTNode * root, int level);	
-			
+			void Print (std::stringstream& s, DHTNode * root, int level);
+
 		private:
 
 			DHTNode * m_Root;
 			size_t m_Size;
 			// transient
 			mutable Filter m_Filter;
-	};	
+	};
 }
 }
 

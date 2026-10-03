@@ -53,7 +53,7 @@ namespace tunnel
 	/** interface for custom tunnel peer selection algorithm */
 	struct ITunnelPeerSelector
 	{
-		virtual ~ITunnelPeerSelector() {};
+		virtual ~ITunnelPeerSelector() {}
 		virtual bool SelectPeers(Path & peers, int hops, bool isInbound) = 0;
 	};
 
@@ -66,8 +66,8 @@ namespace tunnel
 				int numOutboundTunnels, int inboundVariance, int outboundVariance, bool isHighBandwidth);
 			~TunnelPool ();
 
-			std::shared_ptr<i2p::garlic::GarlicDestination> GetLocalDestination () const { return m_LocalDestination; };
-			void SetLocalDestination (std::shared_ptr<i2p::garlic::GarlicDestination> destination) { m_LocalDestination = destination; };
+			std::shared_ptr<i2p::garlic::GarlicDestination> GetLocalDestination () const { return m_LocalDestination; }
+			void SetLocalDestination (std::shared_ptr<i2p::garlic::GarlicDestination> destination) { m_LocalDestination = destination; }
 			void SetExplicitPeers (std::vector<i2p::data::IdentHash> explicitPeers);
 			void SetTrustedRouters (std::vector<i2p::data::IdentHash> routers);
 			void SetInboundPeerOrderingKey (const uint8_t * key);
@@ -93,14 +93,14 @@ namespace tunnel
 			bool ProcessTunnelTest (uint32_t msgID, uint64_t timestamp);
 
 			bool IsExploratory () const;
-			bool IsActive () const { return m_IsActive; };
-			void SetActive (bool isActive) { m_IsActive = isActive; };
+			bool IsActive () const { return m_IsActive; }
+			void SetActive (bool isActive) { m_IsActive = isActive; }
 			void DetachTunnels ();
 
-			int GetNumInboundTunnels () const { return m_NumInboundTunnels; };
-			int GetNumOutboundTunnels () const { return m_NumOutboundTunnels; };
-			int GetNumInboundHops() const { return m_NumInboundHops; };
-			int GetNumOutboundHops() const { return m_NumOutboundHops; };
+			int GetNumInboundTunnels () const { return m_NumInboundTunnels; }
+			int GetNumOutboundTunnels () const { return m_NumOutboundTunnels; }
+			int GetNumInboundHops() const { return m_NumInboundHops; }
+			int GetNumOutboundHops() const { return m_NumOutboundHops; }
 
 			/** i2cp reconfigure */
 			bool Reconfigure(int inboundHops, int outboundHops, int inboundQuant, int outboundQuant);

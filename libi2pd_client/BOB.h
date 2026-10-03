@@ -89,7 +89,7 @@ namespace client
 
 			BOBI2PTunnelIncomingConnection (std::shared_ptr<I2PService> owner, std::shared_ptr<i2p::stream::Stream> stream,
 				const boost::asio::ip::tcp::endpoint& target, bool quiet):
-				I2PTunnelConnection (owner, stream, target), m_IsQuiet (quiet) {};
+				I2PTunnelConnection (owner, stream, target), m_IsQuiet (quiet) {}
 
 		protected:
 
@@ -105,10 +105,10 @@ namespace client
 		public:
 
 			BOBI2PTunnel (std::shared_ptr<ClientDestination> localDestination):
-				I2PService (localDestination) {};
+				I2PService (localDestination) {}
 
-			virtual void Start () {};
-			virtual void Stop () {};
+			virtual void Start () {}
+			virtual void Stop () {}
 	};
 
 	class BOBI2PInboundTunnel: public BOBI2PTunnel
@@ -120,7 +120,7 @@ namespace client
 			uint8_t * data; // pointer to buffer
 			size_t dataLen, bufferOffset;
 
-			AddressReceiver (): data (nullptr), dataLen (0), bufferOffset (0) {};
+			AddressReceiver (): data (nullptr), dataLen (0), bufferOffset (0) {}
 		};
 
 		public:
@@ -158,7 +158,7 @@ namespace client
 			void Start ();
 			void Stop ();
 
-			void SetQuiet () { m_IsQuiet = true; };
+			void SetQuiet () { m_IsQuiet = true; }
 
 		private:
 
@@ -193,8 +193,8 @@ namespace client
 			uint16_t GetOutPort() const { return m_OutPort; }
 			bool GetQuiet() const { return m_Quiet; }
 			bool IsRunning() const { return m_IsRunning; }
-			const i2p::data::PrivateKeys& GetKeys () const { return m_LocalDestination->GetPrivateKeys (); };
-			std::shared_ptr<ClientDestination> GetLocalDestination () const { return m_LocalDestination; };
+			const i2p::data::PrivateKeys& GetKeys () const { return m_LocalDestination->GetPrivateKeys (); }
+			std::shared_ptr<ClientDestination> GetLocalDestination () const { return m_LocalDestination; }
 
 		private:
 
@@ -218,7 +218,7 @@ namespace client
 			~BOBCommandSession ();
 			void Terminate ();
 
-			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
+			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; }
 			void SendVersion ();
 
 			// command handlers
@@ -295,7 +295,7 @@ namespace client
 			void Start ();
 			void Stop ();
 
-			auto& GetService () { return GetIOService (); };
+			auto& GetService () { return GetIOService (); }
 			void AddDestination (const std::string& name, std::shared_ptr<BOBDestination> dest);
 			void DeleteDestination (const std::string& name);
 			std::shared_ptr<BOBDestination> FindDestination (const std::string& name);
@@ -319,9 +319,9 @@ namespace client
 
 		public:
 
-			const decltype(m_CommandHandlers)& GetCommandHandlers () const { return m_CommandHandlers; };
-			const decltype(m_HelpStrings)& GetHelpStrings () const { return m_HelpStrings; };
-			const decltype(m_Destinations)& GetDestinations () const { return m_Destinations; };
+			const decltype(m_CommandHandlers)& GetCommandHandlers () const { return m_CommandHandlers; }
+			const decltype(m_HelpStrings)& GetHelpStrings () const { return m_HelpStrings; }
+			const decltype(m_Destinations)& GetDestinations () const { return m_Destinations; }
 	};
 }
 }

@@ -61,7 +61,7 @@ namespace crypto
 			~X25519Keys ();
 
 			void GenerateKeys ();
-			const uint8_t * GetPublicKey () const { return m_PublicKey; };
+			const uint8_t * GetPublicKey () const { return m_PublicKey; }
 			void GetPrivateKey (uint8_t * priv) const;
 			void SetPrivateKey (const uint8_t * priv, bool calculatePublic = false);
 			bool Agree (const uint8_t * pub, uint8_t * shared);
@@ -97,7 +97,7 @@ namespace crypto
 			ECBEncryption ();
 			~ECBEncryption ();
 
-			void SetKey (const uint8_t * key) { m_Key = key; };
+			void SetKey (const uint8_t * key) { m_Key = key; }
 			void Encrypt(const uint8_t * in, uint8_t * out);
 
 		private:
@@ -113,7 +113,7 @@ namespace crypto
 			ECBDecryption ();
 			~ECBDecryption ();
 
-			void SetKey (const uint8_t * key) { m_Key = key; };
+			void SetKey (const uint8_t * key) { m_Key = key; }
 			void Decrypt (const uint8_t * in, uint8_t * out);
 
 		private:
@@ -129,7 +129,7 @@ namespace crypto
 			CBCEncryption ();
 			~CBCEncryption ();
 
-			void SetKey (const uint8_t * key) { m_Key = key; }; // 32 bytes
+			void SetKey (const uint8_t * key) { m_Key = key; } // 32 bytes
 			void Encrypt (const uint8_t * in, size_t len, const uint8_t * iv, uint8_t * out);
 
 		private:
@@ -145,7 +145,7 @@ namespace crypto
 			CBCDecryption ();
 			~CBCDecryption ();
 
-			void SetKey (const uint8_t * key) { m_Key = key; }; // 32 bytes
+			void SetKey (const uint8_t * key) { m_Key = key; } // 32 bytes
 			void Decrypt (const uint8_t * in, size_t len, const uint8_t * iv, uint8_t * out);
 
 		private:

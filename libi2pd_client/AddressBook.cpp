@@ -364,7 +364,6 @@ namespace client
 		{
 			case eAddressIndentHash:
 				return identHash.ToBase32 ();
-			break;
 			case eAddressBlindedPublicKey:
 				if (blindedPublicKey)
 					return blindedPublicKey->ToB33 ();
@@ -381,7 +380,6 @@ namespace client
 		{
 			case eAddressIndentHash:
 				return identHash == other.identHash;
-			break;
 			case eAddressBlindedPublicKey:
 				if (blindedPublicKey && other.blindedPublicKey &&
 					blindedPublicKey->GetPublicKeyLen () == other.blindedPublicKey->GetPublicKeyLen () &&

@@ -737,7 +737,7 @@ namespace transport
 			boost::asio::post (m_Server.GetEstablisherService (),
 				[s = shared_from_this (), bytes_transferred] ()
 				{
-					s->ProcessSessionRequest (bytes_transferred);;
+					s->ProcessSessionRequest (bytes_transferred);
 				});
 		}
 	}
@@ -978,7 +978,7 @@ namespace transport
 			boost::asio::post (m_Server.GetEstablisherService (),
 				[s = shared_from_this ()] ()
 				{
-					s->ProcessSessionConfirmed ();;
+					s->ProcessSessionConfirmed ();
 				});
 		}
 	}

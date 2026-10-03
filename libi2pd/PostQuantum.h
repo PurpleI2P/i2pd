@@ -70,8 +70,8 @@ namespace crypto
 			void GenerateKeys ();
 			void GetPublicKey (uint8_t * pub) const;
 			void SetPublicKey (const uint8_t * pub);
-			size_t GetKeyLen () const { return m_KeyLen; };
-			size_t GetCTLen () const { return m_CTLen; };
+			size_t GetKeyLen () const { return m_KeyLen; }
+			size_t GetCTLen () const { return m_CTLen; }
 			void Encaps (uint8_t * ciphertext, uint8_t * shared);
 			void Decaps (const uint8_t * ciphertext, uint8_t * shared);
 

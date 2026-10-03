@@ -350,7 +350,7 @@ namespace tunnel
 			break;
 			default:
 				LogPrint (eLogError, "TunnelMessage: Unknown delivery type ", (int)msg.deliveryType);
-		};
+		}
 	}
 
 	void TunnelEndpoint::Cleanup ()

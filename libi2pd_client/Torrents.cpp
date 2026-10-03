@@ -117,22 +117,17 @@ namespace torrents
 	static size_t ParseBEncoded (std::string_view buf, size_t depth)
 	{
 		if (buf.empty () || depth > BENCODED_MAX_DEPTH) return 0;
-		size_t ret = 0;
 		switch (buf[0])
 		{
 			case 'i': // integer
 				return ExtractInteger (buf).second;
-			break;
 			case 'l': // list
 				return ParseList (buf, nullptr, depth + 1);
-			break;
 			case 'd': // dictionary
 				return ParseDictionary (buf, nullptr, depth + 1);
-			break;
 			default: // byte string
 				return ExtractByteString (buf).second;
 		}
-		return ret;
 	}
 
 	std::pair<std::vector<std::string_view>, size_t> ParseStringList (std::string_view buf)
@@ -1530,7 +1525,7 @@ namespace torrents
 				break;
 				default:
 					LogPrint (eLogWarning, "Torrents: Unexpected message type ", (int)m_ReceiveBuffer[offset], ". Ignored");
-			};
+			}
 		}
 		else
 			LogPrint (eLogInfo, "Torrents: Keep-alive received");
@@ -2324,7 +2319,7 @@ namespace torrents
 						{
 							newPeers.emplace (i2p::data::IdentHash ((const uint8_t *)idents.substr (0, i2p::data::IdentHash::len).data ()));
 							idents = idents.substr (i2p::data::IdentHash::len);
-						};
+						}
 					return l;
 				}
 				return 0;

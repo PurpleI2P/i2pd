@@ -132,7 +132,7 @@ namespace torrents
 
 			TorrentFile (const std::filesystem::path & fullFilePath, size_t fileLength):
 				m_FullFilePath (fullFilePath), m_FileLength (fileLength), m_IsPart (true),
-				m_LastAccessTime (0), m_LastFlushTime (0) {};
+				m_LastAccessTime (0), m_LastFlushTime (0) {}
 
 			bool Save (size_t offset, const uint8_t * buf, size_t len);
 			bool Load (size_t offset, uint8_t * buf, size_t len);
@@ -164,7 +164,7 @@ namespace torrents
 		size_t fragmentSize;
 
 		PieceFileFragment (std::shared_ptr<TorrentFile> file1, size_t fileOffset1, size_t fragmentOffset1, size_t fragmentSize1):
-			file (file1), fileOffset (fileOffset1), fragmentOffset (fragmentOffset1), fragmentSize (fragmentSize1) {};
+			file (file1), fileOffset (fileOffset1), fragmentOffset (fragmentOffset1), fragmentSize (fragmentSize1) {}
 		PieceFileFragment (PieceFileFragment&& ) = default;
 		PieceFileFragment (const PieceFileFragment& ) = default;
 	};
@@ -272,7 +272,7 @@ namespace torrents
 			void SetStopped (bool stopped) { m_IsStopped = stopped; }
 			bool IsActive () const { return !m_Connections.empty (); }
 			TorrentStatus GetStatus () const;
-			bool IsSingleFile () const { return m_IsSingleFile; };
+			bool IsSingleFile () const { return m_IsSingleFile; }
 
 			std::string_view GetAnnounce () const { return m_Announce; }
 			void SetAnnounce (std::string_view announce) { m_Announce = announce; }
@@ -396,7 +396,7 @@ namespace torrents
 			void ReceiveHandshake ();
 			void CheckKeepAlive (uint64_t ts);
 
-			bool IsEstablished () const { return m_IsEstablished; };
+			bool IsEstablished () const { return m_IsEstablished; }
 			bool IsPieceAvailable (size_t ind) const;
 			std::shared_ptr<i2p::stream::Stream> GetStream () const { return m_Stream; }
 			std::shared_ptr<Torrent> GetTorrent () const { return m_Torrent; }

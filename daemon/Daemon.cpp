@@ -46,8 +46,8 @@ namespace util
 	class Daemon_Singleton::Daemon_Singleton_Private
 	{
 	public:
-		Daemon_Singleton_Private() {};
-		~Daemon_Singleton_Private() {};
+		Daemon_Singleton_Private() {}
+		~Daemon_Singleton_Private() {}
 
 		std::unique_ptr<i2p::http::HTTPServer> httpServer;
 		std::unique_ptr<i2p::client::I2PControlService> m_I2PControlService;
@@ -134,7 +134,7 @@ namespace util
 				for(auto r : rules)
 					out << r << " ";
 				pledge(out.str().c_str(), nullptr);
-			}		
+			}
 
 
 		};
@@ -170,7 +170,7 @@ namespace util
 			}
 			i2p::config::GetOption("reseed.file", reseed_file);
 			i2p::config::GetOption("openbsd.pledge_file", openbsd_pledge_file);
-			i2p::config::GetOption("tunconf", tunconf); 
+			i2p::config::GetOption("tunconf", tunconf);
 			if(tunconf == "")
 			{
 				tunconf = datadir+"/tunnels.conf";
@@ -179,7 +179,7 @@ namespace util
 			{
 				config = datadir+"/i2pd.conf";
 			}
-			i2p::config::GetOption("pidfile", pidfile); 
+			i2p::config::GetOption("pidfile", pidfile);
 			if(pidfile == "")
 			{
 				pidfile = datadir+"/i2pd.pid";
@@ -654,7 +654,7 @@ namespace util
 			case eRouterStatusMesh: s << "Mesh"; break;
 			case eRouterStatusStan: s << "Stan"; break;
 			default: s << "Unk";
-		};
+		}
 		if (testing)
 			s << " (Test)";
 		if (error != eRouterErrorNone)

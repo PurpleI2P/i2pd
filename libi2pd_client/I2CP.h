@@ -91,7 +91,7 @@ namespace client
 			I2CPDestination (boost::asio::io_context& service, std::shared_ptr<I2CPSession> owner,
 				std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, bool isSameThread,
 			    const i2p::util::Mapping& params);
-			~I2CPDestination () {};
+			~I2CPDestination () {}
 
 			void Stop () override;
 
@@ -106,7 +106,7 @@ namespace client
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, i2p::data::CryptoKeyType preferredCrypto) const override;
 			bool SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const override;
 			const uint8_t * GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const override; // for 4 only
-			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const override { return m_Identity; };
+			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const override { return m_Identity; }
 
 		protected:
 
@@ -164,8 +164,8 @@ namespace client
 
 			void Start ();
 			void Stop ();
-			uint16_t GetSessionID () const { return m_SessionID; };
-			std::shared_ptr<const I2CPDestination> GetDestination () const { return m_Destination; };
+			uint16_t GetSessionID () const { return m_SessionID; }
+			std::shared_ptr<const I2CPDestination> GetDestination () const { return m_Destination; }
 
 			// called from I2CPDestination
 			void SendI2CPMessage (uint8_t type, const uint8_t * payload, size_t len);
@@ -232,8 +232,8 @@ namespace client
 
 			void Start ();
 			void Stop ();
-			auto& GetService () { return GetIOService (); };
-			bool IsSingleThread () const { return m_IsSingleThread; };
+			auto& GetService () { return GetIOService (); }
+			bool IsSingleThread () const { return m_IsSingleThread; }
 
 			bool InsertSession (std::shared_ptr<I2CPSession> session);
 			void RemoveSession (uint16_t sessionID);
@@ -256,7 +256,7 @@ namespace client
 
 		public:
 
-			const decltype(m_MessagesHandlers)& GetMessagesHandlers () const { return m_MessagesHandlers; };
+			const decltype(m_MessagesHandlers)& GetMessagesHandlers () const { return m_MessagesHandlers; }
 
 			// for HTTP; thread-safe snapshot, safe to iterate without holding any lock
 			std::vector<std::pair<uint16_t, std::shared_ptr<I2CPSession> > > GetSessionsList () const

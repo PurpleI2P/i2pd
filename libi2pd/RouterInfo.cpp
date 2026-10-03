@@ -1173,16 +1173,12 @@ namespace data
 		{
 			case eLowCongestion:
 				return false;
-			break;
 			case eMediumCongestion:
 				return highBandwidth;
-			break;
 			case eHighCongestion:
 				return i2p::util::GetMillisecondsSinceEpoch () < m_Timestamp + HIGH_CONGESTION_INTERVAL*1000LL;
-			break;
 			case eRejectAll:
 				return true;
-			break;
 			default:
 				return false;
 		}
@@ -1205,7 +1201,7 @@ namespace data
 	{
 		auto transports = m_SupportedTransports & other.m_SupportedTransports;
 		if (!transports) return false;
-		auto addresses1 = GetAddresses (), addresses2 = other.GetAddresses ();;
+		auto addresses1 = GetAddresses (), addresses2 = other.GetAddresses ();
 		for (int i = 0; i < eNumTransports; i++)
 			if (i != eNTCP2V6MeshIdx && (transports & (1 << i)))
 			{
@@ -1279,7 +1275,7 @@ namespace data
 				caps += CAPS_FLAG_REJECT_ALL_CONGESTION;
 			break;
 			default: ;
-		};
+		}
 
 		SetProperty ("caps", caps);
 	}

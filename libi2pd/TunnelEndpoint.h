@@ -32,8 +32,8 @@ namespace tunnel
 
 		struct Fragment
 		{
-			Fragment (bool last, uint64_t t, const uint8_t * buf, size_t size): 
-				isLastFragment (last), receiveTime (t), data (size) { memcpy (data.data(), buf, size); };
+			Fragment (bool last, uint64_t t, const uint8_t * buf, size_t size):
+				isLastFragment (last), receiveTime (t), data (size) { memcpy (data.data(), buf, size); }
 			bool isLastFragment;
 			uint64_t receiveTime; // milliseconds since epoch
 			std::vector<uint8_t> data;
@@ -41,17 +41,17 @@ namespace tunnel
 
 		public:
 
-			TunnelEndpoint (bool isInbound): m_IsInbound (isInbound), m_NumReceivedBytes (0), m_CurrentMsgID (0) {};
+			TunnelEndpoint (bool isInbound): m_IsInbound (isInbound), m_NumReceivedBytes (0), m_CurrentMsgID (0) {}
 			~TunnelEndpoint () = default;
-			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
+			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; }
 			void Cleanup ();
 
 			void HandleDecryptedTunnelDataMsg (std::shared_ptr<I2NPMessage> msg);
-			void FlushI2NPMsgs (); 
+			void FlushI2NPMsgs ();
 
 			const i2p::data::IdentHash * GetCurrentHash () const; // return null if not available
-			const std::unique_ptr<TunnelTransportSender>& GetSender () const { return m_Sender; };
-		
+			const std::unique_ptr<TunnelTransportSender>& GetSender () const { return m_Sender; }
+
 		private:
 
 			void HandleFollowOnFragment (uint32_t msgID, bool isLastFragment, uint8_t fragmentNum, const uint8_t * fragment, size_t size);

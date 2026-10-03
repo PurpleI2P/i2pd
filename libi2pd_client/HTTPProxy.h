@@ -20,8 +20,8 @@ namespace proxy
 			HTTPProxy(const std::string& name, const std::string& address, uint16_t port, const std::string & outproxy,
 				bool addresshelper, bool senduseragent, std::shared_ptr<i2p::client::ClientDestination> localDestination);
 			HTTPProxy(const std::string& name, const std::string& address, uint16_t port, std::shared_ptr<i2p::client::ClientDestination> localDestination = nullptr) :
-				HTTPProxy(name, address, port, "", true, false, localDestination) {} ;
-			~HTTPProxy() {};
+				HTTPProxy(name, address, port, "", true, false, localDestination) {}
+			~HTTPProxy() {}
 
 			// picks the next outproxy, so several of them are used in turn
 			std::string GetOutproxyURL();

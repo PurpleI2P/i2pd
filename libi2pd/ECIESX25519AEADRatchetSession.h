@@ -49,21 +49,21 @@ namespace garlic
 	{
 		public:
 
-			RatchetTagSet () {};
-			virtual ~RatchetTagSet () {};
+			RatchetTagSet () {}
+			virtual ~RatchetTagSet () {}
 
 			void DHInitialize (const uint8_t * rootKey, const uint8_t * k);
 			void NextSessionTagRatchet ();
 			uint64_t GetNextSessionTag (i2p::crypto::HKDFContext& hkdfCtx);
-			const uint8_t * GetNextRootKey () const { return m_NextRootKey; };
-			int GetNextIndex () const { return m_NextIndex; };
+			const uint8_t * GetNextRootKey () const { return m_NextRootKey; }
+			int GetNextIndex () const { return m_NextIndex; }
 			void GetSymmKey (int index, uint8_t * key);
 			void DeleteSymmKey (int index);
 
-			int GetTagSetID () const { return m_TagSetID; };
-			void SetTagSetID (int tagsetID) { m_TagSetID = tagsetID; };
+			int GetTagSetID () const { return m_TagSetID; }
+			void SetTagSetID (int tagsetID) { m_TagSetID = tagsetID; }
 
-			uint32_t GetMsgID () const { return (m_TagSetID << 16) + m_NextIndex; }; // (tagsetid << 16) + N
+			uint32_t GetMsgID () const { return (m_TagSetID << 16) + m_NextIndex; } // (tagsetid << 16) + N
 
 		private:
 
@@ -84,10 +84,10 @@ namespace garlic
 			ReceiveRatchetTagSet (std::shared_ptr<ECIESX25519AEADRatchetSession> session, bool isNS = false);
 			~ReceiveRatchetTagSet () override;
 
-			bool IsNS () const { return m_IsNS; };
-			std::shared_ptr<ECIESX25519AEADRatchetSession> GetSession () { return m_Session; };
-			void SetTrimBehind (int index) { if (index > m_TrimBehindIndex) m_TrimBehindIndex = index; };
-			int GetTrimBehind () const { return m_TrimBehindIndex; };
+			bool IsNS () const { return m_IsNS; }
+			std::shared_ptr<ECIESX25519AEADRatchetSession> GetSession () { return m_Session; }
+			void SetTrimBehind (int index) { if (index > m_TrimBehindIndex) m_TrimBehindIndex = index; }
+			int GetTrimBehind () const { return m_TrimBehindIndex; }
 
 			void Expire ();
 			bool IsExpired (uint64_t ts) const;
@@ -110,7 +110,7 @@ namespace garlic
 
 			SymmetricKeyTagSet (GarlicDestination * destination, const uint8_t * key);
 
-			bool IsIndexExpired (int index) const override { return false; };
+			bool IsIndexExpired (int index) const override { return false; }
 			bool HandleNextMessage (uint8_t * buf, size_t len, int index) override;
 			bool IsSessionTerminated () const override { return false; }
 
@@ -182,24 +182,24 @@ namespace garlic
 			{
 				if (!m_Destination) m_Destination.reset (new i2p::data::IdentHash (dest));
 			}
-			const i2p::data::IdentHash * GetDestinationPtr () const { return m_Destination ? m_Destination.get () : nullptr; }; // for pongs
+			const i2p::data::IdentHash * GetDestinationPtr () const { return m_Destination ? m_Destination.get () : nullptr; } // for pongs
 			bool CheckExpired (uint64_t ts); // true is expired
 			bool CanBeRestarted (uint64_t ts) const { return ts > m_SessionCreatedTimestamp + ECIESX25519_RESTART_TIMEOUT; }
 			bool IsInactive (uint64_t ts) const override { return ts > m_LastActivityTimestamp + ECIESX25519_INACTIVITY_TIMEOUT && CanBeRestarted (ts); }
 			void CleanupReceiveNSRKeys (); // called from ReceiveRatchetTagSet at Alice's side
-			bool IsResponseRequired () const { return m_State == eSessionStateNewSessionReceived || m_SendReverseKey || !m_AckRequests.empty (); };
+			bool IsResponseRequired () const { return m_State == eSessionStateNewSessionReceived || m_SendReverseKey || !m_AckRequests.empty (); }
 
-			bool IsRatchets () const override { return true; };
-			bool IsReadyToSend () const override { return m_State != eSessionStateNewSessionSent; };
+			bool IsRatchets () const override { return true; }
+			bool IsReadyToSend () const override { return m_State != eSessionStateNewSessionSent; }
 			bool IsTerminated () const override { return m_IsTerminated; }
-			uint64_t GetLastActivityTimestamp () const override { return m_LastActivityTimestamp; };
-			void SetAckRequestInterval (int interval) override { m_AckRequestInterval = interval; };
+			uint64_t GetLastActivityTimestamp () const override { return m_LastActivityTimestamp; }
+			void SetAckRequestInterval (int interval) override { m_AckRequestInterval = interval; }
 			bool CleanupUnconfirmedTags () override; // return true if unanswered Ack requests, called from I2CP
 
 		protected:
 
-			i2p::crypto::NoiseSymmetricState& GetNoiseState () { return *this; };
-			void SetNoiseState (const i2p::crypto::NoiseSymmetricState& state) { GetNoiseState () = state; };
+			i2p::crypto::NoiseSymmetricState& GetNoiseState () { return *this; }
+			void SetNoiseState (const i2p::crypto::NoiseSymmetricState& state) { GetNoiseState () = state; }
 			void CreateNonce (uint64_t seqn, uint8_t * nonce);
 			void HandlePayload (const uint8_t * buf, size_t len, const std::shared_ptr<ReceiveRatchetTagSet>& receiveTagset, int index);
 			bool MessageConfirmed (uint32_t msgID) override;
@@ -272,7 +272,7 @@ namespace garlic
 
 			RouterIncomingRatchetSession (const i2p::crypto::NoiseSymmetricState& initState);
 			bool HandleNextMessage (const uint8_t * buf, size_t len);
-			i2p::crypto::NoiseSymmetricState& GetCurrentNoiseState () { return m_CurrentNoiseState; };
+			i2p::crypto::NoiseSymmetricState& GetCurrentNoiseState () { return m_CurrentNoiseState; }
 
 		private:
 
@@ -285,4 +285,3 @@ namespace garlic
 }
 
 #endif
-

@@ -90,7 +90,7 @@ namespace util
 				return m_Queue.size ();
 			}
 
-			void WakeUp () { m_NonEmpty.notify_all (); };
+			void WakeUp () { m_NonEmpty.notify_all (); }
 
 			Element Get ()
 			{
