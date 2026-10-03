@@ -1,0 +1,101 @@
+name: Release
+
+on:
+  push:
+    tags:
+    - '*'
+
+jobs:
+  windows:
+    uses: ./.github/workflows/build-windows.yml
+
+  macos:
+    uses: ./.github/workflows/build-macos.yml
+
+  linux:
+    uses: ./.github/workflows/build-static.yml
+
+  debian:
+    uses: ./.github/workflows/build-deb.yml
+
+  freebsd:
+    uses: ./.github/workflows/build-freebsd.yml
+
+  installer:
+    name: Windows installer
+    needs: windows
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Download binaries
+      uses: actions/download-artifact@v4
+      with:
+        pattern: i2pd-*.exe
+        path: artifacts
+
+    - name: Build installer
+      shell: pwsh
+      run: |
+        choco install innosetup -y --no-progress
+        Copy-Item artifacts/i2pd-x86.exe/i2pd.exe i2pd_x32.exe
+        Copy-Item artifacts/i2pd-x64.exe/i2pd.exe i2pd_x64.exe
+        Copy-Item artifacts/i2pd-xp.exe/i2pd.exe i2pd_xp.exe
+        & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/dI2Pd_TextVer=$env:GITHUB_REF_NAME" "/dI2Pd_Ver=$env:GITHUB_REF_NAME.0" build\win_installer.iss
+
+    - name: Upload installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: i2pd-installer
+        path: build/setup_i2pd_v*.exe
+
+  release:
+    name: Release
+    needs: [windows, macos, linux, debian, freebsd, installer]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Prepare release files
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq dos2unix
+        TAG=$GITHUB_REF_NAME
+        mkdir release
+        echo "To use configs and certificates, move all files and certificates folder from contrib directory here." > README.txt
+        unix2dos -q contrib/i2pd.conf contrib/tunnels.conf contrib/tunnels.d/* contrib/webconsole/style.css
+        for build in x64:win64 x86:win32 xp:winxp arm64:winarm64; do
+          cp artifacts/i2pd-${build%%:*}.exe/i2pd.exe i2pd.exe
+          zip -qr9 release/i2pd_${TAG}_${build#*:}_mingw.zip i2pd.exe README.txt \
+            contrib/i2pd.conf contrib/tunnels.conf contrib/certificates contrib/tunnels.d contrib/webconsole
+        done
+        chmod +x artifacts/i2pd-macos-universal/i2pd
+        tar -czf release/i2pd_${TAG}_osx.tar.gz -C artifacts/i2pd-macos-universal i2pd
+        for dir in artifacts/i2pd-freebsd-*; do
+          chmod +x $dir/i2pd
+          rel=${dir##*-}
+          tar -czf release/i2pd_${TAG}_freebsd${rel%%.*}_amd64.tar.gz -C $dir i2pd
+        done
+        cp artifacts/i2pd-installer/setup_i2pd_v*.exe release/
+        cp artifacts/i2pd-linux-all/* release/
+        cp artifacts/i2pd_trixie_*/i2pd_*.deb release/
+        cd release
+        sha512sum -b * > SHA512SUMS
+        ls -l
+
+    - name: Publish release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: release/*
+        fail_on_unmatched_files: true

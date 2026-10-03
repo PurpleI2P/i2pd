@@ -1,0 +1,28 @@
+#!/usr/bin/make -f
+include /usr/share/dpkg/architecture.mk
+
+PKG := debian/i2pd
+
+%:
+	dh $@
+
+override_dh_auto_build override_dh_auto_test override_dh_auto_clean override_dh_auto_configure:
+
+override_dh_auto_install:
+	install -D -m 0755 bin/i2pd-$(DEB_HOST_ARCH) $(PKG)/usr/bin/i2pd
+	install -D -m 0644 src/contrib/i2pd.conf $(PKG)/etc/i2pd/i2pd.conf
+	install -D -m 0644 src/contrib/tunnels.conf $(PKG)/etc/i2pd/tunnels.conf
+	install -D -m 0644 src/contrib/subscriptions.txt $(PKG)/etc/i2pd/subscriptions.txt
+	install -D -m 0644 src/contrib/tunnels.d/README $(PKG)/etc/i2pd/tunnels.conf.d/README
+	install -d $(PKG)/usr/share/i2pd
+	cp -r src/contrib/certificates $(PKG)/usr/share/i2pd/
+
+override_dh_strip override_dh_dwz override_dh_shlibdeps override_dh_makeshlibs:
+
+override_dh_builddeb:
+	dh_builddeb -- -Zxz
+
+# generated invoke-rc.d --skip-systemd-native needs init-system-helpers >= 1.54,
+# which Ubuntu 18.04 lacks; the maintainer scripts handle sysvinit themselves
+override_dh_installinit:
+	dh_installinit --no-scripts

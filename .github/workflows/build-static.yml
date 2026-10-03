@@ -1,0 +1,120 @@
+name: Build static binaries
+
+on:
+  push:
+    branches:
+    - '*'
+    paths:
+    - .github/workflows/build-static.yml
+    - contrib/**
+    - daemon/**
+    - debian/**
+    - i18n/**
+    - libi2pd/**
+    - libi2pd_client/**
+    - Makefile
+    - Makefile.linux
+  pull_request:
+    branches:
+    - '*'
+  workflow_call:
+
+jobs:
+  build:
+    name: musl ${{ matrix.arch }}
+    runs-on: ${{ matrix.arch == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # armhf and s390x run under QEMU, so they are built for releases only
+        arch: ${{ fromJSON(github.ref_type == 'tag' && '["x86_64", "aarch64", "x86", "armhf", "s390x"]' || '["x86_64", "aarch64", "x86"]') }}
+
+    env:
+      PLATFORM: ${{ fromJSON('{"x86_64":"linux/amd64","aarch64":"linux/arm64","x86":"linux/386","armhf":"linux/arm/v6","s390x":"linux/s390x"}')[matrix.arch] }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up QEMU
+      if: ${{ matrix.arch == 'armhf' || matrix.arch == 's390x' }}
+      uses: docker/setup-qemu-action@v3
+
+    - name: Build in Alpine
+      run: docker run --rm --platform $PLATFORM -v "$PWD":/src -w /src alpine:3.22 ${{ matrix.arch == 'x86' && 'linux32' || '' }} sh contrib/static/build-musl.sh
+
+    - name: Check binary
+      run: |
+        file i2pd | grep 'statically linked'
+        readelf -d i2pd | grep 'There is no dynamic section'
+        ./i2pd --version
+        ./i2pd --version | grep -E '^OpenSSL (3\.([5-9]|[1-9][0-9])|[4-9])\.'
+        ./i2pd --version | grep -E '^Boost version 1\.(8[1-9]|9[0-9])\.'
+
+    - name: Run
+      run: |
+        mkdir datadir
+        ./i2pd --datadir=datadir --log=file --logfile=datadir/i2pd.log --loglevel=info &
+        sleep 15
+        kill -0 $!
+        grep 'Daemon: Starting NetDB' datadir/i2pd.log
+        kill -9 $!
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: i2pd-static-${{ matrix.arch }}
+        path: i2pd
+
+  package:
+    name: deb and rpm packages
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Download binaries
+      uses: actions/download-artifact@v4
+      with:
+        pattern: i2pd-static-*
+        path: bin
+
+    - name: Set package version
+      run: |
+        if [ "$GITHUB_REF_TYPE" = tag ]; then
+          echo "VERSION=$GITHUB_REF_NAME" >> $GITHUB_ENV
+          echo "RPM_VERSION=$GITHUB_REF_NAME" >> $GITHUB_ENV
+          echo "RPM_RELEASE=1" >> $GITHUB_ENV
+        else
+          base=$(sed -nE 's/^#define I2PD_VERSION_(MAJOR|MINOR|MICRO) ([0-9]+)$/\2/p' libi2pd/version.h | paste -sd.)
+          rev=git$(git log -1 --format=%cd --date=format:%Y%m%d).$(git rev-parse --short=7 HEAD)
+          echo "VERSION=$base+$rev" >> $GITHUB_ENV
+          echo "RPM_VERSION=$base" >> $GITHUB_ENV
+          echo "RPM_RELEASE=0.$rev" >> $GITHUB_ENV
+        fi
+
+    - name: Build deb packages
+      run: docker run --rm -e VERSION -v "$PWD":/src -w /src debian:bookworm sh contrib/static/package.sh deb bin out
+
+    - name: Build rpm packages
+      run: docker run --rm -e VERSION -e RPM_VERSION -e RPM_RELEASE -v "$PWD":/src -w /src rockylinux:9 sh contrib/static/package.sh rpm bin out
+
+    - name: Test packages
+      run: |
+        for img in debian:trixie ubuntu:24.04; do
+          docker run --rm -e DEBIAN_FRONTEND=noninteractive -v "$PWD/out":/o $img sh -ec \
+            'apt-get update -qq; apt-get install -y -qq /o/*_linux-all_amd64.deb; dpkg -V i2pd; i2pd --version; apt-get purge -y -qq i2pd'
+        done
+        for img in rockylinux:9 fedora:latest; do
+          docker run --rm -v "$PWD/out":/o $img sh -ec \
+            'dnf -q -y install /o/*_linux-all_x86_64.rpm; rpm -V i2pd; i2pd --version; dnf -q -y remove i2pd'
+        done
+
+    - name: Upload packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: i2pd-linux-all
+        path: out/*
