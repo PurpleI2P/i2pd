@@ -401,7 +401,7 @@ namespace client
 		auto outport = issetNum(currentTunnel ? m_OutPort : (dest ? dest->GetOutPort() : 0));
 		bool keys = (bool)dest; // key must exist when destination is created
 		bool starting = dest && !dest->IsRunning ();
-		bool running = dest && !dest->IsRunning ();
+		bool running = dest && dest->IsRunning ();
 
 		auto [proxy, proxyType] = m_Owner.GetProxy(nickname);
 		// build line
