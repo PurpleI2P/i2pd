@@ -451,6 +451,17 @@ namespace torrents
 		return true;
 	}
 
+	void TorrentsTunnel::RemoveAllTorrents (bool deleteFiles)
+	{
+		boost::asio::post (GetService (), [this, deleteFiles]()
+		{
+			for (const auto& it: m_Torrents)
+				RemoveTorrent (it.second, deleteFiles);
+			m_Torrents.clear ();
+			m_TorrentsByID.clear ();
+		});
+	}
+
 	void TorrentsTunnel::RemoveTorrent (std::shared_ptr<Torrent> torrent, bool deleteFiles)
 	{
 		if (!torrent) return;

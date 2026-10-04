@@ -110,6 +110,7 @@ namespace torrents
 			std::pair<std::shared_ptr<Torrent>, int> AddMagnet (std::string_view magnet); // return (torrent, id)
 			void UpdateTorrentInfo (std::shared_ptr<Torrent> torrent, std::string_view info); // magnet
 			bool RemoveTorrent (int id, bool deleteFiles);
+			void RemoveAllTorrents (bool deleteFiles);
 			bool StopTorrent (int id);
 			bool StartTorrent (int id);
 			void ConnectToNewPeers (std::shared_ptr<Torrent> torrent, std::unordered_set<i2p::data::IdentHash>& newPeers, PeerConnectionOrigin origin);

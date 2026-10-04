@@ -109,7 +109,7 @@ namespace torrents
 			else
 				torrentIds.push_back (ids.as_int64 ());
 		}
-		return torrentIds;;
+		return torrentIds;
 	}
 
 	std::string JSONRPCHandler::HandleRequest (std::string_view request)
@@ -201,8 +201,14 @@ namespace torrents
 		bool deleteFiles = false;
 		if (arguments.contains ("delete-local-data"))
 			deleteFiles = arguments.at ("delete-local-data").as_bool ();
-		for (auto id: GetTorrentIds (arguments))
- 			m_Tunnel->RemoveTorrent (id, deleteFiles);
+		auto torrentIds = GetTorrentIds (arguments);
+		if (!torrentIds.empty ())
+		{
+			for (auto id: torrentIds)
+				m_Tunnel->RemoveTorrent (id, deleteFiles);
+ 		}
+ 		else
+			m_Tunnel->RemoveAllTorrents (deleteFiles);
 		boost::json::object response; // always empty
 		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}
