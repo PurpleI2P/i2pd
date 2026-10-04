@@ -40,6 +40,7 @@ namespace torrents
 	std::pair<std::string_view, size_t> ExtractByteString (std::string_view buf);
 	std::pair<int64_t, size_t> ExtractInteger (std::string_view buf);
 	size_t ParseDictionary (std::string_view buf, std::function<size_t (std::string_view key, std::string_view buf)> handler = nullptr, size_t depth = 0);
+	std::pair<std::map<std::string_view, std::string_view>, size_t> ExtractDictionary (std::string_view buf); // decoded keys, encoded values
 	size_t ParseList (std::string_view buf, std::function<size_t (std::string_view buf)> handler = nullptr, size_t depth = 0);
 	std::pair<std::vector<std::string_view>, size_t> ParseStringList (std::string_view buf);
 	std::string CreateByteString (std::string_view str);

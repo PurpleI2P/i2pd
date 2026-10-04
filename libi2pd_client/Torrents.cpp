@@ -93,6 +93,32 @@ namespace torrents
 		return len;
 	}
 
+	std::pair<std::map<std::string_view, std::string_view>, size_t> ExtractDictionary (std::string_view buf)
+	{
+		std::map<std::string_view, std::string_view> ret;
+		size_t len = 0;
+		if (!buf.empty () && buf[0] == 'd')
+		{
+			len++; buf = buf.substr (1);
+			while (!buf.empty () && buf[0] != 'e')
+			{
+				auto [key, offset] = ExtractByteString (buf);
+				if (!offset) break;
+				len += offset; buf = buf.substr (offset);
+				offset = ParseBEncoded (buf, 0);
+				if (!offset) break;
+				ret.emplace (key, buf.substr (0, offset));
+				len += offset; buf = buf.substr (offset);
+			}
+			if (buf.empty () || buf[0] != 'e')
+			{
+				ret.clear ();
+				len = 0;
+			}
+		}
+		return { ret, len };
+	}
+
 	size_t ParseList (std::string_view buf, std::function<size_t (std::string_view buf)> handler, size_t depth)
 	{
 		if (buf.empty () || buf[0] != 'l') return 0;
