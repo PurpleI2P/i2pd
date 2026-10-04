@@ -416,7 +416,7 @@ namespace transport
 			std::unordered_map<uint32_t, uint32_t> m_ReceivedI2NPMsgIDs; // msgID -> timestamp in seconds
 			uint64_t m_LastResendTime, m_LastResendAttemptTime, m_NextRouterInfoResendTime; // in milliseconds
 			int m_NumRanges;
-			uint8_t m_Ranges[SSU2_MAX_NUM_ACK_RANGES*2]; // ranges sent with previous Ack if any
+			uint8_t m_Ranges[(SSU2_MAX_NUM_ACK_RANGES + 1)*2]; // ranges sent with previous Ack if any
 	};
 
 	inline uint64_t CreateHeaderMask (const uint8_t * kh, const uint8_t * nonce)
