@@ -666,6 +666,8 @@ namespace client
 		{
 			LogPrint (eLogError, "Destination: Can't publish LeaseSet, no more floodfills found");
 			m_ExcludedFloodfills.clear ();
+			// try again later
+			SchedulePublishRetry ();
 			return;
 		}
 		auto outbound = m_Pool->GetNextOutboundTunnel (nullptr, floodfill->GetCompatibleTransports (false));
@@ -698,13 +700,8 @@ namespace client
 			if (!floodfill || !outbound || !inbound)
 			{
 				// we can't publish now
-				m_ExcludedFloodfills.clear ();
-				m_PublishReplyToken = 1; // dummy non-zero value
-				// try again after a while
-				LogPrint (eLogInfo, "Destination: Can't publish LeaseSet because destination is not ready. Try publishing again after ", PUBLISH_CONFIRMATION_TIMEOUT, " milliseconds");
-				m_PublishConfirmationTimer.expires_after (std::chrono::milliseconds(PUBLISH_CONFIRMATION_TIMEOUT));
-				m_PublishConfirmationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishConfirmationTimer,
-					shared_from_this (), std::placeholders::_1, PUBLISH_CONFIRMATION_TIMEOUT));
+				// try again layer
+				SchedulePublishRetry ();
 				return;
 			}
 		}
@@ -731,6 +728,16 @@ namespace client
 			shared_from_this (), std::placeholders::_1, publishConfirmationTimeout));
 		outbound->SendTunnelDataMsgTo (floodfill->GetIdentHash (), 0, msg);
 		m_LastSubmissionTime = ts;
+	}
+
+	void LeaseSetDestination::SchedulePublishRetry ()
+	{
+		m_ExcludedFloodfills.clear ();
+		m_PublishReplyToken = 1; // dummy non-zero value
+		LogPrint (eLogInfo, "Destination: Can't publish LeaseSet because destination is not ready. Try publishing again after ", PUBLISH_CONFIRMATION_TIMEOUT, " milliseconds");
+		m_PublishConfirmationTimer.expires_after (std::chrono::milliseconds(PUBLISH_RETRY_INTERVAL));
+		m_PublishConfirmationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishConfirmationTimer,
+			shared_from_this (), std::placeholders::_1, PUBLISH_RETRY_INTERVAL));
 	}
 
 	void LeaseSetDestination::HandlePublishConfirmationTimer (const boost::system::error_code& ecode, uint64_t publishConfirmationTimeout)

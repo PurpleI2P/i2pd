@@ -43,6 +43,7 @@ namespace client
 	const uint8_t PROTOCOL_TYPE_DATAGRAM2 = 19;
 	const uint8_t PROTOCOL_TYPE_DATAGRAM3 = 20;
 	const int PUBLISH_CONFIRMATION_TIMEOUT = 1400; // in milliseconds
+	const int PUBLISH_RETRY_INTERVAL = 11200; // in milliseconds
 	const int PUBLISH_VERIFICATION_TIMEOUT = 5; // in seconds after successful publish
 	const int PUBLISH_VERIFICATION_TIMEOUT_VARIANCE = 3; // in seconds
 	const int PUBLISH_MIN_INTERVAL = 20; // in seconds
@@ -196,6 +197,7 @@ namespace client
 
 			std::shared_ptr<const i2p::data::LocalLeaseSet> GetLeaseSetMt ();
 			void Publish ();
+			void SchedulePublishRetry ();
 			void HandlePublishConfirmationTimer (const boost::system::error_code& ecode, uint64_t publishConfirmationTimeout);
 			void HandlePublishVerificationTimer (const boost::system::error_code& ecode);
 			void HandlePublishDelayTimer (const boost::system::error_code& ecode);
