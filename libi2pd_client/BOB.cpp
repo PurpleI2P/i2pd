@@ -386,50 +386,34 @@ namespace client
 		os << data << std::endl;
 	}
 
-	void BOBCommandSession::BuildStatusLine(bool currentTunnel, std::shared_ptr<BOBDestination> dest, std::string &out)
+	std::string BOBCommandSession::BuildStatusLine(bool currentTunnel, std::shared_ptr<BOBDestination> dest)
 	{
 		// helper lambdas
-		const auto issetStr = [](const std::string &str) { return str.empty() ? "not_set" : str; }; // for inhost, outhost
-		const auto issetNum = [&issetStr](const int p) { return issetStr(p == 0 ? "" : std::to_string(p)); }; // for inport, outport
-		const auto destExists = [](const BOBDestination * const dest) { return dest != nullptr; };
-		const auto destReady = [](const BOBDestination * const dest) { return dest && dest->IsRunning(); };
-		const auto bool_str = [](const bool v) { return v ? "true" : "false"; }; // bool -> str
-		const auto getProxyType = [](const i2p::client::I2PService* proxy) -> std::string {
-		if (!proxy) return "NONE";
-		if (dynamic_cast<const i2p::proxy::SOCKSProxy*>(proxy)) return "SOCKS";
-		if (dynamic_cast<const i2p::proxy::HTTPProxy*>(proxy)) return "HTTPPROXY";
-		return "UNKNOWN";
-		};
-		const auto isProxyRunning = [](const i2p::client::I2PService* proxy) -> bool {
-		return proxy != nullptr;
-		};
+		constexpr auto issetStr = [](std::string_view str) { return str.empty() ? str : "not_set"; }; // for inhost, outhost
+		const auto issetNum = [](int p) { return p ? std::to_string (p) : "not_set"; }; // for inport, outport
 
 		// tunnel info
-		const std::string nickname = currentTunnel ? m_Nickname : dest->GetNickname();
-		const bool quiet = currentTunnel ? m_IsQuiet : dest->GetQuiet();
-		const std::string inhost = issetStr(currentTunnel ? m_InHost : dest->GetInHost());
-		const std::string outhost = issetStr(currentTunnel ? m_OutHost : dest->GetOutHost());
-		const std::string inport = issetNum(currentTunnel ? m_InPort : dest->GetInPort());
-		const std::string outport = issetNum(currentTunnel ? m_OutPort : dest->GetOutPort());
-		const bool keys = destExists(dest.get ()); // key must exist when destination is created
-		const bool starting = destExists(dest.get ()) && !destReady(dest.get ());
-		const bool running = destExists(dest.get ()) && destReady(dest.get ());
-		const bool stopping = false;
+		auto nickname = currentTunnel ? m_Nickname : (dest ? dest->GetNickname() : "");
+		bool quiet = currentTunnel ? m_IsQuiet : (dest ? dest->GetQuiet() : true);
+		auto inhost = issetStr(currentTunnel ? m_InHost : (dest ? dest->GetInHost() : ""));
+		auto outhost = issetStr(currentTunnel ? m_OutHost : (dest ? dest->GetOutHost() : ""));
+		auto inport = issetNum(currentTunnel ? m_InPort : (dest ? dest->GetInPort() : 0));
+		auto outport = issetNum(currentTunnel ? m_OutPort : (dest ? dest->GetOutPort() : 0));
+		bool keys = (bool)dest; // key must exist when destination is created
+		bool starting = dest && !dest->IsRunning ();
+		bool running = dest && !dest->IsRunning ();
 
-		const i2p::client::I2PService* proxy = m_Owner.GetProxy(nickname);
-		const std::string proxyType = getProxyType(proxy);
-		const bool proxyStatus = isProxyRunning(proxy);
-
+		auto [proxy, proxyType] = m_Owner.GetProxy(nickname);
 		// build line
 		std::stringstream ss;
 		ss	<< "DATA "
-			<< "NICKNAME: " << nickname          << " " << "STARTING: " << bool_str(starting) << " "
-			<< "RUNNING: "  << bool_str(running) << " " << "STOPPING: " << bool_str(stopping) << " "
-			<< "KEYS: "     << bool_str(keys)    << " " << "QUIET: "    << bool_str(quiet) << " "
+			<< "NICKNAME: " << nickname          		 << " " << "STARTING: " << std::boolalpha << starting << " "
+			<< "RUNNING: "  << std::boolalpha << running << " " << "STOPPING: " << "false "
+			<< "KEYS: "     << std::boolalpha << keys    << " " << "QUIET: "    << std::boolalpha << quiet << " "
 			<< "INPORT: "   << inport            << " " << "INHOST: "   << inhost << " "
 			<< "OUTPORT: "  << outport           << " " << "OUTHOST: "  << outhost << " "
-			<< "PROXYTYPE: "<< proxyType         << " " << "PROXYSTART: "  << bool_str(proxyStatus);
-		out = ss.str();
+			<< "PROXYTYPE: "<< proxyType         << " " << "PROXYSTART: "  << std::boolalpha << (bool)proxy;
+		return ss.str();
 	}
 
 	void BOBCommandSession::ZapCommandHandler (const char * operand, size_t len)
@@ -508,10 +492,10 @@ namespace client
 			{
 				try
 				{
-					auto SocksProxy = std::make_shared<i2p::proxy::SOCKSProxy>(m_Nickname, m_InHost, m_InPort,
+					auto socksProxy = std::make_shared<i2p::proxy::SOCKSProxy>(m_Nickname, m_InHost, m_InPort,
 						false, m_OutHost, m_OutPort, m_CurrentDestination->GetLocalDestination());
-					SocksProxy->Start();
-					m_Owner.SetProxy(m_Nickname, std::move(SocksProxy));
+					socksProxy->Start();
+					m_Owner.AddProxy(m_Nickname, std::move(socksProxy), "SOCKS");
 				}
 				catch (std::exception& e)
 				{
@@ -524,10 +508,10 @@ namespace client
 			{
 				try
 				{
-					auto HttpProxy = std::make_shared<i2p::proxy::HTTPProxy>(m_Nickname, m_InHost, m_InPort,
+					auto httpProxy = std::make_shared<i2p::proxy::HTTPProxy>(m_Nickname, m_InHost, m_InPort,
 						m_OutHost, true, true, m_CurrentDestination->GetLocalDestination());
-					HttpProxy->Start();
-					m_Owner.SetProxy(m_Nickname, std::move(HttpProxy));
+					httpProxy->Start();
+					m_Owner.AddProxy(m_Nickname, std::move(httpProxy), "HTTPPROXY");
 				}
 				catch (std::exception& e)
 				{
@@ -553,15 +537,13 @@ namespace client
 			return;
 		}
 		auto dest = m_Owner.FindDestination (m_Nickname);
-		auto proxy = m_Owner.GetProxy (m_Nickname);
 		if (dest)
 		{
 			dest->StopTunnels ();
 			SendReplyOK ("Tunnel stopping");
+			auto [proxy, proxyType] = m_Owner.GetProxy (m_Nickname);
 			if (proxy)
-			{
 				m_Owner.RemoveProxy (m_Nickname);
-			}
 		}
 		else
 			SendReplyError ("tunnel not found");
@@ -592,13 +574,16 @@ namespace client
 		if(*operand)
 		{
 			m_CurrentDestination = m_Owner.FindDestination (operand);
-			auto proxy = m_Owner.GetProxy (operand);
 			if (m_CurrentDestination)
 			{
 				m_Keys = m_CurrentDestination->GetKeys ();
 				m_IsActive = m_CurrentDestination->IsRunning ();
-				if(proxy)
-					m_IsActive = true;
+				if (!m_IsActive)
+				{
+					auto [proxy, proxyType] = m_Owner.GetProxy (operand);
+					if (proxy)
+						m_IsActive = true;
+				}
 				m_Nickname = operand;
 			}
 			if (m_Nickname == operand)
@@ -908,23 +893,19 @@ namespace client
 	void BOBCommandSession::ListCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: list");
-		std::string statusLine;
 		bool sentCurrent = false;
 		const auto& destinations = m_Owner.GetDestinations ();
 		for (const auto& it: destinations)
 		{
-			BuildStatusLine(false, it.second, statusLine);
-			SendRaw(statusLine);
+			SendRaw (BuildStatusLine(false, it.second));
 			if(m_Nickname.compare(it.second->GetNickname()) == 0)
 				sentCurrent = true;
 		}
 		if(!sentCurrent && !m_Nickname.empty())
-		{
 			// add the current tunnel to the list.
 			// this is for the incomplete tunnel which has not been started yet.
-			BuildStatusLine(true, m_CurrentDestination, statusLine);
-			SendRaw(statusLine);
-		}
+			SendRaw (BuildStatusLine(true, m_CurrentDestination));
+
 		SendReplyOK ("Listing done");
 	}
 
@@ -947,28 +928,19 @@ namespace client
 	{
 		LogPrint (eLogDebug, "BOB: status ", operand);
 		const std::string name = operand;
-		std::string statusLine;
 
 		// always prefer destination
 		auto dest = m_Owner.FindDestination(name);
 		if(dest)
-		{
 			// tunnel destination exists
-			BuildStatusLine(false, dest, statusLine);
-			SendReplyOK(statusLine);
-		}
+			SendReplyOK (BuildStatusLine(false, dest));
 		else
 		{
-			if(m_Nickname == name && !name.empty())
-			{
+			if (m_Nickname == name && !name.empty())
 				// tunnel is incomplete / has not been started yet
-				BuildStatusLine(true, nullptr, statusLine);
-				SendReplyOK(statusLine);
-			}
+				SendReplyOK (BuildStatusLine(true, nullptr));
 			else
-			{
-				SendReplyError("no nickname has been set");
-			}
+				SendReplyError ("no nickname has been set");
 		}
 	}
 	void BOBCommandSession::HelpCommandHandler (const char * operand, size_t len)
@@ -1116,22 +1088,22 @@ namespace client
 		return nullptr;
 	}
 
-	void BOBCommandChannel::SetProxy (const std::string& name, std::shared_ptr<I2PService> proxy)
+	void BOBCommandChannel::AddProxy (const std::string& name, std::shared_ptr<I2PService>&& proxy, std::string_view type)
 	{
-		m_proxy[name] = std::move(proxy);
+		m_Proxies.emplace (name, std::make_pair(std::move(proxy), type));
 	}
 
-	const I2PService* BOBCommandChannel::GetProxy(const std::string& name) const
+	std::pair<std::shared_ptr<I2PService>, std::string> BOBCommandChannel::GetProxy(const std::string& name) const
 	{
-		auto it = m_proxy.find(name);
-		if (it != m_proxy.end() && it->second)
-			return it->second.get();
-		return nullptr;
+		auto it = m_Proxies.find(name);
+		if (it != m_Proxies.end() && it->second.first)
+			return it->second;
+		return { nullptr, "" };
 	}
 
 	void BOBCommandChannel::RemoveProxy(const std::string& name)
 	{
-		m_proxy.erase (name);
+		m_Proxies.erase (name);
 	}
 
 	void BOBCommandChannel::Accept ()

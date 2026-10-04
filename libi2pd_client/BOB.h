@@ -266,7 +266,7 @@ namespace client
 			void SendReplyError (std::string_view msg);
 			void SendRaw (std::string_view data);
 
-			void BuildStatusLine(bool currentTunnel, std::shared_ptr<BOBDestination> destination, std::string &out);
+			std::string BuildStatusLine(bool currentTunnel, std::shared_ptr<BOBDestination> destination);
 
 			void SendPing (std::shared_ptr<const i2p::data::LeaseSet> ls);
 
@@ -299,8 +299,8 @@ namespace client
 			void AddDestination (const std::string& name, std::shared_ptr<BOBDestination> dest);
 			void DeleteDestination (const std::string& name);
 			std::shared_ptr<BOBDestination> FindDestination (const std::string& name);
-			void SetProxy (const std::string& name, std::shared_ptr<I2PService> proxy);
-			const I2PService* GetProxy(const std::string& name) const;
+			void AddProxy (const std::string& name, std::shared_ptr<I2PService>&& proxy, std::string_view type);
+			std::pair<std::shared_ptr<I2PService>, std::string> GetProxy(const std::string& name) const;
 			void RemoveProxy(const std::string& name);
 
 		private:
@@ -315,7 +315,7 @@ namespace client
 			std::map<std::string_view, BOBCommandHandler> m_CommandHandlers;
 			std::map<std::string_view, std::string_view> m_HelpStrings;
 			// shared, a proxy takes a reference to itself when it accepts a connection
-			std::map<std::string, std::shared_ptr<I2PService>> m_proxy;
+			std::map<std::string, std::pair<std::shared_ptr<I2PService>, std::string> > m_Proxies; // name ->(tunnel, proxy type)
 
 		public:
 
