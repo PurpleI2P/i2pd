@@ -453,12 +453,18 @@ namespace torrents
 
 	void TorrentsTunnel::RemoveAllTorrents (bool deleteFiles)
 	{
-		boost::asio::post (GetService (), [this, deleteFiles]()
+		std::list<std::shared_ptr<Torrent> > torrentsToRemove;
 		{
+			std::lock_guard<std::mutex> l(m_TorrentsMutex);
 			for (const auto& it: m_Torrents)
-				RemoveTorrent (it.second, deleteFiles);
+				torrentsToRemove.push_back (it.second);
 			m_Torrents.clear ();
 			m_TorrentsByID.clear ();
+		}
+		boost::asio::post (GetService (), [this, torrentsToRemove = std::move (torrentsToRemove), deleteFiles]()
+		{
+			for (auto it: torrentsToRemove)
+				RemoveTorrent (it, deleteFiles);
 		});
 	}
 
@@ -560,6 +566,24 @@ namespace torrents
 				torrent->SetStopped (false);
 				// inform trackers that we started
 				RequestTorrentTrackers (torrent, eTrackerAnnounceEventStarted);
+			});
+		return true;
+	}
+
+	bool TorrentsTunnel::ReannounceTorrent (int id)
+	{
+		std::shared_ptr<Torrent> torrent;
+		{
+			std::lock_guard<std::mutex> l(m_TorrentsMutex);
+			auto it = m_TorrentsByID.find (id);
+			if (it == m_TorrentsByID.end ()) return false;
+			torrent = it->second.lock ();
+		}
+		if (!torrent) return false;
+		boost::asio::post (GetService (), [this, torrent]()
+			{
+				RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone);
+				if (m_DHT) m_DHT->GetPeersAndAnnounce (torrent);
 			});
 		return true;
 	}

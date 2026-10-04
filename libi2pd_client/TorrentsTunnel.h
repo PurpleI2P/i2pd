@@ -113,6 +113,7 @@ namespace torrents
 			void RemoveAllTorrents (bool deleteFiles);
 			bool StopTorrent (int id);
 			bool StartTorrent (int id);
+			bool ReannounceTorrent (int id);
 			void ConnectToNewPeers (std::shared_ptr<Torrent> torrent, std::unordered_set<i2p::data::IdentHash>& newPeers, PeerConnectionOrigin origin);
 			void SendDHTPingQuery (const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			std::pair<uint16_t, uint16_t> GetDHTPorts () const { return { m_DHT ? m_DHT->GetPort () : 0, m_DHT ? m_DHT->GetRPort () : 0 }; }

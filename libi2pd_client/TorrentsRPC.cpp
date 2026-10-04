@@ -66,6 +66,7 @@ namespace torrents
 			std::string HandleSessionGet (boost::json::object&& jsonRequest); // for transmission-rpc library
 			std::string HandleSessionStats (boost::json::object&& jsonRequest);
 			std::string HandleTorrentSet (boost::json::object&& jsonRequest);
+			std::string HandleTorrentReannounce (boost::json::object&& jsonRequest);
 
 		private:
 
@@ -123,7 +124,8 @@ namespace torrents
 			{ "torrent-start", &JSONRPCHandler::HandleTorrentStart  },
 			{ "session-get", &JSONRPCHandler::HandleSessionGet },
 			{ "session-stats", &JSONRPCHandler::HandleSessionStats },
-			{ "torrent-set", &JSONRPCHandler::HandleTorrentSet }
+			{ "torrent-set", &JSONRPCHandler::HandleTorrentSet },
+			{ "torrent-reannounce", &JSONRPCHandler::HandleTorrentReannounce }
 		};
 
 		try
@@ -209,6 +211,16 @@ namespace torrents
  		}
  		else
 			m_Tunnel->RemoveAllTorrents (deleteFiles);
+		boost::json::object response; // always empty
+		return SuccessResponse (GetTag (jsonRequest), std::move (response));
+	}
+
+	std::string JSONRPCHandler::HandleTorrentReannounce (boost::json::object&& jsonRequest)
+	{
+		auto arguments = jsonRequest.at ("arguments").as_object ();
+		auto torrentIds = GetTorrentIds (arguments);
+		for (auto id: torrentIds)
+			m_Tunnel->ReannounceTorrent (id);
 		boost::json::object response; // always empty
 		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}
