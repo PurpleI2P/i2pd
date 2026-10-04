@@ -899,7 +899,7 @@ namespace torrents
 	void TorrentsDHT::SendQueryMsg (KRPCQuery query, std::string_view arguments,
 		const i2p::data::IdentHash& toIdent, uint16_t toPort, bool isRaw, std::shared_ptr<GetPeersRequestInfo> info)
 	{
-		uint16_t transactionID = m_Tunnel.GetLocalDestination () ? m_Tunnel.GetLocalDestination ()->GetRng ()() : 1;
+		uint16_t transactionID = m_Tunnel.GetLocalDestination () ? static_cast<uint16_t>(m_Tunnel.GetLocalDestination ()->GetRng ()()) : 1;
 		auto msg = CreateDictionary ({
 				{ "a", arguments },
 				{ "q", CreateByteString (KRPCQueryStr[query]) },
