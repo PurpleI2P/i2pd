@@ -106,13 +106,7 @@ namespace fs {
 				exit(1);
 			}
 			else
-			{
-#if ((BOOST_VERSION >= 108500) || STD_FILESYSTEM)
-				dataDir = fs_lib::path(commonAppData).string() + "\\" + appName;
-#else
-				dataDir = fs_lib::wpath(commonAppData).string() + "\\" + appName;
-#endif
-			}
+				dataDir = (fs_lib::path(commonAppData)/appName).string ();
 #else
 			dataDir = "/var/lib/" + appName;
 #endif
@@ -136,17 +130,12 @@ namespace fs {
 		}
 		else
 		{
-#if ((BOOST_VERSION >= 108500) || STD_FILESYSTEM)
 			auto execPath = fs_lib::path(localAppData).parent_path();
-#else
-			auto execPath = fs_lib::wpath(localAppData).parent_path();
-#endif
 
 			// if config file exists in .exe's folder use it
 			if(fs_lib::exists(execPath/"i2pd.conf")) // TODO: magic string
-			{
 				dataDir = execPath.string ();
-			} else // otherwise %appdata%
+			else // otherwise %appdata%
 			{
 				if(SHGetFolderPathW(NULL, CSIDL_APPDATA, NULL, 0, localAppData) != S_OK)
 				{
@@ -158,13 +147,7 @@ namespace fs {
 					exit(1);
 				}
 				else
-				{
-#if ((BOOST_VERSION >= 108500) || STD_FILESYSTEM)
-					dataDir = fs_lib::path(localAppData).string() + "\\" + appName;
-#else
-					dataDir = fs_lib::wpath(localAppData).string() + "\\" + appName;
-#endif
-				}
+					dataDir = (fs_lib::path(localAppData)/appName).string();
 			}
 		}
 		return;
