@@ -734,7 +734,7 @@ namespace client
 	{
 		m_ExcludedFloodfills.clear ();
 		m_PublishReplyToken = 1; // dummy non-zero value
-		LogPrint (eLogInfo, "Destination: Can't publish LeaseSet because destination is not ready. Try publishing again after ", PUBLISH_CONFIRMATION_TIMEOUT, " milliseconds");
+		LogPrint (eLogInfo, "Destination: Can't publish LeaseSet because destination is not ready. Try publishing again after ", PUBLISH_RETRY_INTERVAL, " milliseconds");
 		m_PublishConfirmationTimer.expires_after (std::chrono::milliseconds(PUBLISH_RETRY_INTERVAL));
 		m_PublishConfirmationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishConfirmationTimer,
 			shared_from_this (), std::placeholders::_1, PUBLISH_RETRY_INTERVAL));
