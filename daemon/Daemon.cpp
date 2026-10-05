@@ -115,7 +115,7 @@ namespace util
 				LogPrint(eLogDebug, "Default pledge values are set");
 				// TODO: remove that not need
 				// proc used in daemonunix, flock used in daemonunix, unix using
-				pledge("stdio rpath wpath cpath inet dns unix recvfd sendfd proc error mcast chown flock",nullptr);
+				pledge("stdio rpath wpath cpath inet dns unix proc error mcast chown flock",nullptr);
 			} else {
 				std::ifstream f(pledge_file);
 				if(!f) {
