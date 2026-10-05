@@ -93,6 +93,7 @@ namespace torrents
 		Node (const NodeInfo& nodeInfo);
 
 		NodeInfo GetNodeInfo () const;
+		bool VerifyID () const;
 	};
 
 	constexpr size_t MAX_BUCKET_CAPACITY = 8;

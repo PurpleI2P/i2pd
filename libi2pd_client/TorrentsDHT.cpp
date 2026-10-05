@@ -39,6 +39,11 @@ namespace torrents
 		return nodeInfo;
 	}
 
+	bool Node::VerifyID () const
+	{
+		return !memcmp (id.data (), peer, 4) && (((uint16_t)(id[4] ^ peer[4]) << 8) | (id[5] ^ peer[5])) == port;
+	}
+
 	std::optional<NodeID> Bucket::GetMiddleID () const
 	{
 		uint8_t bit = std::max (start.FindLowestBit (), next ? next->start.FindLowestBit () : -1) + 1;
@@ -688,7 +693,13 @@ namespace torrents
 		}
 		if (type == 'q')
 		{
-			auto node = UpdateNode (std::make_shared<Node> (id, from.GetIdentHash (), fromPort));
+			auto node = std::make_shared<Node> (id, from.GetIdentHash (), fromPort);
+			if (!node->VerifyID ())
+			{
+				LogPrint (eLogInfo, "TorrentsDHT: Query received from node with invalid ID ", node->peer.ToBase64 ());
+				return;
+			}
+			node = UpdateNode (node);
 			if (query == "ping")
 				HandlePingQuery (from.GetIdentHash (), fromPort, transactionID, id);
 			else if (query == "get_peers")
