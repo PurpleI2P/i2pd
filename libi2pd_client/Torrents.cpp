@@ -99,7 +99,7 @@ namespace torrents
 		size_t len = 0;
 		if (!buf.empty () && buf[0] == 'd')
 		{
-			len++; buf = buf.substr (1);
+			len++; buf = buf.substr (1); // 'd'
 			while (!buf.empty () && buf[0] != 'e')
 			{
 				auto [key, offset] = ExtractByteString (buf);
@@ -115,6 +115,8 @@ namespace torrents
 				ret.clear ();
 				len = 0;
 			}
+			else
+				len++; // 'e'
 		}
 		return { ret, len };
 	}
@@ -962,7 +964,8 @@ namespace torrents
 		{
 			// delete resume file
 			std::error_code ec;
-			if (!std::filesystem::remove (resumeFilePath, ec))
+			std::filesystem::remove (resumeFilePath, ec);
+			if (ec)
 				LogPrint (eLogError, "Torrents: Can't delete resume file ", resumeFilePath, " : ", ec.message ());
 		}
 		else
