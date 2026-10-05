@@ -696,7 +696,7 @@ namespace torrents
 			auto node = std::make_shared<Node> (id, from.GetIdentHash (), fromPort);
 			if (!node->VerifyID ())
 			{
-				LogPrint (eLogInfo, "TorrentsDHT: Query received from node with invalid ID ", node->peer.ToBase64 ());
+				LogPrint (eLogInfo, "TorrentsDHT: Query received from node with invalid ID ", node->id.ToBase64 ());
 				return;
 			}
 			node = UpdateNode (node);
@@ -716,14 +716,14 @@ namespace torrents
 	void TorrentsDHT::HandlePingQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
 		std::string_view transactionID, const NodeID& nodeID)
 	{
-		LogPrint (eLogDebug, "TorrentsDHT: Ping query msg received from ", fromIdent.ToBase64 ());
+		LogPrint (eLogDebug, "TorrentsDHT: Ping query msg received from ", nodeID.ToBase64 ());
 		SendPingResponse (transactionID, fromIdent, fromPort + 1); // to rport
 	}
 
 	void TorrentsDHT::HandleGetPeersQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
 		std::string_view transactionID, std::shared_ptr<Node> from, const Torrent::InfoHash& infoHash)
 	{
-		LogPrint (eLogDebug, "TorrentsDHT: Get peers query msg received from ", fromIdent.ToBase64 ());
+		LogPrint (eLogDebug, "TorrentsDHT: Get peers query msg received from ", from->id.ToBase64 ());
 		std::shared_ptr<DHTTorrent> torrent;
 		auto it = m_Torrents.find (infoHash);
 		if (it != m_Torrents.end ())
@@ -791,7 +791,6 @@ namespace torrents
 	void TorrentsDHT::HandleResponse (std::string_view transactionID, const NodeID& nodeID,
 		uint64_t token, const std::vector<std::string_view>& values, const NodeInfo& nodeInfo)
 	{
-		LogPrint (eLogDebug, "TorrentsDHT: Response msg received");
 		uint16_t t = 0;
 		if (transactionID.size () >= 2)
 			memcpy (&t, transactionID.data (), 2);
@@ -811,7 +810,7 @@ namespace torrents
 					}
 					case eKRPCQueryGetPeers:
 					{
-						LogPrint (eLogDebug, "TorrentsDHT: get_peers response received from ", ident.ToBase64 ());
+						LogPrint (eLogDebug, "TorrentsDHT: get_peers response received from peer ", ident.ToBase64 ());
 						if (!values.empty () && values[0].empty ()) // nodes
 							HandleGetPeersResponseNode (info, nodeID, token, nodeInfo);
 						else //values
@@ -821,7 +820,7 @@ namespace torrents
 					case eKRPCQueryFindNode:
 					{
 						auto node = UpdateNode (std::make_shared<Node>(nodeInfo));
-						LogPrint (eLogDebug, "TorrentsDHT: find_node response received ", node->peer.ToBase64 ());
+						LogPrint (eLogDebug, "TorrentsDHT: find_node response received ", node->id.ToBase64 ());
 						break;
 					}
 					case eKRPCQueryAnnouncePeer:
@@ -1036,7 +1035,7 @@ namespace torrents
 		if (!node) return nullptr;
 		auto [it, inserted] = m_Nodes.emplace (node->id, node);
 		if (inserted)
-			LogPrint (eLogDebug, "TorrentsDHT: Node ", node->peer.ToBase64 (), ":", node->port, " added");
+			LogPrint (eLogDebug, "TorrentsDHT: Node ", node->id.ToBase64 (), " added");
 		it->second->lastUpdateTime = i2p::util::GetMonotonicSeconds ();
 		if (m_RoutingTable) m_RoutingTable->AddNode (it->second);
 		return it->second;

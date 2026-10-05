@@ -27,6 +27,7 @@
 #include <optional>
 #include <filesystem>
 #include <boost/asio.hpp>
+#include "Base.h"
 #include "Identity.h"
 #include "I2PService.h"
 #include "util.h"
@@ -77,6 +78,10 @@ namespace torrents
 				}
 			}
 			return -1;
+		}
+		std::string ToBase64 () const
+		{
+			return i2p::data::ByteStreamToBase64 (data (), size ());
 		}
 	};
 
