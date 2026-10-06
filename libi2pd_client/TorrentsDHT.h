@@ -114,6 +114,7 @@ namespace torrents
 		Bucket (const NodeID& start1): next (nullptr), start (start1),
 			lastUpdateTime (i2p::util::GetMonotonicSeconds ()) {}
 		bool IsFull () const { return nodes.size () >= MAX_BUCKET_CAPACITY; }
+		bool IsEmpty () const { return nodes.empty (); }
 		bool IsInBucket (const NodeID& id) const { return id >= start && (!next || id < next->start); }
 		std::optional<NodeID> GetMiddleID () const;
 		NodeID GetRandomID (std::mt19937& rng) const;

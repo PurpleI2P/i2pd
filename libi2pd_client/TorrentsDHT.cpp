@@ -158,12 +158,13 @@ namespace torrents
 
 	void RoutingTable::RemoveEmptyBuckets ()
 	{
-		if (m_Buckets)
+		// TODO: remove only if difference is 1 bit
+		/*if (m_Buckets)
 		{
 			auto prev = m_Buckets, bucket = m_Buckets->next;
 			while (bucket)
 			{
-				if (bucket->nodes.empty ())
+				if (bucket->IsEmpty ())
 				{
 					prev->next = bucket->next;
 					auto tmp = bucket;
@@ -176,7 +177,12 @@ namespace torrents
 					bucket = bucket->next;
 				}
 			}
-		}
+			if (m_Buckets->IsEmpty () && m_Buckets->next)
+			{
+				m_Buckets = m_Buckets->next;
+				m_Buckets->start.fill (0);
+			}
+		}*/
 	}
 
 	size_t RoutingTable::DeleteExpiredNodes (uint64_t ts)
@@ -238,9 +244,9 @@ namespace torrents
 		}
 		if (bucket->IsFull ())
 		{
-			if (!bucket->IsInBucket (m_OurNode)) return false;
 			do
 			{
+				if (!bucket->IsInBucket (m_OurNode)) return false;
 				if (!bucket->Split ()) return false;
 				bucket = FindBucket (node->id);
 			}
@@ -251,7 +257,6 @@ namespace torrents
 			bucket->nodes.emplace (node->id, node);
 			bucket->lastUpdateTime = i2p::util::GetMonotonicSeconds ();
 		}
-		RemoveEmptyBuckets ();
 		return true;
 	}
 
@@ -260,7 +265,7 @@ namespace torrents
 		auto bucket = FindBucket (id);
 		if (!bucket) return;
 		bucket->nodes.erase (id);
-		if (bucket->nodes.empty () && bucket != m_Buckets)
+		if (bucket->IsEmpty ())
 			RemoveEmptyBuckets ();
 	}
 
@@ -547,7 +552,6 @@ namespace torrents
 				for (auto it: sortedNodes)
 					if (m_Nodes.emplace (it->id, it).second)
 						m_RoutingTable->AddNode (it);
-				m_RoutingTable->RemoveEmptyBuckets ();
 				LogPrint (eLogInfo, "TorrentsDHT: ", m_Nodes.size (), " total DHT nodes loaded ",
 					m_RoutingTable->GetNumNodes (), " to ", m_RoutingTable->GetNumBuckets (), " buckets");
 			}
