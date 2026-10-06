@@ -413,7 +413,8 @@ namespace torrents
 	TorrentsDHT::TorrentsDHT (TorrentsTunnel& tunnel, uint16_t port):
 		m_Tunnel (tunnel), m_DHTUpdateCheckTimer (tunnel.GetService ()),
 		m_DHTExpirationCheckTimer (tunnel.GetService ()),
-		m_DHTSendPingCheckTimer (tunnel.GetService ()), m_Port (port),
+		m_DHTSendPingCheckTimer (tunnel.GetService ()),
+		m_DHTQueryExpirationCheckTimer (tunnel.GetService ()), m_Port (port),
 		m_NextDHTExploratoryTime (i2p::util::GetMonotonicSeconds () + DHT_INITIAL_EXPLORATORY_INTERVAL)
 	{
 		auto dest = tunnel.GetLocalDestination ();
@@ -444,6 +445,7 @@ namespace torrents
 		ScheduleDHTUpdateCheck ();
 		ScheduleDHTExpirationCheck ();
 		ScheduleDHTSendPingCheck ();
+		ScheduleDHTQueryExpirationCheck ();
 	}
 
 	void TorrentsDHT::Stop ()
@@ -451,6 +453,7 @@ namespace torrents
 		m_DHTUpdateCheckTimer.cancel ();
 		m_DHTExpirationCheckTimer.cancel ();
 		m_DHTSendPingCheckTimer.cancel ();
+		m_DHTQueryExpirationCheckTimer.cancel ();
 		std::string filename ("nodest");
 		auto dest = m_Tunnel.GetLocalDestination ();
 		if (dest)
@@ -826,7 +829,7 @@ namespace torrents
 					}
 					case eKRPCQueryGetPeers:
 					{
-						LogPrint (eLogDebug, "TorrentsDHT: get_peers response received from peer ", ident.ToBase64 ());
+						LogPrint (eLogDebug, "TorrentsDHT: get_peers response received from peer ", ident.ToBase64 (), "after attempt #", info->numAttempts);
 						if (!values.empty () && values[0].empty ()) // nodes
 							HandleGetPeersResponseNode (info, nodeID, token, nodeInfo);
 						else //values
@@ -860,16 +863,7 @@ namespace torrents
 		{
 			info->AddNode (node);
 			info->token = token;
-			if (!info->IsDone () && m_RoutingTable)
-			{
-				auto nextNode = info->GetNextNode ();
-				if (nextNode)
-					SendGetPeersQuery (info, nextNode->peer, nextNode->port);
-				else
-					LogPrint (eLogDebug, "TorrentsDHT: No more nodes to send get_peers");
-			}
-			else
-				LogPrint (eLogDebug, "TorrentsDHT: Closest node not found after ", DHT_MAX_NUM_GET_PEERS_ATTEMPTS, " get_peers attempts");
+			SendNextGetPeersQuery (info);
 		}
 	}
 
@@ -970,6 +964,20 @@ namespace torrents
 			toIdent, toPort, false, info);
 	}
 
+	void TorrentsDHT::SendNextGetPeersQuery (std::shared_ptr<GetPeersRequestInfo> info)
+	{
+		if (!info) return;
+		if (!info->IsDone () && m_RoutingTable)
+		{
+			auto nextNode = info->GetNextNode ();
+			if (nextNode)
+				SendGetPeersQuery (info, nextNode->peer, nextNode->port);
+			else
+				LogPrint (eLogDebug, "TorrentsDHT: No more nodes to send get_peers");
+		}
+		else
+			LogPrint (eLogDebug, "TorrentsDHT: Closest node not found after ", DHT_MAX_NUM_GET_PEERS_ATTEMPTS, " get_peers attempts");
+	}
 
 	void TorrentsDHT::SendGetPeersResponse (std::string_view transactionID, std::shared_ptr<DHTTorrent> torrent,
 		uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort)
@@ -1107,16 +1115,6 @@ namespace torrents
 						it++;
 				}
 			}
-			{
-				auto it = m_Queries.begin ();
-				while (it != m_Queries.end ())
-				{
-					if (ts > std::get<4>(it->second) + DHT_QUERY_EXPIRATION_TIME)
-						it = m_Queries.erase (it);
-					else
-						it++;
-				}
-			}
 			ScheduleDHTExpirationCheck ();
 		}
 	}
@@ -1147,20 +1145,44 @@ namespace torrents
 		}
 	}
 
+	void TorrentsDHT::ScheduleDHTQueryExpirationCheck ()
+	{
+		m_DHTQueryExpirationCheckTimer.cancel ();
+		m_DHTQueryExpirationCheckTimer.expires_after (std::chrono::seconds (DHT_QUERY_EXPIRATION_CHECK_INTERVAL));
+		m_DHTQueryExpirationCheckTimer.async_wait (std::bind_front(&TorrentsDHT::DHTQueryExpirationCheckTimer, this));
+	}
+
+	void TorrentsDHT::DHTQueryExpirationCheckTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			auto ts = i2p::util::GetMonotonicSeconds ();
+			auto it = m_Queries.begin ();
+			while (it != m_Queries.end ())
+			{
+				if (ts > std::get<4>(it->second) + DHT_QUERY_EXPIRATION_TIME)
+				{
+					if (std::get<2>(it->second) == eKRPCQueryGetPeers)
+						SendNextGetPeersQuery (std::get<3>(it->second));
+					it = m_Queries.erase (it);
+				}
+				else
+					it++;
+			}
+			ScheduleDHTQueryExpirationCheck ();
+		}
+	}
+
 	void TorrentsDHT::GetPeersAndAnnounce (std::shared_ptr<Torrent> torrent)
 	{
 		if (!torrent || !m_RoutingTable) return;
 		auto request = std::make_shared<GetPeersRequestInfo>(torrent);
 		auto bucket = m_RoutingTable->FindBucket (torrent->GetInfoHash ());
 		if (!bucket || bucket->nodes.empty ()) return; // DHT is empty
+		// fill initial list of nodes to request from bucket
 		for (auto it: bucket->nodes)
 			request->AddNode (it.second);
-		if (!request->IsDone ())
-		{
-			auto queriedNode = request->GetNextNode ();
-			if (queriedNode)
-				SendGetPeersQuery (request, queriedNode->peer, queriedNode->port);
-		}
+		SendNextGetPeersQuery (request);
 	}
 }
 }

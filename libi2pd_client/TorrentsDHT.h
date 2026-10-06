@@ -41,6 +41,7 @@ namespace torrents
 	constexpr int DHT_UPDATE_CHECK_INTERVAL = 24; // in seconds
 	constexpr int DHT_EXPIRATION_CHECK_INTERVAL = 73; // in seconds
 	constexpr int DHT_SEND_PING_CHECK_INTERVAL = 38; // in seconds
+	constexpr int DHT_QUERY_EXPIRATION_CHECK_INTERVAL = 8; // in seconds
 	constexpr int DHT_EXPLORATORY_INTERVAL = 130; // in seconds
 	constexpr int DHT_EXPLORATORY_INTERVAL_VARIANCE = 40; // in seconds
 	constexpr int DHT_INITIAL_EXPLORATORY_INTERVAL = 90; // in seconds
@@ -51,7 +52,7 @@ namespace torrents
 	constexpr int DHT_TORRENT_PEER_EXPIRATION_TIME = 3*3600; // in seconds
 	constexpr int DHT_INCOMING_GET_PEERS_TOKEN_EXPIRATION_TIME = 600; // in seconds
 	constexpr int DHT_EMPTY_TORRENT_EXPIRATION_TIME = 30; // in seconds
-	constexpr int DHT_QUERY_EXPIRATION_TIME = 30; // in seconds
+	constexpr int DHT_QUERY_EXPIRATION_TIME = 20; // in seconds
 	constexpr int DHT_MAX_NUM_GET_PEERS_ATTEMPTS = 22;
 
 	using Distance = Torrent::InfoHash;
@@ -191,7 +192,7 @@ namespace torrents
 		int numAttempts;
 
 		GetPeersRequestInfo (std::shared_ptr<Torrent> t): torrent (t), token (0), numAttempts (0) { }
-		bool IsDone () const { return numAttempts >= DHT_MAX_NUM_GET_PEERS_ATTEMPTS || nodesToRequest.empty (); }
+		bool IsDone () const { return numAttempts >= DHT_MAX_NUM_GET_PEERS_ATTEMPTS; }
 		bool AddNode (std::shared_ptr<Node> node);
 		std::shared_ptr<Node> GetNextNode ();
 	};
@@ -237,6 +238,7 @@ namespace torrents
 				uint16_t toPort, bool isRaw = false, std::shared_ptr<GetPeersRequestInfo> info = nullptr);
 			void SendFindNodeQuery (const NodeID& target, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendGetPeersQuery (std::shared_ptr<GetPeersRequestInfo> info, const i2p::data::IdentHash& toIdent, uint16_t toPort);
+			void SendNextGetPeersQuery (std::shared_ptr<GetPeersRequestInfo> info);
 			void SendResponseMsg (std::string_view response, std::string_view transactionID, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendPingResponse (std::string_view transactionID, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendGetPeersResponse (std::string_view transactionID, std::shared_ptr<DHTTorrent> torrent,
@@ -262,10 +264,14 @@ namespace torrents
 			void ScheduleDHTSendPingCheck ();
 			void HandleDHTSendPingCheckTimer (const boost::system::error_code& ecode);
 
+			void ScheduleDHTQueryExpirationCheck ();
+			void DHTQueryExpirationCheckTimer (const boost::system::error_code& ecode);
+
 		private:
 
 			TorrentsTunnel& m_Tunnel;
-			boost::asio::steady_timer m_DHTUpdateCheckTimer, m_DHTExpirationCheckTimer, m_DHTSendPingCheckTimer;
+			boost::asio::steady_timer m_DHTUpdateCheckTimer, m_DHTExpirationCheckTimer,
+				m_DHTSendPingCheckTimer, m_DHTQueryExpirationCheckTimer;
 			uint16_t m_Port;
 			NodeID m_NodeID;
 			std::unique_ptr<RoutingTable> m_RoutingTable;
