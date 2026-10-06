@@ -536,7 +536,11 @@ namespace torrents
 			{
 				auto bytesRead = f.gcount();
 				if (bytesRead == nodeInfo.size ())
-					sortedNodes.emplace (std::make_shared<Node>(nodeInfo));
+				{
+					auto node = std::make_shared<Node>(nodeInfo);
+					if (node->VerifyID ())
+						sortedNodes.emplace (node);
+				}
 			}
 			if (!sortedNodes.empty ())
 			{
@@ -555,11 +559,12 @@ namespace torrents
 		// response or error
 		char type = 0; uint64_t token = 0;
 		bool isMalformed = false;
-		NodeID id; NodeInfo nodeInfo; Torrent::InfoHash infoHash;
+		NodeID id; Torrent::InfoHash infoHash;
+		std::string_view nodes;
 		std::string transactionID, query;
 		std::vector<std::string_view> values{""};
 		ParseDictionary (std::string_view ((const char *)buf, len),
-			[&type, &transactionID, &id, &values, &token, &infoHash, &query, &isMalformed, &nodeInfo]
+			[&type, &transactionID, &id, &values, &token, &infoHash, &query, &isMalformed, &nodes]
 				(std::string_view key, std::string_view buf)->size_t
 			{
 				if (key == "y")
@@ -583,7 +588,7 @@ namespace torrents
 				else if (key == "r" || key == "a")
 				{
 					return ParseDictionary (buf,
-						[&id, &values, &token, &infoHash, &isMalformed, &nodeInfo](std::string_view key, std::string_view buf)->size_t
+						[&id, &values, &token, &infoHash, &isMalformed, &nodes](std::string_view key, std::string_view buf)->size_t
 						{
 							if (key == "id")
 							{
@@ -599,8 +604,8 @@ namespace torrents
 							}
 							else if (key == "nodes")
 							{
-								auto [l, success] = ParseByteArray (buf, nodeInfo);
-								if (!success) isMalformed = true;
+								auto [value, l] = ExtractByteString (buf);
+								if (l) nodes = value;
 								return l;
 							}
 							else if (key == "token")
@@ -631,7 +636,7 @@ namespace torrents
 			switch (type)
 			{
 				 case 'r':
-					HandleResponse (transactionID, id, token, values, nodeInfo);
+					HandleResponse (transactionID, id, token, values, nodes);
 				 break;
 				 case 'e':
 					LogPrint (eLogDebug, "TorrentsDHT: Error msg received");
@@ -713,13 +718,8 @@ namespace torrents
 		}
 		if (type == 'q')
 		{
-			auto node = std::make_shared<Node> (id, from.GetIdentHash (), fromPort);
-			if (!node->VerifyID ())
-			{
-				LogPrint (eLogInfo, "TorrentsDHT: Query received from node with invalid ID ", node->id.ToBase64 ());
-				return;
-			}
-			node = UpdateNode (node);
+			auto node = UpdateNode (std::make_shared<Node> (id, from.GetIdentHash (), fromPort));
+			if (!node) return;
 			if (query == "ping")
 				HandlePingQuery (from.GetIdentHash (), fromPort, transactionID, id);
 			else if (query == "get_peers")
@@ -809,7 +809,7 @@ namespace torrents
 	}
 
 	void TorrentsDHT::HandleResponse (std::string_view transactionID, const NodeID& nodeID,
-		uint64_t token, const std::vector<std::string_view>& values, const NodeInfo& nodeInfo)
+		uint64_t token, const std::vector<std::string_view>& values, std::string_view nodes)
 	{
 		uint16_t t = 0;
 		if (transactionID.size () >= 2)
@@ -832,15 +832,15 @@ namespace torrents
 					{
 						LogPrint (eLogDebug, "TorrentsDHT: get_peers response received from peer ", ident.ToBase64 (), "after attempt #", info->numAttempts);
 						if (!values.empty () && values[0].empty ()) // nodes
-							HandleGetPeersResponseNode (info, nodeID, token, nodeInfo);
+							HandleGetPeersResponseNodes (info, nodeID, token, nodes);
 						else //values
 							HandleGetPeersResponsePeersAndAnnounce (info, values, token, ident, port + 1); // to rport
 						break;
 					}
 					case eKRPCQueryFindNode:
 					{
-						auto node = UpdateNode (std::make_shared<Node>(nodeInfo));
-						LogPrint (eLogDebug, "TorrentsDHT: find_node response received ", node->id.ToBase64 ());
+						LogPrint (eLogDebug, "TorrentsDHT: find_node response received");
+						HandleFindNodeResponse (nodes);
 						break;
 					}
 					case eKRPCQueryAnnouncePeer:
@@ -856,15 +856,25 @@ namespace torrents
 			LogPrint (eLogInfo, "TorrentsDHT: Query not found");
 	}
 
-	void TorrentsDHT::HandleGetPeersResponseNode (std::shared_ptr<GetPeersRequestInfo> info,
-		const NodeID& nodeID, uint64_t token, const NodeInfo& nodeInfo)
+	void TorrentsDHT::HandleGetPeersResponseNodes (std::shared_ptr<GetPeersRequestInfo> info,
+		const NodeID& nodeID, uint64_t token, std::string_view nodes)
 	{
-		auto node = UpdateNode (std::make_shared<Node>(nodeInfo));
-		if (info)
+		NodeInfo nodeInfo;
+		if (nodes.size () >= nodeInfo.size ()) // at least one node
 		{
-			info->AddNode (node);
-			info->token = token;
-			SendNextGetPeersQuery (info);
+			while (nodes.size () >= nodeInfo.size ())
+			{
+				memcpy (nodeInfo.data (), nodes.data (), nodeInfo.size ());
+				auto node = UpdateNode (std::make_shared<Node>(nodeInfo));
+				if (info && node)
+					info->AddNode (node);
+				nodes = nodes.substr (nodeInfo.size ());
+			}
+			if (info)
+			{
+				info->token = token;
+				SendNextGetPeersQuery (info);
+			}
 		}
 	}
 
@@ -885,6 +895,17 @@ namespace torrents
 		}
 		LogPrint (eLogDebug, "TorrentsDHT: Send announce to ", toIdent.ToBase64 ());
 		SendAnnouncePeerQuery (info->torrent->GetInfoHash (), token, toIdent, toPort);
+	}
+
+	void TorrentsDHT::HandleFindNodeResponse (std::string_view nodes)
+	{
+		NodeInfo nodeInfo;
+		while (nodes.size () >= nodeInfo.size ())
+		{
+			memcpy (nodeInfo.data (), nodes.data (), nodeInfo.size ());
+			UpdateNode (std::make_shared<Node>(nodeInfo));
+			nodes = nodes.substr (nodeInfo.size ());
+		}
 	}
 
 	void TorrentsDHT::SendDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort)
@@ -1048,6 +1069,11 @@ namespace torrents
 	std::shared_ptr<Node> TorrentsDHT::UpdateNode (std::shared_ptr<Node> node)
 	{
 		if (!node) return nullptr;
+		if (!node->VerifyID ())
+		{
+			LogPrint (eLogInfo, "TorrentsDHT: Invalid node ID received ", node->id.ToBase64 ());
+			return nullptr;
+		}
 		auto [it, inserted] = m_Nodes.emplace (node->id, node);
 		if (inserted)
 			LogPrint (eLogDebug, "TorrentsDHT: Node ", node->id.ToBase64 (), " added");
