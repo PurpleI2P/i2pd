@@ -394,6 +394,22 @@ namespace torrents
 		return false;
 	}
 
+	bool GetPeersRequestInfo::AddNode (std::shared_ptr<Node> node)
+	{
+		if (!torrent || !node || tried.contains (node->id)) return false;
+		return nodesToRequest.emplace (node->id ^ torrent->GetInfoHash (), node).second;
+	}
+
+	std::shared_ptr<Node> GetPeersRequestInfo::GetNextNode ()
+	{
+		if (nodesToRequest.empty ()) return nullptr;
+		auto node = nodesToRequest.begin ()->second;
+		nodesToRequest.erase (nodesToRequest.begin ());
+		numAttempts++;
+		tried.emplace (node->id);
+		return node;
+	}
+
 	TorrentsDHT::TorrentsDHT (TorrentsTunnel& tunnel, uint16_t port):
 		m_Tunnel (tunnel), m_DHTUpdateCheckTimer (tunnel.GetService ()),
 		m_DHTExpirationCheckTimer (tunnel.GetService ()),
@@ -842,19 +858,15 @@ namespace torrents
 		auto node = UpdateNode (std::make_shared<Node>(nodeInfo));
 		if (info)
 		{
-			info->tried.emplace (nodeID);
+			info->AddNode (node);
 			info->token = token;
 			if (!info->IsDone () && m_RoutingTable)
 			{
-				auto torrent = info ? info->torrent.lock () : nullptr;
-				if (torrent)
-				{
-					auto nextNode = m_RoutingTable->FindClosestNode (torrent->GetInfoHash (), &info->tried);
-					if (nextNode)
-						SendGetPeersQuery (info, nextNode->peer, nextNode->port);
-					else
-						LogPrint (eLogDebug, "TorrentsDHT: No more nodes to send get_peers");
-				}
+				auto nextNode = info->GetNextNode ();
+				if (nextNode)
+					SendGetPeersQuery (info, nextNode->peer, nextNode->port);
+				else
+					LogPrint (eLogDebug, "TorrentsDHT: No more nodes to send get_peers");
 			}
 			else
 				LogPrint (eLogDebug, "TorrentsDHT: Closest node not found after ", DHT_MAX_NUM_GET_PEERS_ATTEMPTS, " get_peers attempts");
@@ -864,24 +876,20 @@ namespace torrents
 	void TorrentsDHT::HandleGetPeersResponsePeersAndAnnounce (std::shared_ptr<GetPeersRequestInfo> info,
 		const std::vector<std::string_view>& peers, uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort)
 	{
-		auto torrent = info ? info->torrent.lock () : nullptr;
-		if (torrent)
+		if (!info->torrent->IsComplete ())
 		{
-			if (!torrent->IsComplete ())
+			std::unordered_set<i2p::data::IdentHash> newPeers;
+			for (auto it: peers)
+				if (it.size () == i2p::data::IdentHash::len)
+					newPeers.emplace ((const uint8_t *)it.data ());
+			if (!newPeers.empty ())
 			{
-				std::unordered_set<i2p::data::IdentHash> newPeers;
-				for (auto it: peers)
-					if (it.size () == i2p::data::IdentHash::len)
-						newPeers.emplace ((const uint8_t *)it.data ());
-				if (!newPeers.empty ())
-				{
-					LogPrint (eLogDebug, "TorrentsDHT: ", newPeers.size (), " new peers received");
-					m_Tunnel.ConnectToNewPeers (torrent, newPeers, ePeerConnectionOriginDHT);
-				}
+				LogPrint (eLogDebug, "TorrentsDHT: ", newPeers.size (), " new peers received");
+				m_Tunnel.ConnectToNewPeers (info->torrent, newPeers, ePeerConnectionOriginDHT);
 			}
-			LogPrint (eLogDebug, "TorrentsDHT: Send announce to ", toIdent.ToBase64 ());
-			SendAnnouncePeerQuery (torrent->GetInfoHash (), token, toIdent, toPort);
 		}
+		LogPrint (eLogDebug, "TorrentsDHT: Send announce to ", toIdent.ToBase64 ());
+		SendAnnouncePeerQuery (info->torrent->GetInfoHash (), token, toIdent, toPort);
 	}
 
 	void TorrentsDHT::SendDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort)
@@ -953,10 +961,8 @@ namespace torrents
 
 	void TorrentsDHT::SendGetPeersQuery (std::shared_ptr<GetPeersRequestInfo> info, const i2p::data::IdentHash& toIdent, uint16_t toPort)
 	{
-		std::shared_ptr<Torrent> torrent;
-		if (info) torrent = info->torrent.lock ();
-		if (!torrent) return;
-		const auto& infoHash = torrent->GetInfoHash ();
+		if (!info || !info->torrent) return;
+		const auto& infoHash = info->torrent->GetInfoHash ();
 		SendQueryMsg (eKRPCQueryGetPeers, CreateDictionary ({
 			{ "id", CreateByteString (std::string_view ((const char *)m_NodeID.data (), m_NodeID.size ())) },
 			{ "info_hash", CreateByteString (std::string_view ((const char *)infoHash.data (), infoHash.size ())) }
@@ -1144,10 +1150,17 @@ namespace torrents
 	void TorrentsDHT::GetPeersAndAnnounce (std::shared_ptr<Torrent> torrent)
 	{
 		if (!torrent || !m_RoutingTable) return;
-		auto queriedNode = m_RoutingTable->FindClosestNode (torrent->GetInfoHash ());
-		if (!queriedNode) return; // DHT is empty
-		SendGetPeersQuery (std::make_shared<GetPeersRequestInfo>(torrent, queriedNode->id),
-			queriedNode->peer, queriedNode->port);
+		auto request = std::make_shared<GetPeersRequestInfo>(torrent);
+		auto bucket = m_RoutingTable->FindBucket (torrent->GetInfoHash ());
+		if (!bucket || bucket->nodes.empty ()) return; // DHT is empty
+		for (auto it: bucket->nodes)
+			request->AddNode (it.second);
+		if (!request->IsDone ())
+		{
+			auto queriedNode = request->GetNextNode ();
+			if (queriedNode)
+				SendGetPeersQuery (request, queriedNode->peer, queriedNode->port);
+		}
 	}
 }
 }

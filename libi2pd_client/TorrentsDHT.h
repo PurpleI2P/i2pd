@@ -52,7 +52,7 @@ namespace torrents
 	constexpr int DHT_INCOMING_GET_PEERS_TOKEN_EXPIRATION_TIME = 600; // in seconds
 	constexpr int DHT_EMPTY_TORRENT_EXPIRATION_TIME = 30; // in seconds
 	constexpr int DHT_QUERY_EXPIRATION_TIME = 30; // in seconds
-	constexpr size_t DHT_MAX_NUM_GET_PEERS_ATTEMPTS = 12;
+	constexpr int DHT_MAX_NUM_GET_PEERS_ATTEMPTS = 22;
 
 	using Distance = Torrent::InfoHash;
 	struct NodeID: public Torrent::InfoHash
@@ -128,6 +128,7 @@ namespace torrents
 			void CleanUp ();
 			size_t GetNumBuckets () const;
 			size_t GetNumNodes () const;
+			Bucket * FindBucket (const Torrent::InfoHash& id) const;
 
 			bool AddNode (std::shared_ptr<Node> node);
 			void RemoveNode (const NodeID& id);
@@ -140,10 +141,6 @@ namespace torrents
 			size_t DeleteExpiredNodes (uint64_t ts);
 			std::list<NodeID> GetNodesToPing (uint64_t ts);
 			void RemoveEmptyBuckets ();
-
-		private:
-
-			Bucket * FindBucket (const Torrent::InfoHash& id) const;
 
 		private:
 
@@ -187,13 +184,16 @@ namespace torrents
 
 	struct GetPeersRequestInfo
 	{
-		std::weak_ptr<Torrent> torrent;
+		std::shared_ptr<Torrent> torrent;
+		std::map<Distance, std::shared_ptr<Node> > nodesToRequest;
 		std::set<NodeID> tried;
 		uint64_t token;
+		int numAttempts;
 
-		GetPeersRequestInfo (std::shared_ptr<Torrent> t, const NodeID& firstNode):
-			torrent (t), token (0) { tried.emplace (firstNode); }
-		bool IsDone () const { return tried.size () >= DHT_MAX_NUM_GET_PEERS_ATTEMPTS; }
+		GetPeersRequestInfo (std::shared_ptr<Torrent> t): torrent (t), token (0), numAttempts (0) { }
+		bool IsDone () const { return numAttempts >= DHT_MAX_NUM_GET_PEERS_ATTEMPTS || nodesToRequest.empty (); }
+		bool AddNode (std::shared_ptr<Node> node);
+		std::shared_ptr<Node> GetNextNode ();
 	};
 
 	class TorrentsTunnel;
