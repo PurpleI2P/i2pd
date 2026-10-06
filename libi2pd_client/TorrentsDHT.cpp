@@ -541,10 +541,11 @@ namespace torrents
 			if (!sortedNodes.empty ())
 			{
 				for (auto it: sortedNodes)
-					if (m_RoutingTable->AddNode (it))
-						m_Nodes.emplace (it->id, it);
+					if (m_Nodes.emplace (it->id, it).second)
+						m_RoutingTable->AddNode (it);
 				m_RoutingTable->RemoveEmptyBuckets ();
-				LogPrint (eLogInfo, "TorrentsDHT: ", m_Nodes.size (), " DHT nodes loaded to ", m_RoutingTable->GetNumBuckets (), " buckets");
+				LogPrint (eLogInfo, "TorrentsDHT: ", m_Nodes.size (), " total DHT nodes loaded ",
+					m_RoutingTable->GetNumNodes (), " to ", m_RoutingTable->GetNumBuckets (), " buckets");
 			}
 		}
 	}
@@ -1156,6 +1157,7 @@ namespace torrents
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
+			std::list<std::shared_ptr<GetPeersRequestInfo> > requests;
 			auto ts = i2p::util::GetMonotonicSeconds ();
 			auto it = m_Queries.begin ();
 			while (it != m_Queries.end ())
@@ -1163,12 +1165,14 @@ namespace torrents
 				if (ts > std::get<4>(it->second) + DHT_QUERY_EXPIRATION_TIME)
 				{
 					if (std::get<2>(it->second) == eKRPCQueryGetPeers)
-						SendNextGetPeersQuery (std::get<3>(it->second));
+						requests.push_back (std::get<3>(it->second));
 					it = m_Queries.erase (it);
 				}
 				else
 					it++;
 			}
+			for (auto it1: requests)
+				SendNextGetPeersQuery (it1);
 			ScheduleDHTQueryExpirationCheck ();
 		}
 	}
