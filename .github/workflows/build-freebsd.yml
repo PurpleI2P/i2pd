@@ -28,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        release: ['14.4', '15.0']
+        release: ['14.4', '15.1']
 
     steps:
     - name: Checkout
