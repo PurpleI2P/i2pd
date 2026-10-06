@@ -160,14 +160,12 @@ namespace http
 				std::string_view port_str = (pos_c == std::string::npos)
 					? url.substr(pos_p, std::string::npos)
 					: url.substr(pos_p, pos_c - pos_p);
-				/* stoi throws exception on failure, we don't need it */
+
 				port = 0;
-				for (char c : port_str) {
-					if (c < '0' || c > '9')
-						return false;
-					port *= 10;
-					port += c - '0';
-				}
+				auto res = std::from_chars (port_str.data(), port_str.data() + port_str.size(), port);
+				if (res.ec != std::errc())
+					return false;
+
 				if (pos_c == std::string::npos)
 					return true; /* no path part */
 				pos_p = pos_c;
