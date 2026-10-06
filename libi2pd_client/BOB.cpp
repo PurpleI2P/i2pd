@@ -389,7 +389,7 @@ namespace client
 	std::string BOBCommandSession::BuildStatusLine(bool currentTunnel, std::shared_ptr<BOBDestination> dest)
 	{
 		// helper lambdas
-		constexpr auto issetStr = [](std::string_view str) { return !str.empty() ? str : "not_set"; }; // for inhost, outhost
+		constexpr auto issetStr = [](const std::string& str) { return !str.empty() ? str : "not_set"; }; // for inhost, outhost
 		const auto issetNum = [](int p) { return p ? std::to_string (p) : "not_set"; }; // for inport, outport
 
 		// tunnel info
