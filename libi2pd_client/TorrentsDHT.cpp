@@ -149,8 +149,8 @@ namespace torrents
 		auto bucket = m_Buckets;
 		while (bucket->next)
 		{
-			if (id < bucket->next->start)
-				return bucket;
+			if (id >= bucket->start && id < bucket->next->start)
+				break;
 			bucket = bucket->next;
 		}
 		return bucket;
@@ -309,12 +309,14 @@ namespace torrents
 		auto bucket = m_Buckets;
 		while (bucket)
 		{
-			if ((!bucket->IsFull () || bucket->IsInBucket (m_OurNode)) && !bucket->nodes.empty ())
+			if (!bucket->IsFull () || bucket->IsInBucket (m_OurNode))
 			{
 				auto randomID = bucket->GetRandomID (rng);
-				auto closestNode = FindClosestNodeInBucket (randomID);
-				if (closestNode)
-					ret.emplace_back (std::make_pair (randomID, closestNode));
+				Bucket * bucketToRequest = bucket;
+				if (bucket->IsEmpty () && bucket->next && !bucket->next->IsEmpty ())
+					bucketToRequest = bucket->next;
+				for (auto it: bucketToRequest->nodes)
+					ret.emplace_back (std::make_pair (randomID, it.second));
 			}
 			bucket = bucket->next;
 		}
@@ -1212,7 +1214,14 @@ namespace torrents
 		if (!torrent || !m_RoutingTable) return;
 		auto request = std::make_shared<GetPeersRequestInfo>(torrent);
 		auto bucket = m_RoutingTable->FindBucket (torrent->GetInfoHash ());
-		if (!bucket || bucket->nodes.empty ()) return; // DHT is empty
+		if (!bucket) return; // DHT is empty
+		if (bucket->IsEmpty ())
+		{
+			if (bucket->next && !bucket->next->IsEmpty ())
+				bucket = bucket->next;
+			else
+				return;
+		}
 		// fill initial list of nodes to request from bucket
 		for (auto it: bucket->nodes)
 			request->AddNode (it.second);
