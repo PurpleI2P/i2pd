@@ -130,6 +130,7 @@ namespace crypto
 
 	bool bn2buf (const BIGNUM * bn, uint8_t * buf, size_t len)
 	{
+		if (!bn) return false; // BN_num_bytes dereferences its argument
 		int offset = (int)len - (int)BN_num_bytes (bn);
 		if (offset < 0) return false;
 		BN_bn2bin (bn, buf + offset);
