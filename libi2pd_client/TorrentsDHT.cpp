@@ -323,18 +323,6 @@ namespace torrents
 		return ret;
 	}
 
-	std::shared_ptr<Node> RoutingTable::FindClosestNodeInBucket (const NodeID& target) const
-	{
-		auto bucket = FindBucket (target);
-		if (!bucket || bucket->nodes.empty ()) return nullptr;
-		auto it = bucket->nodes.begin ();
-		while (it != bucket->nodes.end () && target > it->first) it++;
-		if (it != bucket->nodes.end ())
-			return it->second;
-		else
-			return bucket->nodes.rbegin ()->second;
-	}
-
 	DHTTorrent::DHTTorrent ():
 		m_LastUpdateTime (i2p::util::GetMonotonicSeconds ())
 	{
@@ -776,23 +764,21 @@ namespace torrents
 		std::string_view transactionID, const NodeID& target)
 	{
 		LogPrint (eLogDebug, "TorrentsDHT: Find node query received");
-		auto it = m_Nodes.find (target);
-		if (it != m_Nodes.end ())
-		{
-			// found exact match
-			SendFindNodeResponse (transactionID, it->second->GetNodeInfo (), fromIdent, fromPort + 1); // to rport
-			return;
-		}
-
 		if (m_RoutingTable)
 		{
-			auto closestNode = m_RoutingTable->FindClosestNodeInBucket (target);
-			if (closestNode)
-				SendFindNodeResponse (transactionID, closestNode->GetNodeInfo (), fromIdent, fromPort + 1); // to rport
-			else if (m_Tunnel.GetLocalDestination ())
-				SendFindNodeResponse (transactionID,
-					Node (m_NodeID, m_Tunnel.GetLocalDestination ()->GetIdentHash (), m_Port).GetNodeInfo (), // send ours
-					fromIdent, fromPort + 1); // to rport
+			auto bucket = m_RoutingTable->FindBucket (target);
+			if (bucket && bucket->IsEmpty () && bucket->next && !bucket->next->IsEmpty ())
+				bucket = bucket->next;
+			if (bucket && !bucket->IsEmpty ())
+			{
+				std::vector<uint8_t> nodes;
+				for (auto it: bucket->nodes)
+				{
+					auto nodeInfo = it.second->GetNodeInfo ();
+					nodes.insert (nodes.end(), nodeInfo.data (), nodeInfo.data () + nodeInfo.size ());
+				}
+				SendFindNodeResponse (transactionID, std::string_view ((const char *)nodes.data (), nodes.size ()), fromIdent, fromPort + 1); // to rport
+			}
 		}
 	}
 
@@ -1041,12 +1027,12 @@ namespace torrents
 			toIdent, toPort);
 	}
 
-	void TorrentsDHT::SendFindNodeResponse (std::string_view transactionID, const NodeInfo& nodeInfo,
+	void TorrentsDHT::SendFindNodeResponse (std::string_view transactionID, std::string_view nodes,
 		const i2p::data::IdentHash& toIdent, uint16_t toPort)
 	{
 		SendResponseMsg (CreateDictionary ({
 			{ "id", CreateByteString (std::string_view ((const char *)m_NodeID.data (), m_NodeID.size ())) },
-			{ "nodes", CreateByteString (std::string_view ((const char *)nodeInfo.data (), nodeInfo.size ())) }
+			{ "nodes", CreateByteString (nodes) }
 											}),
 			transactionID, toIdent, toPort);
 	}

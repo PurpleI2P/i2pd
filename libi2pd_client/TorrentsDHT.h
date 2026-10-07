@@ -139,7 +139,6 @@ namespace torrents
 			std::shared_ptr<Node> FindClosestNode (const Torrent::InfoHash& infoHash,
 				std::set<NodeID> * excluded = nullptr) const;
 			std::list<std::pair<NodeID, std::shared_ptr<Node> > > GetExploratoryTargets (std::mt19937& rng) const; // (target, node to send find_node to)
-			std::shared_ptr<Node> FindClosestNodeInBucket (const NodeID& target) const;
 			size_t DeleteExpiredNodes (uint64_t ts);
 			std::list<NodeID> GetNodesToPing (uint64_t ts);
 			void RemoveEmptyBuckets ();
@@ -247,7 +246,7 @@ namespace torrents
 				uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendGetPeersResponse (std::string_view transactionID, std::shared_ptr<const Node> node,
 				uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort);
-			void SendFindNodeResponse (std::string_view transactionID, const NodeInfo& nodeInfo,
+			void SendFindNodeResponse (std::string_view transactionID, std::string_view nodes,
 				const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendAnnouncePeerQuery (const Torrent::InfoHash& infoHash, uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 
