@@ -143,6 +143,19 @@ namespace torrents
 		return num;
 	}
 
+	std::list<std::shared_ptr<Node> > RoutingTable::GetNodes ()
+	{
+		std::list<std::shared_ptr<Node> > nodes;
+		auto bucket = m_Buckets;
+		while (bucket)
+		{
+			for (auto it: bucket->nodes)
+				nodes.emplace_back (it.second);
+			bucket = bucket->next;
+		}
+		return nodes;
+	}
+
 	Bucket * RoutingTable::FindBucket (const Torrent::InfoHash& id) const
 	{
 		if (!m_Buckets) return nullptr;
@@ -212,9 +225,9 @@ namespace torrents
 		return numDeleted;
 	}
 
-	std::list<NodeID> RoutingTable::GetNodesToPing (uint64_t ts)
+	std::list<std::shared_ptr<Node> > RoutingTable::GetNodesToPing (uint64_t ts)
 	{
-		std::list<NodeID> toPing;
+		std::list<std::shared_ptr<Node> > toPing;
 		auto bucket = m_Buckets;
 		while (bucket)
 		{
@@ -222,7 +235,7 @@ namespace torrents
 			{
 				for (const auto& it: bucket->nodes)
 					if (ts > it.second->lastUpdateTime + DHT_NODE_SEND_PING_TIME)
-						toPing.push_back (it.first);
+						toPing.push_back (it.second);
 			}
 			bucket = bucket->next;
 		}
@@ -240,7 +253,7 @@ namespace torrents
 		{
 			it->second = node;
 			bucket->lastUpdateTime = i2p::util::GetMonotonicSeconds ();
-			return true;
+			return false;
 		}
 		if (bucket->IsFull ())
 		{
@@ -472,7 +485,7 @@ namespace torrents
 
 	void TorrentsDHT::Save (const std::filesystem::path& file)
 	{
-		if (!m_Nodes.empty ())
+		if (m_RoutingTable)
 		{
 			std::ofstream f(file, std::ofstream::binary);
 			if (f.is_open ())
@@ -485,9 +498,9 @@ namespace torrents
 					f.write ((const char *)nodeInfo.data (), nodeInfo.size ());
 				}
 				int numSaved = 0;
-				for (auto it: m_Nodes)
+				for (auto it: m_RoutingTable->GetNodes ())
 				{
-					auto nodeInfo = it.second->GetNodeInfo ();
+					auto nodeInfo = it->GetNodeInfo ();
 					if (f.write ((const char *)nodeInfo.data (), nodeInfo.size ()))
 						numSaved++;
 				}
@@ -540,9 +553,8 @@ namespace torrents
 			if (!sortedNodes.empty ())
 			{
 				for (auto it: sortedNodes)
-					if (m_Nodes.emplace (it->id, it).second)
-						m_RoutingTable->AddNode (it);
-				LogPrint (eLogInfo, "TorrentsDHT: ", m_Nodes.size (), " total DHT nodes loaded ",
+					m_RoutingTable->AddNode (it);
+				LogPrint (eLogInfo, "TorrentsDHT: DHT nodes loaded ",
 					m_RoutingTable->GetNumNodes (), " to ", m_RoutingTable->GetNumBuckets (), " buckets");
 			}
 		}
@@ -1066,12 +1078,9 @@ namespace torrents
 			LogPrint (eLogInfo, "TorrentsDHT: Invalid node ID received ", node->id.ToBase64 ());
 			return nullptr;
 		}
-		auto [it, inserted] = m_Nodes.emplace (node->id, node);
-		if (inserted)
+		if (m_RoutingTable && m_RoutingTable->AddNode (node))
 			LogPrint (eLogDebug, "TorrentsDHT: Node ", node->id.ToBase64 (), " added");
-		it->second->lastUpdateTime = i2p::util::GetMonotonicSeconds ();
-		if (m_RoutingTable) m_RoutingTable->AddNode (it->second);
-		return it->second;
+		return node;
 	}
 
 	void TorrentsDHT::ScheduleDHTUpdateCheck ()
@@ -1108,21 +1117,10 @@ namespace torrents
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			auto ts = i2p::util::GetMonotonicSeconds ();
-			{
-				auto it = m_Nodes.begin ();
-				while (it != m_Nodes.end ())
-				{
-					if (ts > it->second->lastUpdateTime + DHT_NODE_EXPIRATION_TIME)
-						it = m_Nodes.erase (it);
-					else
-						it++;
-				}
-			}
 			if (m_RoutingTable)
 			{
 				m_RoutingTable->DeleteExpiredNodes (ts);
-				LogPrint (eLogDebug, "TorrentsDHT: Stats total nodes ", m_Nodes.size (),
-					" buckets ", m_RoutingTable->GetNumBuckets (), " nodes ", m_RoutingTable->GetNumNodes ());
+				LogPrint (eLogDebug, "TorrentsDHT: Stats buckets ", m_RoutingTable->GetNumBuckets (), " nodes ", m_RoutingTable->GetNumNodes ());
 			}
 			{
 				auto it = m_Torrents.begin ();
@@ -1154,11 +1152,7 @@ namespace torrents
 			{
 				auto toPing = m_RoutingTable->GetNodesToPing (ts);
 				for (const auto& it: toPing)
-				{
-					auto it1 = m_Nodes.find (it);
-					if (it1 != m_Nodes.end ())
-						SendPingQuery (it1->second->peer, it1->second->port);
-				}
+					SendPingQuery (it->peer, it->port);
 			}
 			ScheduleDHTSendPingCheck ();
 		}

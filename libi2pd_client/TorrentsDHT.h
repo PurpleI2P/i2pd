@@ -130,6 +130,7 @@ namespace torrents
 			void CleanUp ();
 			size_t GetNumBuckets () const;
 			size_t GetNumNodes () const;
+			std::list<std::shared_ptr<Node> > GetNodes ();
 			Bucket * FindBucket (const Torrent::InfoHash& id) const;
 
 			bool AddNode (std::shared_ptr<Node> node);
@@ -140,7 +141,7 @@ namespace torrents
 				std::set<NodeID> * excluded = nullptr) const;
 			std::list<std::pair<NodeID, std::shared_ptr<Node> > > GetExploratoryTargets (std::mt19937& rng) const; // (target, node to send find_node to)
 			size_t DeleteExpiredNodes (uint64_t ts);
-			std::list<NodeID> GetNodesToPing (uint64_t ts);
+			std::list<std::shared_ptr<Node> > GetNodesToPing (uint64_t ts);
 			void RemoveEmptyBuckets ();
 
 		private:
@@ -276,7 +277,6 @@ namespace torrents
 			uint16_t m_Port;
 			NodeID m_NodeID;
 			std::unique_ptr<RoutingTable> m_RoutingTable;
-			std::map<NodeID, std::shared_ptr<Node> > m_Nodes;
 			// transactionID -> (ident, port, query, get peers request info, time in monotonic seconds)
 			std::unordered_map<uint16_t, std::tuple<i2p::data::IdentHash, uint16_t, KRPCQuery, std::shared_ptr<GetPeersRequestInfo>, uint64_t > > m_Queries;
 			std::map<Torrent::InfoHash, std::shared_ptr<DHTTorrent> > m_Torrents;
