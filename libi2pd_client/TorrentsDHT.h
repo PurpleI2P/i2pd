@@ -184,10 +184,31 @@ namespace torrents
 
 	struct RequestInfo
 	{
+		using NodeToRequest = std::pair<Distance, std::shared_ptr<Node> >;
+		struct NodeToRequestCmp
+		{
+			bool operator() (const NodeToRequest& n1, const NodeToRequest& n2) const
+			{
+				auto cmp = n1.first <=> n2.first;
+				if (cmp != 0) return cmp < 0;
+				return n1.second->id < n2.second->id;
+			}
+		};
+		using NodeToken = std::tuple<Distance, std::shared_ptr<Node>, uint64_t >;
+		struct NodeTokenCmp
+		{
+			bool operator() (const NodeToken& n1, const NodeToken& n2) const
+			{
+				auto cmp = std::get<0>(n1) <=> std::get<0>(n2);
+				if (cmp != 0) return cmp < 0;
+				return std::get<1>(n1)->id < std::get<1>(n2)->id;
+			}
+		};
+
 		std::shared_ptr<Torrent> torrent; // for get_peers
 		NodeID target; // for find_node
-		std::set<std::pair<Distance, std::shared_ptr<Node> > > nodesToRequest;
-		std::set<std::tuple<Distance, std::shared_ptr<Node>, uint64_t > > tokens; // token received from nodes for get_peers
+		std::set<NodeToRequest, NodeToRequestCmp> nodesToRequest;
+		std::set<NodeToken, NodeTokenCmp> tokens; // token received from nodes for get_peers
 		std::set<NodeID> tried;
 		int numAttempts, maxNumAttempts;
 

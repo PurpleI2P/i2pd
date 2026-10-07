@@ -1071,7 +1071,7 @@ namespace torrents
 					if (bucket->next && !bucket->next->IsEmpty ())
 						bucket = bucket->next;
 					else
-						return;
+						continue;
 				}
 				// fill initial list of nodes to request from bucket
 				for (auto it: bucket->nodes)
