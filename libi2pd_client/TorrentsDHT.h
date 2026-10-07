@@ -158,6 +158,7 @@ namespace torrents
 			std::shared_ptr<Node> GetIncomingGetPeerNode (GetPeersToken token) const;
 			bool AddPeer (const i2p::data::IdentHash& peer);
 			bool CleanUp (uint64_t ts); // return true if empty
+			bool HasPeers () const  { return !m_Peers.empty (); };
 
 		private:
 

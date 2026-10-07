@@ -728,7 +728,9 @@ namespace torrents
 		uint64_t token = m_Tunnel.GetLocalDestination () ? m_Tunnel.GetLocalDestination ()->GetRng ()() : 1;
 		torrent->AddIncomingGetPeerNode (token, from);
 
-		if (m_RoutingTable)
+		if (torrent->HasPeers ())
+			SendGetPeersResponse (transactionID, torrent, token, fromIdent, fromPort + 1); // to rport
+		else if (m_RoutingTable)
 		{
 			auto bucket = m_RoutingTable->FindBucket (infoHash);
 			if (bucket && bucket->IsEmpty () && bucket->next && !bucket->next->IsEmpty ())
