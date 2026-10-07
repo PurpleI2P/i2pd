@@ -361,10 +361,13 @@ namespace torrents
 		return false;
 	}
 
-	bool RequestInfo::AddNode (std::shared_ptr<Node> node)
+	bool RequestInfo::AddNode (std::shared_ptr<Node> node, uint64_t token)
 	{
 		if (!node || tried.contains (node->id)) return false;
-		return nodesToRequest.emplace (torrent ? node->id ^ torrent->GetInfoHash () : node->id ^ target, node).second;
+		auto distance = torrent ? node->id ^ torrent->GetInfoHash () : node->id ^ target;
+		if (token && torrent)
+			tokens.emplace (distance, node, token);
+		return nodesToRequest.emplace (distance, node).second;
 	}
 
 	std::shared_ptr<Node> RequestInfo::GetNextNode ()
@@ -494,11 +497,6 @@ namespace torrents
 				return;
 
 			m_RoutingTable = std::make_unique<RoutingTable> (m_NodeID);
-			std::set<std::shared_ptr<Node>, std::function<bool(const std::shared_ptr<Node>&, const std::shared_ptr<Node>&)> >
-				sortedNodes ([](const std::shared_ptr<Node>& n1, const std::shared_ptr<Node>& n2)->bool
-				{
-					return n1->id > n2->id;
-				});
 			while (f.read ((char *)nodeInfo.data (), nodeInfo.size ()))
 			{
 				auto bytesRead = f.gcount();
@@ -506,16 +504,11 @@ namespace torrents
 				{
 					auto node = std::make_shared<Node>(nodeInfo);
 					if (node->VerifyID ())
-						sortedNodes.emplace (node);
+						m_RoutingTable->AddNode (node);
 				}
 			}
-			if (!sortedNodes.empty ())
-			{
-				for (auto it: sortedNodes)
-					m_RoutingTable->AddNode (it);
-				LogPrint (eLogInfo, "TorrentsDHT: DHT nodes loaded ",
-					m_RoutingTable->GetNumNodes (), " to ", m_RoutingTable->GetNumBuckets (), " buckets");
-			}
+			LogPrint (eLogInfo, "TorrentsDHT: ", m_RoutingTable->GetNumNodes (),
+				" DHT nodes loaded to ", m_RoutingTable->GetNumBuckets (), " buckets");
 		}
 	}
 
@@ -842,14 +835,11 @@ namespace torrents
 				memcpy (nodeInfo.data (), nodes.data (), nodeInfo.size ());
 				auto node = UpdateNode (std::make_shared<Node>(nodeInfo));
 				if (info && node)
-					info->AddNode (node);
+					info->AddNode (node, token);
 				nodes = nodes.substr (nodeInfo.size ());
 			}
 			if (info)
-			{
-				info->token = token;
 				SendNextGetPeersQuery (info);
-			}
 		}
 	}
 
@@ -971,16 +961,33 @@ namespace torrents
 	void TorrentsDHT::SendNextGetPeersQuery (std::shared_ptr<RequestInfo> info)
 	{
 		if (!info) return;
+		bool sent = false;
 		if (!info->IsDone () && m_RoutingTable)
 		{
 			auto nextNode = info->GetNextNode ();
 			if (nextNode)
+			{
+				sent = true;
 				SendGetPeersQuery (info, nextNode->peer, nextNode->port);
+			}
 			else
 				LogPrint (eLogDebug, "TorrentsDHT: No more nodes to send get_peers");
 		}
 		else
 			LogPrint (eLogDebug, "TorrentsDHT: Closest node not found after ", DHT_MAX_NUM_GET_PEERS_ATTEMPTS, " get_peers attempts");
+		if (!sent && !info->tokens.empty () && info->torrent)
+		{
+			// announce
+			int numAnnounces = 0;
+			for (const auto& [distance, node, token]: info->tokens)
+			{
+				SendAnnouncePeerQuery (info->torrent->GetInfoHash (), token, node->peer, node->port + 1); // to rport
+				numAnnounces++;
+				if (numAnnounces >= DHT_MAX_NUM_CLOSEST_NODES_TO_ANNOUNCE) break;
+			}
+			if (numAnnounces > 0)
+				LogPrint (eLogDebug, "TorrentsDHT: Announce sent to ", numAnnounces, " closest nodes");
+		}
 	}
 
 	void TorrentsDHT::SendGetPeersResponse (std::string_view transactionID, std::shared_ptr<DHTTorrent> torrent,
@@ -1124,7 +1131,7 @@ namespace torrents
 			if (m_RoutingTable)
 			{
 				m_RoutingTable->DeleteExpiredNodes (ts);
-				LogPrint (eLogDebug, "TorrentsDHT: Stats buckets ", m_RoutingTable->GetNumBuckets (), " nodes ", m_RoutingTable->GetNumNodes ());
+				LogPrint (eLogDebug, "TorrentsDHT: Stats ", m_RoutingTable->GetNumNodes (), " nodes in ",  m_RoutingTable->GetNumBuckets (), " buckets ");
 			}
 			{
 				auto it = m_Torrents.begin ();
