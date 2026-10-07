@@ -162,7 +162,7 @@ namespace torrents
 		auto bucket = m_Buckets;
 		while (bucket->next)
 		{
-			if (id >= bucket->start && id < bucket->next->start)
+			if (id < bucket->next->start)
 				break;
 			bucket = bucket->next;
 		}
@@ -209,7 +209,7 @@ namespace torrents
 				auto it = bucket->nodes.begin ();
 				while (it != bucket->nodes.end ())
 				{
-					if (ts > it->second->lastUpdateTime + DHT_ROUTING_TABLE_NODE_EXPIRATION_TIME)
+					if (ts > it->second->lastUpdateTime + DHT_NODE_EXPIRATION_TIME)
 					{
 						numDeleted++;
 						it = bucket->nodes.erase (it);
@@ -282,21 +282,14 @@ namespace torrents
 			RemoveEmptyBuckets ();
 	}
 
-	std::list<std::pair<NodeID, std::shared_ptr<Node> > > RoutingTable::GetExploratoryTargets (std::mt19937& rng) const
+	std::list<std::pair<NodeID, Bucket * > > RoutingTable::GetExploratoryTargets (std::mt19937& rng) const
 	{
-		std::list<std::pair<NodeID, std::shared_ptr<Node> > > ret;
+		std::list<std::pair<NodeID, Bucket * > > ret;
 		auto bucket = m_Buckets;
 		while (bucket)
 		{
 			if (!bucket->IsFull () || bucket->IsInBucket (m_OurNode))
-			{
-				auto randomID = bucket->GetRandomID (rng);
-				Bucket * bucketToRequest = bucket;
-				if (bucket->IsEmpty () && bucket->next && !bucket->next->IsEmpty ())
-					bucketToRequest = bucket->next;
-				for (auto it: bucketToRequest->nodes)
-					ret.emplace_back (std::make_pair (randomID, it.second));
-			}
+				ret.emplace_back (std::make_pair (bucket->GetRandomID (rng), bucket));
 			bucket = bucket->next;
 		}
 		return ret;
@@ -368,13 +361,13 @@ namespace torrents
 		return false;
 	}
 
-	bool GetPeersRequestInfo::AddNode (std::shared_ptr<Node> node)
+	bool RequestInfo::AddNode (std::shared_ptr<Node> node)
 	{
-		if (!torrent || !node || tried.contains (node->id)) return false;
-		return nodesToRequest.emplace (node->id ^ torrent->GetInfoHash (), node).second;
+		if (!node || tried.contains (node->id)) return false;
+		return nodesToRequest.emplace (torrent ? node->id ^ torrent->GetInfoHash () : node->id ^ target, node).second;
 	}
 
-	std::shared_ptr<Node> GetPeersRequestInfo::GetNextNode ()
+	std::shared_ptr<Node> RequestInfo::GetNextNode ()
 	{
 		if (nodesToRequest.empty ()) return nullptr;
 		auto node = nodesToRequest.begin ()->second;
@@ -822,7 +815,7 @@ namespace torrents
 					case eKRPCQueryFindNode:
 					{
 						LogPrint (eLogDebug, "TorrentsDHT: find_node response received");
-						HandleFindNodeResponse (nodes);
+						HandleFindNodeResponse (info, nodes);
 						break;
 					}
 					case eKRPCQueryAnnouncePeer:
@@ -838,7 +831,7 @@ namespace torrents
 			LogPrint (eLogInfo, "TorrentsDHT: Query not found");
 	}
 
-	void TorrentsDHT::HandleGetPeersResponseNodes (std::shared_ptr<GetPeersRequestInfo> info,
+	void TorrentsDHT::HandleGetPeersResponseNodes (std::shared_ptr<RequestInfo> info,
 		const NodeID& nodeID, uint64_t token, std::string_view nodes)
 	{
 		NodeInfo nodeInfo;
@@ -860,7 +853,7 @@ namespace torrents
 		}
 	}
 
-	void TorrentsDHT::HandleGetPeersResponsePeersAndAnnounce (std::shared_ptr<GetPeersRequestInfo> info,
+	void TorrentsDHT::HandleGetPeersResponsePeersAndAnnounce (std::shared_ptr<RequestInfo> info,
 		const std::vector<std::string_view>& peers, uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort)
 	{
 		if (!info->torrent->IsComplete ())
@@ -879,14 +872,21 @@ namespace torrents
 		SendAnnouncePeerQuery (info->torrent->GetInfoHash (), token, toIdent, toPort);
 	}
 
-	void TorrentsDHT::HandleFindNodeResponse (std::string_view nodes)
+	void TorrentsDHT::HandleFindNodeResponse (std::shared_ptr<RequestInfo> info, std::string_view nodes)
 	{
 		NodeInfo nodeInfo;
-		while (nodes.size () >= nodeInfo.size ())
+		if (nodes.size () >= nodeInfo.size ()) // at least one node
 		{
-			memcpy (nodeInfo.data (), nodes.data (), nodeInfo.size ());
-			UpdateNode (std::make_shared<Node>(nodeInfo));
-			nodes = nodes.substr (nodeInfo.size ());
+			while (nodes.size () >= nodeInfo.size ())
+			{
+				memcpy (nodeInfo.data (), nodes.data (), nodeInfo.size ());
+				auto node = UpdateNode (std::make_shared<Node>(nodeInfo));
+				if (info && node)
+					info->AddNode (node);
+				nodes = nodes.substr (nodeInfo.size ());
+			}
+			if (info)
+				SendNextFindNodeQuery (info);
 		}
 	}
 
@@ -913,7 +913,7 @@ namespace torrents
 	}
 
 	void TorrentsDHT::SendQueryMsg (KRPCQuery query, std::string_view arguments,
-		const i2p::data::IdentHash& toIdent, uint16_t toPort, bool isRaw, std::shared_ptr<GetPeersRequestInfo> info)
+		const i2p::data::IdentHash& toIdent, uint16_t toPort, bool isRaw, std::shared_ptr<RequestInfo> info)
 	{
 		uint16_t transactionID = m_Tunnel.GetLocalDestination () ? static_cast<uint16_t>(m_Tunnel.GetLocalDestination ()->GetRng ()()) : 1;
 		auto msg = CreateDictionary ({
@@ -957,7 +957,7 @@ namespace torrents
 			transactionID, toIdent, toPort);
 	}
 
-	void TorrentsDHT::SendGetPeersQuery (std::shared_ptr<GetPeersRequestInfo> info, const i2p::data::IdentHash& toIdent, uint16_t toPort)
+	void TorrentsDHT::SendGetPeersQuery (std::shared_ptr<RequestInfo> info, const i2p::data::IdentHash& toIdent, uint16_t toPort)
 	{
 		if (!info || !info->torrent) return;
 		const auto& infoHash = info->torrent->GetInfoHash ();
@@ -968,7 +968,7 @@ namespace torrents
 			toIdent, toPort, false, info);
 	}
 
-	void TorrentsDHT::SendNextGetPeersQuery (std::shared_ptr<GetPeersRequestInfo> info)
+	void TorrentsDHT::SendNextGetPeersQuery (std::shared_ptr<RequestInfo> info)
 	{
 		if (!info) return;
 		if (!info->IsDone () && m_RoutingTable)
@@ -1006,13 +1006,27 @@ namespace torrents
 			transactionID, toIdent, toPort);
 	}
 
-	void TorrentsDHT::SendFindNodeQuery (const NodeID& target, const i2p::data::IdentHash& toIdent, uint16_t toPort)
+	void TorrentsDHT::SendFindNodeQuery (std::shared_ptr<RequestInfo> info, const i2p::data::IdentHash& toIdent, uint16_t toPort)
 	{
+		if (!info) return;
 		SendQueryMsg (eKRPCQueryFindNode, CreateDictionary ({
 			{ "id", CreateByteString (std::string_view ((const char *)m_NodeID.data (), m_NodeID.size ())) },
-			{ "target", CreateByteString (std::string_view ((const char *)target.data (), target.size ())) }
+			{ "target", CreateByteString (std::string_view ((const char *)info->target.data (), info->target.size ())) }
 													}),
-			toIdent, toPort);
+			toIdent, toPort, false, info);
+	}
+
+	void TorrentsDHT::SendNextFindNodeQuery (std::shared_ptr<RequestInfo> info)
+	{
+		if (!info) return;
+		if (!info->IsDone () && m_RoutingTable)
+		{
+			auto nextNode = info->GetNextNode ();
+			if (nextNode)
+				SendFindNodeQuery (info, nextNode->peer, nextNode->port);
+			else
+				LogPrint (eLogDebug, "TorrentsDHT: No more nodes to send find_node");
+		}
 	}
 
 	void TorrentsDHT::SendFindNodeResponse (std::string_view transactionID, std::string_view nodes,
@@ -1041,8 +1055,22 @@ namespace torrents
 		if (m_RoutingTable && m_Tunnel.GetLocalDestination ())
 		{
 			auto targets = m_RoutingTable->GetExploratoryTargets (m_Tunnel.GetLocalDestination ()->GetRng ());
-			for (auto [target, node]: targets)
-				SendFindNodeQuery (target, node->peer, node->port);
+			for (auto [target, bucket]: targets)
+			{
+				auto request = std::make_shared<RequestInfo>(nullptr, DHT_MAX_NUM_FIND_NODE_ATTEMPTS);
+				request->target = target;
+				if (bucket->IsEmpty ())
+				{
+					if (bucket->next && !bucket->next->IsEmpty ())
+						bucket = bucket->next;
+					else
+						return;
+				}
+				// fill initial list of nodes to request from bucket
+				for (auto it: bucket->nodes)
+					request->AddNode (it.second);
+				SendNextFindNodeQuery (request);
+			}
 		}
 	}
 
@@ -1145,22 +1173,32 @@ namespace torrents
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
-			std::list<std::shared_ptr<GetPeersRequestInfo> > requests;
+			std::list<std::shared_ptr<RequestInfo> > getpeers, findnode;
 			auto ts = i2p::util::GetMonotonicSeconds ();
 			auto it = m_Queries.begin ();
 			while (it != m_Queries.end ())
 			{
 				if (ts > std::get<4>(it->second) + DHT_QUERY_EXPIRATION_TIME)
 				{
-					if (std::get<2>(it->second) == eKRPCQueryGetPeers)
-						requests.push_back (std::get<3>(it->second));
+					switch (std::get<2>(it->second))
+					{
+						case eKRPCQueryGetPeers:
+							getpeers.push_back (std::get<3>(it->second));
+						break;
+						case eKRPCQueryFindNode:
+							findnode.push_back (std::get<3>(it->second));
+						break;
+						default: ;
+					}
 					it = m_Queries.erase (it);
 				}
 				else
 					it++;
 			}
-			for (auto it1: requests)
+			for (auto it1: getpeers)
 				SendNextGetPeersQuery (it1);
+			for (auto it1: findnode)
+				SendNextFindNodeQuery (it1);
 			ScheduleDHTQueryExpirationCheck ();
 		}
 	}
@@ -1168,7 +1206,7 @@ namespace torrents
 	void TorrentsDHT::GetPeersAndAnnounce (std::shared_ptr<Torrent> torrent)
 	{
 		if (!torrent || !m_RoutingTable) return;
-		auto request = std::make_shared<GetPeersRequestInfo>(torrent);
+		auto request = std::make_shared<RequestInfo>(torrent, DHT_MAX_NUM_GET_PEERS_ATTEMPTS);
 		auto bucket = m_RoutingTable->FindBucket (torrent->GetInfoHash ());
 		if (!bucket) return; // DHT is empty
 		if (bucket->IsEmpty ())
