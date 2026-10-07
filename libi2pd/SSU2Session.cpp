@@ -1780,7 +1780,9 @@ namespace transport
 	void SSU2Session::HandlePayload (const uint8_t * buf, size_t len)
 	{
 		size_t offset = 0;
-		while (offset < len)
+		// the block header is three bytes: without all of them the size field below
+		// would be read past the end of the payload
+		while (offset + 3 <= len)
 		{
 			uint8_t blk = buf[offset];
 			offset++;
