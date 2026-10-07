@@ -282,40 +282,6 @@ namespace torrents
 			RemoveEmptyBuckets ();
 	}
 
-	std::list<std::pair<std::shared_ptr<Node>, Distance> > RoutingTable::FindClosestNodes (
-		const Torrent::InfoHash& infoHash, size_t num, std::set<NodeID> * excluded) const
-	{
-		std::list<std::pair<std::shared_ptr<Node>, Distance> > ret;
-		if (num > 0)
-		{
-			auto bucket = FindBucket (infoHash);
-			if (bucket)
-			{
-				for (auto it: bucket->nodes)
-				{
-					if (excluded && excluded->contains (it.first)) continue;
-					auto nodeDistance = it.first ^ infoHash;
-					auto it1 = std::find_if (ret.begin (), ret.end (),
-						[&nodeDistance](const std::pair<std::shared_ptr<Node>, Distance>& alreadyFound)
-						{
-							return nodeDistance < alreadyFound.second;
-						});
-					ret.insert (it1, { it.second, nodeDistance } );
-				}
-				if (ret.size () > num) ret.resize (num);
-			}
-		}
-		return ret;
-	}
-
-	std::shared_ptr<Node> RoutingTable::FindClosestNode (const Torrent::InfoHash& infoHash,
-		std::set<NodeID> * excluded) const
-	{
-		auto nodes = FindClosestNodes (infoHash, 1, excluded);
-		if (nodes.empty ()) return nullptr;
-		return nodes.front ().first;
-	}
-
 	std::list<std::pair<NodeID, std::shared_ptr<Node> > > RoutingTable::GetExploratoryTargets (std::mt19937& rng) const
 	{
 		std::list<std::pair<NodeID, std::shared_ptr<Node> > > ret;
@@ -764,9 +730,19 @@ namespace torrents
 
 		if (m_RoutingTable)
 		{
-			auto nodes = m_RoutingTable->FindClosestNodes (infoHash);
-			if (!nodes.empty () && nodes.front ().second < (m_NodeID ^ infoHash))
-				SendGetPeersResponse (transactionID, nodes.front ().first, token, fromIdent, fromPort + 1); // to rport
+			auto bucket = m_RoutingTable->FindBucket (infoHash);
+			if (bucket && bucket->IsEmpty () && bucket->next && !bucket->next->IsEmpty ())
+				bucket = bucket->next;
+			if (bucket && !bucket->IsEmpty ())
+			{
+				std::vector<uint8_t> nodes;
+				for (auto it: bucket->nodes)
+				{
+					auto nodeInfo = it.second->GetNodeInfo ();
+					nodes.insert (nodes.end(), nodeInfo.data (), nodeInfo.data () + nodeInfo.size ());
+				}
+				SendGetPeersResponse (transactionID, std::string_view ((const char *)nodes.data (), nodes.size ()), token, fromIdent, fromPort + 1); // to rport
+			}
 			else
 				SendGetPeersResponse (transactionID, torrent, token, fromIdent, fromPort + 1); // to rport
 		}
@@ -1017,15 +993,13 @@ namespace torrents
 			transactionID, toIdent, toPort);
 	}
 
-	void TorrentsDHT::SendGetPeersResponse (std::string_view transactionID, std::shared_ptr<const Node> node,
+	void TorrentsDHT::SendGetPeersResponse (std::string_view transactionID, std::string_view nodes,
 		uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort)
 	{
-		if (!node) return;
-		NodeInfo nodeInfo = node->GetNodeInfo ();
 		SendResponseMsg (CreateDictionary ({
 			{ "id", CreateByteString (std::string_view ((const char *)m_NodeID.data (), m_NodeID.size ())) },
 			{ "token", CreateByteString (std::string_view ((const char *)&token, 8)) },
-			{ "nodes", CreateByteString (std::string_view ((const char *)nodeInfo.data (), nodeInfo.size ())) }
+			{ "nodes", CreateByteString (nodes) }
 											}),
 			transactionID, toIdent, toPort);
 	}

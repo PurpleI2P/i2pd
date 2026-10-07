@@ -135,10 +135,6 @@ namespace torrents
 
 			bool AddNode (std::shared_ptr<Node> node);
 			void RemoveNode (const NodeID& id);
-			std::list<std::pair<std::shared_ptr<Node>, Distance> > FindClosestNodes (const Torrent::InfoHash& infoHash,
-				size_t num = 1, std::set<NodeID> * excluded = nullptr) const;
-			std::shared_ptr<Node> FindClosestNode (const Torrent::InfoHash& infoHash,
-				std::set<NodeID> * excluded = nullptr) const;
 			std::list<std::pair<NodeID, std::shared_ptr<Node> > > GetExploratoryTargets (std::mt19937& rng) const; // (target, node to send find_node to)
 			size_t DeleteExpiredNodes (uint64_t ts);
 			std::list<std::shared_ptr<Node> > GetNodesToPing (uint64_t ts);
@@ -245,7 +241,7 @@ namespace torrents
 			void SendPingResponse (std::string_view transactionID, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendGetPeersResponse (std::string_view transactionID, std::shared_ptr<DHTTorrent> torrent,
 				uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort);
-			void SendGetPeersResponse (std::string_view transactionID, std::shared_ptr<const Node> node,
+			void SendGetPeersResponse (std::string_view transactionID, std::string_view nodes,
 				uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendFindNodeResponse (std::string_view transactionID, std::string_view nodes,
 				const i2p::data::IdentHash& toIdent, uint16_t toPort);
