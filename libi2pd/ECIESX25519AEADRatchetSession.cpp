@@ -395,7 +395,9 @@ namespace garlic
 	{
 		if (len < 3) return;
 		size_t offset = 0;
-		while (offset < len)
+		// the block header is three bytes: without all of them the size field below
+		// would be read past the end of the payload
+		while (offset + 3 <= len)
 		{
 			uint8_t blk = buf[offset];
 			offset++;
