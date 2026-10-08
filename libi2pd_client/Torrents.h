@@ -239,12 +239,13 @@ namespace torrents
 	{
 		eTorrentErrorNoError = 0,
 		eTorrentErrorMalformedMetaInfo = 1,
+		eTorrentErrorNonSupportedVersion = 2,
 		eNumTorrentErrors
 	};
 
 	constexpr std::array<std::string_view, eNumTorrentErrors> TorrentErrorStr
 	{
-		"", "Malformed metaInfo"
+		"", "Malformed metaInfo", "Non supported version"
 	};
 
 	using RequestedBlock = std::tuple<uint32_t, uint32_t, uint32_t>; // (index, offset, len)

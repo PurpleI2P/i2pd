@@ -587,6 +587,16 @@ namespace torrents
 				}
 				else if (key == "files")
 					return ParseFiles (buf);
+				else if (key == "meta version")
+				{
+					auto [value, l] = ExtractInteger (buf);
+					if (l && value != 1)
+					{
+						LogPrint (eLogError, "Torrents: Torrent version ", value, " is not supprted");
+						m_Error = eTorrentErrorNonSupportedVersion;
+					}
+					return l;
+				}
 				return 0;
 			});
 		if (!len)
