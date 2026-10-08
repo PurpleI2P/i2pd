@@ -1022,7 +1022,7 @@ namespace client
 					{
 						// TODO: handle blinded addresses
 						LogPrint (eLogError, "I2CP: Address ", name, " not found");
-						SendHostReplyMessage (requestID, nullptr);
+						SendHostReplyMessage (requestID, sessionID, nullptr);
 						return;
 					}
 					else
@@ -1031,7 +1031,7 @@ namespace client
 				}
 				default:
 					LogPrint (eLogError, "I2CP: Request type ", (int)buf[10], " is not supported");
-					SendHostReplyMessage (requestID, nullptr);
+					SendHostReplyMessage (requestID, sessionID, nullptr);
 					return;
 			}
 
@@ -1041,31 +1041,31 @@ namespace client
 			{
 				auto ls = destination->FindLeaseSet (ident);
 				if (ls)
-					SendHostReplyMessage (requestID, ls->GetIdentity ());
+					SendHostReplyMessage (requestID, sessionID, ls->GetIdentity ());
 				else
 				{
 					auto s = shared_from_this ();
 					destination->RequestDestination (ident,
-						[s, requestID](std::shared_ptr<i2p::data::LeaseSet> leaseSet)
+						[s, requestID, sessionID](std::shared_ptr<i2p::data::LeaseSet> leaseSet)
 						{
-							s->SendHostReplyMessage (requestID, leaseSet ? leaseSet->GetIdentity () : nullptr);
+							s->SendHostReplyMessage (requestID, sessionID, leaseSet ? leaseSet->GetIdentity () : nullptr);
 						});
 				}
 			}
 			else
-				SendHostReplyMessage (requestID, nullptr);
+				SendHostReplyMessage (requestID, sessionID, nullptr);
 		}
 		else
 			LogPrint (eLogError, "I2CP: Unexpected sessionID ", sessionID);
 	}
 
-	void I2CPSession::SendHostReplyMessage (uint32_t requestID, std::shared_ptr<const i2p::data::IdentityEx> identity)
+	void I2CPSession::SendHostReplyMessage (uint32_t requestID, uint16_t sessionID, std::shared_ptr<const i2p::data::IdentityEx> identity)
 	{
 		if (identity)
 		{
 			size_t l = identity->GetFullLen () + 7;
 			uint8_t * buf = new uint8_t[l];
-			htobe16buf (buf, m_SessionID);
+			htobe16buf (buf, sessionID);
 			htobe32buf (buf + 2, requestID);
 			buf[6] = 0; // result code
 			identity->ToBuffer (buf + 7, l - 7);
@@ -1075,7 +1075,7 @@ namespace client
 		else
 		{
 			uint8_t buf[7];
-			htobe16buf (buf, m_SessionID);
+			htobe16buf (buf, sessionID);
 			htobe32buf (buf + 2, requestID);
 			buf[6] = 1; // result code
 			SendI2CPMessage (I2CP_HOST_REPLY_MESSAGE, buf, 7);

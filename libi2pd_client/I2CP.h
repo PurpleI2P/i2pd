@@ -200,7 +200,7 @@ namespace client
 			void HandleI2CPMessageSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 
 			void SendSessionStatusMessage (I2CPSessionStatus status);
-			void SendHostReplyMessage (uint32_t requestID, std::shared_ptr<const i2p::data::IdentityEx> identity);
+			void SendHostReplyMessage (uint32_t requestID, uint16_t sessionID, std::shared_ptr<const i2p::data::IdentityEx> identity);
 
 		private:
 
