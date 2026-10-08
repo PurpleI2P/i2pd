@@ -404,7 +404,7 @@ namespace torrents
 			{ "eta", [](std::shared_ptr<Torrent> torrent)
 				{
 					auto downloadRate = torrent->GetDownloadRate ();
-					return boost::json::value (downloadRate ? torrent->GetLeft ()/downloadRate : -2);
+					return boost::json::value (downloadRate ? (int64_t)(torrent->GetLeft ()/downloadRate) : -2);
 				}
 			},
 			{ "uploadRatio", [](std::shared_ptr<Torrent> torrent)
