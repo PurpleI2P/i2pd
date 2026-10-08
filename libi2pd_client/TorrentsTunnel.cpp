@@ -662,7 +662,7 @@ namespace torrents
 		params.emplace ("compact", "1");
 		params.emplace ("uploaded", std::to_string (torrent->GetUploaded ()));
 		params.emplace ("downloaded", std::to_string (torrent->GetLength () - torrent->GetLeft ()));
-		params.emplace ("left", std::to_string (torrent->GetLeft ()));
+		params.emplace ("left", torrent->GetLength () ? std::to_string (torrent->GetLeft ()): "1"); // phony 1 for magnet
 		int numWant = 0;
 		if (!torrent->IsComplete () && (event == eTrackerAnnounceEventNone || event == eTrackerAnnounceEventStarted))
 			numWant = TRACKER_MAX_NUM_WANT;
@@ -1074,7 +1074,7 @@ namespace torrents
 				memcpy (announce + 36, m_PeerID.data (), 20); // peer_id
 				auto left = torrent->GetLeft ();
 				htobe64buf (announce + 56, torrent->GetLength () - left); // downloaded
-				htobe64buf (announce + 64, left); // left
+				htobe64buf (announce + 64, torrent->GetLength () ? left : 1); // left, phony 1 for magnet
 				htobe64buf (announce + 72, torrent->GetUploaded ()); // uploaded
 				htobe32buf (announce + 80, event); // event
 				htobe32buf (announce + 84, 0); // IP address 0:not used
