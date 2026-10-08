@@ -474,11 +474,12 @@ namespace client
 
 	void I2CPSession::ReadProtocolByte ()
 	{
-		if (m_Socket)
+		auto socket = m_Socket;
+		if (socket)
 		{
 			auto s = shared_from_this ();
-			m_Socket->async_read_some (boost::asio::buffer (m_Header, 1),
-				[s](const boost::system::error_code& ecode, std::size_t bytes_transferred)
+			socket->async_read_some (boost::asio::buffer (m_Header, 1),
+				[s, socket](const boost::system::error_code& ecode, std::size_t bytes_transferred)
 					{
 						if (!ecode && bytes_transferred > 0 && s->m_Header[0] == I2CP_PROTOCOL_BYTE)
 							s->ReceiveHeader ();
@@ -490,14 +491,18 @@ namespace client
 
 	void I2CPSession::ReceiveHeader ()
 	{
-		if (!m_Socket)
+		auto socket = m_Socket;
+		if (!socket)
 		{
 			LogPrint (eLogError, "I2CP: Can't receive header");
 			return;
 		}
-		boost::asio::async_read (*m_Socket, boost::asio::buffer (m_Header, I2CP_HEADER_SIZE),
+		// the handler keeps the socket alive: Terminate resets m_Socket, while a composed
+		// read holds a reference to the socket object until the whole read completes
+		boost::asio::async_read (*socket, boost::asio::buffer (m_Header, I2CP_HEADER_SIZE),
 			boost::asio::transfer_all (),
-			std::bind (&I2CPSession::HandleReceivedHeader, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
+			[s = shared_from_this (), socket](const boost::system::error_code& ecode, std::size_t bytes_transferred)
+				{ s->HandleReceivedHeader (ecode, bytes_transferred); });
 	}
 
 	void I2CPSession::HandleReceivedHeader (const boost::system::error_code& ecode, std::size_t bytes_transferred)
@@ -547,14 +552,16 @@ namespace client
 
 	void I2CPSession::ReceivePayload ()
 	{
-		if (!m_Socket)
+		auto socket = m_Socket;
+		if (!socket)
 		{
 			LogPrint (eLogError, "I2CP: Can't receive payload");
 			return;
 		}
-		boost::asio::async_read (*m_Socket, boost::asio::buffer (m_Payload, m_PayloadLen),
+		boost::asio::async_read (*socket, boost::asio::buffer (m_Payload, m_PayloadLen),
 			boost::asio::transfer_all (),
-			std::bind (&I2CPSession::HandleReceivedPayload, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
+			[s = shared_from_this (), socket](const boost::system::error_code& ecode, std::size_t bytes_transferred)
+				{ s->HandleReceivedPayload (ecode, bytes_transferred); });
 	}
 
 	void I2CPSession::HandleReceivedPayload (const boost::system::error_code& ecode, std::size_t bytes_transferred)
@@ -630,8 +637,9 @@ namespace client
 			{
 				m_IsSending = true;
 				boost::asio::async_write (*socket, boost::asio::buffer (m_SendBuffer, l),
-					boost::asio::transfer_all (), std::bind(&I2CPSession::HandleI2CPMessageSent,
-					shared_from_this (), std::placeholders::_1, std::placeholders::_2));
+					boost::asio::transfer_all (),
+					[s = shared_from_this (), socket](const boost::system::error_code& ecode, std::size_t bytes_transferred)
+						{ s->HandleI2CPMessageSent (ecode, bytes_transferred); });
 			}
 		}
 	}
@@ -650,8 +658,9 @@ namespace client
 			{
 				auto len = m_SendQueue.Get (m_SendBuffer, I2CP_MAX_MESSAGE_LENGTH);
 				boost::asio::async_write (*socket, boost::asio::buffer (m_SendBuffer, len),
-					boost::asio::transfer_all (),std::bind(&I2CPSession::HandleI2CPMessageSent,
-					shared_from_this (), std::placeholders::_1, std::placeholders::_2));
+					boost::asio::transfer_all (),
+					[s = shared_from_this (), socket](const boost::system::error_code& ecode, std::size_t bytes_transferred)
+						{ s->HandleI2CPMessageSent (ecode, bytes_transferred); });
 			}
 			else
 				m_IsSending = false;
@@ -1171,8 +1180,9 @@ namespace client
 			{
 				m_IsSending = true;
 				boost::asio::async_write (*socket, boost::asio::buffer (m_SendBuffer, l),
-					boost::asio::transfer_all (), std::bind(&I2CPSession::HandleI2CPMessageSent,
-					shared_from_this (), std::placeholders::_1, std::placeholders::_2));
+					boost::asio::transfer_all (),
+					[s = shared_from_this (), socket](const boost::system::error_code& ecode, std::size_t bytes_transferred)
+						{ s->HandleI2CPMessageSent (ecode, bytes_transferred); });
 			}
 		}
 	}
