@@ -215,7 +215,8 @@ namespace torrents
 		RequestInfo (std::shared_ptr<Torrent> t, int maxNumAttempts1): torrent (t),
 			numAttempts (0), maxNumAttempts (maxNumAttempts1) { }
 		bool IsDone () const { return numAttempts >= maxNumAttempts; }
-		bool AddNode (std::shared_ptr<Node> node, uint64_t token = 0);
+		bool AddNode (std::shared_ptr<Node> node);
+		bool AddNodeToken (std::shared_ptr<Node> node, uint64_t token);
 		std::shared_ptr<Node> GetNextNode ();
 	};
 
@@ -248,8 +249,7 @@ namespace torrents
 				std::string_view transactionID, const NodeID& target);
 			void HandleResponse (std::string_view transactionID, const NodeID& nodeID, uint64_t token,
 				const std::vector<std::string_view>& values, std::string_view nodes);
-  			void HandleGetPeersResponseNodes (std::shared_ptr<RequestInfo> info,
-				const NodeID& nodeID, uint64_t token, std::string_view nodes);
+  			void HandleGetPeersResponseNodes (std::shared_ptr<RequestInfo> info, std::string_view nodes);
 			void HandleGetPeersResponsePeersAndAnnounce (std::shared_ptr<RequestInfo> info,
 				const std::vector<std::string_view>& peers, uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void HandleFindNodeResponse (std::shared_ptr<RequestInfo> info, std::string_view nodes);

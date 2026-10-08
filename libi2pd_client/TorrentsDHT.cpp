@@ -361,13 +361,16 @@ namespace torrents
 		return false;
 	}
 
-	bool RequestInfo::AddNode (std::shared_ptr<Node> node, uint64_t token)
+	bool RequestInfo::AddNode (std::shared_ptr<Node> node)
 	{
 		if (!node || tried.contains (node->id)) return false;
-		auto distance = torrent ? node->id ^ torrent->GetInfoHash () : node->id ^ target;
-		if (token && torrent)
-			tokens.emplace (distance, node, token);
-		return nodesToRequest.emplace (distance, node).second;
+		return nodesToRequest.emplace (torrent ? node->id ^ torrent->GetInfoHash () : node->id ^ target, node).second;
+	}
+
+	bool RequestInfo::AddNodeToken (std::shared_ptr<Node> node, uint64_t token)
+	{
+		if (!node || !token || !torrent) return false;
+		return tokens.emplace (node->id ^ torrent->GetInfoHash (), node, token).second;
 	}
 
 	std::shared_ptr<Node> RequestInfo::GetNextNode ()
@@ -800,7 +803,11 @@ namespace torrents
 					{
 						LogPrint (eLogDebug, "TorrentsDHT: get_peers response received from peer ", ident.ToBase64 (), "after attempt #", info->numAttempts);
 						if (!values.empty () && values[0].empty ()) // nodes
-							HandleGetPeersResponseNodes (info, nodeID, token, nodes);
+						{
+							if (info && token)
+								info->AddNodeToken (std::make_shared<Node>(nodeID, ident, port), token);
+							HandleGetPeersResponseNodes (info, nodes);
+						}
 						else //values
 							HandleGetPeersResponsePeersAndAnnounce (info, values, token, ident, port + 1); // to rport
 						break;
@@ -824,8 +831,7 @@ namespace torrents
 			LogPrint (eLogInfo, "TorrentsDHT: Query not found");
 	}
 
-	void TorrentsDHT::HandleGetPeersResponseNodes (std::shared_ptr<RequestInfo> info,
-		const NodeID& nodeID, uint64_t token, std::string_view nodes)
+	void TorrentsDHT::HandleGetPeersResponseNodes (std::shared_ptr<RequestInfo> info, std::string_view nodes)
 	{
 		NodeInfo nodeInfo;
 		if (nodes.size () >= nodeInfo.size ()) // at least one node
@@ -833,9 +839,7 @@ namespace torrents
 			while (nodes.size () >= nodeInfo.size ())
 			{
 				memcpy (nodeInfo.data (), nodes.data (), nodeInfo.size ());
-				auto node = UpdateNode (std::make_shared<Node>(nodeInfo));
-				if (info && node)
-					info->AddNode (node, token);
+				UpdateNode (std::make_shared<Node>(nodeInfo));
 				nodes = nodes.substr (nodeInfo.size ());
 			}
 			if (info)
