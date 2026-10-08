@@ -518,7 +518,8 @@ namespace torrents
 
 	size_t Torrent::ParseInfo (std::string_view buf)
 	{
-		size_t len = ParseDictionary (buf, [this](std::string_view key, std::string_view buf)->size_t
+		int version = 0; // unknown
+		size_t len = ParseDictionary (buf, [this, &version](std::string_view key, std::string_view buf)->size_t
 			{
 				if (key == "length")
 				{
@@ -564,6 +565,7 @@ namespace torrents
 				}
 				else if (key == "pieces")
 				{
+					version = 1; // v1 or hybrid
 					{
 						std::vector<Piece> tmp;
 						m_Pieces.swap (tmp);
@@ -590,11 +592,8 @@ namespace torrents
 				else if (key == "meta version")
 				{
 					auto [value, l] = ExtractInteger (buf);
-					if (l && value != 1)
-					{
-						LogPrint (eLogError, "Torrents: Torrent version ", value, " is not supprted");
-						m_Error = eTorrentErrorNonSupportedVersion;
-					}
+					if (l && !version) // no pieces yet, might be v2
+						version = value;
 					return l;
 				}
 				return 0;
@@ -603,6 +602,11 @@ namespace torrents
 		{
 			m_Error = eTorrentErrorMalformedMetaInfo;
 			return 0;
+		}
+		if (m_Error == eTorrentErrorNoError && version != 1)
+		{
+			LogPrint (eLogError, "Torrents: Torrent version ", version, " is not supprted");
+			m_Error = eTorrentErrorNonSupportedVersion;
 		}
 		if (m_IsSingleFile && !m_Name.empty ()) // single file
 			m_Files.emplace_back (std::make_shared<TorrentFile> (m_Name, m_Length));
