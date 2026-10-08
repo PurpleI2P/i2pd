@@ -320,7 +320,7 @@ namespace torrents
 	{
 		auto it = m_IncomingGetPeers.find (token);
 		if (it != m_IncomingGetPeers.end ())
-			return it->second.first.lock ();
+			return it->second.first;
 		return nullptr;
 	}
 
@@ -604,7 +604,7 @@ namespace torrents
 				 break;
 				 case 'q':
 					if (query == "announce_peer")
-						HandleAnnouncePeer (transactionID, infoHash, token);
+						HandleAnnouncePeer (transactionID, id, infoHash, token);
 					else
 						LogPrint (eLogError, "TorrentsDHT: Query can't come as raw datagram");
 				break;
@@ -761,7 +761,8 @@ namespace torrents
 		}
 	}
 
-	void TorrentsDHT::HandleAnnouncePeer (std::string_view transactionID, const Torrent::InfoHash& infoHash, uint64_t token)
+	void TorrentsDHT::HandleAnnouncePeer (std::string_view transactionID, const NodeID& nodeID,
+		const Torrent::InfoHash& infoHash, uint64_t token)
 	{
 		LogPrint (eLogDebug, "TorrentsDHT: Announce peer received");
 		auto it = m_Torrents.find (infoHash);
@@ -770,12 +771,19 @@ namespace torrents
 			auto node = it->second->GetIncomingGetPeerNode (token);
 			if (node)
 			{
-				it->second->AddPeer (node->peer);
-				SendResponseMsg (CreateDictionary ({
-						{ "id", CreateByteString (std::string_view ((const char *)node->id.data (), node->id.size ())) },
-												}),
-					transactionID, node->peer, node->port + 1); // to rport
+				if (node->id == nodeID)
+				{
+					it->second->AddPeer (node->peer);
+					SendResponseMsg (CreateDictionary ({
+							{ "id", CreateByteString (std::string_view ((const char *)m_NodeID.data (), m_NodeID.size ())) },
+													}),
+						transactionID, node->peer, node->port + 1); // to rport
+				}
+				else
+					LogPrint (eLogInfo, "TorrentsDHT: Announce peer node/token mismatch");
 			}
+			else
+				LogPrint (eLogInfo, "TorrentsDHT: Announce peer token not found");
 		}
 	}
 

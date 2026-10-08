@@ -164,7 +164,7 @@ namespace torrents
 		private:
 
 			std::unordered_map<i2p::data::IdentHash, uint64_t> m_Peers; // ident -> update time in monotonic seconds
-			std::unordered_map<GetPeersToken, std::pair<std::weak_ptr<Node>, uint64_t> > m_IncomingGetPeers; // they request peers and send announces to us
+			std::unordered_map<GetPeersToken, std::pair<std::shared_ptr<Node>, uint64_t> > m_IncomingGetPeers; // they request peers and send announces to us
 			uint64_t m_LastUpdateTime; // monotonic second
 	};
 
@@ -253,8 +253,8 @@ namespace torrents
 			void HandleGetPeersResponsePeersAndAnnounce (std::shared_ptr<RequestInfo> info,
 				const std::vector<std::string_view>& peers, uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void HandleFindNodeResponse (std::shared_ptr<RequestInfo> info, std::string_view nodes);
-			void HandleAnnouncePeer (std::string_view transactionID, const Torrent::InfoHash& infoHash, uint64_t token);
-
+			void HandleAnnouncePeer (std::string_view transactionID, const NodeID& nodeID,
+				const Torrent::InfoHash& infoHash, uint64_t token);
 			void SendDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendRawDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendQueryMsg (KRPCQuery query, std::string_view arguments, const i2p::data::IdentHash& toIdent,
