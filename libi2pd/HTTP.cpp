@@ -12,6 +12,7 @@
 #include <ctime>
 #include <charconv>
 #include <boost/beast/core/detail/base64.hpp>
+#include <boost/algorithm/string.hpp>
 #include "util.h"
 #include "Base.h"
 #include "HTTP.h"
@@ -444,10 +445,17 @@ namespace http
 		auto it = headers.find("Content-Encoding");
 		if (it == headers.end())
 			return false; /* no header */
-		if (it->second.find("gzip") != std::string::npos)
-			return true; /* gotcha! */
-		if (includingI2PGzip && it->second.find("x-i2p-gzip") != std::string::npos)
-			return true;
+
+		std::vector<std::string> encodingDirectives;
+		boost::split (encodingDirectives, it->second, boost::is_any_of(","), boost::token_compress_on);
+		for (auto& directive: encodingDirectives)
+		{
+			boost::algorithm::trim (directive);
+			if (directive == "gzip")
+				return true; /* gotcha! */
+			if (includingI2PGzip && directive == "x-i2p-gzip")
+				return true;
+		}
 		return false;
 	}
 
