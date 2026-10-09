@@ -350,7 +350,10 @@ namespace data
 				}
 			}
 			else
+			{
+				LogPrint (eLogWarning, "NetDb: RouterInfo can't be updated ", ident.ToBase64());
 				updated = false;
+			}
 		}
 		// take care about requested destination
 		m_Requests->RequestComplete (ident, r);
