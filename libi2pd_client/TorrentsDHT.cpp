@@ -523,7 +523,7 @@ namespace torrents
 		NodeID id; Torrent::InfoHash infoHash;
 		std::string_view nodes;
 		std::string transactionID, query;
-		std::vector<std::string_view> values{""};
+		std::vector<std::string_view> values;
 		ParseDictionary (std::string_view ((const char *)buf, len),
 			[&type, &transactionID, &id, &values, &token, &infoHash, &query, &isMalformed, &nodes]
 				(std::string_view key, std::string_view buf)->size_t
@@ -810,7 +810,7 @@ namespace torrents
 					case eKRPCQueryGetPeers:
 					{
 						LogPrint (eLogDebug, "TorrentsDHT: get_peers response received from peer ", ident.ToBase64 (), "after attempt #", info->numAttempts);
-						if (!values.empty () && values[0].empty ()) // nodes
+						if (!nodes.empty ()) // nodes
 						{
 							if (info && token)
 								info->AddNodeToken (std::make_shared<Node>(nodeID, ident, port), token);
@@ -822,7 +822,7 @@ namespace torrents
 					}
 					case eKRPCQueryFindNode:
 					{
-						LogPrint (eLogDebug, "TorrentsDHT: find_node response received");
+						LogPrint (eLogDebug, "TorrentsDHT: find_node response received after attempt #", info->numAttempts);
 						HandleFindNodeResponse (info, nodes);
 						break;
 					}
@@ -842,17 +842,16 @@ namespace torrents
 	void TorrentsDHT::HandleGetPeersResponseNodes (std::shared_ptr<RequestInfo> info, std::string_view nodes)
 	{
 		NodeInfo nodeInfo;
-		if (nodes.size () >= nodeInfo.size ()) // at least one node
+		while (nodes.size () >= nodeInfo.size ())
 		{
-			while (nodes.size () >= nodeInfo.size ())
-			{
-				memcpy (nodeInfo.data (), nodes.data (), nodeInfo.size ());
-				UpdateNode (std::make_shared<Node>(nodeInfo));
-				nodes = nodes.substr (nodeInfo.size ());
-			}
+			memcpy (nodeInfo.data (), nodes.data (), nodeInfo.size ());
+			auto node = UpdateNode (std::make_shared<Node>(nodeInfo));
 			if (info)
-				SendNextGetPeersQuery (info);
+				info->AddNode (node);
+			nodes = nodes.substr (nodeInfo.size ());
 		}
+		if (info)
+			SendNextGetPeersQuery (info);
 	}
 
 	void TorrentsDHT::HandleGetPeersResponsePeersAndAnnounce (std::shared_ptr<RequestInfo> info,
@@ -877,19 +876,16 @@ namespace torrents
 	void TorrentsDHT::HandleFindNodeResponse (std::shared_ptr<RequestInfo> info, std::string_view nodes)
 	{
 		NodeInfo nodeInfo;
-		if (nodes.size () >= nodeInfo.size ()) // at least one node
+		while (nodes.size () >= nodeInfo.size ())
 		{
-			while (nodes.size () >= nodeInfo.size ())
-			{
-				memcpy (nodeInfo.data (), nodes.data (), nodeInfo.size ());
-				auto node = UpdateNode (std::make_shared<Node>(nodeInfo));
-				if (info && node)
-					info->AddNode (node);
-				nodes = nodes.substr (nodeInfo.size ());
-			}
-			if (info)
-				SendNextFindNodeQuery (info);
+			memcpy (nodeInfo.data (), nodes.data (), nodeInfo.size ());
+			auto node = UpdateNode (std::make_shared<Node>(nodeInfo));
+			if (info && node)
+				info->AddNode (node);
+			nodes = nodes.substr (nodeInfo.size ());
 		}
+		if (info)
+			SendNextFindNodeQuery (info);
 	}
 
 	void TorrentsDHT::SendDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort)
@@ -1215,9 +1211,15 @@ namespace torrents
 					it++;
 			}
 			for (auto it1: getpeers)
+			{
+				LogPrint (eLogDebug, "TorrentsDHT: get_peers response timeout after attempt #", it1->numAttempts);
 				SendNextGetPeersQuery (it1);
+			}
 			for (auto it1: findnode)
+			{
+				LogPrint (eLogDebug, "TorrentsDHT: find_node response timeout after attempt #", it1->numAttempts);
 				SendNextFindNodeQuery (it1);
+			}
 			ScheduleDHTQueryExpirationCheck ();
 		}
 	}
