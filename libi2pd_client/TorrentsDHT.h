@@ -51,10 +51,12 @@ namespace torrents
 	constexpr int DHT_TORRENT_PEER_EXPIRATION_TIME = 3*3600; // in seconds
 	constexpr int DHT_INCOMING_GET_PEERS_TOKEN_EXPIRATION_TIME = 600; // in seconds
 	constexpr int DHT_EMPTY_TORRENT_EXPIRATION_TIME = 30; // in seconds
+	constexpr int DHT_HEARD_FROM_EXPIRATION_TIME = 290; // in seconds
 	constexpr int DHT_QUERY_EXPIRATION_TIME = 25; // in seconds
 	constexpr int DHT_MAX_NUM_GET_PEERS_ATTEMPTS = 22;
 	constexpr int DHT_MAX_NUM_FIND_NODE_ATTEMPTS = 8;
 	constexpr int DHT_MAX_NUM_CLOSEST_NODES_TO_ANNOUNCE = 4;
+
 
 	using Distance = Torrent::InfoHash;
 	struct NodeID: public Torrent::InfoHash
@@ -279,6 +281,7 @@ namespace torrents
 			void Load (const std::filesystem::path& file);
 			void Explore ();
 			std::shared_ptr<Node> UpdateNode (std::shared_ptr<Node> node); // return true if added
+			void UpdateHeardFrom (const NodeID& nodeID);
 
 			void ScheduleDHTUpdateCheck ();
 			void HandleDHTUpdateCheckTimer (const boost::system::error_code& ecode);
@@ -300,6 +303,7 @@ namespace torrents
 			uint16_t m_Port;
 			NodeID m_NodeID;
 			std::unique_ptr<RoutingTable> m_RoutingTable;
+			std::map<NodeID, uint64_t> m_HeardFrom; // nodeid -> time in monotonic seconds
 			// transactionID -> (ident, port, query,  request info, time in monotonic seconds)
 			std::unordered_map<uint16_t, std::tuple<i2p::data::IdentHash, uint16_t, KRPCQuery, std::shared_ptr<RequestInfo>, uint64_t > > m_Queries;
 			std::map<Torrent::InfoHash, std::shared_ptr<DHTTorrent> > m_Torrents;

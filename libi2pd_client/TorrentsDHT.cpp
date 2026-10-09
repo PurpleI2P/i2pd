@@ -595,6 +595,7 @@ namespace torrents
 		}
 		if (type)
 		{
+			UpdateHeardFrom (id);
 			switch (type)
 			{
 				 case 'r':
@@ -680,6 +681,7 @@ namespace torrents
 		}
 		if (type == 'q')
 		{
+			UpdateHeardFrom (id);
 			auto node = UpdateNode (std::make_shared<Node> (id, from.GetIdentHash (), fromPort));
 			if (!node) return;
 			if (query == "ping")
@@ -765,7 +767,7 @@ namespace torrents
 	void TorrentsDHT::HandleAnnouncePeer (std::string_view transactionID, const NodeID& nodeID,
 		const Torrent::InfoHash& infoHash, uint64_t token)
 	{
-		LogPrint (eLogDebug, "TorrentsDHT: Announce peer received");
+		LogPrint (eLogDebug, "TorrentsDHT: Announce peer received from ", nodeID.ToBase64 ());
 		auto it = m_Torrents.find (infoHash);
 		if (it != m_Torrents.end ())
 		{
@@ -786,6 +788,8 @@ namespace torrents
 			else
 				LogPrint (eLogInfo, "TorrentsDHT: Announce peer token not found");
 		}
+		else
+			LogPrint (eLogInfo, "TorrentsDHT: Torrent for announce not found");
 	}
 
 	void TorrentsDHT::HandleResponse (std::string_view transactionID, const NodeID& nodeID,
@@ -849,7 +853,12 @@ namespace torrents
 			memcpy (nodeInfo.data (), nodes.data (), nodeInfo.size ());
 			auto node = std::make_shared<Node>(nodeInfo);
 			if (info && info->AddNode (node))
-				SendPingQuery (node->peer, node->port);
+			{
+				if (m_HeardFrom.contains (node->id))
+					UpdateNode (node);
+				else
+					SendPingQuery (node->peer, node->port);
+			}
 			nodes = nodes.substr (nodeInfo.size ());
 		}
 		if (info)
@@ -883,7 +892,12 @@ namespace torrents
 			memcpy (nodeInfo.data (), nodes.data (), nodeInfo.size ());
 			auto node = std::make_shared<Node>(nodeInfo);
 			if (info && info->AddNode (node))
-				SendPingQuery (node->peer, node->port);
+			{
+				if (m_HeardFrom.contains (node->id))
+					UpdateNode (node);
+				else
+					SendPingQuery (node->peer, node->port);
+			}
 			nodes = nodes.substr (nodeInfo.size ());
 		}
 		if (info)
@@ -1104,6 +1118,11 @@ namespace torrents
 		return node;
 	}
 
+	void TorrentsDHT::UpdateHeardFrom (const NodeID& nodeID)
+	{
+		m_HeardFrom[nodeID] = i2p::util::GetMonotonicSeconds ();
+	}
+
 	void TorrentsDHT::ScheduleDHTUpdateCheck ()
 	{
 		m_DHTUpdateCheckTimer.cancel ();
@@ -1149,6 +1168,16 @@ namespace torrents
 				{
 					if (it->second->CleanUp (ts))
 						it = m_Torrents.erase (it);
+					else
+						it++;
+				}
+			}
+			{
+				auto it = m_HeardFrom.begin ();
+				while (it != m_HeardFrom.end ())
+				{
+					if (ts > it->second + DHT_HEARD_FROM_EXPIRATION_TIME)
+						it = m_HeardFrom.erase (it);
 					else
 						it++;
 				}
@@ -1215,7 +1244,7 @@ namespace torrents
 			for (auto it1: getpeers)
 			{
 				LogPrint (eLogDebug, "TorrentsDHT: get_peers response timeout after attempt #", it1->numAttempts);
-				if (m_RoutingTable && it1->lastNode)
+				if (m_RoutingTable && it1->lastNode && !m_HeardFrom.contains (it1->lastNode->id))
 				{
 					auto bucket = m_RoutingTable->FindBucket (it1->lastNode->id);
 					if (bucket && bucket->nodes.size () > MAX_BUCKET_CAPACITY/2)
@@ -1226,7 +1255,7 @@ namespace torrents
 			for (auto it1: findnode)
 			{
 				LogPrint (eLogDebug, "TorrentsDHT: find_node response timeout after attempt #", it1->numAttempts);
-				if (m_RoutingTable && it1->lastNode)
+				if (m_RoutingTable && it1->lastNode && !m_HeardFrom.contains (it1->lastNode->id))
 				{
 					auto bucket = m_RoutingTable->FindBucket (it1->lastNode->id);
 					if (bucket && bucket->nodes.size () > MAX_BUCKET_CAPACITY/2)
