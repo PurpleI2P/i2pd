@@ -800,12 +800,13 @@ namespace torrents
 			if (m_RoutingTable)
 			{
 				const auto& [ident, port, query, info, time] = it->second;
+				if (query != eKRPCQueryAnnouncePeer) // port is rport there
+					UpdateNode (std::make_shared<Node> (nodeID, ident, port));
 				switch (query)
 				{
 					case eKRPCQueryPing:
 					{
 						LogPrint (eLogDebug, "TorrentsDHT: Ping response received");
-						UpdateNode (std::make_shared<Node> (nodeID, ident, port));
 						break;
 					}
 					case eKRPCQueryGetPeers:
@@ -846,9 +847,9 @@ namespace torrents
 		while (nodes.size () >= nodeInfo.size ())
 		{
 			memcpy (nodeInfo.data (), nodes.data (), nodeInfo.size ());
-			auto node = UpdateNode (std::make_shared<Node>(nodeInfo));
-			if (info)
-				info->AddNode (node);
+			auto node = std::make_shared<Node>(nodeInfo);
+			if (info && info->AddNode (node))
+				SendPingQuery (node->peer, node->port);
 			nodes = nodes.substr (nodeInfo.size ());
 		}
 		if (info)
@@ -880,9 +881,9 @@ namespace torrents
 		while (nodes.size () >= nodeInfo.size ())
 		{
 			memcpy (nodeInfo.data (), nodes.data (), nodeInfo.size ());
-			auto node = UpdateNode (std::make_shared<Node>(nodeInfo));
-			if (info && node)
-				info->AddNode (node);
+			auto node = std::make_shared<Node>(nodeInfo);
+			if (info && info->AddNode (node))
+				SendPingQuery (node->peer, node->port);
 			nodes = nodes.substr (nodeInfo.size ());
 		}
 		if (info)
