@@ -380,6 +380,7 @@ namespace torrents
 		nodesToRequest.erase (nodesToRequest.begin ());
 		numAttempts++;
 		tried.emplace (node->id);
+		lastNode = node;
 		return node;
 	}
 
@@ -1213,11 +1214,23 @@ namespace torrents
 			for (auto it1: getpeers)
 			{
 				LogPrint (eLogDebug, "TorrentsDHT: get_peers response timeout after attempt #", it1->numAttempts);
+				if (m_RoutingTable && it1->lastNode)
+				{
+					auto bucket = m_RoutingTable->FindBucket (it1->lastNode->id);
+					if (bucket && bucket->nodes.size () > MAX_BUCKET_CAPACITY/2)
+						bucket->nodes.erase (it1->lastNode->id);
+				}
 				SendNextGetPeersQuery (it1);
 			}
 			for (auto it1: findnode)
 			{
 				LogPrint (eLogDebug, "TorrentsDHT: find_node response timeout after attempt #", it1->numAttempts);
+				if (m_RoutingTable && it1->lastNode)
+				{
+					auto bucket = m_RoutingTable->FindBucket (it1->lastNode->id);
+					if (bucket && bucket->nodes.size () > MAX_BUCKET_CAPACITY/2)
+						bucket->nodes.erase (it1->lastNode->id);
+				}
 				SendNextFindNodeQuery (it1);
 			}
 			ScheduleDHTQueryExpirationCheck ();

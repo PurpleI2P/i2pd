@@ -211,6 +211,7 @@ namespace torrents
 		std::set<NodeToken, NodeTokenCmp> tokens; // token received from nodes for get_peers
 		std::set<NodeID> tried;
 		int numAttempts, maxNumAttempts;
+		std::shared_ptr<Node> lastNode;
 
 		RequestInfo (std::shared_ptr<Torrent> t, int maxNumAttempts1): torrent (t),
 			numAttempts (0), maxNumAttempts (maxNumAttempts1) { }
