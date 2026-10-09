@@ -451,9 +451,9 @@ namespace http
 		for (auto& directive: encodingDirectives)
 		{
 			boost::algorithm::trim (directive);
-			if (directive == "gzip")
+			if (boost::iequals (directive, "gzip"))
 				return true; /* gotcha! */
-			if (includingI2PGzip && directive == "x-i2p-gzip")
+			if (includingI2PGzip && boost::iequals (directive, "x-i2p-gzip"))
 				return true;
 		}
 		return false;

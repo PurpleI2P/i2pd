@@ -1102,8 +1102,8 @@ namespace client
 		if (!lastModified.empty ()) m_LastModified = std::string (lastModified);
 		// parse response
 		LogPrint (eLogInfo, "Addressbook: Got update from ", dest_host);
-		if (res[boost::beast::http::field::content_encoding] == "gzip" ||
-			res[boost::beast::http::field::content_encoding] =="x-i2p-gzip")
+		if (boost::iequals (res[boost::beast::http::field::content_encoding], "gzip") ||
+			boost::iequals (res[boost::beast::http::field::content_encoding], "x-i2p-gzip"))
 		{
 			std::stringstream unzipped;
 			i2p::data::GzipInflator inflator;
