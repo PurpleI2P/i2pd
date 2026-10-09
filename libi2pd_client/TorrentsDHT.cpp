@@ -524,7 +524,7 @@ namespace torrents
 		NodeID id; Torrent::InfoHash infoHash;
 		std::string_view nodes;
 		std::string transactionID, query;
-		std::vector<std::string_view> values;
+		std::vector<std::string_view> values{""};
 		ParseDictionary (std::string_view ((const char *)buf, len),
 			[&type, &transactionID, &id, &values, &token, &infoHash, &query, &isMalformed, &nodes]
 				(std::string_view key, std::string_view buf)->size_t
@@ -724,21 +724,20 @@ namespace torrents
 			SendGetPeersResponse (transactionID, torrent, token, fromIdent, fromPort + 1); // to rport
 		else if (m_RoutingTable)
 		{
+			std::vector<uint8_t> nodes;
 			auto bucket = m_RoutingTable->FindBucket (infoHash);
 			if (bucket && bucket->IsEmpty () && bucket->next && !bucket->next->IsEmpty ())
 				bucket = bucket->next;
+
 			if (bucket && !bucket->IsEmpty ())
-			{
-				std::vector<uint8_t> nodes;
 				for (auto it: bucket->nodes)
 				{
 					auto nodeInfo = it.second->GetNodeInfo ();
 					nodes.insert (nodes.end(), nodeInfo.data (), nodeInfo.data () + nodeInfo.size ());
 				}
-				SendGetPeersResponse (transactionID, std::string_view ((const char *)nodes.data (), nodes.size ()), token, fromIdent, fromPort + 1); // to rport
-			}
-			else
-				SendGetPeersResponse (transactionID, torrent, token, fromIdent, fromPort + 1); // to rport
+
+			SendGetPeersResponse (transactionID, std::string_view ((const char *)nodes.data (), nodes.size ()),
+				token, fromIdent, fromPort + 1); // to rport
 		}
 	}
 
@@ -816,7 +815,7 @@ namespace torrents
 					case eKRPCQueryGetPeers:
 					{
 						LogPrint (eLogDebug, "TorrentsDHT: get_peers response received from peer ", ident.ToBase64 (), "after attempt #", info->numAttempts);
-						if (!nodes.empty ()) // nodes
+						if (!values.empty () && values[0].empty ()) // nodes, because values not set
 						{
 							if (info && token)
 								info->AddNodeToken (std::make_shared<Node>(nodeID, ident, port), token);
