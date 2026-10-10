@@ -708,19 +708,21 @@ namespace torrents
 		response["supported"] = isDHTSupported;
 		if (isDHTSupported)
 		{
-			size_t numNodes = 0, numBuckets = 0;
+			size_t numNodes = 0, numBuckets = 0, numTorrents = 0;
 			boost::asio::post (m_Tunnel->GetService (),
-				boost::asio::use_future ([this, &numNodes, &numBuckets]()
+				boost::asio::use_future ([this, &numNodes, &numBuckets, &numTorrents]()
 				{
 					const auto& dht = m_Tunnel->GetDHT ();
 					if (dht)
 					{
 						numNodes = dht->GetNumNodes ();
 						numBuckets = dht->GetNumBuckets ();
+						numTorrents = dht->GetNumTorrents ();
 					}
 				})).wait ();
 			response["numNodes"] = numNodes;
 			response["numBuckets"] = numBuckets;
+			response["numTorrents"] = numTorrents;
 		}
 		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}

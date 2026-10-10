@@ -237,6 +237,7 @@ namespace torrents
 
 			size_t GetNumBuckets () const { return m_RoutingTable ? m_RoutingTable->GetNumBuckets () : 0; }
 			size_t GetNumNodes () const { return m_RoutingTable ? m_RoutingTable->GetNumNodes () : 0; }
+			size_t GetNumTorrents () const { return m_Torrents.size (); }
 
 		private:
 
