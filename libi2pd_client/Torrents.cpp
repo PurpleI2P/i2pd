@@ -1087,7 +1087,7 @@ namespace torrents
 					filesIT++;
 					while (filesIT != m_Files.end () && (*filesIT)->GetFileLength () <= currentSize)
 					{
-						completed.push_back ((*filesIT)->GetFileLength ());
+						completed.push_back (piece.IsComplete () ? (*filesIT)->GetFileLength () : 0);
 						currentSize -= (*filesIT)->GetFileLength ();
 						filesIT++;
 					}
