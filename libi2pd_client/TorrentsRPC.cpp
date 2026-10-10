@@ -67,6 +67,7 @@ namespace torrents
 			std::string HandleSessionStats (boost::json::object&& jsonRequest);
 			std::string HandleTorrentSet (boost::json::object&& jsonRequest);
 			std::string HandleTorrentReannounce (boost::json::object&& jsonRequest);
+			std::string HandleDHTStats (boost::json::object&& jsonRequest);
 
 		private:
 
@@ -125,7 +126,8 @@ namespace torrents
 			{ "session-get", &JSONRPCHandler::HandleSessionGet },
 			{ "session-stats", &JSONRPCHandler::HandleSessionStats },
 			{ "torrent-set", &JSONRPCHandler::HandleTorrentSet },
-			{ "torrent-reannounce", &JSONRPCHandler::HandleTorrentReannounce }
+			{ "torrent-reannounce", &JSONRPCHandler::HandleTorrentReannounce },
+			{ "dht-stats", &JSONRPCHandler::HandleDHTStats }
 		};
 
 		try
@@ -696,6 +698,30 @@ namespace torrents
 		response["activeTorrentCount"] = torrents.size () - numStoppedTorrents;
 		response["current-stats"] = stats;
 		response["cumulative-stats"] = stats;
+		return SuccessResponse (GetTag (jsonRequest), std::move (response));
+	}
+
+	std::string JSONRPCHandler::HandleDHTStats (boost::json::object&& jsonRequest)
+	{
+		boost::json::object response;
+		bool isDHTSupported = m_Tunnel->SupportsDHT ();
+		response["supported"] = isDHTSupported;
+		if (isDHTSupported)
+		{
+			size_t numNodes = 0, numBuckets = 0;
+			boost::asio::post (m_Tunnel->GetService (),
+				boost::asio::use_future ([this, &numNodes, &numBuckets]()
+				{
+					const auto& dht = m_Tunnel->GetDHT ();
+					if (dht)
+					{
+						numNodes = dht->GetNumNodes ();
+						numBuckets = dht->GetNumBuckets ();
+					}
+				})).wait ();
+			response["numNodes"] = numNodes;
+			response["numBuckets"] = numBuckets;
+		}
 		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}
 

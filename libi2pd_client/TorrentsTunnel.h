@@ -118,6 +118,7 @@ namespace torrents
 			void SendDHTPingQuery (const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			std::pair<uint16_t, uint16_t> GetDHTPorts () const { return { m_DHT ? m_DHT->GetPort () : 0, m_DHT ? m_DHT->GetRPort () : 0 }; }
 			bool SupportsDHT () const { return (bool)m_DHT; }
+			const std::unique_ptr<TorrentsDHT>& GetDHT () const { return m_DHT; }
 
 			const char* GetName() const override { return m_Name.c_str (); }
 

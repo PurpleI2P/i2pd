@@ -235,6 +235,9 @@ namespace torrents
 			void SendPingQuery (const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void GetPeersAndAnnounce (std::shared_ptr<Torrent> torrent);
 
+			size_t GetNumBuckets () const { return m_RoutingTable ? m_RoutingTable->GetNumBuckets () : 0; }
+			size_t GetNumNodes () const { return m_RoutingTable ? m_RoutingTable->GetNumNodes () : 0; }
+
 		private:
 
 			void HandleDatagram (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort,
