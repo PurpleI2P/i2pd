@@ -50,7 +50,6 @@ namespace torrents
 	constexpr int DHT_BUCKET_EXPIRATION_THRESHOLD = 290; // in seconds
 	constexpr int DHT_TORRENT_PEER_EXPIRATION_TIME = 3*3600; // in seconds
 	constexpr int DHT_INCOMING_GET_PEERS_TOKEN_EXPIRATION_TIME = 600; // in seconds
-	constexpr int DHT_EMPTY_TORRENT_EXPIRATION_TIME = 30; // in seconds
 	constexpr int DHT_HEARD_FROM_EXPIRATION_TIME = 290; // in seconds
 	constexpr int DHT_QUERY_EXPIRATION_TIME = 25; // in seconds
 	constexpr int DHT_MAX_NUM_GET_PEERS_ATTEMPTS = 22;
@@ -154,11 +153,9 @@ namespace torrents
 	{
 		public:
 
-			DHTTorrent ();
+			DHTTorrent () = default;
 
 			std::string GetBEncodedPeers () const;
-			void AddIncomingGetPeerNode (GetPeersToken token, std::shared_ptr<Node> node);
-			std::shared_ptr<Node> GetIncomingGetPeerNode (GetPeersToken token) const;
 			bool AddPeer (const i2p::data::IdentHash& peer);
 			bool CleanUp (uint64_t ts); // return true if empty
 			bool HasPeers () const  { return !m_Peers.empty (); };
@@ -166,8 +163,6 @@ namespace torrents
 		private:
 
 			std::unordered_map<i2p::data::IdentHash, uint64_t> m_Peers; // ident -> update time in monotonic seconds
-			std::unordered_map<GetPeersToken, std::pair<std::shared_ptr<Node>, uint64_t> > m_IncomingGetPeers; // they request peers and send announces to us
-			uint64_t m_LastUpdateTime; // monotonic second
 	};
 
 	enum KRPCQuery
@@ -246,8 +241,7 @@ namespace torrents
 				const uint8_t * buf, size_t len, const i2p::util::Mapping * options);
 			void HandlePingQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
 				std::string_view transactionID, const NodeID& nodeID);
-			void HandleGetPeersQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
-				std::string_view transactionID, std::shared_ptr<Node> from, const Torrent::InfoHash& infoHash);
+			void HandleGetPeersQuery (std::string_view transactionID, std::shared_ptr<Node> from, const Torrent::InfoHash& infoHash);
 			void HandleFindNodeQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
 				std::string_view transactionID, const NodeID& target);
 			void HandleResponse (std::string_view transactionID, const NodeID& nodeID, uint64_t token,

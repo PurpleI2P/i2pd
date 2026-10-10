@@ -295,11 +295,6 @@ namespace torrents
 		return ret;
 	}
 
-	DHTTorrent::DHTTorrent ():
-		m_LastUpdateTime (i2p::util::GetMonotonicSeconds ())
-	{
-	}
-
 	std::string DHTTorrent::GetBEncodedPeers () const
 	{
 		std::vector<std::string> peers;
@@ -308,26 +303,9 @@ namespace torrents
 		return CreateList (peers);
 	}
 
-	void DHTTorrent::AddIncomingGetPeerNode (GetPeersToken token, std::shared_ptr<Node> node)
-	{
-		if (!node) return;
-		auto ts = i2p::util::GetMonotonicSeconds ();
-		m_IncomingGetPeers.emplace (token, std::make_pair (node, ts));
-		m_LastUpdateTime = ts;
-	}
-
-	std::shared_ptr<Node> DHTTorrent::GetIncomingGetPeerNode (GetPeersToken token) const
-	{
-		auto it = m_IncomingGetPeers.find (token);
-		if (it != m_IncomingGetPeers.end ())
-			return it->second.first;
-		return nullptr;
-	}
-
 	bool DHTTorrent::AddPeer (const i2p::data::IdentHash& peer)
 	{
 		auto ts = i2p::util::GetMonotonicSeconds ();
-		m_LastUpdateTime = ts;
 		auto [it, inserted] = m_Peers.emplace (peer, ts);
 		if (!inserted)
 			it->second = ts;
@@ -336,29 +314,15 @@ namespace torrents
 
 	bool DHTTorrent::CleanUp (uint64_t ts)
 	{
+		auto it = m_Peers.begin ();
+		while (it != m_Peers.end ())
 		{
-			auto it = m_Peers.begin ();
-			while (it != m_Peers.end ())
-			{
-				if (ts > it->second + DHT_TORRENT_PEER_EXPIRATION_TIME)
-					it = m_Peers.erase (it);
-				else
-					it++;
-			}
+			if (ts > it->second + DHT_TORRENT_PEER_EXPIRATION_TIME)
+				it = m_Peers.erase (it);
+			else
+				it++;
 		}
-		{
-			auto it = m_IncomingGetPeers.begin ();
-			while (it != m_IncomingGetPeers.end ())
-			{
-				if (ts > it->second.second + DHT_INCOMING_GET_PEERS_TOKEN_EXPIRATION_TIME)
-					it = m_IncomingGetPeers.erase (it);
-				else
-					it++;
-			}
-		}
-		if (m_Peers.empty () && m_IncomingGetPeers.empty () && ts > m_LastUpdateTime + DHT_EMPTY_TORRENT_EXPIRATION_TIME)
-			return true;
-		return false;
+		return m_Peers.empty ();;
 	}
 
 	bool RequestInfo::AddNode (std::shared_ptr<Node> node)
@@ -687,7 +651,7 @@ namespace torrents
 			if (query == "ping")
 				HandlePingQuery (from.GetIdentHash (), fromPort, transactionID, id);
 			else if (query == "get_peers")
-				HandleGetPeersQuery (from.GetIdentHash (), fromPort, transactionID, node, infoHash);
+				HandleGetPeersQuery (transactionID, node, infoHash);
 			else if (query == "find_node")
 				HandleFindNodeQuery (from.GetIdentHash (), fromPort, transactionID, target);
 			else
@@ -704,25 +668,16 @@ namespace torrents
 		SendPingResponse (transactionID, fromIdent, fromPort + 1); // to rport
 	}
 
-	void TorrentsDHT::HandleGetPeersQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
-		std::string_view transactionID, std::shared_ptr<Node> from, const Torrent::InfoHash& infoHash)
+	void TorrentsDHT::HandleGetPeersQuery (std::string_view transactionID, std::shared_ptr<Node> from, const Torrent::InfoHash& infoHash)
 	{
 		LogPrint (eLogDebug, "TorrentsDHT: Get peers query msg received from ", from->id.ToBase64 ());
-		std::shared_ptr<DHTTorrent> torrent;
-		auto it = m_Torrents.find (infoHash);
-		if (it != m_Torrents.end ())
-			torrent = it->second;
-		else
-		{
-			torrent = std::make_shared<DHTTorrent>();
-			m_Torrents.emplace (infoHash, torrent);
-		}
+
 		uint64_t token = m_Tunnel.GetLocalDestination () ? m_Tunnel.GetLocalDestination ()->GetRng ()() : 1;
-		torrent->AddIncomingGetPeerNode (token, from);
 		m_IncomingTokens.emplace (token, std::make_pair(from, i2p::util::GetMonotonicSeconds ()));
 
-		if (torrent->HasPeers ())
-			SendGetPeersResponse (transactionID, torrent, token, fromIdent, fromPort + 1); // to rport
+		auto it = m_Torrents.find (infoHash);
+		if (it != m_Torrents.end () && it->second->HasPeers ())
+			SendGetPeersResponse (transactionID, it->second, token, from->peer, from->port + 1); // to rport
 		else if (m_RoutingTable)
 		{
 			std::vector<uint8_t> nodes;
@@ -738,7 +693,7 @@ namespace torrents
 				}
 
 			SendGetPeersResponse (transactionID, std::string_view ((const char *)nodes.data (), nodes.size ()),
-				token, fromIdent, fromPort + 1); // to rport
+				token, from->peer, from->port + 1); // to rport
 		}
 	}
 
@@ -768,44 +723,19 @@ namespace torrents
 		const Torrent::InfoHash& infoHash, uint64_t token)
 	{
 		LogPrint (eLogDebug, "TorrentsDHT: Announce peer received from ", nodeID.ToBase64 ());
-		auto it = m_Torrents.find (infoHash);
-		if (it != m_Torrents.end ())
+		auto it = m_IncomingTokens.find (token);
+		if (it != m_IncomingTokens.end ())
 		{
-			auto node = it->second->GetIncomingGetPeerNode (token);
-			if (node)
-			{
-				if (node->id == nodeID)
-				{
-					it->second->AddPeer (node->peer);
-					SendResponseMsg (CreateDictionary ({
-							{ "id", CreateByteString (std::string_view ((const char *)m_NodeID.data (), m_NodeID.size ())) },
-													}),
-						transactionID, node->peer, node->port + 1); // to rport
-				}
-				else
-					LogPrint (eLogInfo, "TorrentsDHT: Announce peer node/token mismatch");
-			}
-			else
-				LogPrint (eLogInfo, "TorrentsDHT: Announce peer token not found");
+			auto node = it->second.first;
+			auto torrent = m_Torrents.emplace (infoHash, std::make_shared<DHTTorrent>()).first->second;
+			torrent->AddPeer (node->peer);
+			SendResponseMsg (CreateDictionary ({
+				{ "id", CreateByteString (std::string_view ((const char *)m_NodeID.data (), m_NodeID.size ())) },
+												}),
+				transactionID, node->peer, node->port + 1); // to rport
 		}
 		else
-		{
-			auto it = m_IncomingTokens.find (token);
-			if (it != m_IncomingTokens.end ())
-			{
-				auto node = it->second.first;
-				auto torrent = std::make_shared<DHTTorrent>();
-				torrent->AddIncomingGetPeerNode (token, node);
-				torrent->AddPeer (node->peer);
-				m_Torrents.emplace (infoHash, torrent);
-				SendResponseMsg (CreateDictionary ({
-							{ "id", CreateByteString (std::string_view ((const char *)m_NodeID.data (), m_NodeID.size ())) },
-													}),
-						transactionID, node->peer, node->port + 1); // to rport
-			}
-			else
-				LogPrint (eLogInfo, "TorrentsDHT: Token for announce not found");
-		}
+			LogPrint (eLogInfo, "TorrentsDHT: Token for announce not found");
 	}
 
 	void TorrentsDHT::HandleResponse (std::string_view transactionID, const NodeID& nodeID,
