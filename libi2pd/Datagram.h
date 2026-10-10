@@ -73,7 +73,7 @@ namespace datagram
 
 			/** send an i2np message to remote endpoint for this session */
 			void SendMsg(std::shared_ptr<I2NPMessage> msg);
-			void FlushSendQueue();
+			void FlushSendQueue(bool waitForLeaseSet = true);
 			/** get the last time in milliseconds for when we used this datagram session */
 			uint64_t LastActivity() const { return m_LastUse; }
 

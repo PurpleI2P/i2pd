@@ -749,11 +749,14 @@ namespace datagram
 	void DatagramSession::HandleLeaseSetUpdated(std::shared_ptr<i2p::data::LeaseSet> ls)
 	{
 		m_RequestingLS = false;
-		if(!ls) return;
-		// only update lease set if found and newer than previous lease set
-		uint64_t oldExpire = 0;
-		if(m_RemoteLeaseSet) oldExpire = m_RemoteLeaseSet->GetExpirationTime();
-		if(ls && ls->GetExpirationTime() > oldExpire) m_RemoteLeaseSet = ls;
+		if (ls)
+		{
+			// only update lease set if found and newer than previous lease set
+			uint64_t oldExpire = 0;
+			if(m_RemoteLeaseSet) oldExpire = m_RemoteLeaseSet->GetExpirationTime();
+			if(ls && ls->GetExpirationTime() > oldExpire) m_RemoteLeaseSet = ls;
+		}
+		FlushSendQueue (false); // process deferred flush
 	}
 
 	void DatagramSession::RequestUpdatedLeaseSet ()
@@ -765,10 +768,12 @@ namespace datagram
 		}
 	}
 
-	void DatagramSession::FlushSendQueue ()
+	void DatagramSession::FlushSendQueue (bool waitForLeaseSet)
 	{
 		if (m_SendQueue.empty ()) return;
 		auto routingPath = GetSharedRoutingPath();
+		if (!routingPath && waitForLeaseSet && m_RequestingLS)
+			return; // defer to HandleLeaseSetUpdated
 		// if we don't have a routing path we will drop all queued messages
 		if(routingPath && routingPath->outboundTunnel && routingPath->remoteLease)
 		{
