@@ -474,9 +474,8 @@ namespace torrents
 	Torrent::Torrent ():
 		m_AnnounceTrackerID (-1), m_Length (0), m_PieceLength (0), m_IsComplete (false),
 		m_IsStopped (false), m_IsSingleFile (true), m_Uploaded (0), m_Downloaded (0),
-		m_NextUpdateStatusTime (0), m_NextReconnectTime (0),
-		m_NextDHTUpdateTime (i2p::util::GetMonotonicSeconds () + DHT_TORRENT_INITIAL_UPDATE_INTERVAL),
-		m_Error (eTorrentErrorNoError)
+		m_NextUpdateStatusTime (0), m_NextReconnectTime (0), m_NextDHTUpdateTime (0),
+		m_LastDHTAnnounceTime (0), m_Error (eTorrentErrorNoError)
 	{
 	}
 

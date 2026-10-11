@@ -256,6 +256,7 @@ namespace torrents
 			void HandleGetPeersResponsePeersAndAnnounce (std::shared_ptr<RequestInfo> info,
 				const std::vector<std::string_view>& peers, uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void HandleFindNodeResponse (std::shared_ptr<RequestInfo> info, std::string_view nodes);
+			void HandleAnnouncePeerResponse (std::shared_ptr<RequestInfo> info);
 			void HandleAnnouncePeer (std::string_view transactionID, const NodeID& nodeID,
 				const Torrent::InfoHash& infoHash, uint64_t token);
 			void SendDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort);
@@ -274,7 +275,8 @@ namespace torrents
 				uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 			void SendFindNodeResponse (std::string_view transactionID, std::string_view nodes,
 				const i2p::data::IdentHash& toIdent, uint16_t toPort);
-			void SendAnnouncePeerQuery (const Torrent::InfoHash& infoHash, uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort);
+			void SendAnnouncePeerQuery (std::shared_ptr<RequestInfo> info,
+				uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort);
 
 			std::filesystem::path GetDHTFilePath (std::string_view filename) const;
 			void Save (const std::filesystem::path& file);

@@ -825,11 +825,26 @@ namespace torrents
 								it.second->SetNextTrackerRequestTime (i, ts + nextInterval);
 							}
 						}
-						if (SupportsDHT () && ts >= it.second->GetNextDHTUpdateTime ()*1000)
+					}
+					if (SupportsDHT ())
+					{
+						uint64_t nextUpdateTime = it.second->GetNextDHTUpdateTime ()*1000;
+						if (nextUpdateTime)
 						{
-							if (m_DHT) m_DHT->GetPeersAndAnnounce (it.second);
-							it.second->SetNextDHTUpdateTime (ts/1000 + DHT_TORRENT_UPDATE_INTERVAL + GetLocalDestination ()->GetRng()() % DHT_TORRENT_UPDATE_INTERVAL_VARIANCE);
+							if (ts >= nextUpdateTime)
+							{
+								if (m_DHT) m_DHT->GetPeersAndAnnounce (it.second);
+								if (it.second->GetLastDHTAnnounceTime ())
+									it.second->SetNextDHTUpdateTime (ts/1000 + DHT_TORRENT_UPDATE_INTERVAL +
+										GetLocalDestination ()->GetRng()() % DHT_TORRENT_UPDATE_INTERVAL_VARIANCE);
+								else
+									it.second->SetNextDHTUpdateTime (ts/1000 + DHT_TORRENT_INITIAL_UPDATE_INTERVAL +
+										GetLocalDestination ()->GetRng()() % DHT_TORRENT_INITIAL_UPDATE_INTERVAL_VARIANCE);
+							}
 						}
+						else
+							it.second->SetNextDHTUpdateTime (ts/1000 + DHT_TORRENT_INITIAL_UPDATE_INTERVAL +
+								GetLocalDestination ()->GetRng()() % DHT_TORRENT_INITIAL_UPDATE_INTERVAL_VARIANCE);
 					}
 				}
 			}

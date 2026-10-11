@@ -796,7 +796,8 @@ namespace torrents
 						break;
 					}
 					case eKRPCQueryAnnouncePeer:
-						LogPrint (eLogDebug, "TorrentsDHT: Announce peer response received");
+						LogPrint (eLogDebug, "TorrentsDHT: Announce peer response received from ", ident.ToBase64 ());
+						HandleAnnouncePeerResponse (info);
 					break;
 					default:
 						LogPrint (eLogInfo, "TorrentsDHT: Response to unknown KRPC query ", (int)query);
@@ -844,7 +845,7 @@ namespace torrents
 			}
 		}
 		LogPrint (eLogDebug, "TorrentsDHT: Send announce to ", toIdent.ToBase64 ());
-		SendAnnouncePeerQuery (info->torrent->GetInfoHash (), token, toIdent, toPort);
+		SendAnnouncePeerQuery (info, token, toIdent, toPort);
 	}
 
 	void TorrentsDHT::HandleFindNodeResponse (std::shared_ptr<RequestInfo> info, std::string_view nodes)
@@ -865,6 +866,14 @@ namespace torrents
 		}
 		if (info)
 			SendNextFindNodeQuery (info);
+	}
+
+	void TorrentsDHT::HandleAnnouncePeerResponse (std::shared_ptr<RequestInfo> info)
+	{
+		if (info && info->torrent)
+			info->torrent->SetLastDHTAnnounceTime (i2p::util::GetMonotonicSeconds ());
+		else
+			LogPrint (eLogError, "TorrentsDHT: Announced torrent not found");
 	}
 
 	void TorrentsDHT::SendDatagram (std::string_view msg, const i2p::data::IdentHash& toIdent, uint16_t toPort)
@@ -970,7 +979,7 @@ namespace torrents
 			int numAnnounces = 0;
 			for (const auto& [distance, node, token]: info->tokens)
 			{
-				SendAnnouncePeerQuery (info->torrent->GetInfoHash (), token, node->peer, node->port + 1); // to rport
+				SendAnnouncePeerQuery (info, token, node->peer, node->port + 1); // to rport
 				numAnnounces++;
 				if (numAnnounces >= DHT_MAX_NUM_CLOSEST_NODES_TO_ANNOUNCE) break;
 			}
@@ -1037,15 +1046,17 @@ namespace torrents
 			transactionID, toIdent, toPort);
 	}
 
-	void TorrentsDHT::SendAnnouncePeerQuery (const Torrent::InfoHash& infoHash, uint64_t token,
-		const i2p::data::IdentHash& toIdent, uint16_t toPort)
+	void TorrentsDHT::SendAnnouncePeerQuery (std::shared_ptr<RequestInfo> info,
+		uint64_t token, const i2p::data::IdentHash& toIdent, uint16_t toPort)
 	{
+		if (!info || !info->torrent) return;
+		auto infoHash = info->torrent->GetInfoHash ();
 		SendQueryMsg (eKRPCQueryAnnouncePeer, CreateDictionary ({
 			{ "id", CreateByteString (std::string_view ((const char *)m_NodeID.data (), m_NodeID.size ())) },
 			{ "info_hash",  CreateByteString (std::string_view ((const char *)infoHash.data (), infoHash.size ())) },
 			{ "token", CreateByteString (std::string_view ((const char *)&token, 8)) }
 											}),
-			toIdent, toPort, true); // raw
+			toIdent, toPort, true, info); // raw
 	}
 
 	void TorrentsDHT::Explore ()

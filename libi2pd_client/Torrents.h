@@ -72,6 +72,7 @@ namespace torrents
 	constexpr int DHT_TORRENT_UPDATE_INTERVAL = 880; // in seconds
 	constexpr int DHT_TORRENT_UPDATE_INTERVAL_VARIANCE = 130; // in seconds
 	constexpr int DHT_TORRENT_INITIAL_UPDATE_INTERVAL = 100; // in seconds
+	constexpr int DHT_TORRENT_INITIAL_UPDATE_INTERVAL_VARIANCE = 40; // in seconds
 	constexpr size_t PEER_CONNECTION_RECEIVE_BUFFER_SIZE = 65535;
 	constexpr int PEER_CONNECTION_MAX_IDLE = 3600; // in seconds
 	constexpr int PEER_KEEP_ALIVE_TIMEOUT = 120; // in seconds
@@ -314,6 +315,8 @@ namespace torrents
 			void SetNextReconnectTime (uint64_t nextReconnectTime) { m_NextReconnectTime = nextReconnectTime; }
 			uint64_t GetNextDHTUpdateTime () { return m_NextDHTUpdateTime; }
 			void SetNextDHTUpdateTime (uint64_t nextDHTUpdateTime) { m_NextDHTUpdateTime = nextDHTUpdateTime; }
+			uint64_t GetLastDHTAnnounceTime () const { return m_LastDHTAnnounceTime; }
+			void SetLastDHTAnnounceTime (uint64_t lastDHTAnnounceTime) { m_LastDHTAnnounceTime = lastDHTAnnounceTime; }
 			bool AddConnection (std::shared_ptr<PeerConnection> conn);
 			void RemoveConnection (std::shared_ptr<PeerConnection> conn);
 			std::list<std::shared_ptr<PeerConnection> > GetConnections ();
@@ -367,7 +370,7 @@ namespace torrents
 			bool m_IsComplete, m_IsStopped, m_IsSingleFile;
 			std::list<std::shared_ptr<TorrentFile> > m_Files;
 			size_t m_Uploaded, m_Downloaded;
-			uint64_t m_NextUpdateStatusTime, m_NextReconnectTime, m_NextDHTUpdateTime; // in monotonic seconds
+			uint64_t m_NextUpdateStatusTime, m_NextReconnectTime, m_NextDHTUpdateTime, m_LastDHTAnnounceTime; // in monotonic seconds
 			TorrentError m_Error;
 	};
 
