@@ -798,7 +798,7 @@ namespace torrents
 		{
 			memcpy (nodeInfo.data (), nodes.data (), nodeInfo.size ());
 			auto node = std::make_shared<Node>(nodeInfo);
-			if (info && info->AddNode (node))
+			if (info && node->VerifyID () && info->AddNode (node))
 			{
 				if (m_HeardFrom.contains (node->id))
 					UpdateNode (node);
@@ -837,7 +837,7 @@ namespace torrents
 		{
 			memcpy (nodeInfo.data (), nodes.data (), nodeInfo.size ());
 			auto node = std::make_shared<Node>(nodeInfo);
-			if (info && info->AddNode (node))
+			if (info && node->VerifyID () && info->AddNode (node))
 			{
 				if (m_HeardFrom.contains (node->id))
 					UpdateNode (node);
