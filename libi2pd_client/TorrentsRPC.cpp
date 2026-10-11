@@ -776,9 +776,9 @@ namespace torrents
 		response["supported"] = isDHTSupported;
 		if (isDHTSupported)
 		{
-			size_t numNodes = 0, numBuckets = 0, numTorrents = 0;
+			size_t numNodes = 0, numBuckets = 0, numTorrents = 0, numHeardFrom = 0, numFailedPeers = 0;
 			boost::asio::post (m_Tunnel->GetService (),
-				boost::asio::use_future ([this, &numNodes, &numBuckets, &numTorrents]()
+				boost::asio::use_future ([this, &numNodes, &numBuckets, &numTorrents, &numHeardFrom, &numFailedPeers]()
 				{
 					const auto& dht = m_Tunnel->GetDHT ();
 					if (dht)
@@ -786,11 +786,15 @@ namespace torrents
 						numNodes = dht->GetNumNodes ();
 						numBuckets = dht->GetNumBuckets ();
 						numTorrents = dht->GetNumTorrents ();
+						numHeardFrom = dht->GetNumHeardFrom ();
+						numFailedPeers = dht->GetNumFailedPeers ();
 					}
 				})).wait ();
 			response["numNodes"] = numNodes;
 			response["numBuckets"] = numBuckets;
 			response["numTorrents"] = numTorrents;
+			response["numHeardFrom"] = numHeardFrom;
+			response["numFailedPeers"] = numFailedPeers;
 		}
 		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}
