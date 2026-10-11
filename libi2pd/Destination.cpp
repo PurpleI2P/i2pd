@@ -943,16 +943,16 @@ namespace client
 			requestLeaseSetTimeout += request->outboundTunnel->LatencyIsKnown() ? (uint64_t)(request->outboundTunnel->GetMeanLatency())/1000LL :
 				request->outboundTunnel->GetNumHops ()*(uint64_t)(i2p::tunnel::HIGH_LATENCY_PER_HOP)/1000LL;
 			request->requestTimeoutTimer.expires_after (std::chrono::milliseconds(requestLeaseSetTimeout));
-			request->requestTimeoutTimer.async_wait (std::bind (&LeaseSetDestination::HandleRequestTimoutTimer,
-				shared_from_this (), std::placeholders::_1, dest, requestLeaseSetTimeout));
+			request->requestTimeoutTimer.async_wait (std::bind (&LeaseSetDestination::HandleRequestTimeoutTimer,
+				shared_from_this (), std::placeholders::_1, dest));
 		}
 		else
 			return false;
 		return true;
 	}
 
-	void LeaseSetDestination::HandleRequestTimoutTimer (const boost::system::error_code& ecode,
-		const i2p::data::IdentHash& dest, uint64_t requestLeaseSetTimeout)
+	void LeaseSetDestination::HandleRequestTimeoutTimer (const boost::system::error_code& ecode,
+		const i2p::data::IdentHash& dest)
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
@@ -976,7 +976,7 @@ namespace client
 				}
 				else
 				{
-					LogPrint (eLogWarning, "Destination: ", dest.ToBase64 (), " was not found within ", requestLeaseSetTimeout, " seconds");
+					LogPrint (eLogWarning, "Destination: ", dest.ToBase64 (), " was not found within ", MAX_LEASESET_REQUEST_TIMEOUT, " seconds");
 					done = true;
 				}
 
