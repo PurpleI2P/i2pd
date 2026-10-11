@@ -20,6 +20,7 @@
 #include <vector>
 #include <array>
 #include <functional>
+#include <filesystem>
 #include "Base.h"
 #include "Log.h"
 #include "HTTP.h"
@@ -836,40 +837,48 @@ namespace torrents
 	{
 		if (!ecode)
 		{
-#ifdef JSON_SUPPORTED
 			const auto& request = m_RequestParser.get ();
-			if (request.method() == boost::beast::http::verb::post)
+			switch (request.method())
 			{
-				auto path = request.target ();
-				auto tunnel = m_Server.GetTunnel ( {path.data (), path.size ()}); // boost::beast::string_view to std::string_view
-				if (tunnel)
+				case boost::beast::http::verb::post:
 				{
-					static constexpr std::string_view appjson { "application/json" };
-					if (request[boost::beast::http::field::content_type].starts_with (appjson) || // starts with
-						request[boost::beast::http::field::content_type] == "application/x-www-form-urlencoded")
+#ifdef JSON_SUPPORTED
+					auto path = request.target ();
+					auto tunnel = m_Server.GetTunnel ( {path.data (), path.size ()}); // boost::beast::string_view to std::string_view
+					if (tunnel)
 					{
+						static constexpr std::string_view appjson { "application/json" };
+						if (request[boost::beast::http::field::content_type].starts_with (appjson) || // starts with
+							request[boost::beast::http::field::content_type] == "application/x-www-form-urlencoded")
+						{
 
-						JSONRPCHandler jsonHandler (tunnel);
-						auto response = jsonHandler.HandleRequest (request.body ());
-						if (!response.empty ())
-							SendResponse (boost::beast::http::status::ok, response);
+							JSONRPCHandler jsonHandler (tunnel);
+							auto response = jsonHandler.HandleRequest (request.body ());
+							if (!response.empty ())
+								SendResponse (boost::beast::http::status::ok, response);
+						}
+						else
+							SendResponse (boost::beast::http::status::no_content);
 					}
 					else
-						SendResponse (boost::beast::http::status::no_content);
-				}
-				else
-				{
-					LogPrint(eLogDebug, "TorrentRPC ", path, " not found ", tunnel);
-					SendResponse (boost::beast::http::status::not_found);
-				}
-			}
-			else if (request.method() == boost::beast::http::verb::options)
-				SendResponse (boost::beast::http::status::no_content, "", true);
-			else
-				SendResponse (boost::beast::http::status::method_not_allowed);
+					{
+						LogPrint(eLogDebug, "TorrentRPC ", path, " not found ", tunnel);
+						SendResponse (boost::beast::http::status::not_found);
+					}
 #else
-			SendResponse (boost::beast::http::status::not_implemented, std::string ("Your boost version ") + BOOST_LIB_VERSION + " is too old");
+					SendResponse (boost::beast::http::status::not_implemented, std::string ("Your boost version ") + BOOST_LIB_VERSION + " is too old");
 #endif
+					break;
+				}
+				case boost::beast::http::verb::options:
+					SendResponse (boost::beast::http::status::no_content, "", true);
+				break;
+				case boost::beast::http::verb::get:
+					HandleWeb (request);
+				break;
+				default:
+					SendResponse (boost::beast::http::status::method_not_allowed);
+			}
 		}
 	}
 
@@ -887,6 +896,50 @@ namespace torrents
 		m_Response.body () = data;
 		m_Response.prepare_payload ();
 		boost::beast::http::async_write (m_Socket, m_Response,
+			[s = shared_from_this ()](const boost::system::error_code& ecode, size_t bytes_transferred)
+			{
+				if (ecode)
+					LogPrint (eLogWarning, "TorrentsRPC: Failed to send response: ", ecode.message ());
+			});
+	}
+
+	void TorrentsRPCSession::HandleWeb (const boost::beast::http::request<boost::beast::http::string_body>& req)
+	{
+		LogPrint (eLogDebug, "TorrentsRPC: target ", req.target ());
+		std::string contentType ("text/html");
+		auto filePath = std::filesystem::path (i2p::fs::GetDataDir ()) / "torrents" / "web";
+		if (req.target ().empty () || req.target ().back() == '/')
+			filePath /= "index.html";
+		else
+		{
+			std::filesystem::path urlPath (req.target ());
+			filePath /= urlPath.filename ();
+			if (urlPath.extension () == "js")
+				contentType = "application/javascript";
+		}
+
+		boost::beast::error_code ec;
+		boost::beast::http::file_body::value_type body;
+		body.open (filePath.c_str (), boost::beast::file_mode::scan, ec);
+		if (ec)
+		{
+			if (ec == boost::beast::errc::no_such_file_or_directory)
+			{
+				LogPrint (eLogDebug, "TorrentsRPC: Requested file not found ", filePath.string ());
+				SendResponse (boost::beast::http::status::not_found);
+			}
+			else
+				SendResponse (boost::beast::http::status::unknown, ec.message ());
+			return;
+		}
+
+		m_WebResponse = boost::beast::http::response<boost::beast::http::file_body>{};
+		m_WebResponse->result (boost::beast::http::status::ok);
+		m_WebResponse->version(11);
+		m_WebResponse->set (boost::beast::http::field::server, "i2pd torrents web");
+		m_WebResponse->set (boost::beast::http::field::content_type, contentType);
+		m_WebResponse->body () = std::move (body);
+		boost::beast::http::async_write (m_Socket, *m_WebResponse,
 			[s = shared_from_this ()](const boost::system::error_code& ecode, size_t bytes_transferred)
 			{
 				if (ecode)
