@@ -152,10 +152,73 @@ namespace torrents
 
 	std::string JSONRPCHandler::HandleSessionGet (boost::json::object&& jsonRequest)
 	{
+		boost::json::object units;
+		units["memory-bytes"] = 1024;
+		units["memory-units"] = boost::json::array{ "KiB", "MiB", "GiB", "TiB"};
+		units["size-bytes"] = 1000;
+		units["size-units"] = boost::json::array{ "kB", "MB", "GB", "TB" };
+		units["speed-bytes"] = 1000;
+		units["speed-units"] = boost::json::array{ "kB/s", "MB/s", "GB/s", "TB/s" };
+
 		boost::json::object response;
+		response["alt-speed-down"] = 50;
+		response["alt-speed-enabled"] = false;
+		response["alt-speed-time-begin"] = 540;
+		response["alt-speed-time-day"] = 127;
+		response["alt-speed-time-enabled"] = false;
+		response["alt-speed-time-end"] = 1020;
+		response["alt-speed-up"] = 50;
+		response["anti-brute-force-enabled"] = false;
+		response["anti-brute-force-threshold"] = 100;
+		response["blocklist-enabled"] = false;
+		response["blocklist-size"] = 0;
+		response["blocklist-url"] = "";
+		response["cache-size-mb"] = 4;
+		response["config-dir"] = i2p::fs::GetUTF8DataDir(); // TODO:
+		response["default-trackers"] = "";
+
+		response["dht-enabled"] = m_Tunnel->SupportsDHT ();
+		response["download-dir"] = m_Tunnel->GetTorrentsDir ().string ();
+		response["download-dir-free-space"] = 9999999999; // TODO:
+		response["download-queue-enabled"] = true; // TODO:
+		response["download-queue-size"] = 5; // TODO:
+		response["encryption"] = "required";
+		response["idle-seeding-limit"] = 30;
+		response["idle-seeding-limit-enabled"] = false;
+		response["incomplete-dir"] = m_Tunnel->GetTorrentsDir ().string ();
+		response["incomplete-dir-enabled"] = false;
+		response["lpd-enabled"] = false;
+		response["peer-limit-global"] = 200; // TODO:
+		response["peer-limit-per-torrent"] = 50; // TODO:
+		response["peer-port"] = 6881;
+		response["peer-port-random-on-start"] = false;
+		response["pex-enabled"] = true;
+		response["port-forwarding-enabled"] = false;
+		response["queue-stalled-enabled"] = false;
+		response["queue-stalled-minutes"] = 30;
+		response["rename-partial-files"] = true;
 		response["rpc-version"] = 17;
 		response["rpc-version-minimum"] = 14;
 		response["rpc-version-semver"] = "5.3.0";
+		response["script-torrent-added-enabled"] = false;
+		response["script-torrent-added-filename"] = "";
+		response["script-torrent-done-enabled"] = false;
+		response["script-torrent-done-filename"] = "";
+		response["script-torrent-done-seeding-enabled"] = false;
+		response["script-torrent-done-seeding-filename"] = "";
+		response["seed-queue-enabled"] = false; // TODO:
+		response["seed-queue-size"] = 10; // TODO:
+		response["seedRatioLimit"] = 2;
+		response["seedRatioLimited"] = false;
+		response["speed-limit-down"] = 100;
+		response["speed-limit-down-enabled"] = false;
+		response["speed-limit-up"] = 100;
+		response["speed-limit-up-enabled"] = false;
+		response["start-added-torrents"] = true;
+		response["tcp-enabled"] = true;
+		response["trash-original-torrent-files"] = false;
+		response["units"] = units;
+		response["utp-enabled"] = true;
 		response["version"] = "4.0.0 (280ace12f8)";
 		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}
@@ -440,7 +503,9 @@ namespace torrents
 			{ "webseedsSendingToUs", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(0); } }, // not webseeds in i2p yet
 			{ "peers", &JSONRPCHandler::GetPeers },
 			{ "peersConnected", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetConnections ().size ()); } },
-			{ "fileStats", &JSONRPCHandler::GetFileStats }
+			{ "fileStats", &JSONRPCHandler::GetFileStats },
+			{ "comment", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(""); } }, // TODO: extract from "comment" dictionary key
+			{ "creator", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(""); } } // TODO: extract from "created by" dictionary key
 		};
 		if (torrent)
 		{
@@ -629,7 +694,8 @@ namespace torrents
 			{ "KT", "KTorrent" },
 			{ "ET", "EepTorrent" },
 			{ "TR", "Transmission" },
-			{ "DE", "Deluge" }
+			{ "DE", "Deluge" },
+			{ "CV", "Clove" }
 		};
 
 		if (peerID.size () >= i2psnark.size () && !memcmp (peerID.data (), i2psnark.data (), i2psnark.size ()))
