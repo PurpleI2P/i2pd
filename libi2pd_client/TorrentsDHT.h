@@ -52,10 +52,10 @@ namespace torrents
 	constexpr int DHT_INCOMING_GET_PEERS_TOKEN_EXPIRATION_TIME = 600; // in seconds
 	constexpr int DHT_HEARD_FROM_EXPIRATION_TIME = 290; // in seconds
 	constexpr int DHT_QUERY_EXPIRATION_TIME = 25; // in seconds
+	constexpr int DHT_PEER_FAILURE_INTERVAL = 100; // in seconds
 	constexpr int DHT_MAX_NUM_GET_PEERS_ATTEMPTS = 22;
 	constexpr int DHT_MAX_NUM_FIND_NODE_ATTEMPTS = 8;
 	constexpr int DHT_MAX_NUM_CLOSEST_NODES_TO_ANNOUNCE = 4;
-
 
 	using Distance = Torrent::InfoHash;
 	struct NodeID: public Torrent::InfoHash
@@ -302,6 +302,7 @@ namespace torrents
 			NodeID m_NodeID;
 			std::unique_ptr<RoutingTable> m_RoutingTable;
 			std::map<NodeID, uint64_t> m_HeardFrom; // nodeid -> time in monotonic seconds
+			std::unordered_map<i2p::data::IdentHash, uint64_t> m_FailedPeers; // peer -> failure time in monotonic seconds
 			std::unordered_map<uint64_t, std::pair<std::shared_ptr<Node>, uint64_t> > m_IncomingTokens; // token ->(node, time in monotonic second)
 			// transactionID -> (ident, port, query,  request info, time in monotonic seconds)
 			std::unordered_map<uint16_t, std::tuple<i2p::data::IdentHash, uint16_t, KRPCQuery, std::shared_ptr<RequestInfo>, uint64_t > > m_Queries;

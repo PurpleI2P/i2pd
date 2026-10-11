@@ -171,15 +171,35 @@ namespace torrents
 
 	void RoutingTable::RemoveEmptyBuckets ()
 	{
-		// TODO: remove only if difference is 1 bit
-		/*if (m_Buckets)
+	/*	if (m_Buckets)
 		{
-			auto prev = m_Buckets, bucket = m_Buckets->next;
+			Bucket * bucket = m_Buckets, * prev = nullptr;
 			while (bucket)
 			{
+				bool del = false;
 				if (bucket->IsEmpty ())
 				{
-					prev->next = bucket->next;
+					if (bucket->next)
+					{
+						// check if 1 bit difference
+						del = true;
+						for (size_t i = 0; i < bucket->start.size (); i++)
+						{
+							if (bucket->start[i] != bucket->next->start[i])
+							{
+								del = bucket->start[i] == (bucket->next->start[i] << 1);
+								break;
+							}
+						}
+						if (del)
+							bucket->next->start = bucket->start;
+					}
+					else
+						del = true;
+				}
+				if (del)
+				{
+					(prev ? prev->next : m_Buckets) = bucket->next;
 					auto tmp = bucket;
 					bucket = bucket->next;
 					delete tmp;
@@ -190,17 +210,13 @@ namespace torrents
 					bucket = bucket->next;
 				}
 			}
-			if (m_Buckets->IsEmpty () && m_Buckets->next)
-			{
-				m_Buckets = m_Buckets->next;
-				m_Buckets->start.fill (0);
-			}
 		}*/
 	}
 
 	size_t RoutingTable::DeleteExpiredNodes (uint64_t ts)
 	{
 		size_t numDeleted = 0;
+		bool emptyBuckets = false;
 		auto bucket = m_Buckets;
 		while (bucket)
 		{
@@ -218,9 +234,10 @@ namespace torrents
 						it++;
 				}
 			}
+			if (bucket->IsEmpty ()) emptyBuckets = true;
 			bucket = bucket->next;
 		}
-		if (numDeleted > 0)
+		if (emptyBuckets)
 			RemoveEmptyBuckets ();
 		return numDeleted;
 	}
@@ -802,7 +819,7 @@ namespace torrents
 			{
 				if (m_HeardFrom.contains (node->id))
 					UpdateNode (node);
-				else
+				else if (!m_FailedPeers.contains (node->peer))
 					SendPingQuery (node->peer, node->port);
 			}
 			nodes = nodes.substr (nodeInfo.size ());
@@ -841,7 +858,7 @@ namespace torrents
 			{
 				if (m_HeardFrom.contains (node->id))
 					UpdateNode (node);
-				else
+				else if (!m_FailedPeers.contains (node->peer))
 					SendPingQuery (node->peer, node->port);
 			}
 			nodes = nodes.substr (nodeInfo.size ());
@@ -935,6 +952,8 @@ namespace torrents
 		if (!info->IsDone () && m_RoutingTable)
 		{
 			auto nextNode = info->GetNextNode ();
+			while (nextNode && m_FailedPeers.contains (nextNode->peer) && !m_HeardFrom.contains (nextNode->id)) // skip failed peers
+				nextNode = info->GetNextNode ();
 			if (nextNode)
 			{
 				sent = true;
@@ -999,6 +1018,8 @@ namespace torrents
 		if (!info->IsDone () && m_RoutingTable)
 		{
 			auto nextNode = info->GetNextNode ();
+			while (nextNode && m_FailedPeers.contains (nextNode->peer) && !m_HeardFrom.contains (nextNode->id)) // skip failed peers
+				nextNode = info->GetNextNode ();
 			if (nextNode)
 				SendFindNodeQuery (info, nextNode->peer, nextNode->port);
 			else
@@ -1129,6 +1150,16 @@ namespace torrents
 				}
 			}
 			{
+				auto it = m_FailedPeers.begin ();
+				while (it != m_FailedPeers.end ())
+				{
+					if (ts > it->second + DHT_PEER_FAILURE_INTERVAL)
+						it = m_FailedPeers.erase (it);
+					else
+						it++;
+				}
+			}
+			{
 				auto it = m_IncomingTokens.begin ();
 				while (it != m_IncomingTokens.end ())
 				{
@@ -1182,6 +1213,7 @@ namespace torrents
 			{
 				if (ts > std::get<4>(it->second) + DHT_QUERY_EXPIRATION_TIME)
 				{
+					m_FailedPeers.emplace (std::get<0>(it->second), std::get<4>(it->second));
 					switch (std::get<2>(it->second))
 					{
 						case eKRPCQueryGetPeers:
