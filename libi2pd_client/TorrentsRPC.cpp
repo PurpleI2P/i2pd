@@ -167,8 +167,10 @@ namespace torrents
 		if (arguments.contains ("metainfo"))
 		{
 			auto b64torrent = arguments.at ("metainfo").as_string ();
+			if (b64torrent.size () % 4) // base64 must be multiple of 4
+				return ErrorResponse (GetTag (jsonRequest), "invalid or corrupt torrent file");
 			std::string torrentFileContent;
-			torrentFileContent.resize (boost::beast::detail::base64::decoded_size (b64torrent.size ()) + (b64torrent.size () % 4) * 3 / 4); // bug #3115 in boost::beast, TODO: shouls be fixed in boost >= 1.93
+			torrentFileContent.resize (boost::beast::detail::base64::decoded_size (b64torrent.size ()));
 			boost::beast::detail::base64::decode (torrentFileContent.data (), b64torrent.data (), b64torrent.size ());
 			std::tie (torrent, id) = m_Tunnel->AddTorrent (torrentFileContent);
 		}
