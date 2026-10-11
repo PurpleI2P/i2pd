@@ -1175,8 +1175,6 @@ namespace client
 		bool socksproxy; i2p::config::GetOption("socksproxy.enabled", socksproxy);
 		if (socksproxy)
 		{
-			std::string httpProxyKeys;         i2p::config::GetOption("httpproxy.keys",              httpProxyKeys);
-			// we still need httpProxyKeys to compare with sockProxyKeys
 			std::string socksProxyKeys;        i2p::config::GetOption("socksproxy.keys",             socksProxyKeys);
 			std::string socksProxyAddr;        i2p::config::GetOption("socksproxy.address",          socksProxyAddr);
 			uint16_t    socksProxyPort;        i2p::config::GetOption("socksproxy.port",             socksProxyPort);
@@ -1186,15 +1184,8 @@ namespace client
 			i2p::data::SigningKeyType sigType; i2p::config::GetOption("socksproxy.signaturetype",    sigType);
 			if (sigType > i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519) sigType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519;
 			LogPrint(eLogInfo, "Clients: Starting SOCKS Proxy at ", socksProxyAddr, ":", socksProxyPort);
-			std::shared_ptr<I2PService> httpProxy;
-			{
-				std::lock_guard<std::mutex> l(m_ProxyMutex);
-				httpProxy = m_HttpProxy;
-			}
 			if (socksProxyKeys == "shareddest")
 				localDestination = m_SharedLocalDestination;
-			else if (httpProxyKeys == socksProxyKeys && httpProxy)
-				localDestination = httpProxy->GetLocalDestination ();
 			else if (socksProxyKeys.length () > 0)
 			{
 				i2p::data::PrivateKeys keys;
