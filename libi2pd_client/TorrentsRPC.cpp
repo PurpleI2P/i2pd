@@ -939,6 +939,28 @@ namespace torrents
 		else
 		{
 			std::filesystem::path urlPath (target);
+			bool isPathValid = false;
+			auto subUrlPath = urlPath.begin ();
+			if (subUrlPath != urlPath.end () && *subUrlPath == "/")
+			{
+				subUrlPath++;
+				if (subUrlPath != urlPath.end ())
+				{
+					auto tunnel = m_Server.GetTunnel (subUrlPath->string () + "/rpc");
+					if (tunnel)
+					{
+						subUrlPath++;
+						if (subUrlPath != urlPath.end ())
+							isPathValid = *subUrlPath == "web";
+					}
+				}
+			}
+			if (!isPathValid)
+			{
+				SendResponse (boost::beast::http::status::forbidden);
+				return;
+			}
+
 			filePath /= urlPath.filename ();
 			std::string ext = urlPath.extension ().string ();
 			boost::to_lower (ext);
@@ -950,8 +972,6 @@ namespace torrents
 				if (isText)
 					contentType += "; charset=utf-8";
 			}
-			if (urlPath.extension () == ".js")
-				contentType = "application/javascript";
 		}
 
 		boost::beast::error_code ec;
