@@ -1210,20 +1210,56 @@ namespace http {
 			s << "</div>\r\n<br>\r\n";
 		}
 #ifndef NO_TORRENTS
+		auto findTunnelEndpoint = [](const std::string& tunnelname) -> std::pair<uint16_t, std::string>
+			{
+				LogPrint(eLogDebug,"HTTPServer: GetTorrentsRPC");
+				for (auto& [port, server] : i2p::client::context.GetTorrentsRPCServers())
+				{
+					if (!server)
+					{
+						LogPrint(eLogError,"HTTPServer: GetTorrentsRPCServers return nothing");
+						continue;
+					}
+					for (const auto& [rpcPath, weakTunnel] : server->GetTunnels())
+					{
+						if (auto tunnel = weakTunnel.lock())
+						{
+							LogPrint(eLogDebug, "HTTPServer: TUNNEL_OPENJS", tunnel->GetName());
+							if (tunnel->GetName() == tunnelname)
+							{
+								uint16_t rpcPort = server->GetAcceptor().local_endpoint().port();
+								return { rpcPort, rpcPath };
+							}
+						}
+					}
+				}
+				return { 0, "" };
+		};
+
 		auto& torrentsTunnels = i2p::client::context.GetTorrentsTunnels ();
 		if (!torrentsTunnels.empty ())
 		{
 			s << "<br>\r\n<b>" << tr("Torrents") << ":</b><br>\r\n<div class=\"list\">\r\n";
 			for (auto& it: torrentsTunnels)
 			{
-
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 				s << it.second->GetName () << "</a> &#8656; ";
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-				s << "<a href='?page=" << OPENJS_TORRENT_CLIENT_PAGE << "&tunnelname=" << it.second-> GetName()<< "'> | Open Torrent Client for this Tunnel</a>";
-				s << "</div>\r\n"<< std::endl;
 
+				auto [rpcPort, rpcPath] = findTunnelEndpoint(it.second-> GetName());
+				if (rpcPort && rpcPath.length() && it.second-> SupportsWeb()) {
+					auto webPath = rpcPath;
+					webPath.erase(webPath.size() - 4); // removing "/rpc" suffix
+
+					std::string jsRedir = "this.href = location.protocol + '//' + location.hostname + ':' + " + std::to_string(rpcPort) + " + '" + webPath + "/web/'";
+
+					s << "<a href='http://localhost:" << rpcPort << webPath << "/web/' "
+					<< "onmouseover=\"" << jsRedir << "\" "
+					<< "onclick=\"" << jsRedir << "\">"
+					<< " | Web Panel</a>";
+				}
+				s << "</div>\r\n"<< std::endl;
 			}
 			s << "</div>\r\n<br>\r\n";
 		}

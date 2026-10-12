@@ -946,13 +946,15 @@ namespace torrents
 				subUrlPath++;
 				if (subUrlPath != urlPath.end ())
 				{
-					auto tunnel = m_Server.GetTunnel (subUrlPath->string () + "/rpc");
+					auto tunnel = m_Server.GetTunnel (std::string ("/") + subUrlPath->string () + "/rpc");
 					if (tunnel && tunnel->SupportsWeb ())
 					{
 						subUrlPath++;
 						if (subUrlPath != urlPath.end ())
 							isPathValid = *subUrlPath == "web";
 					}
+					else
+						LogPrint (eLogDebug, "TorrentsRPC: Tunnel not found or web is not supported ", subUrlPath->string ());
 				}
 			}
 			if (!isPathValid)
