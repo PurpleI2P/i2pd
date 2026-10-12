@@ -455,7 +455,7 @@ namespace client
 					if (buf[DATABASE_STORE_TYPE_OFFSET] == i2p::data::NETDB_STORE_TYPE_LEASESET)
 					{
 						leaseSet = std::make_shared<i2p::data::LeaseSet> (buf + offset, len - offset); // LeaseSet
-						if (!SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ELGAMAL))
+						if (!SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ELGAMAL) || from) // LeaseSet1 can't come from ECIESx25519 session
 							leaseSet->SetIsIncompatibleCrypto (true);
 					}
 					else

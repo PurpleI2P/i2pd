@@ -252,7 +252,7 @@ namespace data
 
 	void LeaseSet::Encrypt (const uint8_t * data, uint8_t * encrypted) const
 	{
-		if (!m_EncryptionKey) return;
+		if (!m_EncryptionKey || !data || !encrypted) return;
 		auto encryptor = m_Identity->CreateEncryptor (m_EncryptionKey);
 		if (encryptor)
 			encryptor->Encrypt (data, encrypted);
