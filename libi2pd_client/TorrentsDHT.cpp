@@ -816,7 +816,7 @@ namespace torrents
 		{
 			memcpy (nodeInfo.data (), nodes.data (), nodeInfo.size ());
 			auto node = std::make_shared<Node>(nodeInfo);
-			if (info && node->VerifyID () && info->AddNode (node))
+			if (info && node->id != m_NodeID && node->VerifyID () && info->AddNode (node))
 			{
 				if (m_HeardFrom.contains (node->id))
 					UpdateNode (node);
@@ -855,7 +855,7 @@ namespace torrents
 		{
 			memcpy (nodeInfo.data (), nodes.data (), nodeInfo.size ());
 			auto node = std::make_shared<Node>(nodeInfo);
-			if (info && node->VerifyID () && info->AddNode (node))
+			if (info && node->id != m_NodeID && node->VerifyID () && info->AddNode (node))
 			{
 				if (m_HeardFrom.contains (node->id))
 					UpdateNode (node);
@@ -881,9 +881,14 @@ namespace torrents
 		auto dest = m_Tunnel.GetLocalDestination ();
 		if (dest)
 		{
-			auto dgramDest = dest->GetDatagramDestination ();
-			if (dgramDest)
-				dgramDest->SendDatagramTo ((const uint8_t *)msg.data (), msg.size (), toIdent, m_Port, toPort);
+			if (toIdent != dest->GetIdentHash ())
+			{
+				auto dgramDest = dest->GetDatagramDestination ();
+				if (dgramDest)
+					dgramDest->SendDatagramTo ((const uint8_t *)msg.data (), msg.size (), toIdent, m_Port, toPort);
+			}
+			else
+				LogPrint (eLogWarning, "TorrentsDHT: Can't send datagram to self");
 		}
 	}
 
@@ -892,9 +897,14 @@ namespace torrents
 		auto dest = m_Tunnel.GetLocalDestination ();
 		if (dest)
 		{
-			auto dgramDest = dest->GetDatagramDestination ();
-			if (dgramDest)
-				dgramDest->SendRawDatagramTo ((const uint8_t *)msg.data (), msg.size (), toIdent, m_Port, toPort);
+			if (toIdent != dest->GetIdentHash ())
+			{
+				auto dgramDest = dest->GetDatagramDestination ();
+				if (dgramDest)
+					dgramDest->SendRawDatagramTo ((const uint8_t *)msg.data (), msg.size (), toIdent, m_Port, toPort);
+			}
+			else
+				LogPrint (eLogWarning, "TorrentsDHT: Can't send raw datagram to self");
 		}
 	}
 
