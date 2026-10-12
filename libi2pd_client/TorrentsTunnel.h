@@ -91,7 +91,7 @@ namespace torrents
 		public:
 
 			TorrentsTunnel (std::string_view name, std::shared_ptr<i2p::client::ClientDestination> localDestination,
-				std::string_view torrentsDir, std::string_view trackers = "", bool dht = true);
+				std::string_view torrentsDir, std::string_view trackers = "", bool dht = true, bool web = true);
 
 			void Start () override;
 			void Stop () override;
@@ -119,6 +119,7 @@ namespace torrents
 			std::pair<uint16_t, uint16_t> GetDHTPorts () const { return { m_DHT ? m_DHT->GetPort () : 0, m_DHT ? m_DHT->GetRPort () : 0 }; }
 			bool SupportsDHT () const { return (bool)m_DHT; }
 			const std::unique_ptr<TorrentsDHT>& GetDHT () const { return m_DHT; }
+			bool SupportsWeb () const { return m_Web; }
 
 			const char* GetName() const override { return m_Name.c_str (); }
 
@@ -181,6 +182,7 @@ namespace torrents
 			std::unordered_map<uint32_t, std::tuple<size_t, uint16_t, std::weak_ptr<Torrent>, uint64_t > > m_DatragramTrackerTransactions;
 			// transactionID->(trackerID, from_port, torrent, timestamp monotonic milliseconds)
 			std::unique_ptr<TorrentsDHT> m_DHT;
+			bool m_Web;
 	};
 
 }

@@ -25,11 +25,11 @@ namespace i2p
 namespace torrents
 {
 	TorrentsTunnel::TorrentsTunnel (std::string_view name, std::shared_ptr<i2p::client::ClientDestination> localDestination,
-		std::string_view torrentsDir, std::string_view trackers, bool dht):
+		std::string_view torrentsDir, std::string_view trackers, bool dht, bool web):
 		i2p::client::I2PService (localDestination), m_Name (name), m_PeerID ("-I2PD-"),
 		m_TorrentsDir (torrentsDir), m_TrackerRequestsCheckTimer (GetService ()),
 		m_KeepAliveCheckTimer (GetService ()), m_ReconnectCheckTimer (GetService ()),
-		m_TorrentsStatusUpdateTimer (GetService ())
+		m_TorrentsStatusUpdateTimer (GetService ()), m_Web (web)
 	{
 		if (localDestination)
 			m_PeerID += localDestination->GetIdentHash ().ToBase64 ();

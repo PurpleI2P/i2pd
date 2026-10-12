@@ -947,7 +947,7 @@ namespace torrents
 				if (subUrlPath != urlPath.end ())
 				{
 					auto tunnel = m_Server.GetTunnel (subUrlPath->string () + "/rpc");
-					if (tunnel)
+					if (tunnel && tunnel->SupportsWeb ())
 					{
 						subUrlPath++;
 						if (subUrlPath != urlPath.end ())

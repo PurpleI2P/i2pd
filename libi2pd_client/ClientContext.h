@@ -82,6 +82,7 @@ namespace client
 	const char TORRENTS_TUNNEL_RPC_PATH[] = "rpcpath";
 	const char TORRENTS_TUNNEL_RPC_ADDRESS[] = "rpcaddress";
 	const char TORRENTS_TUNNEL_DHT[] = "dht";
+	const char TORRENTS_TUNNEL_WEB[] = "web";
 
 	constexpr int STOP_DESTINATIONS_TIMEOUT = 8; // in seconds
 

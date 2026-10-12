@@ -1048,6 +1048,7 @@ namespace client
 					i2p::data::SigningKeyType sigType = section.second.get (TORRENTS_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
 					if (sigType > i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519) sigType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519;
 					bool dht = section.second.get<bool> (TORRENTS_TUNNEL_DHT, true);
+					bool web = section.second.get<bool> (TORRENTS_TUNNEL_WEB, true);
 
 					// I2CP
 					i2p::util::Mapping options;
@@ -1078,7 +1079,8 @@ namespace client
 						else
 							localDestination->SetPublic (true);
 					}
-					auto torrentsTunnel = std::make_shared<i2p::torrents::TorrentsTunnel> (name, localDestination, torrentsDir, trackers, dht);
+					auto torrentsTunnel = std::make_shared<i2p::torrents::TorrentsTunnel> (name,
+						localDestination, torrentsDir, trackers, dht, web);
 					auto [iit, inserted] = m_TorrentsTunnels.emplace (localDestination->GetIdentHash (), torrentsTunnel);
 					if (inserted)
 					{
