@@ -434,7 +434,7 @@ namespace torrents
 					if (!torrent->GetAnnounce ().empty ())
 					{
 						magnet += "&tr=";
-						magnet += boost::core::string_view (boost::urls::url (torrent->GetAnnounce ()));
+						magnet += boost::urls::url (torrent->GetAnnounce ()).buffer ();
 					}
 					return boost::json::value(magnet);
 				}
