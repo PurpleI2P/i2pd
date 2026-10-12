@@ -905,16 +905,17 @@ namespace torrents
 
 	void TorrentsRPCSession::HandleWeb (const boost::beast::http::request<boost::beast::http::string_body>& req)
 	{
-		LogPrint (eLogDebug, "TorrentsRPC: target ", req.target ());
 		std::string contentType ("text/html");
 		auto filePath = std::filesystem::path (i2p::fs::GetDataDir ()) / "torrents" / "web";
-		if (req.target ().empty () || req.target ().back() == '/')
+		std::string target {req.target ()};
+		if (target.empty () || target.back() == '/')
 			filePath /= "index.html";
 		else
 		{
-			std::filesystem::path urlPath (req.target ());
+
+			std::filesystem::path urlPath (target);
 			filePath /= urlPath.filename ();
-			if (urlPath.extension () == "js")
+			if (urlPath.extension () == ".js")
 				contentType = "application/javascript";
 		}
 
