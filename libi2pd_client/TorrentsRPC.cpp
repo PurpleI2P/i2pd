@@ -17,6 +17,7 @@
 #define JSON_SUPPORTED
 #endif
 #include <boost/algorithm/hex.hpp>
+#include <boost/algorithm/string.hpp>
 #include <vector>
 #include <array>
 #include <functional>
@@ -905,16 +906,50 @@ namespace torrents
 
 	void TorrentsRPCSession::HandleWeb (const boost::beast::http::request<boost::beast::http::string_body>& req)
 	{
-		std::string contentType ("text/html");
+		static const std::map<std::string_view, std::pair<std::string_view, bool> > contentTypes =
+		{
+			{ ".html", { "text/html", true } },
+			{ ".htm", { "text/html", true } },
+			{ ".php", { "text/html", true } },
+			{ ".css", { "text/css", true } },
+			{ ".txt", { "text/plain", true } },
+			{ ".js", { "application/javascript", true } },
+			{ ".json", { "application/json", true } },
+			{ ".xml", { "application/xml", true } },
+			{ ".jpg", { "image/jpeg", false } },
+			{ ".jpe", { "image/jpeg", false } },
+			{ ".jpeg", { "image/jpeg", false } },
+			{ ".png", { "image/png", false } },
+			{ ".gif", { "image/gif", false } },
+			{ ".tif", { "image/tiff", false } },
+			{ ".tiff", { "image/tiff", false } },
+			{ ".bmp", { "image/bmp", false } },
+			{ ".ico", { "image/vnd.microsoft.icon", false } },
+			{ ".svg", { "image/svg+xml", false } },
+			{ ".svgz", { "image/svg+xml", false } },
+			{ ".flv",  { "video/x-flv", false } },
+			{ ".swf", { "application/x-shockwave-flash", false } }
+		};
+
+		std::string contentType ("text/html; charset=utf-8");
 		auto filePath = std::filesystem::path (i2p::fs::GetDataDir ()) / "torrents" / "web";
 		std::string target {req.target ()};
 		if (target.empty () || target.back() == '/')
 			filePath /= "index.html";
 		else
 		{
-
 			std::filesystem::path urlPath (target);
 			filePath /= urlPath.filename ();
+			std::string ext = urlPath.extension ().string ();
+			boost::to_lower (ext);
+			auto it = contentTypes.find (ext);
+			if (it != contentTypes.end ())
+			{
+				bool isText;
+				std::tie (contentType, isText) = it->second;
+				if (isText)
+					contentType += "; charset=utf-8";
+			}
 			if (urlPath.extension () == ".js")
 				contentType = "application/javascript";
 		}
