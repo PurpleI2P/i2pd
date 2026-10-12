@@ -920,7 +920,7 @@ namespace torrents
 
 		boost::beast::error_code ec;
 		boost::beast::http::file_body::value_type body;
-		body.open (filePath.c_str (), boost::beast::file_mode::scan, ec);
+		body.open (filePath.string ().c_str (), boost::beast::file_mode::scan, ec); // we can't use filePath.c_str () on Windows
 		if (ec)
 		{
 			if (ec == boost::beast::errc::no_such_file_or_directory)
