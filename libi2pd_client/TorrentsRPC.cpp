@@ -931,11 +931,14 @@ namespace torrents
 			{ ".swf", { "application/x-shockwave-flash", false } }
 		};
 
-		std::string contentType ("text/html; charset=utf-8");
+		std::string contentType ("");
 		auto filePath = std::filesystem::path (i2p::fs::GetDataDir ()) / "torrents" / "web";
 		std::string target {req.target ()};
 		if (target.empty () || target.back() == '/')
+		{
 			filePath /= "index.html";
+			contentType = "text/html; charset=utf-8";
+		}
 		else
 		{
 			std::filesystem::path urlPath (target);
@@ -995,7 +998,8 @@ namespace torrents
 		m_WebResponse->result (boost::beast::http::status::ok);
 		m_WebResponse->version(11);
 		m_WebResponse->set (boost::beast::http::field::server, "i2pd torrents web");
-		m_WebResponse->set (boost::beast::http::field::content_type, contentType);
+		if (contentType.length())
+			m_WebResponse->set (boost::beast::http::field::content_type, contentType);
 		m_WebResponse->body () = std::move (body);
 		boost::beast::http::async_write (m_Socket, *m_WebResponse,
 			[s = shared_from_this ()](const boost::system::error_code& ecode, size_t bytes_transferred)
