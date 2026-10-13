@@ -1106,7 +1106,9 @@ namespace client
 				// extract streaming params
 				params->Get (I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY, m_StreamingAckDelay);
 				params->Get (I2CP_PARAM_STREAMING_MAX_OUTBOUND_SPEED, m_StreamingOutboundSpeed);
+				m_StreamingOutboundSpeed = std::clamp (m_StreamingOutboundSpeed, (int)i2p::data::LOW_BANDWIDTH_LIMIT, DEFAULT_MAX_OUTBOUND_SPEED);
 				params->Get (I2CP_PARAM_STREAMING_MAX_INBOUND_SPEED, m_StreamingInboundSpeed);
+				m_StreamingInboundSpeed = std::clamp (m_StreamingInboundSpeed, (int)i2p::data::LOW_BANDWIDTH_LIMIT, DEFAULT_MAX_INBOUND_SPEED);
 				params->Get (I2CP_PARAM_STREAMING_MAX_CONCURRENT_STREAMS, m_StreamingMaxConcurrentStreams);
 				params->Get (I2CP_PARAM_STREAMING_MAX_CONNS_PER_MINUTE, m_StreamingMaxConnsPerMinute);
 				if (params->Get (I2CP_PARAM_STREAMING_MAX_WINDOW_SIZE, m_StreamingMaxWindowSize) &&
