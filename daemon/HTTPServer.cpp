@@ -1255,8 +1255,9 @@ namespace http {
 					std::string jsRedir = "this.href = location.protocol + '//' + location.hostname + ':' + " + std::to_string(rpcPort) + " + '" + webPath + "/web/'";
 
 					s << "<a href='http://localhost:" << rpcPort << webPath << "/web/' "
-					<< "onmouseover=\"" << jsRedir << "\" target=\"_blank\" rel=\"noopener noreferrer\""
-					<< "onclick=\"" << jsRedir << "\" target=\"_blank\" rel=\"noopener noreferrer\">"
+					<< "target=\"_blank\" rel=\"noopener noreferrer\" "
+					<< "onmouseover=\"" << jsRedir << "\" "
+					<< "onclick=\"" << jsRedir << "\">"
 					<< " | Web Panel</a>";
 				}
 				s << "</div>\r\n"<< std::endl;
