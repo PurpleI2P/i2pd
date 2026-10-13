@@ -1194,7 +1194,7 @@ namespace stream
 		int32_t lastReceivedSeqn = m_LastReceivedSequenceNumber;
 		// for limit inbound speed
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-		int numPackets = 0;
+		int64_t numPackets = 0;
 		bool lostPackets = false;
 		int64_t passedTime = m_PacketACKInterval * INITIAL_WINDOW_SIZE; // in microseconds // while m_LastACKSendTime == 0
 		if (m_LastACKSendTime)
