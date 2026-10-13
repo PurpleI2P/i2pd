@@ -169,54 +169,9 @@ namespace torrents
 		return bucket;
 	}
 
-	void RoutingTable::RemoveEmptyBuckets ()
-	{
-	/*	if (m_Buckets)
-		{
-			Bucket * bucket = m_Buckets, * prev = nullptr;
-			while (bucket)
-			{
-				bool del = false;
-				if (bucket->IsEmpty ())
-				{
-					if (bucket->next)
-					{
-						// check if 1 bit difference
-						del = true;
-						for (size_t i = 0; i < bucket->start.size (); i++)
-						{
-							if (bucket->start[i] != bucket->next->start[i])
-							{
-								del = bucket->start[i] == (bucket->next->start[i] << 1);
-								break;
-							}
-						}
-						if (del)
-							bucket->next->start = bucket->start;
-					}
-					else
-						del = true;
-				}
-				if (del)
-				{
-					(prev ? prev->next : m_Buckets) = bucket->next;
-					auto tmp = bucket;
-					bucket = bucket->next;
-					delete tmp;
-				}
-				else
-				{
-					prev = bucket;
-					bucket = bucket->next;
-				}
-			}
-		}*/
-	}
-
 	size_t RoutingTable::DeleteExpiredNodes (uint64_t ts)
 	{
 		size_t numDeleted = 0;
-		bool emptyBuckets = false;
 		auto bucket = m_Buckets;
 		while (bucket)
 		{
@@ -234,11 +189,8 @@ namespace torrents
 						it++;
 				}
 			}
-			if (bucket->IsEmpty ()) emptyBuckets = true;
 			bucket = bucket->next;
 		}
-		if (emptyBuckets)
-			RemoveEmptyBuckets ();
 		return numDeleted;
 	}
 
@@ -259,25 +211,26 @@ namespace torrents
 		return toPing;
 	}
 
-	bool RoutingTable::AddNode (std::shared_ptr<Node> node)
+	std::shared_ptr<Node> RoutingTable::AddNode (std::shared_ptr<Node> node)
 	{
-		if (!node) return false;
-		if (node->id == m_OurNode) return false;
+		if (!node) return nullptr;
+		if (node->id == m_OurNode) return nullptr;
 		auto bucket = FindBucket (node->id);
-		if (!bucket) return false;
+		if (!bucket) return nullptr;
 		auto it = bucket->nodes.find (node->id);
 		if (it != bucket->nodes.end ())
 		{
-			it->second = node;
-			bucket->lastUpdateTime = i2p::util::GetMonotonicSeconds ();
-			return false;
+			auto ts = i2p::util::GetMonotonicSeconds ();
+			it->second->lastUpdateTime = ts;
+			bucket->lastUpdateTime = ts;
+			return it->second;
 		}
 		if (bucket->IsFull ())
 		{
 			do
 			{
-				if (!bucket->IsInBucket (m_OurNode)) return false;
-				if (!bucket->Split ()) return false;
+				if (!bucket->IsInBucket (m_OurNode)) return nullptr;
+				if (!bucket->Split ()) return nullptr;
 				bucket = FindBucket (node->id);
 			}
 			while (bucket->IsFull ());
@@ -287,7 +240,7 @@ namespace torrents
 			bucket->nodes.emplace (node->id, node);
 			bucket->lastUpdateTime = i2p::util::GetMonotonicSeconds ();
 		}
-		return true;
+		return node;
 	}
 
 	void RoutingTable::RemoveNode (const NodeID& id)
@@ -295,8 +248,6 @@ namespace torrents
 		auto bucket = FindBucket (id);
 		if (!bucket) return;
 		bucket->nodes.erase (id);
-		if (bucket->IsEmpty ())
-			RemoveEmptyBuckets ();
 	}
 
 	std::list<std::pair<NodeID, Bucket * > > RoutingTable::GetExploratoryTargets (std::mt19937& rng) const
@@ -1101,8 +1052,16 @@ namespace torrents
 			LogPrint (eLogInfo, "TorrentsDHT: Invalid node ID received ", node->id.ToBase64 ());
 			return nullptr;
 		}
-		if (m_RoutingTable && m_RoutingTable->AddNode (node))
-			LogPrint (eLogDebug, "TorrentsDHT: Node ", node->id.ToBase64 (), " added");
+		if (m_RoutingTable)
+		{
+			auto addedNode = m_RoutingTable->AddNode (node);
+			if (addedNode != node)
+				node = addedNode;
+			else
+				LogPrint (eLogDebug, "TorrentsDHT: Node ", node->id.ToBase64 (), " added");
+		}
+		else
+			LogPrint (eLogError, "TorrentsDHT: No routing table");
 		return node;
 	}
 
