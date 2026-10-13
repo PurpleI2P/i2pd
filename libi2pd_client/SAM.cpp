@@ -695,7 +695,7 @@ namespace client
 			else
 			{
 				auto ts = i2p::util::GetSecondsSinceEpoch ();
-				while (!session->acceptQueue.empty () && session->acceptQueue.front ().second + SAM_SESSION_MAX_ACCEPT_INTERVAL > ts)
+				while (!session->acceptQueue.empty () && ts > session->acceptQueue.front ().second + SAM_SESSION_MAX_ACCEPT_INTERVAL)
 				{
 					auto socket = session->acceptQueue.front ().first;
 					session->acceptQueue.pop_front ();
@@ -1282,7 +1282,7 @@ namespace client
 			{
 				// pending acceptors
 				auto ts = i2p::util::GetSecondsSinceEpoch ();
-				while (!session->acceptQueue.empty () && session->acceptQueue.front ().second + SAM_SESSION_MAX_ACCEPT_INTERVAL > ts)
+				while (!session->acceptQueue.empty () && ts > session->acceptQueue.front ().second + SAM_SESSION_MAX_ACCEPT_INTERVAL)
 				{
 					auto socket = session->acceptQueue.front ().first;
 					session->acceptQueue.pop_front ();
