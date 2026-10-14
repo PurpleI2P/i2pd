@@ -127,7 +127,7 @@ namespace turkmen // language namespace
 		{"Start graceful shutdown", "Tekiz durmak"},
 		{"Force shutdown", "Mejbury duralga"},
 		{"Reload external CSS styles", "Daşarky CSS stillerini täzeden ýükläň"},
-		{"<b>Note:</b> any action done here are not persistent and not changes your config files.", "<b>Bellik:</b> Bu ýerde öndürilen islendik çäre hemişelik däl we konfigurasiýa faýllaryňyzy üýtgetmeýär."},
+		{"<b>Note:</b> any action performed here is not persistent and does not change your config files.", "<b>Bellik:</b> Bu ýerde öndürilen islendik çäre hemişelik däl we konfigurasiýa faýllaryňyzy üýtgetmeýär."},
 		{"Logging level", "Giriş derejesi"},
 		{"Transit tunnels limit", "Tranzit tunelleriniň çägi"},
 		{"Change", "Üýtgetmek"},
