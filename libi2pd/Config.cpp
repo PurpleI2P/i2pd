@@ -277,7 +277,6 @@ namespace config {
 				"https://reseed-fr.i2pd.xyz/,"
 				"https://reseed.onion.im/,"
 				"https://i2pseed.creativecowpat.net:8443/,"
-				"https://reseed.i2pgit.org/,"
 				"https://coconut.incognet.io/," // expired cert
 				"https://reseed-pl.i2pd.xyz/,"
 				"https://www2.mk16.de/,"
@@ -286,7 +285,12 @@ namespace config {
             	"https://reseed.sahil.world/,"
             	"https://i2p.diyarciftci.xyz/,"
             	"https://furland.horoshij.space/reseed/,"
-            	"https://spiral.likogan.dev/"
+            	"https://spiral.likogan.dev/,"
+				"https://i2p.ntp.poweredbyberlin.de/,"
+				"https://reseed2.i2pgit.org/,"
+				"https://reseed.kiota.ch/,"
+				"https://sto01.i2p-reseed.hosted-by.skhron.eu/,"
+				"https://waw01.i2p-reseed.hosted-by.skhron.eu/"
 			),                                                            "Reseed URLs, separated by comma")
 			("reseed.yggurls", value<std::string>()->default_value(
 				"http://[324:71e:281a:9ed3::ace]:7070/,"
