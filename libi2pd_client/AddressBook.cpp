@@ -613,21 +613,13 @@ namespace client
 				size_t pos = addr.find('#');
 				if (pos != addr.npos)
 					addr = addr.substr(0, pos); // remove comments
-#if __cplusplus >= 202002L // C++20
 				if (name.ends_with (".b32.i2p"))
-#else
-				if (name.find(".b32.i2p") != name.npos)
-#endif
 				{
 					LogPrint (eLogError, "Addressbook: Skipped adding of b32 address: ", name);
 					continue;
 				}
 
-#if __cplusplus >= 202002L // C++20
 				if (!name.ends_with (".i2p"))
-#else
-				if (name.find(".i2p") == name.npos)
-#endif
 				{
 					LogPrint (eLogError, "Addressbook: Malformed domain: ", name);
 					continue;
@@ -647,12 +639,12 @@ namespace client
 					if (it->second->IsIdentHash () && it->second->identHash != ident->GetIdentHash () && // address changed?
 						ident->GetSigningKeyType () != i2p::data::SIGNING_KEY_TYPE_DSA_SHA1) // don't replace by DSA
 					{
-						it->second->identHash = ident->GetIdentHash ();
 						if (m_Storage)
 						{
 							m_Storage->AddAddress (ident);
 							m_Storage->RemoveAddress (it->second->identHash);
 						}
+						it->second->identHash = ident->GetIdentHash ();
 						LogPrint (eLogInfo, "Addressbook: Updated host: ", name);
 					}
 				}
