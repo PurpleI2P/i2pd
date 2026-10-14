@@ -81,6 +81,9 @@ namespace client
 	const char TORRENTS_TUNNEL_RPC_PORT[] = "rpcport";
 	const char TORRENTS_TUNNEL_RPC_PATH[] = "rpcpath";
 	const char TORRENTS_TUNNEL_RPC_ADDRESS[] = "rpcaddress";
+	const char TORRENTS_TUNNEL_RPC_AUTH[] = "rpcauth";
+	const char TORRENTS_TUNNEL_RPC_USER[] = "rpcuser";
+	const char TORRENTS_TUNNEL_RPC_PASS[] = "rpcpass";
 	const char TORRENTS_TUNNEL_DHT[] = "dht";
 	const char TORRENTS_TUNNEL_WEB[] = "web";
 

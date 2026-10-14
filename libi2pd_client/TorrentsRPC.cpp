@@ -904,6 +904,21 @@ namespace torrents
 			});
 	}
 
+	void TorrentsRPCSession::SendUnauthorizedResponse ()
+	{
+		m_Response.version (11); // HTTP/1.1
+		m_Response.result (boost::beast::http::status::unauthorized);
+		m_Response.set (boost::beast::http::field::server, "i2pd torrents RPC");
+		m_Response.set (boost::beast::http::field::www_authenticate, "Basic realm=\"Transmission\"");
+		m_Response.prepare_payload ();
+		boost::beast::http::async_write (m_Socket, m_Response,
+			[s = shared_from_this ()](const boost::system::error_code& ecode, size_t bytes_transferred)
+			{
+				if (ecode)
+					LogPrint (eLogWarning, "TorrentsRPC: Failed to send response: ", ecode.message ());
+			});
+	}
+
 	void TorrentsRPCSession::HandleWeb (const boost::beast::http::request<boost::beast::http::string_body>& req)
 	{
 		static const std::map<std::string_view, std::pair<std::string_view, bool> > contentTypes =
@@ -940,7 +955,8 @@ namespace torrents
 			subUrlPath++;
 			if (subUrlPath != urlPath.end ())
 			{
-				auto tunnel = m_Server.GetTunnel (std::string ("/") + subUrlPath->string () + "/rpc");
+				std::string tunnelPath { "/" + subUrlPath->string () + "/rpc" };
+				auto tunnel = m_Server.GetTunnel (tunnelPath);
 				if (tunnel && tunnel->SupportsWeb ())
 				{
 					subUrlPath++;
@@ -948,6 +964,12 @@ namespace torrents
 						isPathValid = *subUrlPath == "web";
 					if (isPathValid)
 					{
+						auto [authRequired, authString] = m_Server.GetAuth (tunnelPath);
+						if (authRequired && req[boost::beast::http::field::authorization] != authString)
+						{
+							SendUnauthorizedResponse ();
+							return;
+						}
 						subUrlPath++;
 						fileSubUrl = std::accumulate (subUrlPath, urlPath.end (), std::filesystem::path{}, std::divides{});
 					}
@@ -1005,6 +1027,7 @@ namespace torrents
 		m_WebResponse->set (boost::beast::http::field::server, "i2pd torrents web");
 		if (!contentType.empty ())
 			m_WebResponse->set (boost::beast::http::field::content_type, contentType);
+		m_WebResponse->content_length (body.size());
 		m_WebResponse->body () = std::move (body);
 		boost::beast::http::async_write (m_Socket, *m_WebResponse,
 			[s = shared_from_this ()](const boost::system::error_code& ecode, size_t bytes_transferred)
@@ -1038,7 +1061,8 @@ namespace torrents
 		}
 	}
 
-	void TorrentsRPCServer::AddTunnel (std::string_view path, std::shared_ptr<TorrentsTunnel> tunnel)
+	void TorrentsRPCServer::AddTunnel (std::string_view path, std::shared_ptr<TorrentsTunnel> tunnel,
+		bool auth, const std::string& user, const std::string& pass)
 	{
 		std::string rpcPath ("/");
 		if (!path.empty ())
@@ -1046,8 +1070,13 @@ namespace torrents
 		// insert both pathes rpc and rpc/
 		rpcPath += "rpc";
 		m_Tunnels.emplace (rpcPath, tunnel);
+		if (auth)
+			m_Auth.emplace (rpcPath, i2p::http::CreateBasicAuthorizationString (user, pass));
+
 		rpcPath += "/";
 		m_Tunnels.emplace (rpcPath, tunnel);
+		if (auth)
+			m_Auth.emplace (rpcPath, i2p::http::CreateBasicAuthorizationString (user, pass));
 	}
 
 	std::pair<boost::asio::ip::tcp::endpoint, std::string> TorrentsRPCServer::GetTunnelEndpoint (std::shared_ptr<TorrentsTunnel> tunnel) const
@@ -1068,6 +1097,14 @@ namespace torrents
 		if (it != m_Tunnels.end ())
 			return it->second.lock ();
 		return nullptr;
+	}
+
+	std::pair<bool, std::string>  TorrentsRPCServer::GetAuth (std::string_view path) const
+	{
+		auto it = m_Auth.find (path);
+		if (it == m_Auth.end ())
+			return { false, "" };
+		return { true, it->second };
 	}
 
 	void TorrentsRPCServer::Accept ()

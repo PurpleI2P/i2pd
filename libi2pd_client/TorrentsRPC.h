@@ -39,6 +39,7 @@ namespace torrents
 
 			void HandleRequest (const boost::system::error_code& ecode, size_t bytes_transferred);
 			void SendResponse (boost::beast::http::status result, std::string_view data = "", bool isOptions = false);
+			void SendUnauthorizedResponse ();
 
 			void HandleWeb (const boost::beast::http::request<boost::beast::http::string_body>& req);
 
@@ -62,13 +63,16 @@ namespace torrents
 			void Start ();
 			void Stop ();
 
-			void AddTunnel (std::string_view path, std::shared_ptr<TorrentsTunnel> tunnel);
+			void AddTunnel (std::string_view path, std::shared_ptr<TorrentsTunnel> tunnel,
+				bool auth = false, const std::string& user = "", const std::string& pass = "");
 			std::shared_ptr<TorrentsTunnel> GetTunnel (std::string_view path) const;
+			std::pair<bool, std::string> GetAuth (std::string_view path) const; // return (requered, auth string)
 
 			std::pair<boost::asio::ip::tcp::endpoint, std::string> GetTunnelEndpoint (std::shared_ptr<TorrentsTunnel> tunnel) const;
 
 			const auto& GetTunnels() const { return m_Tunnels; }
 			const auto& GetAcceptor() const { return m_Acceptor; }
+
 		private:
 
 			void Accept ();
@@ -77,6 +81,7 @@ namespace torrents
 
 			boost::asio::ip::tcp::acceptor m_Acceptor;
 			std::map<std::string, std::weak_ptr<TorrentsTunnel>, std::less<> > m_Tunnels; // path->tunnel
+			std::map<std::string, std::string, std::less<> > m_Auth; // path-> basic authorization string
 	};
 }
 }

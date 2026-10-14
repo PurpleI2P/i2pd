@@ -1094,7 +1094,14 @@ namespace client
 							if (server)
 							{
 								auto path = section.second.get<std::string> (TORRENTS_TUNNEL_RPC_PATH, "");
-								server->AddTunnel (path, torrentsTunnel);
+								auto auth = section.second.get<bool> (TORRENTS_TUNNEL_RPC_AUTH, false);
+								std::string user, pass;
+								if (auth)
+								{
+									user = section.second.get<std::string> (TORRENTS_TUNNEL_RPC_USER, "");
+									pass = section.second.get<std::string> (TORRENTS_TUNNEL_RPC_PASS, "");
+								}
+								server->AddTunnel (path, torrentsTunnel, auth, user, pass);
 							}
 						}
 					}
