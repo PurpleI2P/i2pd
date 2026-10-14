@@ -96,7 +96,6 @@ namespace http {
 	const char HTTP_COMMAND_RELOAD_CSS[] = "reload_css";
 	const char HTTP_COMMAND_EXPIRELEASE[] = "expirelease";
 
-	const char OPENJS_TORRENT_CLIENT_PAGE[] = "torrent_client_open";
 	static std::string ConvertTime (uint64_t time)
 	{
 		struct tm caltime;
@@ -1267,71 +1266,6 @@ namespace http {
 #endif
 	}
 
-	static void ShowTorrentsPage (std::stringstream& s, std::map<std::string, std::string>& params)
-	{
-#ifndef NO_TORRENTS
-		bool js; i2p::config::GetOption("http.javascript", js);
-		if (!js)
-		{
-			s << "<h1 style='color:red'>Javascript is off</h1>\r\n";
-			return;
-		}
-		std::string tunnelname = params["tunnelname"];
-		auto findTunnelEndpoint = [](const std::string& tunnelname) -> std::pair<uint16_t, std::string>
-		{
-			LogPrint(eLogDebug,"HTTPServer: GetTorrentsRPC");
-			for (auto& [port, server] : i2p::client::context.GetTorrentsRPCServers())
-			{
-				if (!server)
-				{
-					LogPrint(eLogError,"HTTPServer: GetTorrentsRPCServers return nothing");
-					continue;
-				}
-				for (const auto& [rpcPath, weakTunnel] : server->GetTunnels())
-				{
-					if (auto tunnel = weakTunnel.lock())
-					{
-						LogPrint(eLogDebug, "HTTPServer: TUNNEL_OPENJS", tunnel->GetName());
-						if (tunnel->GetName() == tunnelname)
-						{
-							uint16_t rpcPort = server->GetAcceptor().local_endpoint().port();
-							return { rpcPort, rpcPath };
-						}
-					}
-				}
-			}
-			return { 0, "" };
-		};
-		auto [rpcPort, rpcPath] = findTunnelEndpoint(tunnelname);
-		if (rpcPort && rpcPath.length())
-		{
-			std::string tjs_file = i2p::fs::DataDirPath("webconsole/torrent-rpc.js");
-			std::string tclient_file = i2p::fs::DataDirPath("webconsole/torrent_client.html");
-			if (i2p::fs::Exists(tjs_file))
-			{
-				std::ifstream f(tjs_file, std::ifstream::binary);
-				std::stringstream tjsss;
-				tjsss << f.rdbuf();
-				s << "<script>" << tjsss.str() << "</script>\r\n";
-				s << "<script>window.tjs = new TorrentClient('127.0.0.1', " << rpcPort << ", '" << rpcPath << "');</script>\r\n";
-			}
-			else
-				s << "<h1 style='color:red'>Not found $datadir/webconsole/torrent-rpc.js</h1>\r\n";
-			if (i2p::fs::Exists(tclient_file))
-			{
-				std::ifstream f(tclient_file, std::ifstream::binary);
-				s << f.rdbuf() << "\r\n";
-			}
-			else
-				s << "<h1 style='color:red'>Not found $datadir/webconsole/torrent_client.html</h1>\r\n";
-		}
-		else
-			s << "<h1 style='color:red'>Not found rpc tunnel " << tunnelname << "</h1>\r\n";
-#else
-		s << "<h1 style='color:red'>Torrents are not supported</h1>\r\n";
-#endif
-	}
-
 	HTTPConnection::HTTPConnection (std::string hostname, std::shared_ptr<boost::asio::ip::tcp::socket> socket):
 		m_Socket (socket), m_BufferLen (0), expected_host(hostname)
 	{
@@ -1521,8 +1455,6 @@ namespace http {
 			ShowSAMSession (s, params["sam_id"]);
 		else if (page == HTTP_PAGE_I2P_TUNNELS)
 			ShowI2PTunnels (s);
-		else if (page == OPENJS_TORRENT_CLIENT_PAGE)
-			ShowTorrentsPage (s, params);
 		else if (page == HTTP_PAGE_LEASESETS)
 			ShowLeasesSets(s);
         	else {
