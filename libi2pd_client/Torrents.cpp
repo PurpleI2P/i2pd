@@ -259,6 +259,8 @@ namespace torrents
 				mode |= std::ios::out;
 			}
 			m_File.open (filePath, mode);
+			if (!m_File.is_open ())
+				LogPrint (eLogError, "Torrents: Can't open file ", filePath, " : ", std::strerror (errno));
 		}
 		auto ts = i2p::util::GetMonotonicSeconds ();
 		if (ts > m_LastFlushTime + TORRENT_FILE_FLUSH_INTERVAL)
