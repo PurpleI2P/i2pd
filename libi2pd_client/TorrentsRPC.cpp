@@ -931,42 +931,47 @@ namespace torrents
 			{ ".swf", { "application/x-shockwave-flash", false } }
 		};
 
+		std::string target {req.target ()};
+		std::filesystem::path urlPath (target), fileSubUrl;
+		bool isPathValid = false;
+		auto subUrlPath = urlPath.begin ();
+		if (subUrlPath != urlPath.end () && *subUrlPath == "/")
+		{
+			subUrlPath++;
+			if (subUrlPath != urlPath.end ())
+			{
+				auto tunnel = m_Server.GetTunnel (std::string ("/") + subUrlPath->string () + "/rpc");
+				if (tunnel && tunnel->SupportsWeb ())
+				{
+					subUrlPath++;
+					if (subUrlPath != urlPath.end ())
+						isPathValid = *subUrlPath == "web";
+					if (isPathValid)
+					{
+						subUrlPath++;
+						fileSubUrl = std::accumulate (subUrlPath, urlPath.end (), std::filesystem::path{}, std::divides{});
+					}
+				}
+				else
+					LogPrint (eLogDebug, "TorrentsRPC: Tunnel not found or web is not supported ", subUrlPath->string ());
+			}
+		}
+		if (!isPathValid || fileSubUrl.string ().find ("..") != std::string::npos)
+		{
+			SendResponse (boost::beast::http::status::forbidden);
+			return;
+		}
+
 		std::string contentType ("");
 		auto filePath = std::filesystem::path (i2p::fs::GetDataDir ()) / "torrents" / "web";
-		std::string target {req.target ()};
-		if (target.empty () || target.back() == '/')
+		if (fileSubUrl.empty ())
 		{
 			filePath /= "index.html";
 			contentType = "text/html; charset=utf-8";
 		}
 		else
 		{
-			std::filesystem::path urlPath (target);
-			bool isPathValid = false;
-			auto subUrlPath = urlPath.begin ();
-			if (subUrlPath != urlPath.end () && *subUrlPath == "/")
-			{
-				subUrlPath++;
-				if (subUrlPath != urlPath.end ())
-				{
-					auto tunnel = m_Server.GetTunnel (std::string ("/") + subUrlPath->string () + "/rpc");
-					if (tunnel && tunnel->SupportsWeb ())
-					{
-						subUrlPath++;
-						if (subUrlPath != urlPath.end ())
-							isPathValid = *subUrlPath == "web";
-					}
-					else
-						LogPrint (eLogDebug, "TorrentsRPC: Tunnel not found or web is not supported ", subUrlPath->string ());
-				}
-			}
-			if (!isPathValid)
-			{
-				SendResponse (boost::beast::http::status::forbidden);
-				return;
-			}
-
-			filePath /= urlPath.filename ();
+			filePath /= fileSubUrl;
 			std::string ext = urlPath.extension ().string ();
 			boost::to_lower (ext);
 			auto it = contentTypes.find (ext);
@@ -998,7 +1003,7 @@ namespace torrents
 		m_WebResponse->result (boost::beast::http::status::ok);
 		m_WebResponse->version(11);
 		m_WebResponse->set (boost::beast::http::field::server, "i2pd torrents web");
-		if (contentType.length())
+		if (!contentType.empty ())
 			m_WebResponse->set (boost::beast::http::field::content_type, contentType);
 		m_WebResponse->body () = std::move (body);
 		boost::beast::http::async_write (m_Socket, *m_WebResponse,
