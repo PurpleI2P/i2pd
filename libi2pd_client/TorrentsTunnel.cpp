@@ -551,6 +551,21 @@ namespace torrents
 			it->Close ();
 	}
 
+	void TorrentsTunnel::StopAllTorrents ()
+	{
+		std::list<std::shared_ptr<Torrent> > torrentsToStop;
+		{
+			std::lock_guard<std::mutex> l(m_TorrentsMutex);
+			for (const auto& it: m_Torrents)
+				torrentsToStop.push_back (it.second);
+		}
+		boost::asio::post (GetService (), [this, torrentsToStop = std::move (torrentsToStop)]()
+		{
+			for (auto it: torrentsToStop) // TODO: announce with random intervals
+				StopTorrent (it);
+		});
+	}
+
 	bool TorrentsTunnel::StartTorrent (int id)
 	{
 		std::shared_ptr<Torrent> torrent;
@@ -570,6 +585,24 @@ namespace torrents
 		return true;
 	}
 
+	void TorrentsTunnel::StartAllTorrents ()
+	{
+		std::list<std::shared_ptr<Torrent> > torrentsToStart;
+		{
+			std::lock_guard<std::mutex> l(m_TorrentsMutex);
+			for (const auto& it: m_Torrents)
+				torrentsToStart.push_back (it.second);
+		}
+		boost::asio::post (GetService (), [this, torrentsToStart = std::move (torrentsToStart)]()
+		{
+			for (auto it: torrentsToStart) // TODO: announce with random intervals
+			{
+				it->SetStopped (false);
+				RequestTorrentTrackers (it, eTrackerAnnounceEventStarted);
+			}
+		});
+	}
+
 	bool TorrentsTunnel::ReannounceTorrent (int id)
 	{
 		std::shared_ptr<Torrent> torrent;
@@ -586,6 +619,24 @@ namespace torrents
 				if (m_DHT) m_DHT->GetPeersAndAnnounce (torrent);
 			});
 		return true;
+	}
+
+	void TorrentsTunnel::ReannounceAllTorrents ()
+	{
+		std::list<std::shared_ptr<Torrent> > torrentsToReannounce;
+		{
+			std::lock_guard<std::mutex> l(m_TorrentsMutex);
+			for (const auto& it: m_Torrents)
+				torrentsToReannounce.push_back (it.second);
+		}
+		boost::asio::post (GetService (), [this, torrentsToReannounce = std::move (torrentsToReannounce)]()
+		{
+			for (auto it: torrentsToReannounce) // TODO: announce with random intervals
+			{
+				RequestTorrentTrackers (it, eTrackerAnnounceEventNone);
+				if (m_DHT) m_DHT->GetPeersAndAnnounce (it);
+			}
+		});
 	}
 
 	void TorrentsTunnel::UpdateTorrentInfo (std::shared_ptr<Torrent> torrent, std::string_view info)

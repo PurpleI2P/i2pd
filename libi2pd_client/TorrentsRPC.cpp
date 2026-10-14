@@ -274,10 +274,8 @@ namespace torrents
 			deleteFiles = arguments.at ("delete-local-data").as_bool ();
 		auto torrentIds = GetTorrentIds (arguments);
 		if (!torrentIds.empty ())
-		{
 			for (auto id: torrentIds)
 				m_Tunnel->RemoveTorrent (id, deleteFiles);
- 		}
  		else
 			m_Tunnel->RemoveAllTorrents (deleteFiles);
 		boost::json::object response; // always empty
@@ -288,8 +286,11 @@ namespace torrents
 	{
 		auto arguments = jsonRequest.at ("arguments").as_object ();
 		auto torrentIds = GetTorrentIds (arguments);
-		for (auto id: torrentIds)
-			m_Tunnel->ReannounceTorrent (id);
+		if (!torrentIds.empty ())
+			for (auto id: torrentIds)
+				m_Tunnel->ReannounceTorrent (id);
+		else
+			m_Tunnel->ReannounceAllTorrents ();
 		boost::json::object response; // always empty
 		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}
@@ -725,8 +726,12 @@ namespace torrents
 	std::string JSONRPCHandler::HandleTorrentStop (boost::json::object&& jsonRequest)
 	{
 		auto arguments = jsonRequest.at ("arguments").as_object ();
-		for (auto id: GetTorrentIds (arguments))
- 			m_Tunnel->StopTorrent (id);
+		auto torrentIds = GetTorrentIds (arguments);
+		if (!torrentIds.empty ())
+			for (auto id: torrentIds)
+				m_Tunnel->StopTorrent (id);
+ 		else
+			m_Tunnel->StopAllTorrents ();
 		boost::json::object response; // always empty
 		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}
@@ -734,8 +739,12 @@ namespace torrents
 	std::string JSONRPCHandler::HandleTorrentStart (boost::json::object&& jsonRequest)
 	{
 		auto arguments = jsonRequest.at ("arguments").as_object ();
-		for (auto id: GetTorrentIds (arguments))
- 			m_Tunnel->StartTorrent (id);
+		auto torrentIds = GetTorrentIds (arguments);
+		if (!torrentIds.empty ())
+			for (auto id: torrentIds)
+				m_Tunnel->StartTorrent (id);
+		else
+			m_Tunnel->StartAllTorrents ();
 		boost::json::object response; // always empty
 		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}
