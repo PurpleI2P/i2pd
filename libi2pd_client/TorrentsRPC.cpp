@@ -848,6 +848,13 @@ namespace torrents
 					auto tunnel = m_Server.GetTunnel ( {path.data (), path.size ()}); // boost::beast::string_view to std::string_view
 					if (tunnel)
 					{
+						auto [authRequired, authString] = m_Server.GetAuth ({path.data (), path.size ()});
+						if (authRequired && request[boost::beast::http::field::authorization] != authString)
+						{
+							SendUnauthorizedResponse ();
+							return;
+						}
+
 						static constexpr std::string_view appjson { "application/json" };
 						if (request[boost::beast::http::field::content_type].starts_with (appjson) || // starts with
 							request[boost::beast::http::field::content_type] == "application/x-www-form-urlencoded")
@@ -909,7 +916,7 @@ namespace torrents
 		m_Response.version (11); // HTTP/1.1
 		m_Response.result (boost::beast::http::status::unauthorized);
 		m_Response.set (boost::beast::http::field::server, "i2pd torrents RPC");
-		m_Response.set (boost::beast::http::field::www_authenticate, "Basic realm=\"Transmission\"");
+		m_Response.set (boost::beast::http::field::www_authenticate, "Basic realm=\"i2pd torrents RPC\"");
 		m_Response.prepare_payload ();
 		boost::beast::http::async_write (m_Socket, m_Response,
 			[s = shared_from_this ()](const boost::system::error_code& ecode, size_t bytes_transferred)
@@ -964,12 +971,6 @@ namespace torrents
 						isPathValid = *subUrlPath == "web";
 					if (isPathValid)
 					{
-						auto [authRequired, authString] = m_Server.GetAuth (tunnelPath);
-						if (authRequired && req[boost::beast::http::field::authorization] != authString)
-						{
-							SendUnauthorizedResponse ();
-							return;
-						}
 						subUrlPath++;
 						fileSubUrl = std::accumulate (subUrlPath, urlPath.end (), std::filesystem::path{}, std::divides{});
 					}
