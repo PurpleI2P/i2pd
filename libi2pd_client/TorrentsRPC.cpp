@@ -988,7 +988,7 @@ namespace torrents
 					LogPrint (eLogDebug, "TorrentsRPC: Tunnel not found or web is not supported ", subUrlPath->string ());
 			}
 		}
-		if (!isPathValid || fileSubUrl.string ().find ("..") != std::string::npos)
+		if (!isPathValid || fileSubUrl.string ().find ("..") != std::string::npos || fileSubUrl == ".")
 		{
 			SendResponse (boost::beast::http::status::forbidden);
 			return;
