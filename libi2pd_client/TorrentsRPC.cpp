@@ -968,24 +968,36 @@ namespace torrents
 		auto subUrlPath = urlPath.begin ();
 		if (subUrlPath != urlPath.end () && *subUrlPath == "/")
 		{
+			std::string tunnelPath ("/");
 			subUrlPath++;
 			if (subUrlPath != urlPath.end ())
 			{
-				std::string tunnelPath { "/" + subUrlPath->string () + "/rpc" };
+				if (*subUrlPath != "web")
+				{
+					tunnelPath += subUrlPath->string () + "/rpc";
+					subUrlPath++;
+					if (subUrlPath != urlPath.end ())
+						isPathValid = *subUrlPath == "web";
+				}
+				else
+				{
+					isPathValid = true;
+					tunnelPath += "rpc";
+				}
+			}
+			if (isPathValid)
+			{
 				auto tunnel = m_Server.GetTunnel (tunnelPath);
 				if (tunnel && tunnel->SupportsWeb ())
 				{
 					subUrlPath++;
-					if (subUrlPath != urlPath.end ())
-						isPathValid = *subUrlPath == "web";
-					if (isPathValid)
-					{
-						subUrlPath++;
-						fileSubUrl = std::accumulate (subUrlPath, urlPath.end (), std::filesystem::path{}, std::divides{});
-					}
+					fileSubUrl = std::accumulate (subUrlPath, urlPath.end (), std::filesystem::path{}, std::divides{});
 				}
 				else
-					LogPrint (eLogDebug, "TorrentsRPC: Tunnel not found or web is not supported ", subUrlPath->string ());
+				{
+					LogPrint (eLogDebug, "TorrentsRPC: Tunnel not found or web is not supported ", tunnelPath);
+					isPathValid = false;
+				}
 			}
 		}
 		if (!isPathValid || fileSubUrl.string ().find ("..") != std::string::npos || fileSubUrl == ".")
