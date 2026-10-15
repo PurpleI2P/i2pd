@@ -290,7 +290,7 @@ namespace torrents
 			else
 				it++;
 		}
-		return m_Peers.empty ();;
+		return m_Peers.empty ();
 	}
 
 	bool RequestInfo::AddNode (std::shared_ptr<Node> node)
