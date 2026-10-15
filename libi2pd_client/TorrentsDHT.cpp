@@ -316,11 +316,10 @@ namespace torrents
 		return node;
 	}
 
-	TorrentsDHT::TorrentsDHT (TorrentsTunnel& tunnel, uint16_t port):
-		m_Tunnel (tunnel), m_DHTUpdateCheckTimer (tunnel.GetService ()),
-		m_DHTExpirationCheckTimer (tunnel.GetService ()),
-		m_DHTSendPingCheckTimer (tunnel.GetService ()),
-		m_DHTQueryExpirationCheckTimer (tunnel.GetService ()), m_Port (port),
+	TorrentsDHT::TorrentsDHT (TorrentsTunnel& tunnel, uint16_t port, std::string_view dhtFileName):
+		m_Tunnel (tunnel), m_Port (port), m_DHTFileName (dhtFileName),
+		m_DHTUpdateCheckTimer (tunnel.GetService ()), m_DHTExpirationCheckTimer (tunnel.GetService ()),
+		m_DHTSendPingCheckTimer (tunnel.GetService ()), m_DHTQueryExpirationCheckTimer (tunnel.GetService ()),
 		m_NextDHTExploratoryTime (i2p::util::GetMonotonicSeconds () + DHT_INITIAL_EXPLORATORY_INTERVAL)
 	{
 		auto dest = tunnel.GetLocalDestination ();
@@ -338,16 +337,17 @@ namespace torrents
 
 	void TorrentsDHT::Start ()
 	{
-		std::string filename ("nodest");
 		auto dest = m_Tunnel.GetLocalDestination ();
 		if (dest)
 		{
 			auto dgramDest = dest->GetDatagramDestination ();
 			if (dgramDest)
 				dgramDest->SetReceiver (std::bind_front (&TorrentsDHT::HandleDatagram, this));
-			filename = dest->GetIdentHash ().ToBase32 ();
+			if (m_DHTFileName.empty ())
+				m_DHTFileName = dest->GetIdentHash ().ToBase32 () + ".dht";
 		}
-		Load (GetDHTFilePath (filename));
+		if (m_DHTFileName.empty ()) m_DHTFileName = "nodest.dht";
+		Load (GetDHTFilePath (m_DHTFileName));
 		ScheduleDHTUpdateCheck ();
 		ScheduleDHTExpirationCheck ();
 		ScheduleDHTSendPingCheck ();
@@ -360,16 +360,7 @@ namespace torrents
 		m_DHTExpirationCheckTimer.cancel ();
 		m_DHTSendPingCheckTimer.cancel ();
 		m_DHTQueryExpirationCheckTimer.cancel ();
-		std::string filename ("nodest");
-		auto dest = m_Tunnel.GetLocalDestination ();
-		if (dest)
-		{
-			auto dgramDest = dest->GetDatagramDestination ();
-			if (dgramDest)
-				dgramDest->ResetReceiver ();
-			filename = dest->GetIdentHash ().ToBase32 ();
-		}
-		Save (GetDHTFilePath (filename));
+		Save (GetDHTFilePath (m_DHTFileName));
 	}
 
 	std::filesystem::path TorrentsDHT::GetDHTFilePath (std::string_view filename) const
@@ -377,7 +368,7 @@ namespace torrents
 		std::filesystem::path dhtFilePath (i2p::fs::GetDataDir()); dhtFilePath /= "torrents";
 		if (!std::filesystem::exists (dhtFilePath))
 			std::filesystem::create_directories (dhtFilePath);
-		dhtFilePath /= filename; dhtFilePath += ".dht";
+		dhtFilePath /= filename;
 		return dhtFilePath;
 	}
 

@@ -222,7 +222,7 @@ namespace torrents
 	{
 		public:
 
-			TorrentsDHT (TorrentsTunnel& tunnel, uint16_t port);
+			TorrentsDHT (TorrentsTunnel& tunnel, uint16_t port, std::string_view dhtFileName);
 
 			void Start ();
 			void Stop ();
@@ -299,10 +299,11 @@ namespace torrents
 		private:
 
 			TorrentsTunnel& m_Tunnel;
+			uint16_t m_Port;
+			std::string m_DHTFileName;
+			NodeID m_NodeID;
 			boost::asio::steady_timer m_DHTUpdateCheckTimer, m_DHTExpirationCheckTimer,
 				m_DHTSendPingCheckTimer, m_DHTQueryExpirationCheckTimer;
-			uint16_t m_Port;
-			NodeID m_NodeID;
 			std::unique_ptr<RoutingTable> m_RoutingTable;
 			std::map<NodeID, uint64_t> m_HeardFrom; // nodeid -> time in monotonic seconds
 			std::unordered_map<i2p::data::IdentHash, uint64_t> m_FailedPeers; // peer -> failure time in monotonic seconds

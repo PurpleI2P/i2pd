@@ -85,6 +85,7 @@ namespace client
 	const char TORRENTS_TUNNEL_RPC_USER[] = "rpcuser";
 	const char TORRENTS_TUNNEL_RPC_PASS[] = "rpcpass";
 	const char TORRENTS_TUNNEL_DHT[] = "dht";
+	const char TORRENTS_TUNNEL_DHT_FILE[] = "dhtfile";
 	const char TORRENTS_TUNNEL_WEB[] = "web";
 
 	constexpr int STOP_DESTINATIONS_TIMEOUT = 8; // in seconds

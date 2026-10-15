@@ -91,7 +91,8 @@ namespace torrents
 		public:
 
 			TorrentsTunnel (std::string_view name, std::shared_ptr<i2p::client::ClientDestination> localDestination,
-				std::string_view torrentsDir, std::string_view trackers = "", bool dht = true, bool web = true);
+				std::string_view torrentsDir, std::string_view trackers = "", bool dht = true, std::string_view dhtFileName = "",
+				bool web = true);
 
 			void Start () override;
 			void Stop () override;
