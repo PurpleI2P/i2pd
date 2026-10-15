@@ -50,9 +50,9 @@ namespace torrents
 	constexpr int DHT_BUCKET_EXPIRATION_THRESHOLD = 290; // in seconds
 	constexpr int DHT_TORRENT_PEER_EXPIRATION_TIME = 3*3600; // in seconds
 	constexpr int DHT_INCOMING_GET_PEERS_TOKEN_EXPIRATION_TIME = 600; // in seconds
-	constexpr int DHT_HEARD_FROM_EXPIRATION_TIME = 290; // in seconds
+	constexpr int DHT_HEARD_FROM_EXPIRATION_TIME = 330; // in seconds
 	constexpr int DHT_QUERY_EXPIRATION_TIME = 25; // in seconds
-	constexpr int DHT_PEER_FAILURE_INTERVAL = 100; // in seconds
+	constexpr int DHT_PEER_FAILURE_INTERVAL = 250; // in seconds
 	constexpr int DHT_MAX_NUM_GET_PEERS_ATTEMPTS = 22;
 	constexpr int DHT_MAX_NUM_FIND_NODE_ATTEMPTS = 8;
 	constexpr int DHT_MAX_NUM_CLOSEST_NODES_TO_ANNOUNCE = 4;

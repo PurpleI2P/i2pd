@@ -988,8 +988,10 @@ namespace torrents
 		if (!info->IsDone () && m_RoutingTable)
 		{
 			auto nextNode = info->GetNextNode ();
+			auto numAttempts = info->numAttempts;
 			while (nextNode && m_FailedPeers.contains (nextNode->peer) && !m_HeardFrom.contains (nextNode->id)) // skip failed peers
 				nextNode = info->GetNextNode ();
+			info->numAttempts = numAttempts;
 			if (nextNode)
 				SendFindNodeQuery (info, nextNode->peer, nextNode->port);
 			else
