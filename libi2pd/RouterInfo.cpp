@@ -1205,7 +1205,7 @@ namespace data
 	{
 		auto transports = m_SupportedTransports & other.m_SupportedTransports;
 		if (!transports) return false;
-		auto addresses1 = GetAddresses (), addresses2 = other.GetAddresses ();;
+		auto addresses1 = GetAddresses (), addresses2 = other.GetAddresses ();
 		for (int i = 0; i < eNumTransports; i++)
 			if (i != eNTCP2V6MeshIdx && (transports & (1 << i)))
 			{

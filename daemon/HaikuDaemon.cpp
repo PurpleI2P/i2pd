@@ -171,7 +171,7 @@ void MainWindow :: DrawTunnel(std::stringstream & s)
 		m_tab_view->RemoveTab(m_tab_view->CountTabs() - 1);
 	}
 	m_counter_streams = 0;
-	//std::cout << "Draw List View" << std::endl;;
+	//std::cout << "Draw List View" << std::endl;
 	if(!dest)
 	{
 		s << "Can't found local dest\r\n";
