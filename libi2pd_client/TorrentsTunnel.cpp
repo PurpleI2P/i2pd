@@ -257,13 +257,19 @@ namespace torrents
 					it->Close (); // make sure file is closed before renaming
 					std::error_code ec;
 					std::filesystem::rename (partFilePath, it->GetFullFilePath (), ec);
-					if (ec)
+					if (!ec)
+						it->Complete ();
+					else
 					{
 						completed = false;
 						LogPrint (eLogError, "TorrentsTunnel: Can't rename ", partFilePath);
 					}
 				}
-				if (completed) it->Complete ();
+				else
+				{
+					LogPrint (eLogError, "TorrentsTunnel: ", partFilePath, " doesn't exist");
+					it->Complete ();
+				}
 			}
 
 			if (completed)
