@@ -137,7 +137,7 @@ namespace torrents
 
 			std::shared_ptr<Node> AddNode (std::shared_ptr<Node> node);
 			void RemoveNode (const NodeID& id);
-			std::list<std::pair<NodeID, Bucket * > > GetExploratoryTargets (std::mt19937& rng) const; // (target, node to send find_node to)
+			std::list<std::pair<NodeID, Bucket * > > GetExploratoryTargets (std::mt19937& rng, uint64_t ts); // (target, node to send find_node to)
 			size_t DeleteExpiredNodes (uint64_t ts);
 			std::list<std::shared_ptr<Node> > GetNodesToPing (uint64_t ts);
 

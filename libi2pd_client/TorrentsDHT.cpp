@@ -250,12 +250,22 @@ namespace torrents
 		bucket->nodes.erase (id);
 	}
 
-	std::list<std::pair<NodeID, Bucket * > > RoutingTable::GetExploratoryTargets (std::mt19937& rng) const
+	std::list<std::pair<NodeID, Bucket * > > RoutingTable::GetExploratoryTargets (std::mt19937& rng, uint64_t ts)
 	{
 		std::list<std::pair<NodeID, Bucket * > > ret;
 		auto bucket = m_Buckets;
 		while (bucket)
 		{
+			if (bucket->IsFull ())
+			{
+				// delete one node about to expire
+				for (auto it = bucket->nodes.begin (); it != bucket->nodes.end (); it++)
+					if (ts > it->second->lastUpdateTime + DHT_NODE_SEND_PING_TIME)
+					{
+						bucket->nodes.erase (it);
+						break;
+					}
+			}
 			if (!bucket->IsFull () || bucket->IsInBucket (m_OurNode))
 				ret.emplace_back (std::make_pair (bucket->GetRandomID (rng), bucket));
 			bucket = bucket->next;
@@ -1017,7 +1027,8 @@ namespace torrents
 	{
 		if (m_RoutingTable && m_Tunnel.GetLocalDestination ())
 		{
-			auto targets = m_RoutingTable->GetExploratoryTargets (m_Tunnel.GetLocalDestination ()->GetRng ());
+			auto targets = m_RoutingTable->GetExploratoryTargets (m_Tunnel.GetLocalDestination ()->GetRng (),
+				i2p::util::GetMonotonicSeconds ());
 			for (auto [target, bucket]: targets)
 			{
 				auto request = std::make_shared<RequestInfo>(nullptr, DHT_MAX_NUM_FIND_NODE_ATTEMPTS);
