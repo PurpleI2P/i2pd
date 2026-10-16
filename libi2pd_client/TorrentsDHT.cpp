@@ -378,7 +378,8 @@ namespace torrents
 				m_DHTFileName = dest->GetIdentHash ().ToBase32 () + ".dht";
 		}
 		if (m_DHTFileName.empty ()) m_DHTFileName = "nodest.dht";
-		Load (GetDHTFilePath (m_DHTFileName));
+		if (m_DHTFileName[0]) // first byte zero means non persistent
+			Load (GetDHTFilePath (m_DHTFileName));
 		ScheduleDHTUpdateCheck ();
 		ScheduleDHTExpirationCheck ();
 		ScheduleDHTSendPingCheck ();
@@ -391,7 +392,8 @@ namespace torrents
 		m_DHTExpirationCheckTimer.cancel ();
 		m_DHTSendPingCheckTimer.cancel ();
 		m_DHTQueryExpirationCheckTimer.cancel ();
-		Save (GetDHTFilePath (m_DHTFileName));
+		if (m_DHTFileName[0]) // first byte zero means non persistent
+			Save (GetDHTFilePath (m_DHTFileName));
 	}
 
 	std::filesystem::path TorrentsDHT::GetDHTFilePath (std::string_view filename) const

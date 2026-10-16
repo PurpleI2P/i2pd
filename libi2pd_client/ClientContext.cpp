@@ -289,12 +289,7 @@ namespace client
 	bool ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, std::string_view filename,
 		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType)
 	{
-#if __cplusplus >= 202002L // C++20
 		if (filename.starts_with ("transient"))
-#else
-		std::string_view transient("transient");
-		if (!filename.compare (0, transient.length (), transient)) // starts with transient
-#endif
 		{
 			keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType, true);
 			LogPrint (eLogInfo, "Clients: New transient keys address ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " created");
@@ -1050,6 +1045,11 @@ namespace client
 					bool dht = section.second.get<bool> (TORRENTS_TUNNEL_DHT, true);
 					std::string dhtFileName = section.second.get<std::string> (TORRENTS_TUNNEL_DHT_FILE, "");
 					bool web = section.second.get<bool> (TORRENTS_TUNNEL_WEB, true);
+					if (dhtFileName.empty () && keys.starts_with ("transient"))
+					{
+						// finename with zero in first byte means non persistent
+						dhtFileName.resize (1); dhtFileName[0] = '\x00';
+					}
 
 					// I2CP
 					i2p::util::Mapping options;
