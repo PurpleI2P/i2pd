@@ -844,7 +844,8 @@ namespace net
 				address_pair_v6("fe80::",     "febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
 				address_pair_v6("ff00::",     "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
 				address_pair_v6("::",         "::"),
-				address_pair_v6("::1",        "::1")
+				address_pair_v6("::1",        "::1"),
+				address_pair_v6("::ffff:0:0", "::ffff:ffff:ffff") // IPv4-mapped
 			};
 
 			boost::asio::ip::address_v6::bytes_type ipv6_address = host.to_v6 ().to_bytes ();
