@@ -20,6 +20,7 @@
 #include <boost/algorithm/string.hpp>
 #include <vector>
 #include <array>
+#include <numeric>
 #include <functional>
 #include <filesystem>
 #include "Base.h"
