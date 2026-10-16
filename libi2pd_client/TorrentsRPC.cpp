@@ -543,14 +543,14 @@ namespace torrents
 				peer["port"] = TORRENT_PORT;
 				peer["identHash"] = identHashStr;
 				peer["clientName"] = it->GetRemoteName ().empty () ? RecognizeClientByPeerID (it->GetRemotePeerID ()) : it->GetRemoteName ();
-				peer["isDowloadingFrom"] = it->IsDownloading ();
+				peer["isDownloadingFrom"] = it->IsDownloading ();
 				peer["isUploadingTo"] = it->IsUploading ();
 				peer["rateToClient"] = it->GetDownloadRate ();
 				peer["rateToPeer"] = it->GetUploadRate ();
 				peer["isIncoming"] = isIncoming;
 				peer["clientIsChoked"] = it->IsChoked ();
 				peer["peerIsChoked"] = it->IsRemoteChoked ();
-				peer["clientIsIntersted"] = it->IsInterested ();
+				peer["clientIsInterested"] = it->IsInterested ();
 				peer["peerIsInterested"] = it->IsRemoteInterested ();
 				if (it->IsDownloading ())
 					flags.push_back ('D');
