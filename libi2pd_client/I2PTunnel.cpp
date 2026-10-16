@@ -423,6 +423,12 @@ namespace client
 				}
 				else
 				{
+					if (line.length () > I2P_TUNNEL_HTTP_MAX_HEADER_SIZE)
+					{
+						LogPrint (eLogError, "I2PTunnel: HTTP header line exceeds max size ", I2P_TUNNEL_HTTP_MAX_HEADER_SIZE);
+						Terminate ();
+						return;
+					}
 					// insert incomplete line back
 					m_InHeader.clear ();
 					m_InHeader << line;
