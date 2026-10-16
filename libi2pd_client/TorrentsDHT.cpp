@@ -172,7 +172,7 @@ namespace torrents
 	size_t RoutingTable::DeleteExpiredNodes (uint64_t ts)
 	{
 		size_t numDeleted = 0;
-		auto bucket = m_Buckets;
+		Bucket *  bucket = m_Buckets, * prev = nullptr;
 		while (bucket)
 		{
 			if (ts > bucket->lastUpdateTime + DHT_BUCKET_EXPIRATION_THRESHOLD)
@@ -189,6 +189,27 @@ namespace torrents
 						it++;
 				}
 			}
+			if (bucket->IsEmpty ())
+			{
+				if (!bucket->next && prev) // last bucket
+				{
+					LogPrint (eLogDebug, "TorrentsDHT: last bucket deleted");
+					prev->next = nullptr;
+					delete bucket;
+					break;
+				}
+				if (!prev && bucket->next) // first bucket
+				{
+					LogPrint (eLogDebug, "TorrentsDHT: first bucket deleted");
+					m_Buckets = bucket->next;
+					m_Buckets->start.fill (0);
+					delete bucket;
+					bucket = m_Buckets;
+					prev = nullptr;
+					continue;
+				}
+			}
+			prev = bucket;
 			bucket = bucket->next;
 		}
 		return numDeleted;
@@ -725,12 +746,12 @@ namespace torrents
 				{
 					case eKRPCQueryPing:
 					{
-						LogPrint (eLogDebug, "TorrentsDHT: Ping response received");
+						LogPrint (eLogDebug, "TorrentsDHT: Ping response received from ", nodeID.ToBase64 ());
 						break;
 					}
 					case eKRPCQueryGetPeers:
 					{
-						LogPrint (eLogDebug, "TorrentsDHT: get_peers response received from peer ", ident.ToBase64 (), "after attempt #", info->numAttempts);
+						LogPrint (eLogDebug, "TorrentsDHT: get_peers response received from ", nodeID.ToBase64 (), " after attempt #", info->numAttempts);
 						if (!values.empty () && values[0].empty ()) // nodes, because values not set
 						{
 							if (info && token)
@@ -743,12 +764,12 @@ namespace torrents
 					}
 					case eKRPCQueryFindNode:
 					{
-						LogPrint (eLogDebug, "TorrentsDHT: find_node response received after attempt #", info->numAttempts);
+						LogPrint (eLogDebug, "TorrentsDHT: find_node response received from ", nodeID.ToBase64 (), " after attempt #", info->numAttempts);
 						HandleFindNodeResponse (info, nodes);
 						break;
 					}
 					case eKRPCQueryAnnouncePeer:
-						LogPrint (eLogDebug, "TorrentsDHT: Announce peer response received from ", ident.ToBase64 ());
+						LogPrint (eLogDebug, "TorrentsDHT: Announce peer response received from ", nodeID.ToBase64 ());
 						HandleAnnouncePeerResponse (info);
 					break;
 					default:
