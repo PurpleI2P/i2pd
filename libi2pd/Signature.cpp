@@ -8,7 +8,8 @@
 
 #include <memory>
 #include <openssl/evp.h>
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+#include <openssl/crypto.h>
+#if !defined(LIBRESSL_VERSION_NUMBER) && OPENSSL_VERSION_NUMBER >= 0x30000000L // since 3.0.0
 #include <openssl/core_names.h>
 #include <openssl/param_build.h>
 #endif
@@ -19,7 +20,7 @@ namespace i2p
 {
 namespace crypto
 {
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+#if !defined(LIBRESSL_VERSION_NUMBER) && OPENSSL_VERSION_NUMBER >= 0x30000000L // since 3.0.0
 	DSAVerifier::DSAVerifier ():
 		m_PublicKey (nullptr)
 	{
@@ -172,7 +173,7 @@ namespace crypto
 	}
 #endif
 
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+#if !defined(LIBRESSL_VERSION_NUMBER) && OPENSSL_VERSION_NUMBER >= 0x30000000L // since 3.0.0
 	ECDSAVerifier::ECDSAVerifier (int curve, size_t keyLen, const EVP_MD * hash):
 		m_Curve(curve), m_KeyLen (keyLen), m_Hash (hash), m_PublicKey (nullptr)
 	{
@@ -405,7 +406,7 @@ namespace crypto
 			LogPrint (eLogError, "EdDSA signing key is not set");
 	}
 
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000)
+#if OPENSSL_ED25519PH
 	static const OSSL_PARAM EDDSA25519phParams[] =
 	{
 		OSSL_PARAM_utf8_string ("instance", (char *)"Ed25519ph", 9),
@@ -415,19 +416,13 @@ namespace crypto
 	bool EDDSA25519phVerifier::Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
 	{
 		auto pkey = GetPkey ();
-		if (pkey)
-		{
-			uint8_t digest[64];
-			SHA512 (buf, len, digest);
-			EVP_MD_CTX * ctx = EVP_MD_CTX_create ();
-			EVP_DigestVerifyInit_ex (ctx, NULL, NULL, NULL, NULL, pkey, EDDSA25519phParams);
-			auto ret = EVP_DigestVerify (ctx, signature, 64, digest, 64);
-			EVP_MD_CTX_destroy (ctx);
-			return ret;
-		}
-		else
-			LogPrint (eLogError, "EdDSA verification key is not set");
-		return false;
+		EVP_MD_CTX * ctx = EVP_MD_CTX_new ();
+		// The provider applies SHA-512 for the Ed25519ph instance.
+		bool ret = pkey && ctx &&
+			EVP_DigestVerifyInit_ex (ctx, nullptr, nullptr, nullptr, nullptr, pkey, EDDSA25519phParams) == 1 &&
+			EVP_DigestVerify (ctx, signature, 64, buf, len) == 1;
+		EVP_MD_CTX_free (ctx);
+		return ret;
 	}
 
 	EDDSA25519phSigner::EDDSA25519phSigner (const uint8_t * signingPrivateKey):
@@ -438,21 +433,21 @@ namespace crypto
 	void EDDSA25519phSigner::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{
 		auto pkey = GetPkey ();
-		if (pkey)
-		{
-			uint8_t digest[64];
-			SHA512 (buf, len, digest);
-			EVP_MD_CTX * ctx = EVP_MD_CTX_create ();
-			size_t l = 64;
-			uint8_t sig[64];
-			EVP_DigestSignInit_ex (ctx, NULL, NULL, NULL, NULL, pkey, EDDSA25519phParams);
-			if (!EVP_DigestSign (ctx, sig, &l, digest, 64))
-				LogPrint (eLogError, "EdDSA signing failed");
-			memcpy (signature, sig, 64);
-			EVP_MD_CTX_destroy (ctx);
-		}
+		EVP_MD_CTX * ctx = EVP_MD_CTX_new ();
+		size_t l = 64;
+		uint8_t sig[64];
+		bool ok = pkey && ctx && len >= 0 &&
+			EVP_DigestSignInit_ex (ctx, nullptr, nullptr, nullptr, nullptr, pkey, EDDSA25519phParams) == 1 &&
+			EVP_DigestSign (ctx, sig, &l, buf, len) == 1 && l == sizeof (sig);
+		if (ok)
+			memcpy (signature, sig, sizeof (sig));
 		else
-			LogPrint (eLogError, "EdDSA signing key is not set");
+		{
+			memset (signature, 0, sizeof (sig));
+			LogPrint (eLogError, "Ed25519ph signing failed");
+		}
+		OPENSSL_cleanse (sig, sizeof (sig));
+		EVP_MD_CTX_free (ctx);
 	}
 #endif
 }

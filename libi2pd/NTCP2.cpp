@@ -58,11 +58,9 @@ namespace transport
             case 4:
                  m_CryptoType = i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM768_X25519_AEAD;
             break;
-#ifndef LIBRESSL_VERSION_NUMBER
             case 5:
                  m_CryptoType = i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM1024_X25519_AEAD;
             break;
-#endif
             default:
                 m_CryptoType = i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD;
                 m_IsLongPadding = false;
@@ -163,7 +161,7 @@ namespace transport
             encryption.Encrypt (pub, 32, m_IV, m_Buffer); // X
             //  ML-KEM encap_key
             m_PQKeys = i2p::crypto::CreateMLKEMKeys (m_CryptoType);
-            m_PQKeys->GenerateKeys ();
+            if (!m_PQKeys || !m_PQKeys->GenerateKeys ()) return false;
         }
         else
             encryption.Encrypt (GetPub (), 32, m_IV, m_Buffer); // X
@@ -183,7 +181,7 @@ namespace transport
             // ML-KEM frame
             auto keyLen = i2p::crypto::GetMLKEMPublicKeyLen (m_CryptoType);
 			std::vector<uint8_t> encapsKey(keyLen);
-			m_PQKeys->GetPublicKey (encapsKey.data ());
+			if (!m_PQKeys || !m_PQKeys->GetPublicKey (encapsKey.data ())) return false;
 			// encrypt encapsKey
 			if (!Encrypt (encapsKey.data (), m_Buffer + offset, keyLen))
 			{
@@ -255,12 +253,13 @@ namespace transport
 		maxPaddingLength -= 64;
 		size_t maxMsgSize = m_MaxMsgSize;
 #if OPENSSL_PQ
-        if (m_PQKeys)
+        if (m_CryptoType > i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
         {
+			if (!m_PQKeys) return false;
             size_t cipherTextLen = i2p::crypto::GetMLKEMCipherTextLen (m_CryptoType);
 			std::vector<uint8_t> kemCiphertext(cipherTextLen);
 			uint8_t sharedSecret[32];
-			m_PQKeys->Encaps (kemCiphertext.data (), sharedSecret);
+			if (!m_PQKeys || !m_PQKeys->Encaps (kemCiphertext.data (), sharedSecret)) return false;
 			if (!Encrypt (kemCiphertext.data (), m_Buffer + offset, cipherTextLen))
 			{
 				LogPrint (eLogWarning, "NTCP2: SessionCreated ML-KEM ciphertext section AEAD encryption failed");
@@ -378,7 +377,7 @@ namespace transport
                 MixHash (m_Buffer + offset, keyLen + 16);
                 offset += keyLen + 16;
                 m_PQKeys = i2p::crypto::CreateMLKEMKeys (m_CryptoType);
-                m_PQKeys->SetPublicKey (encapsKey.data ());
+                if (!m_PQKeys || !m_PQKeys->SetPublicKey (encapsKey.data ())) return false;
             }
         }
 #endif
@@ -450,8 +449,9 @@ namespace transport
 			return false;
 		}
 #if OPENSSL_PQ
-        if (m_CryptoType > i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD && m_PQKeys)
+        if (m_CryptoType > i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
 		{
+			if (!m_PQKeys) return false;
 			// decrypt kem_ciphertext  frame
 			size_t cipherTextLen = i2p::crypto::GetMLKEMCipherTextLen (m_CryptoType);
 			std::vector<uint8_t> kemCiphertext(cipherTextLen);
@@ -465,7 +465,7 @@ namespace transport
 			offset += cipherTextLen + 16;
 			// decaps
 			uint8_t sharedSecret[32];
-			m_PQKeys->Decaps (kemCiphertext.data (), sharedSecret);
+			if (!m_PQKeys || !m_PQKeys->Decaps (kemCiphertext.data (), sharedSecret)) return false;
 			MixKey (sharedSecret);
 		}
 #endif
@@ -2318,7 +2318,7 @@ namespace transport
 	{
 #if OPENSSL_PQ
 #ifdef LIBRESSL_VERSION_NUMBER
-	if (version == 3 || version == 5) version = 2; // 3 and 5 are not supported by LibreSSL
+	if (version == 3) version = 2; // ML-KEM-512 is not supported by LibreSSL
 #endif
         m_Version = version;
 #endif

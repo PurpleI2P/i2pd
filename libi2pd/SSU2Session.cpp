@@ -754,7 +754,7 @@ namespace transport
 		{
 			i2p::data::CryptoKeyType cryptoType = (i2p::data::CryptoKeyType)(m_Version + 2);
 			m_PQKeys = i2p::crypto::CreateMLKEMKeys (cryptoType);
-            m_PQKeys->GenerateKeys ();
+            if (!m_PQKeys || !m_PQKeys->GenerateKeys ()) return false;
             offset = m_PQKeys->GetKeyLen () + 16;
 			payloadSize += offset;
 		}
@@ -804,7 +804,7 @@ namespace transport
 		{
 			size_t keyLen = m_PQKeys->GetKeyLen ();
 			std::vector<uint8_t> encapsKey(keyLen);
-			m_PQKeys->GetPublicKey (encapsKey.data ());
+			if (!m_PQKeys || !m_PQKeys->GetPublicKey (encapsKey.data ())) return false;
 			if (!m_NoiseState->Encrypt (encapsKey.data (), payload, keyLen))
 			{
 				LogPrint (eLogWarning, "SSU2: SessionRequest ML-KEM encap_key frame AEAD encryption failed ");
@@ -917,6 +917,7 @@ namespace transport
         {
 			auto cryptoType = (i2p::data::CryptoKeyType)(m_Version + 2);
             auto keyLen = i2p::crypto::GetMLKEMPublicKeyLen (cryptoType);
+			if (!i2p::crypto::IsMLKEMSupported (cryptoType) || offset + keyLen + 16 > len) return false;
             std::vector<uint8_t> encapsKey(keyLen);
             if (!m_NoiseState->Decrypt (buf + offset, encapsKey.data (), keyLen))
             {
@@ -926,7 +927,7 @@ namespace transport
 			m_NoiseState->MixHash (buf + offset, keyLen + 16);
 			offset += keyLen + 16;
 			m_PQKeys = i2p::crypto::CreateMLKEMKeys (cryptoType);
-			m_PQKeys->SetPublicKey (encapsKey.data ());
+			if (!m_PQKeys || !m_PQKeys->SetPublicKey (encapsKey.data ())) return false;
         }
 #endif
 		if (offset + 16 > len)
@@ -989,11 +990,12 @@ namespace transport
 		size_t maxPayloadSize = m_MaxPayloadSize - 48;
 		size_t payloadSize = 0, offset = 0;
 #if OPENSSL_PQ
-        if (m_Version > 2 && m_PQKeys)
+        if (m_Version > 2)
         {
+			if (!m_PQKeys) return;
             size_t cipherTextLen = m_PQKeys->GetCTLen ();
 			std::vector<uint8_t> kemCiphertext(cipherTextLen);
-			m_PQKeys->Encaps (kemCiphertext.data (), sharedSecret);
+			if (!m_PQKeys || !m_PQKeys->Encaps (kemCiphertext.data (), sharedSecret)) return;
 			if (!m_NoiseState->Encrypt (kemCiphertext.data (), payload, cipherTextLen))
 			{
 				LogPrint (eLogWarning, "SSU2: SessionCreated ML-KEM ciphertext section AEAD encryption failed");
@@ -1060,6 +1062,11 @@ namespace transport
 			LogPrint (eLogWarning, "SSU2: Unexpected SessionCreated message");
 			return false;
 		}
+		if (len < 80)
+		{
+			LogPrint (eLogWarning, "SSU2: SessionCreated message too short ", len);
+			return false;
+		}
 		Header header;
 		memcpy (header.buf, buf, 16);
 		header.ll[0] ^= CreateHeaderMask (m_Address->i, buf + (len - 24));
@@ -1069,11 +1076,7 @@ namespace transport
 		if (header.h.type != eSSU2SessionCreated)
 		// this situation is valid, because it might be Retry with different encryption
 			return false;
-		if (len < 80)
-		{
-			LogPrint (eLogWarning, "SSU2: SessionCreated message too short ", len);
-			return false;
-		}
+
 		m_HandshakeInterval = i2p::util::GetMillisecondsSinceEpoch () - m_HandshakeInterval;
 		const uint8_t nonce[12] = {0};
 		uint8_t headerX[48];
@@ -1086,10 +1089,12 @@ namespace transport
 		m_NoiseState->MixKey (sharedSecret);
 		size_t offset = 64;
 #if OPENSSL_PQ
-		if (m_Version > 2 && m_PQKeys)
+		if (m_Version > 2)
 		{
+			if (!m_PQKeys) return false;
 			i2p::data::CryptoKeyType cryptoType = (i2p::data::CryptoKeyType)(m_Version + 2);
 			size_t cipherTextLen = i2p::crypto::GetMLKEMCipherTextLen (cryptoType);
+			if (!i2p::crypto::IsMLKEMSupported (cryptoType) || offset + cipherTextLen + 16 > len) return false;
 			std::vector<uint8_t> kemCiphertext(cipherTextLen);
 			if (!m_NoiseState->Decrypt (buf + offset, kemCiphertext.data (), cipherTextLen))
 			{
@@ -1098,7 +1103,7 @@ namespace transport
 			}
 			m_NoiseState->MixHash (buf + offset, cipherTextLen + 16);
 			offset += cipherTextLen + 16;
-			m_PQKeys->Decaps (kemCiphertext.data (), sharedSecret);
+			if (!m_PQKeys || !m_PQKeys->Decaps (kemCiphertext.data (), sharedSecret)) return false;
 			m_NoiseState->MixKey (sharedSecret);
 		}
 #endif

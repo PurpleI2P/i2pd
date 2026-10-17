@@ -11,13 +11,14 @@
 #include <vector>
 #include <mutex>
 #include <memory>
+#include <limits>
 #include <openssl/dh.h>
 #include <openssl/md5.h>
 #include <openssl/crypto.h>
 #include "TunnelBase.h"
 #include <openssl/ssl.h>
 #include <openssl/kdf.h>
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+#if !defined(LIBRESSL_VERSION_NUMBER) && OPENSSL_VERSION_NUMBER >= 0x30000000L // since 3.0.0
 #include <openssl/param_build.h>
 #include <openssl/core_names.h>
 #endif
@@ -149,7 +150,7 @@ namespace crypto
 	#define dsap GetCryptoConstants ().dsap
 	#define dsaq GetCryptoConstants ().dsaq
 	#define dsag GetCryptoConstants ().dsag
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+#if !defined(LIBRESSL_VERSION_NUMBER) && OPENSSL_VERSION_NUMBER >= 0x30000000L // since 3.0.0
 	EVP_PKEY * CreateDSA (BIGNUM * pubKey, BIGNUM * privKey)
 	{
 		EVP_PKEY * pkey = nullptr;
@@ -650,40 +651,39 @@ namespace crypto
 	static bool AEADChaCha20Poly1305 (EVP_CIPHER_CTX * ctx, const uint8_t * msg, size_t msgLen,
 		const uint8_t * ad, size_t adLen, const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len, bool encrypt)
 	{
-		if (!ctx || len < msgLen) return false;
-		if (encrypt && len < msgLen + 16) return false;
-		bool ret = true;
-		int outlen = 0;
+		if (!ctx || len < msgLen || (encrypt && len - msgLen < 16)) return false;
+		// EVP update lengths are int in both OpenSSL and LibreSSL.
+		if (msgLen > (size_t)std::numeric_limits<int>::max () ||
+			adLen > (size_t)std::numeric_limits<int>::max ()) return false;
+		int outlen = 0, finalLen = 0;
 		if (encrypt)
 		{
-			EVP_EncryptInit_ex(ctx, EVP_chacha20_poly1305(), 0, 0, 0);
-			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, 12, 0);
-			EVP_EncryptInit_ex(ctx, NULL, NULL, key, nonce);
-			EVP_EncryptUpdate(ctx, NULL, &outlen, ad, adLen);
-			EVP_EncryptUpdate(ctx, buf, &outlen, msg, msgLen);
-			EVP_EncryptFinal_ex(ctx, buf + outlen, &outlen);
-			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, 16, buf + msgLen);
+			if (EVP_EncryptInit_ex (ctx, EVP_chacha20_poly1305 (), nullptr, nullptr, nullptr) != 1 ||
+				EVP_CIPHER_CTX_ctrl (ctx, EVP_CTRL_AEAD_SET_IVLEN, 12, nullptr) != 1 ||
+				EVP_EncryptInit_ex (ctx, nullptr, nullptr, key, nonce) != 1) return false;
+			if (adLen && EVP_EncryptUpdate (ctx, nullptr, &outlen, ad, (int)adLen) != 1) return false;
+			outlen = 0;
+			if (msgLen && EVP_EncryptUpdate (ctx, buf, &outlen, msg, (int)msgLen) != 1) return false;
+			if (outlen != (int)msgLen || EVP_EncryptFinal_ex (ctx, buf + outlen, &finalLen) != 1 || finalLen != 0) return false;
+			return EVP_CIPHER_CTX_ctrl (ctx, EVP_CTRL_AEAD_GET_TAG, 16, buf + msgLen) == 1;
 		}
-		else
-		{
 #if defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x4000000fL
-			std::vector<uint8_t> m(msgLen + 16);
-			if (msg == buf)
-			{
-				// we have to use different buffers otherwise verification fails
-				memcpy (m.data (), msg, msgLen + 16);
-				msg = m.data ();
-			}
-#endif
-			EVP_DecryptInit_ex(ctx, EVP_chacha20_poly1305(), 0, 0, 0);
-			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, 12, 0);
-			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, 16, (uint8_t *)(msg + msgLen));
-			EVP_DecryptInit_ex(ctx, NULL, NULL, key, nonce);
-			EVP_DecryptUpdate(ctx, NULL, &outlen, ad, adLen);
-			EVP_DecryptUpdate(ctx, buf, &outlen, msg, msgLen);
-			ret = EVP_DecryptFinal_ex(ctx, buf + outlen, &outlen) > 0;
+		std::vector<uint8_t> m;
+		if (msg == buf)
+		{
+			// Older LibreSSL cannot authenticate in-place decryption.
+			m.assign (msg, msg + msgLen + 16);
+			msg = m.data ();
 		}
-		return ret;
+#endif
+		if (EVP_DecryptInit_ex (ctx, EVP_chacha20_poly1305 (), nullptr, nullptr, nullptr) != 1 ||
+			EVP_CIPHER_CTX_ctrl (ctx, EVP_CTRL_AEAD_SET_IVLEN, 12, nullptr) != 1 ||
+			EVP_DecryptInit_ex (ctx, nullptr, nullptr, key, nonce) != 1 ||
+			EVP_CIPHER_CTX_ctrl (ctx, EVP_CTRL_AEAD_SET_TAG, 16, (void *)(msg + msgLen)) != 1) return false;
+		if (adLen && EVP_DecryptUpdate (ctx, nullptr, &outlen, ad, (int)adLen) != 1) return false;
+		outlen = 0;
+		if (msgLen && EVP_DecryptUpdate (ctx, buf, &outlen, msg, (int)msgLen) != 1) return false;
+		return outlen == (int)msgLen && EVP_DecryptFinal_ex (ctx, buf + outlen, &finalLen) == 1 && finalLen == 0;
 	}
 
 	bool AEADChaCha20Poly1305 (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen,

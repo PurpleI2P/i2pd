@@ -31,8 +31,13 @@
 #if (!defined(LIBRESSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER != 0x030000000)) // 3.0.0, regression in SipHash, not implemented in LibreSSL
 #	define OPENSSL_SIPHASH 1
 #endif
-#if (OPENSSL_VERSION_NUMBER >= 0x030500000) || ( (defined(LIBRESSL_VERSION_NUMBER) && (LIBRESSL_VERSION_NUMBER >= 0x4030000fL)) )  // 3.5.0 openssl, 4.3.0 libressl
+#if (!defined(LIBRESSL_VERSION_NUMBER) && OPENSSL_VERSION_NUMBER >= 0x030500000) || ( (defined(LIBRESSL_VERSION_NUMBER) && (LIBRESSL_VERSION_NUMBER >= 0x4030000fL)) )  // 3.5.0 openssl, 4.3.0 libressl
 #	define OPENSSL_PQ 1
+#endif
+
+// The Ed25519ph instance parameter first appeared in OpenSSL 3.2.
+#if !defined(LIBRESSL_VERSION_NUMBER) && OPENSSL_VERSION_NUMBER >= 0x30200000L
+#	define OPENSSL_ED25519PH 1
 #endif
 
 namespace i2p
@@ -42,7 +47,7 @@ namespace crypto
 	bool bn2buf (const BIGNUM * bn, uint8_t * buf, size_t len);
 
 	// DSA
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
+#if !defined(LIBRESSL_VERSION_NUMBER) && OPENSSL_VERSION_NUMBER >= 0x30000000L // since 3.0.0
 	EVP_PKEY * CreateDSA (BIGNUM * pubKey = nullptr, BIGNUM * privKey = nullptr);
 #else
 	DSA * CreateDSA ();

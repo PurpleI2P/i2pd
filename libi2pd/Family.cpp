@@ -18,6 +18,20 @@ namespace i2p
 {
 namespace data
 {
+	static int GetFamilyKeyCurve (EVP_PKEY * pkey)
+	{
+		if (!pkey || EVP_PKEY_base_id (pkey) != EVP_PKEY_EC) return -1;
+#if !defined(LIBRESSL_VERSION_NUMBER) && OPENSSL_VERSION_NUMBER >= 0x30000000L
+		char groupName[80];
+		if (EVP_PKEY_get_group_name (pkey, groupName, sizeof (groupName), nullptr) != 1) return -1;
+		return OBJ_txt2nid (groupName);
+#else
+		const EC_KEY * ec = EVP_PKEY_get0_EC_KEY (pkey);
+		const EC_GROUP * group = ec ? EC_KEY_get0_group (ec) : nullptr;
+		return group ? EC_GROUP_get_curve_name (group) : -1;
+#endif
+	}
+
 	Families::Families ()
 	{
 	}
@@ -51,15 +65,8 @@ namespace data
 					auto pkey = X509_get_pubkey (cert);
 					if (pkey)
 					{	
-						int curve = 0;
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
-						char groupName[20];
-						if (EVP_PKEY_get_group_name(pkey, groupName, sizeof(groupName), NULL) == 1)
-							curve = OBJ_txt2nid (groupName);
-						else
-							curve = -1;
-#endif						
-						if (!curve || curve == NID_X9_62_prime256v1)
+						int curve = GetFamilyKeyCurve (pkey);
+						if (curve == NID_X9_62_prime256v1)
 						{	
 							if (!m_SigningKeys.emplace (cn, std::make_pair(pkey, (int)m_SigningKeys.size () + 1)).second)
 							{
@@ -68,7 +75,10 @@ namespace data
 							}
 						}
 						else
+						{
+							EVP_PKEY_free (pkey);
 							LogPrint (eLogWarning, "Family: elliptic curve ", curve, " is not supported");
+						}
 					}	
 				}
 			}
@@ -156,15 +166,8 @@ namespace data
 		{
 			SSL * ssl = SSL_new (ctx);
 			EVP_PKEY * pkey = SSL_get_privatekey (ssl);
-			int curve = 0;
-#if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
-			char groupName[20];
-			if (EVP_PKEY_get_group_name(pkey, groupName, sizeof(groupName), NULL) == 1)
-				curve = OBJ_txt2nid (groupName);
-			else
-				curve = -1;
-#endif	
-			if ((!curve || curve == NID_X9_62_prime256v1) && family.length () + 32 <= 100)
+			int curve = GetFamilyKeyCurve (pkey);
+			if ((curve == NID_X9_62_prime256v1) && family.length () + 32 <= 100)
 			{
 				uint8_t buf[100], sign[72], signature[64];
 				size_t len = family.length ();

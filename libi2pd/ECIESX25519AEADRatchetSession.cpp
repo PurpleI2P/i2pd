@@ -308,7 +308,7 @@ namespace garlic
 						len -= keyLen + 16;
 
 						m_PQKeys = i2p::crypto::CreateMLKEMKeys (cryptoType);
-						m_PQKeys->SetPublicKey (encapsKey.data ());
+						if (!m_PQKeys || !m_PQKeys->SetPublicKey (encapsKey.data ())) return false;
 					}
 				}
 				// if PQ failed it's valid situation meaning regular ECIES_X25519(type 4)
@@ -589,7 +589,7 @@ namespace garlic
 		{
 			i2p::crypto::InitNoiseIKStateMLKEM (GetNoiseState (), m_RemoteStaticKeyType, m_RemoteStaticKey); // bpk
 			m_PQKeys = i2p::crypto::CreateMLKEMKeys (m_RemoteStaticKeyType);
-			m_PQKeys->GenerateKeys ();
+			if (!m_PQKeys || !m_PQKeys->GenerateKeys ()) return false;
 		}
 		else
 #endif
@@ -607,7 +607,7 @@ namespace garlic
 		{
 			auto keyLen = i2p::crypto::GetMLKEMPublicKeyLen (m_RemoteStaticKeyType);
 			std::vector<uint8_t> encapsKey(keyLen);
-			m_PQKeys->GetPublicKey (encapsKey.data ());
+			if (!m_PQKeys || !m_PQKeys->GetPublicKey (encapsKey.data ())) return false;
 			// encrypt encapsKey
 			if (!Encrypt (encapsKey.data (), out + offset, keyLen))
 			{
@@ -698,7 +698,7 @@ namespace garlic
 			memcpy (m_NSRCK->data (), m_CK, 64);
 			size_t cipherTextLen = i2p::crypto::GetMLKEMCipherTextLen (m_RemoteStaticKeyType);
 			std::vector<uint8_t> kemCiphertext(cipherTextLen);
-			m_PQKeys->Encaps (kemCiphertext.data (), sharedSecret);
+			if (!m_PQKeys || !m_PQKeys->Encaps (kemCiphertext.data (), sharedSecret)) return false;
 
 			if (!Encrypt (kemCiphertext.data (), out + offset, cipherTextLen))
 			{
@@ -770,7 +770,7 @@ namespace garlic
 				size_t cipherTextLen = i2p::crypto::GetMLKEMCipherTextLen (m_RemoteStaticKeyType);
 				std::vector<uint8_t> kemCiphertext(cipherTextLen);
 				uint8_t sharedSecret[32];
-				m_PQKeys->Encaps (kemCiphertext.data (), sharedSecret);
+				if (!m_PQKeys || !m_PQKeys->Encaps (kemCiphertext.data (), sharedSecret)) return false;
 
 				memcpy (m_CK, m_NSRCK->data (), 64); // restore key
 				if (!Encrypt (kemCiphertext.data (), out + offset, cipherTextLen))
@@ -854,7 +854,7 @@ namespace garlic
 			buf += cipherTextLen + 16;
 			len -= cipherTextLen + 16;
 			// decaps
-			m_PQKeys->Decaps (kemCiphertext.data (), sharedSecret);
+			if (!m_PQKeys || !m_PQKeys->Decaps (kemCiphertext.data (), sharedSecret)) return false;
 			MixKey (sharedSecret);
 		}
 #endif
