@@ -281,7 +281,8 @@ namespace i2p
 			bool useUnveil, usePledge;
 			i2p::config::GetOption ("openbsd.unveil_enabled", useUnveil);
 			i2p::config::GetOption ("openbsd.pledge_enabled", usePledge);
-			std::string promises = "stdio rpath wpath cpath inet dns unix flock";
+			// CreatePrivateFile() uses chmod when saving router and destination keys.
+			std::string promises = "stdio rpath wpath cpath fattr inet dns unix flock";
 			bool upnp; i2p::config::GetOption ("upnp.enabled", upnp);
 			if (upnp) promises += " mcast";
 			std::vector<std::string> extraPaths;

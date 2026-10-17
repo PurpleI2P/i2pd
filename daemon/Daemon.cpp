@@ -210,7 +210,7 @@ namespace util
 		std::string policy; i2p::config::GetOption ("openbsd.pledge_file", policy);
 		if (usePledge && policy.empty ())
 		{
-			std::string promises = "stdio rpath wpath cpath inet dns unix flock proc";
+			std::string promises = "stdio rpath wpath cpath fattr inet dns unix flock proc";
 			bool useUnveil; i2p::config::GetOption ("openbsd.unveil_enabled", useUnveil);
 			if (useUnveil) promises += " unveil";
 			bool upnp; i2p::config::GetOption ("upnp.enabled", upnp);
@@ -380,10 +380,6 @@ namespace util
 
 		std::string httpLang; i2p::config::GetOption("http.lang", httpLang);
 		i2p::i18n::SetLanguage(httpLang);
-#ifdef __OpenBSD__
-//SIOCGIFMTU is not found, SOCK DGRAM not found
-		if(openbsd_pledge_enabled) init_pledge();
-#endif
 
 		return true;
 	}
