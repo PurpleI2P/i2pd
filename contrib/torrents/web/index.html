@@ -1,314 +1,146 @@
-<script src="torrent-rpc.js"></script>
-<script>window.tjs = new TorrentClient();</script>
 <style>
-/*todo: more 2000 design*/
-#torrent-ui button {
-       border-radius: 6.66px;
-       padding: 0.1vw;
-       margin: 2px;
-       text-decoration: underline;
-       color: black;
-       background: aquamarine;
-       text-transform: uppercase;
+.progress-cell {
+    position: relative;
+    padding: 0;
+    height: 18px;
+    min-width: 110px;
 }
-#torrent-ui button:hover {
-       cursor:pointer;
-       background-color: yellow;
-       transition: background-color 0.5s ease 0.1s;
-}
-#torrent-ui {
- display: flex;
- flex-direction: column;
- gap: 2.5px;
-}
-#torrents li {
-       border-bottom: 2px solid #333333; 
-} 
 
+.progress-bar {
+    position: absolute;
+    inset: 0;
+    background: #e5e7eb;
+}
+
+.progress-fill {
+    height: 100%;
+}
+
+.progress-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #111;
+    line-height: 1;
+}
+
+.compact-table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.compact-table td,
+.compact-table th {
+    border: 1px solid black;
+    padding: 0 4px;
+    height: 18px;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+    box-sizing: border-box;
+}
+
+#fs-error fieldset {
+    padding: 0;
+    margin: 0;
+}
+
+#fs-error h2,
+#fs-error h3 {
+    margin-top: 10;
+    margin-bottom: 10;
+    margin-left: 10;
+}
+
+td.buttons-cell {
+    padding: 0;
+    max-width: 100px;
+}
+
+.buttons-cell .button-row {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+    gap: 0;
+}
+
+.button-column {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    gap: 5px;
+}
+
+.buttons-cell button,
+.buttons-column button,
+.button-row button {
+    flex: 1;
+    margin: 0;
+    border: 1px;
+    border-radius: 0;
+    min-width: 0;
+    line-height: 1;
+}
+
+.button-row button:hover {
+    background-color: orange;
+}
+
+.fs-buttons {
+    width: 100%;
+    max-width: 100px;
+    box-sizing: border-box;
+}
+
+.container {
+    display: flex;
+}
+
+fieldset {
+    flex: 1;
+    min-width: 0;
+}
 </style>
-<fieldset>
-  <legend>Torrent Client</legend>
-  <div id="torrent-ui">
-    <label for='torrent_manet_url'>Your a torrent magnet link (only magnet): <input  id='torrent_manet_url' type='text' id='torrent_manet_url'/><button id='btn_magnet'>download</button>
-    <h3 id="connection_status">_</h3>
-    <input type="file" id="torrentf" accept=".torrent" style="display: none" />
-    <button onclick="document.getElementById('torrentf').click()">
-      Add torrent
-    </button>
-    <button onclick="stopAll()">
-      stopAll
-    </button>
-    <button onclick="startAll()">
-      startAll
-    </button>
-    <ul id="torrents"></ul>
-  </div>
-</fieldset>
 
-<div id="torrent_details_modal" style="display: none">
-  <h3 id="modal_torrent_title"></h3>
-  <p style="color:#303030" id="modal_torrent_hash"></p>
-  <h4>Files:</h4>
-  <ul id="modal_files_list"></ul>
-  <h4>Peers (<span id="peer_count">0</span>):</h4>
-  <ul id="modal_peers_list"></ul>
-  <h4>Trackers (<span id="trackers_count">0</span>):</h4>
-  <ul id="modal_trackers_list"></ul>
-  <h4>trackerStats:</h4>
-  <pre id="modal_tracker_stats"></pre>
-  <button onclick="closeDetailsModal()">Close</button>
-</div>
-
+<script src="./rpc.js"></script>
 <script>
-
-  let currentTorrentsData = [];
-  async function stopAll()
-  {
-	const conf = confirm("Are sure to stop all torrents?");
-	 // console.log(conf)
-	  if(conf && window.tjs)
-	  {
-		const r = await window.tjs.getTorrents()
-		//console.log(`torrents: ${r}`)
-      		if (!r?.result?.torrents) return;
-		r.arguments.torrents.forEach(async (t) => {
-			 console.log(`stop torrent => ${t.id}`)
-			 await window.tjs.stopTorrent([t.id]);
-		});
-	  }
-          //if (window.tjs && conf) await window.tjs.stopTorrent();
-  }
-  async function startAll()
-  {
-	const conf = confirm("Are sure to start all torrents?");
-	  if(conf && window.tjs)
-	  {
-		const r = await window.tjs.getTorrents()
-		//console.log(`torrents: ${r}`)
-      		if (!r?.result?.torrents) return;
-		r.arguments.torrents.forEach( async (t) =>{
-			 console.log(`start torrent => ${t.id}`)
-			 await window.tjs.startTorrent([t.id]);
-		});
-	  }
-          //if (window.tjs && conf) await window.tjs.startTorrent();
-  }
-  setInterval(async () => {
-    const statusIndicator = document.getElementById("connection_status");
-    if (!window.tjs)
-      return (statusIndicator.textContent = "STATUS: TJS_NOT_LOADED");
-
-    try {
-      const r = await window.tjs.getTorrents();
-      console.log(r)
-      if (!r?.result == "success")
-        return (statusIndicator.textContent = "STATUS: INVALID_RESPONSE");
-      
-      statusIndicator.textContent = "STATUS: Connected";
-      statusIndicator.style.color = "rgb(77, 91, 83)";
-
-      const torrents = document.getElementById("torrents");
-      currentTorrentsData = r.arguments.torrents;
-
-      if (currentTorrentsData.length === 0) {
-        torrents.innerHTML = "<li>No downloads</li>";
-        return;
-      }
-
-      torrents.innerHTML = "";
-      currentTorrentsData.forEach((el) => {
-        const percent = el.percentDone
-          ? (el.percentDone * 100).toFixed(2)
-          : "0.00";
-        const speed = window.tjs.formatBytes
-          ? window.tjs.formatBytes(el.rateDownload)
-          : `${el.rateDownload} B/s`;
-        const speedUp = window.tjs.formatBytes
-          ? window.tjs.formatBytes(el.rateUpload)
-          : `${el.rateUpload} B/s`;
-        const status = window.tjs.getStatusString
-          ? window.tjs.getStatusString(el.status)
-          : el.status;
-        const totalSize = el.totalSize || 0; // bytes
-        const ETA = el.rateDownload
-          ? (
-              (totalSize * (1 - el.percentDone)) /
-              el.rateDownload /
-              60
-            ).toFixed(1) + " min"
-          : "-";
-        const name = el.name || "|unknown name, maybe a bad torrent|";
-
-        const li = document.createElement("li");
-        const span = document.createElement("span");
-        span.textContent = `${name} — ${percent}% [${status}] (⬇ ${speed} | ⬆ ${speedUp}) ---- size = ${(totalSize / 1024 / 1024).toFixed(2)}mb; ETA: ${ETA} `;
-        li.appendChild(span);
-
-        const butDetails = document.createElement("button");
-        butDetails.textContent = "Details";
-        butDetails.onclick = () => openTorrentDetails(el.id);
-        li.appendChild(butDetails);
-
-        const butStop = document.createElement("button");
-        butStop.textContent = "Stop";
-        butStop.onclick = async () => {
-          if (window.tjs) await window.tjs.stopTorrent([el.id]);
-        };
-        li.appendChild(butStop);
-
-        const butStart = document.createElement("button");
-        butStart.textContent = "Start";
-        butStart.onclick = async () => {
-          if (window.tjs) await window.tjs.startTorrent([el.id]);
-        };
-        li.appendChild(butStart);
-
-        const butRemove = document.createElement("button");
-        butRemove.textContent = "✕";
-        butRemove.onclick = () => removeTorrent(el.id);
-        li.appendChild(butRemove);
-
-        torrents.appendChild(li);
-      });
-    } catch (err) {
-      console.log(err)
-      statusIndicator.textContent =
-        "STATUS: ERROR_WITH_DATA (f12, check your console and write issue)";
-      statusIndicator.style.color = "#ff3333";
-      console.log(err)
-    }
-  }, 1000);
-
-  document.getElementById("torrentf").onchange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const bytes = new Uint8Array(reader.result);
-      let binary = "";
-      for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
-      }
-      const b64 = btoa(binary);
-      if (window.tjs) await window.tjs.addTorrent(b64);
-      e.target.value = "";
-    };
-    reader.readAsArrayBuffer(file);
-  };
-
-  window.removeTorrent = async (id) => {
-    const confirmed = confirm(`Drop the torrent with id ${id}?`);
-    if (confirmed && window.tjs) await window.tjs.removeTorrent(Number(id));
-  };
-
-  window.openTorrentDetails = (id) => {
-    const torrent = currentTorrentsData.find(
-      (t) => String(t.id) === String(id),
-    );
-
-    if (!torrent) return;
-
-    document.getElementById("modal_torrent_title").textContent =
-      `DETAILS: ${torrent.name} (#${torrent.id})`;
-
-    document.getElementById("modal_torrent_hash").textContent =
-      `InfoHash: ${torrent.hashString}`;
-
-    const filesList = document.getElementById("modal_files_list");
-    filesList.innerHTML = "";
-
-    if (torrent.files?.length) {
-      torrent.files.forEach((f) => {
-        const li = document.createElement("li");
-        const completedMB = (f.bytesCompleted / 1048576).toFixed(2);
-        const totalMB = (f.length / 1048576).toFixed(2);
-        const percent = ((f.bytesCompleted / f.length) * 100 || 0).toFixed(1);
-
-        li.textContent = `${f.name} — ${completedMB} / ${totalMB} MB (${percent}%)`;
-        filesList.appendChild(li);
-      });
-    } else {
-      const li = document.createElement("li");
-      li.textContent = "NO_FILES";
-      filesList.appendChild(li);
-    }
-
-    const peersList = document.getElementById("modal_peers_list");
-    const trackersList = document.getElementById("modal_trackers_list");
-
-    document.getElementById("peer_count").textContent = torrent.peers
-      ? torrent.peers.length
-      : 0;
-
-    peersList.innerHTML = "";
-    if (torrent.peers?.length) {
-      peersList.append(
-        ...torrent.peers.map((p) => {
-          const li = document.createElement("li");
-          const downSpeed = (p.rateToClient / 1024).toFixed(2);
-          const upSpeed = (p.rateToPeer / 1024).toFixed(2);
-          const client = p.clientName || "Unk";
-
-          li.textContent = `${p.address} (${client}) — ${downSpeed} KB/s — ${upSpeed} KB/s`;
-          return li;
-        }),
-      );
-    } else {
-      const li = document.createElement("li");
-      li.textContent = "NO_PEERS";
-      peersList.appendChild(li);
-    }
-
-    trackersList.innerHTML = "";
-    if (torrent.trackers?.length) {
-      trackersList.append(
-        ...torrent.trackers.map((p) => {
-          const li = document.createElement("li");
-          li.textContent = `[id:${p.id}] announce: ${p.announce} ; tier - ${p.tier}`;
-          return li;
-        }),
-      );
-    } else {
-      const li = document.createElement("li");
-      li.textContent = "NO_TRACKERS";
-      trackersList.appendChild(li);
-    }
-
-    document.getElementById("trackers_count").textContent = torrent.trackers
-      ? torrent.trackers.length
-      : 0;
-
-    const modal_TrackerStats = document.getElementById("modal_tracker_stats");
-    const tstats = torrent.trackerStats;
-    /*
-    To convert a Unix timestamp to a human-readable date in JavaScript, multiply the timestamp by 1000 and pass it into the new Date() constructor. JavaScript requires milliseconds, while standard Unix timestamps are measured in second
-    (so, for js we need ms)
-    */
-    modal_TrackerStats.textContent = tstats
-      ? tstats
-          .map(
-		  (tr) => {
-const leachers = tr.leecherCount >= 0 ? tr.leecherCount : '?'; // TODO: why so big value
-return `
-Host: ${tr.host}
-Announce: ${tr.announce}
-Status: ${tr.lastAnnounceResult} (${tr.lastAnnounceSucceeded ? "OK" : "Fail"})
-Peers: ${tr.lastAnnouncePeerCount} | Seeders: ${tr.seederCount} | Leechers: ${leachers}
-Last Announce: ${new Date(tr.lastAnnounceTime * 1000).toLocaleString()}
-Next Announce: ${new Date(tr.nextAnnounceTime * 1000).toLocaleString()}
-`}).join("\n" + "-".repeat(40)) : "-";
-
-    document.getElementById("torrent_details_modal").style.display = "block";
-  };
-
-  window.closeDetailsModal = () => {
-    document.getElementById("torrent_details_modal").style.display = "none";
-  };
-  const btn_magnet = document.getElementById('btn_magnet')
-  btn_magnet.onclick = async () => {
-    const r = await window.tjs.addTorrentByMagnet(document.getElementById('torrent_manet_url').value)
-    if(!r) alert("Not correct magnet link");
-  }
+    window.rpc = new TorrentClient();
 </script>
 
+<div id="fs-error">
+    <fieldset>
+        <h2 style="color: #ff3333;" id="err-string">failed to load main.js</h2>
+        <h3 id="err-details"></h3>
+    </fieldset>
+</div>
+
+<div class="container">
+    <fieldset class="fs-buttons">
+        <legend>Actions</legend>
+        <div class="button-column">
+            <input type="file" id="torrentf" accept=".torrent" style="display: none" />
+            <button title="Open torrent file" onclick="document.getElementById('torrentf').click()">📂</button>
+            <button title="Add magnet" onclick="addMagnet()">🧲</button>
+        </div>
+    </fieldset>
+
+    <fieldset id="fs-session-stats">
+        <legend>Session stats:</legend>
+        <div id="session-stats-list"></div>
+    </fieldset>
+
+    <fieldset id="fs-dht-stats" style="display: none">
+        <legend>DHT stats:</legend>
+        <div id="dht-stats-list"></div>
+    </fieldset>
+</div>
+
+<div class="container" id="stats"></div>
+<div id="torrents"></div>
+<div id="details"></div>
+
+<script src="./main.js"></script>
