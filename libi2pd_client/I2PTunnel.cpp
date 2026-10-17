@@ -392,12 +392,14 @@ namespace client
 			m_InHeader.clear ();
 			m_InHeader.write ((const char *)buf, len);
 			std::string line;
+			int numHeaders = 0;
 			bool endOfHeader = false;
-			while (!endOfHeader)
+			while (!endOfHeader && numHeaders < I2P_TUNNL_MAX_NUM_HTTP_HEADERS)
 			{
 				std::getline(m_InHeader, line);
 				if (!m_InHeader.fail ())
 				{
+					numHeaders++;
 					if (line == "\r") endOfHeader = true;
 					else
 					{
@@ -418,7 +420,7 @@ namespace client
 							m_ProxyConnectionSent = true;
 						}
 						else
-						m_OutHeader << line << "\n";
+							m_OutHeader << line << "\n";
 					}
 				}
 				else
@@ -446,11 +448,12 @@ namespace client
 				m_HeaderSent = true;
 				I2PTunnelConnection::Write ((uint8_t *)m_OutHeader.str ().c_str (), m_OutHeader.str ().length ());
 			}
-			else if (m_OutHeader.tellp () < I2P_TUNNEL_HTTP_MAX_HEADER_SIZE)
+			else if (m_OutHeader.tellp () < I2P_TUNNEL_HTTP_MAX_HEADER_SIZE && m_InHeader.tellp () < I2P_TUNNEL_HTTP_MAX_HEADER_SIZE)
 				StreamReceive (); // read more header
 			else
 			{
 				LogPrint (eLogError, "I2PTunnel: HTTP header exceeds max size ", I2P_TUNNEL_HTTP_MAX_HEADER_SIZE);
+				m_InHeader.str (""); m_OutHeader.str ("");
 				Terminate ();
 			}
 		}

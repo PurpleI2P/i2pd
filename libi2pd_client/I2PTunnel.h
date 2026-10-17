@@ -39,6 +39,7 @@ namespace client
 	constexpr std::string_view X_I2P_DEST_B64 { "X-I2P-DestB64" }; // full address in base64
 	constexpr std::string_view X_I2P_DEST_B32 { "X-I2P-DestB32" }; // .b32.i2p address
 	constexpr int I2P_TUNNEL_HTTP_MAX_HEADER_SIZE = 8192;
+	constexpr int I2P_TUNNL_MAX_NUM_HTTP_HEADERS = 100;
 
 	class I2PTunnelConnection: public I2PServiceHandler, public std::enable_shared_from_this<I2PTunnelConnection>
 	{
