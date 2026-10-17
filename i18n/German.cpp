@@ -131,7 +131,7 @@ namespace german // language namespace
 		{"Start graceful shutdown", "Starte das kontrollierte Herunterfahren"},
 		{"Force shutdown", "Herunterfahren erzwingen"},
 		{"Reload external CSS styles", "Lade externe CSS-Stile neu"},
-		{"<b>Note:</b> any action done here are not persistent and not changes your config files.", "<b>Hinweis:</b> Alle hier durchgeführten Aktionen sind nicht dauerhaft und ändern die Konfigurationsdateien nicht."},
+		{"<b>Note:</b> any action performed here is not persistent and does not change your config files.", "<b>Hinweis:</b> Alle hier durchgeführten Aktionen sind nicht dauerhaft und ändern die Konfigurationsdateien nicht."},
 		{"Logging level", "Protokollierungslevel"},
 		{"Transit tunnels limit", "Limit für Transittunnel"},
 		{"Change", "Ändern"},

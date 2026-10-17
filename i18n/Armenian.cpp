@@ -128,7 +128,7 @@ namespace armenian // language namespace
 		{"Start graceful shutdown", "Սկսել սահուն անջատումը"},
 		{"Force shutdown", "Հարկադիր անջատում"},
 		{"Reload external CSS styles", "Վերաբեռնեք CSS ոճաթերթը"},
-		{"<b>Note:</b> any action done here are not persistent and not changes your config files.", "<b> Նշում․ </b> այստեղ կատարված ցանկացած գործողություն մշտական ​​չէ և չի փոխում ձեր կազմաձևման ֆայլերը։"},
+		{"<b>Note:</b> any action performed here is not persistent and does not change your config files.", "<b> Նշում․ </b> այստեղ կատարված ցանկացած գործողություն մշտական ​​չէ և չի փոխում ձեր կազմաձևման ֆայլերը։"},
 		{"Logging level", "Գրառման աստիճանը"},
 		{"Transit tunnels limit", "Տարանցիկ թունելների սահմանափակում"},
 		{"Change", "Փոփոխել"},
