@@ -411,7 +411,6 @@ async function refreshTable() {
 
 					case "have":
 						cell.textContent = (tr_obj.haveValid === 0 || tr_obj.haveValid === tr_obj.totalSize) ? "" : formatSize(tr_obj.haveValid);
-						allSize += tr_obj.totalSize
 						break;
 
 					case "eta":
