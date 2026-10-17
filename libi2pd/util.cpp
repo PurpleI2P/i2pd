@@ -26,6 +26,10 @@
 #include <pthread_np.h>
 #endif
 
+#ifdef __OpenBSD__
+#include <net/if.h>
+#endif
+
 #if defined(__APPLE__)
 # include <AvailabilityMacros.h>
 #endif
@@ -570,6 +574,17 @@ namespace net
 		int mtu = fallback;
 		if (ifa && family)
 		{ // interface found?
+#ifdef __OpenBSD__
+			// getifaddrs supplies if_data for AF_LINK entries. NET_RT_IFLIST
+			// is permitted by pledge("inet"), unlike SIOCGIFMTU.
+			for (auto link = ifaddr; link; link = link->ifa_next)
+				if (link->ifa_addr && link->ifa_addr->sa_family == AF_LINK &&
+					link->ifa_data && !strcmp (link->ifa_name, ifa->ifa_name))
+				{
+					mtu = static_cast<const struct if_data *> (link->ifa_data)->ifi_mtu;
+					break;
+				}
+#else
 			int fd = socket(family, SOCK_DGRAM, 0);
 			if (fd > 0)
 			{
@@ -583,6 +598,7 @@ namespace net
 			}
 			else
 				LogPrint(eLogError, "NetIface: Failed to create datagram socket");
+#endif
 		}
 		else
 			LogPrint(eLogWarning, "NetIface: Interface for local address", localAddress.to_string(), " not found");

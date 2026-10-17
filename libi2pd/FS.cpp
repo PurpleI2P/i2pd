@@ -107,6 +107,8 @@ namespace fs {
 			}
 			else
 				dataDir = (fs_lib::path(commonAppData)/appName).string ();
+#elif defined(__OpenBSD__)
+			dataDir = "/var/" + appName;
 #else
 			dataDir = "/var/lib/" + appName;
 #endif

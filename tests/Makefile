@@ -18,7 +18,6 @@ ifneq (, $(findstring mingw, $(SYS))$(findstring windows-gnu, $(SYS))$(findstrin
 endif
 
 LDLIBS = \
-	-lboost_system$(BOOST_SUFFIX) \
 	-lboost_program_options$(BOOST_SUFFIX) \
 	-lssl \
 	-lcrypto \

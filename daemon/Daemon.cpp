@@ -11,7 +11,12 @@
 #include <regex>
 
 #ifdef __OpenBSD__
-#	include<unistd.h>
+#include <unistd.h>
+#include <limits.h>
+#include <stdexcept>
+#include <cerrno>
+#include <cstring>
+#include <cstdlib>
 #endif
 
 #include "Daemon.h"
@@ -43,6 +48,19 @@ namespace i2p
 {
 namespace util
 {
+#ifdef __OpenBSD__
+	// Keep paths stable across DaemonUnix::start()'s chdir(). The leaf need
+	// not exist yet (log files, for example), so realpath() is unsuitable.
+	static std::string AbsolutePath (const std::string& path)
+	{
+		if (path.empty () || path.front () == '/') return path;
+		char cwd[PATH_MAX];
+		if (!getcwd (cwd, sizeof (cwd)))
+			throw std::runtime_error ("Daemon: Can't resolve working directory");
+		return std::string (cwd) + "/" + path;
+	}
+#endif
+
 	class Daemon_Singleton::Daemon_Singleton_Private
 	{
 	public:
@@ -91,7 +109,11 @@ namespace util
 		}
 
 		i2p::fs::DetectDataDir(datadir, IsService());
+#ifdef __OpenBSD__
+		i2p::fs::DetectDataDir (AbsolutePath (i2p::fs::GetDataDir ()), IsService ());
+#else
 		i2p::fs::Init();
+#endif
 
 		datadir = i2p::fs::GetDataDir();
 
@@ -108,156 +130,23 @@ namespace util
 		i2p::config::Finalize();
 
 #ifdef __OpenBSD__
-		auto init_pledge = []() {
-			std::string pledge_file; i2p::config::GetOption("openbsd.pledge_file", pledge_file);
-			if (pledge_file == "")
-			{
-				LogPrint(eLogDebug, "Default pledge values are set");
-				// TODO: remove that not need
-				// proc used in daemonunix, flock used in daemonunix, unix using
-				pledge("stdio rpath wpath cpath inet dns unix recvfd sendfd proc error mcast chown flock",nullptr);
-			} else {
-				std::ifstream f(pledge_file);
-				if(!f) {
-					std::cerr << "Can't open pledge file " << pledge_file<<std::endl;
-					exit(1);
-				}
-				std::string line;
-				std::vector<std::string> rules;
-				while(std::getline(f, line)){
-					rules.push_back(line);
-				}
-				if(f.bad()) {
-					std::cerr << "IO error with pledge file" << std::endl;
-				}
-				std::ostringstream out;
-				for(auto r : rules)
-					out << r << " ";
-				pledge(out.str().c_str(), nullptr);
-			}		
-
-
-		};
-		auto unveil_path = [](std::string path, std::string rules = "r")
+		// A datadir in the configuration is not available during config lookup.
+		std::string configuredDataDir = DaemonDataDir;
+		if (configuredDataDir.empty ())
+			i2p::config::GetOption ("datadir", configuredDataDir);
+		i2p::fs::DetectDataDir (configuredDataDir, IsService ());
+		i2p::fs::DetectDataDir (AbsolutePath (i2p::fs::GetDataDir ()), IsService ());
+		datadir = i2p::fs::GetDataDir ();
+		i2p::fs::Init ();
+		i2p::config::SetOption ("conf", AbsolutePath (config));
+		for (const char * option : {"tunconf", "tunnelsdir", "certsdir", "logfile", "pidfile",
+			"reseed.file", "reseed.zipfile", "addressbook.hostsfile",
+			"openbsd.pledge_file", "openbsd.unveil_file"})
 		{
-			if(path=="")
-			{
-				LogPrint(eLogDebug, "empty path for unveil");
-				return;
-			}
-			if ( unveil(path.c_str(), rules.c_str()) == -1 )
-			{
-				LogPrint(eLogError, "Can't unveil " + path + " with rules " + rules);
-				throw std::runtime_error("can't unveil");
-			}
-			LogPrint(eLogInfo, "unveil " + path + " with rules " + rules);
-		};
-		auto init_unveil = [unveil_path](std::string datadir, std::string config) {
-
-			std::string tunnelsdir, certsdir, logfile,  reseed_file, openbsd_pledge_file,
-				tunconf, pidfile, i2pcontrol_cert, i2pcontrol_key, unveil_file;
-
-			i2p::config::GetOption("openbsd.unveil_file",unveil_file);
-			i2p::config::GetOption("certsdir", certsdir);
-			if(certsdir == "")
-			{
-				certsdir = datadir+"/certificates";
-			}
-			i2p::config::GetOption("tunnelsdir", tunnelsdir);
-			if(tunnelsdir == "")
-			{
-				tunnelsdir = datadir+"/tunnels.d";
-			}
-			i2p::config::GetOption("reseed.file", reseed_file);
-			i2p::config::GetOption("openbsd.pledge_file", openbsd_pledge_file);
-			i2p::config::GetOption("tunconf", tunconf); 
-			if(tunconf == "")
-			{
-				tunconf = datadir+"/tunnels.conf";
-			}
-			if(config == "")
-			{
-				config = datadir+"/i2pd.conf";
-			}
-			i2p::config::GetOption("pidfile", pidfile); 
-			if(pidfile == "")
-			{
-				pidfile = datadir+"/i2pd.pid";
-			}
-			i2p::config::GetOption("logfile", logfile);
-			if(logfile == "")
-			{
-				logfile = datadir+"/logfile"; //for --service
-			}
-			i2p::config::GetOption("i2pcontrol.cert", i2pcontrol_cert);
-			i2p::config::GetOption("i2pcontrol.key", i2pcontrol_key);
-			if(i2pcontrol_cert == "i2pcontrol.crt.pem")
-			{
-				i2pcontrol_cert=datadir+"/"+i2pcontrol_cert;
-			}
-			if(i2pcontrol_key == "i2pcontrol.key.pem")
-			{
-				i2pcontrol_key=datadir+"/"+i2pcontrol_key;
-			}
-			//constexpr can't be here and it's eat a lot of memory...
-/*
-			auto rules = std::map<std::string,std::string>{
-				{datadir,"rwc"},
-				{"/tmp","rwc"},
-				{unveil_file, "r"},
-				{tunnelsdir, "r"},
-				{certsdir, "r"},
-				{reseed_file, "r"},
-				{openbsd_pledge_file, "r"},
-				{tunconf, "r"},
-				{config, "r"},
-				{pidfile, "rwc"},
-				{logfile, "rwc"},
-				{i2pcontrol_cert, "rwc"},
-				{i2pcontrol_key, "rwc"}
-			};
-
-			for (const auto& [path, privilegies] : rules)
-			{
-				unveil_path(path, privilegies);
-			}
-*/
-			unveil_path(datadir, "rwc");
-			unveil_path(unveil_file, "r");
-			unveil_path(tunnelsdir, "r");
-			unveil_path(certsdir, "r");
-			unveil_path(reseed_file, "r");
-			unveil_path(openbsd_pledge_file, "r");
-			unveil_path(tunconf, "r");
-			unveil_path(config, "r");
-			unveil_path(pidfile, "rwc");
-			unveil_path(logfile, "rwc");
-			unveil_path(i2pcontrol_cert, "rwc");
-			unveil_path(i2pcontrol_key, "rwc");
-
-
-			if( unveil_file.length() )
-			{
-				std::ifstream f(unveil_file);
-				if (!f) {
-					std::cerr << "Can't open unveil file" << std::endl;
-					exit(1);
-				}
-				std::string line;
-				while(std::getline(f, line)){
-					//UNVEIL_DIR(line);// maybe not need c
-					unveil_path(line.c_str(), "rwc");
-				}
-			}
-
-			if( unveil(NULL, NULL) == -1 )
-			{
-				throw std::runtime_error("Can't unveil something");
-			}
-		};
-		bool openbsd_unveil_enabled; i2p::config::GetOption("openbsd.unveil_enabled", openbsd_unveil_enabled);
-		bool openbsd_pledge_enabled; i2p::config::GetOption("openbsd.pledge_enabled", openbsd_pledge_enabled);
-		if(openbsd_unveil_enabled) init_unveil(datadir, config);
+			std::string path;
+			i2p::config::GetOption (option, path);
+			if (!path.empty ()) i2p::config::SetOption (option, AbsolutePath (path));
+		}
 #endif
 
 		i2p::config::GetOption("daemon", isDaemon);
@@ -291,6 +180,9 @@ namespace util
 		} else if (logs == "file") {
 			if (logfile == "")
 				logfile = i2p::fs::DataDirPath("i2pd.log");
+#ifdef __OpenBSD__
+			i2p::config::SetOption ("logfile", logfile);
+#endif
 			LogPrint(eLogInfo, "Log: Sending messages to ", logfile);
 			i2p::log::Logger().SendTo (logfile);
 #ifndef _WIN32
@@ -311,6 +203,25 @@ namespace util
 		bool ssu; i2p::config::GetOption("ssu", ssu);
 		if (!ssu && i2p::config::IsDefault ("precomputation.elgamal"))
 			precomputation = false; // we don't elgamal table if no ssu, unless it's specified explicitly
+#ifdef __OpenBSD__
+		// Keep startup-only promises until fork/setsid/setrlimit and unveil.
+		// Explicit pledge policies retain their existing override semantics.
+		bool usePledge; i2p::config::GetOption ("openbsd.pledge_enabled", usePledge);
+		std::string policy; i2p::config::GetOption ("openbsd.pledge_file", policy);
+		if (usePledge && policy.empty ())
+		{
+			std::string promises = "stdio rpath wpath cpath inet dns unix flock proc";
+			bool useUnveil; i2p::config::GetOption ("openbsd.unveil_enabled", useUnveil);
+			if (useUnveil) promises += " unveil";
+			bool upnp; i2p::config::GetOption ("upnp.enabled", upnp);
+			if (upnp) promises += " mcast";
+			if (pledge (promises.c_str (), nullptr) == -1)
+			{
+				std::cerr << "Daemon: startup pledge: " << strerror (errno) << std::endl;
+				std::exit (EXIT_FAILURE);
+			}
+		}
+#endif
 		i2p::crypto::InitCrypto (precomputation);
 
 		i2p::transport::InitAddressFromIface (); // get address4/6 from interfaces

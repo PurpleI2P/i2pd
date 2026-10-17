@@ -591,7 +591,13 @@ namespace i2p
 			if (addr && (addr->host != host || !addr->ssu->mtu))
 			{
 				addr->host = host;
+#ifdef __OpenBSD__
+				// Address updates must not replace an explicitly configured MTU.
+				uint16_t configuredMTU; i2p::config::GetOption ("ssu2.mtu6", configuredMTU);
+				if (!configuredMTU && m_StatusV6 != eRouterStatusProxy)
+#else
 				if (m_StatusV6 != eRouterStatusProxy)
+#endif
 				{
 					// update MTU
 					auto mtu = i2p::util::net::GetMTU (host);
