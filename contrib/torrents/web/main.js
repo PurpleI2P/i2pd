@@ -106,6 +106,7 @@ async function addMagnet() {
 		const r = await window.rpc.addTorrentByMagnet(name)
 		if (r.result !== "success")
 			alert(r.result);
+		refreshTable();
 	}
 }
 
@@ -292,7 +293,6 @@ async function refreshTable() {
 		torrents_data = r.arguments.torrents;
 
 		if (torrents_data.length === 0) {
-			el_torrents.style.display = "none";
 			el_torrents.replaceChildren();
 			clearError();
 			return;
@@ -388,7 +388,7 @@ async function refreshTable() {
 						});
 
 						if (tr_obj.status === 6)
-							cell.textContent = leechers ? `${leechers}` : "" // we are seeding
+							cell.textContent = leechers || "" // we are seeding
 						else if (seeders || leechers)
 							cell.textContent = `${seeders} / ${leechers}`; // we are leeching
 
@@ -549,7 +549,7 @@ el_torrentf.onchange = (e) => {
 
 // close torrent details
 window.closeDetailsModal = () => {
-  el_details.style.display = "none";
+  el_details.replaceChildren();
   stopDetailsTimer();
 };
 
@@ -896,7 +896,6 @@ window.openTorrentDetails = (tr_id) => {
 	}
 
 	el_details.replaceChildren(fs_main);
-	el_details.style.display = "block";
 
 	startDetailsTimer(tr_id);
 };
