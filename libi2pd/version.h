@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2026, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -17,8 +17,8 @@
 #define MAKE_VERSION(a,b,c) STRINGIZE(a) "." STRINGIZE(b) "." STRINGIZE(c)
 #define MAKE_VERSION_NUMBER(a,b,c) ((a*100+b)*100+c)
 
-#define I2PD_VERSION_MAJOR 2
-#define I2PD_VERSION_MINOR 61
+#define I2PD_VERSION_MAJOR 3
+#define I2PD_VERSION_MINOR 0
 #define I2PD_VERSION_MICRO 0
 #define I2PD_VERSION_PATCH 0
 #ifdef GITVER
@@ -33,7 +33,7 @@
 
 #define I2P_VERSION_MAJOR 0
 #define I2P_VERSION_MINOR 9
-#define I2P_VERSION_MICRO 70
+#define I2P_VERSION_MICRO 71
 #define I2P_VERSION_PATCH 0
 #define I2P_VERSION MAKE_VERSION(I2P_VERSION_MAJOR, I2P_VERSION_MINOR, I2P_VERSION_MICRO)
 #define I2P_VERSION_NUMBER MAKE_VERSION_NUMBER(I2P_VERSION_MAJOR, I2P_VERSION_MINOR, I2P_VERSION_MICRO)

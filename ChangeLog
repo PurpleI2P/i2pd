@@ -1,6 +1,38 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [3.0.0] - 2026-10-19
+### Added
+- Torrents tunnels with RPC, magnets, PEX, DHT, datagram trackers support
+- Full SAM 3.3 implementation
+- Multi-destination client tunnels
+- LocalDestinationInfo method to I2PControl
+- Offline keys for an encrypted LeaseSet
+### Changed
+- Create keys files readable by owner only
+- Reject ipv4-mapped ipv6 addresses in RouterInfo
+- Use boost::beast for address book subscription updates
+- Close HTTP server connection if HTTP header line is too long
+- UDP tunnels window and ack policy
+- Don't throw single datagram if remote LeaseSet is being requested
+- Calculate LeaseSet request timeout based on tunnel latency or tunnel length
+- Reject LeaseSet type 1 if coming from ECIESx25519 session
+- Fallback NTCP2 seesion to version 2 if peer is version 3 or 5 for LibreSSL
+- Allow ipv6 binding for Haiku
+- Treat reseed connect timeout as a failure
+- Removed ECDSA key blinding
+- Reseeds list
+### Fixed
+- Datagram2 signatures
+- Incorrect sessionID in I2CP response to HostLookup request
+- Remove incorrect old address from address book storage
+- Missing port in "Host:" header even if specified in original HTTP proxy request
+- SAM session gets closed in few seconds after reconnect
+- Invalid ECIESx25519 session for out-of-sequence streaming packet
+- LeaseSet1 accepted if coming from ECIESx25519
+- Stalled UDP tunnels
+- Build failure with C++20 and older boost
+
 ## [2.61.0] - 2026-07-20
 ### Added
 - Torsocks support in SOCKS proxy
