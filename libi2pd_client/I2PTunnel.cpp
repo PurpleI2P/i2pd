@@ -576,7 +576,7 @@ namespace client
 		else
 		{
 			m_InHeader.clear ();
-			if (m_InHeader.str ().empty ()) m_OutHeader.str (""); // start of response
+			if (m_InHeader.view ().empty ()) m_OutHeader.str (""); // start of response
 			m_InHeader.write ((const char *)buf, len);
 			std::string line;
 			bool endOfHeader = false;
@@ -616,10 +616,10 @@ namespace client
 			if (endOfHeader)
 			{
 				m_OutHeader << "\r\n"; // end of header
-				m_OutHeader << m_InHeader.str ().substr (m_InHeader.tellg ()); // data right after header
+				m_OutHeader << m_InHeader.view ().substr (m_InHeader.tellg ()); // data right after header
 				m_InHeader.str ("");
 				m_ResponseHeaderSent = true;
-				I2PTunnelConnection::WriteToStream ((uint8_t *)m_OutHeader.str ().c_str (), m_OutHeader.str ().length ());
+				I2PTunnelConnection::WriteToStream ((const uint8_t *)m_OutHeader.view ().data (), m_OutHeader.view ().size ());
 				m_OutHeader.str ("");
 			}
 			else
@@ -672,7 +672,7 @@ namespace client
 			else
 				m_OutPacket << line << '\n';
 		}
-		I2PTunnelConnection::Write ((uint8_t *)m_OutPacket.str ().c_str (), m_OutPacket.str ().length ());
+		I2PTunnelConnection::Write ((const uint8_t *)m_OutPacket.view ().data (), m_OutPacket.view ().size ());
 	}
 
 
