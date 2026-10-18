@@ -1824,8 +1824,10 @@ namespace torrents
 				if (piece.VerifyHash ())
 				{
 					boost::asio::post (GetTorrentsTunnel ()->GetDiskIOService (),
-						[index, torrent = m_Torrent]() mutable
+						[index, t = std::weak_ptr<Torrent> (m_Torrent)]() mutable
 						{
+							auto torrent = t.lock ();
+							if (!torrent) return; // torrent doesn't exist anymore
 							auto fragments = torrent->GetPieceFileFragments (index);
 							Piece& piece = torrent->GetPiece (index);
 							for (auto& it: fragments)
