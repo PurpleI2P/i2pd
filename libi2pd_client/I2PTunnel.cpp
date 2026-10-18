@@ -392,14 +392,19 @@ namespace client
 			m_InHeader.clear ();
 			m_InHeader.write ((const char *)buf, len);
 			std::string line;
-			int numHeaders = 0;
 			bool endOfHeader = false;
-			while (!endOfHeader && numHeaders < I2P_TUNNL_MAX_NUM_HTTP_HEADERS)
+			while (!endOfHeader)
 			{
 				std::getline(m_InHeader, line);
 				if (!m_InHeader.fail () && !m_InHeader.eof ())
 				{
-					numHeaders++;
+					m_NumHeaders++;
+					if (m_NumHeaders > I2P_TUNNEL_MAX_NUM_HTTP_HEADERS)
+					{
+						LogPrint (eLogError, "I2PTunnel: HTTP headers number exceeds max ", I2P_TUNNEL_MAX_NUM_HTTP_HEADERS);
+						Terminate ();
+						return;
+					}
 					if (line == "\r") endOfHeader = true;
 					else
 					{
@@ -453,7 +458,6 @@ namespace client
 			else
 			{
 				LogPrint (eLogError, "I2PTunnel: HTTP header exceeds max size ", I2P_TUNNEL_HTTP_MAX_HEADER_SIZE);
-				m_InHeader.str (""); m_OutHeader.str ("");
 				Terminate ();
 			}
 		}
@@ -463,7 +467,7 @@ namespace client
 		const boost::asio::ip::tcp::endpoint& target, const std::string& host, const std::string& XI2P,
 	    std::shared_ptr<boost::asio::ssl::context> sslCtx):
 		I2PTunnelConnection (owner, stream, target, sslCtx), m_Host (host), m_XI2P (XI2P),
-		m_HeaderSent (false), m_ResponseHeaderSent (false)
+		m_HeaderSent (false), m_ResponseHeaderSent (false), m_NumHeaders (0)
 	{
 		if (sslCtx)
 			SSL_set_tlsext_host_name(GetSSL ()->native_handle(), host.c_str ());
@@ -488,6 +492,13 @@ namespace client
 					if (line == "\r") endOfHeader = true;
 					else
 					{
+						m_NumHeaders++;
+						if (m_NumHeaders > I2P_TUNNEL_MAX_NUM_HTTP_HEADERS)
+						{
+							LogPrint (eLogError, "I2PTunnel: HTTP headers number exceeds max ", I2P_TUNNEL_MAX_NUM_HTTP_HEADERS);
+							Terminate ();
+							return;
+						}
 						// strip up some headers
 						static constexpr std::array<std::string_view, 2> excluded // list of excluded headers
 						{
@@ -520,6 +531,12 @@ namespace client
 				}
 				else
 				{
+					if (line.length () > I2P_TUNNEL_HTTP_MAX_HEADER_SIZE)
+					{
+						LogPrint (eLogError, "I2PTunnel: HTTP header line exceeds max size ", I2P_TUNNEL_HTTP_MAX_HEADER_SIZE);
+						Terminate ();
+						return;
+					}
 					// insert incomplete line back
 					m_InHeader.clear ();
 					m_InHeader << line;
@@ -537,12 +554,12 @@ namespace client
 				// end of header
 				m_OutHeader << "\r\n";
 
-				m_OutHeader << m_InHeader.str ().substr (m_InHeader.tellg ()); // data right after header
+				m_OutHeader << m_InHeader.view ().substr (m_InHeader.tellg ()); // data right after header
 				m_InHeader.str ("");
 				m_HeaderSent = true;
-				I2PTunnelConnection::Write ((uint8_t *)m_OutHeader.str ().c_str (), m_OutHeader.str ().length ());
+				I2PTunnelConnection::Write ((const uint8_t *)m_OutHeader.view ().data (), m_OutHeader.view ().size ());
 			}
-			else if (m_OutHeader.tellp () < I2P_TUNNEL_HTTP_MAX_HEADER_SIZE)
+			else  if (m_OutHeader.view ().size () < I2P_TUNNEL_HTTP_MAX_HEADER_SIZE && m_InHeader.view ().size () < I2P_TUNNEL_HTTP_MAX_HEADER_SIZE)
 				StreamReceive (); // read more header
 			else
 			{
