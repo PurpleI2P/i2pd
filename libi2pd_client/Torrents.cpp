@@ -1815,7 +1815,7 @@ namespace torrents
 		uint32_t index = bufbe32toh (buf);
 		uint32_t offset = bufbe32toh (buf + 4);
 		len -= 8;
-		if (len && index < m_Torrent->GetNumPieces ())
+		if (len && index < m_Torrent->GetNumPieces () && !m_Torrent->IsStopped ())
 		{
 			Piece& piece = m_Torrent->GetPiece (index);
 			piece.BlockReceived (buf + 8, len, offset);
