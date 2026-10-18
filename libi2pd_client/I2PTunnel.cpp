@@ -397,7 +397,7 @@ namespace client
 			while (!endOfHeader && numHeaders < I2P_TUNNL_MAX_NUM_HTTP_HEADERS)
 			{
 				std::getline(m_InHeader, line);
-				if (!m_InHeader.fail ())
+				if (!m_InHeader.fail () && !m_InHeader.eof ())
 				{
 					numHeaders++;
 					if (line == "\r") endOfHeader = true;
@@ -443,12 +443,12 @@ namespace client
 				if (!m_ConnectionSent) m_OutHeader << "Connection: close\r\n";
 				if (!m_ProxyConnectionSent) m_OutHeader << "Proxy-Connection: close\r\n";
 				m_OutHeader << "\r\n"; // end of header
-				m_OutHeader << m_InHeader.str ().substr (m_InHeader.tellg ()); // data right after header
+				m_OutHeader << m_InHeader.view ().substr (m_InHeader.tellg ()); // data right after header
 				m_InHeader.str ("");
 				m_HeaderSent = true;
-				I2PTunnelConnection::Write ((uint8_t *)m_OutHeader.str ().c_str (), m_OutHeader.str ().length ());
+				I2PTunnelConnection::Write ((const uint8_t *)m_OutHeader.view ().data (), m_OutHeader.view ().size ());
 			}
-			else if (m_OutHeader.tellp () < I2P_TUNNEL_HTTP_MAX_HEADER_SIZE && m_InHeader.tellp () < I2P_TUNNEL_HTTP_MAX_HEADER_SIZE)
+			else if (m_OutHeader.view ().size () < I2P_TUNNEL_HTTP_MAX_HEADER_SIZE && m_InHeader.view ().size () < I2P_TUNNEL_HTTP_MAX_HEADER_SIZE)
 				StreamReceive (); // read more header
 			else
 			{
