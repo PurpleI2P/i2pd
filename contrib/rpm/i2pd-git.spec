@@ -27,6 +27,14 @@ BuildRequires: systemd-units
 BuildRequires: openssl-devel-engine
 %endif
 
+%if 0%{?rhel} <= 9 || 0%{?fedora} <= 43
+BuildRequires: boost-json
+%endif
+
+%if 0%{?fedora} <= 43
+BuildRequires: boost-url
+%endif
+
 Requires:      logrotate
 Requires:      systemd
 Requires(pre): %{_sbindir}/useradd %{_sbindir}/groupadd
@@ -46,6 +54,9 @@ cd build
   -DWITH_LIBRARY=OFF \
   -DWITH_UPNP=ON \
   -DWITH_HARDENING=ON \
+%if 0%{?rhel} <= 9
+  -DWITH_TORRENTS=OFF
+%endif
 %if 0%{?fedora} > 29
   -DBUILD_SHARED_LIBS:BOOL=OFF \
   .

@@ -37,6 +37,7 @@ option(WITH_LIBRARY         "Build library"                           ON)
 option(WITH_BINARY          "Build binary"                            ON)
 option(WITH_STATIC          "Static build"                            OFF)
 option(WITH_UPNP            "Include support for UPnP client"         OFF)
+option(WITH_TORRENTS        "Include torrent client"                  ON)
 option(WITH_GIT_VERSION     "Use git commit info as version"          OFF)
 option(WITH_ADDRSANITIZER   "Build with address sanitizer unix only"  OFF)
 option(WITH_THREADSANITIZER "Build with thread sanitizer unix only"   OFF)
@@ -145,6 +146,10 @@ endif()
 
 if(WITH_UPNP)
   add_definitions(-DUSE_UPNP)
+endif()
+
+if(NOT WITH_TORRENTS)
+  add_definitions(-DNO_TORRENTS)
 endif()
 
 if(WITH_GIT_VERSION)
@@ -302,11 +307,11 @@ endif()
 
 if(Boost_json_FOUND AND NOT WITH_STATIC)
   add_definitions(-DBOOST_JSON_DYN_LINK)
-endif() 
+endif()
 
 if(Boost_url_FOUND AND NOT WITH_STATIC)
   add_definitions(-DBOOST_URL_DYN_LINK)
-endif() 
+endif()
 
 find_package(OpenSSL REQUIRED)
 if(NOT DEFINED OPENSSL_FOUND)
