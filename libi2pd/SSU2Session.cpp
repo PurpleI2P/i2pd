@@ -1934,7 +1934,10 @@ namespace transport
 				}
 				case eSSU2BlkPathChallenge:
 					LogPrint (eLogDebug, "SSU2: Path challenge");
-					SendPathResponse (buf + offset, size);
+					if (IsEstablished ())
+						SendPathResponse (buf + offset, size);
+					else
+						LogPrint (eLogWarning, "SSU2: Path challenge came from non-established session. Dropped");
 				break;
 				case eSSU2BlkPathResponse:
 				{
