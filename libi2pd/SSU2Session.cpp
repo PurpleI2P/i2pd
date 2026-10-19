@@ -2271,6 +2271,11 @@ namespace transport
 	{
 		// we are Bob
 		if (len < 9) return;
+		if (!IsEstablished ())
+		{
+			LogPrint (eLogWarning, "SSU2: RelayRequest came from non-established session. Dropped");
+			return;
+		}
 		auto mts = i2p::util::GetMillisecondsSinceEpoch ();
 		uint32_t nonce = bufbe32toh (buf + 1); // nonce
 		uint32_t relayTag = bufbe32toh (buf + 5); // relay tag
