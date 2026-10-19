@@ -1712,6 +1712,13 @@ namespace transport
 			LogPrint (eLogWarning, "SSU2: Data message payload length ", (int)len, " is out of range");
 			return 0;
 		}
+		if (!m_Address)
+		{
+			// incoming session has no address until SessionConfirmed, but a block from
+			// SessionRequest payload can reach here, e.g. RelayRequest
+			LogPrint (eLogWarning, "SSU2: Data message is not sent. Address is not set");
+			return 0;
+		}
 		Header header;
 		header.h.connID = m_DestConnID;
 		header.h.packetNum = htobe32 (m_SendPacketNum);
