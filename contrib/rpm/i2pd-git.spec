@@ -55,7 +55,7 @@ cd build
   -DWITH_UPNP=ON \
   -DWITH_HARDENING=ON \
 %if 0%{?rhel} <= 9
-  -DWITH_TORRENTS=OFF
+  -DWITH_TORRENTS=OFF \
 %endif
 %if 0%{?fedora} > 29
   -DBUILD_SHARED_LIBS:BOOL=OFF \
