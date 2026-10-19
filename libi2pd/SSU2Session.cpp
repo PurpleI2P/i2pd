@@ -2326,6 +2326,11 @@ namespace transport
 	{
 		// we are Charlie
 		if (len < 47) return;
+		if (!IsEstablished ())
+		{
+			LogPrint (eLogWarning, "SSU2: RelayIntro came from non-established session. Dropped");
+			return;
+		}
 		SSU2RelayResponseCode code = eSSU2RelayResponseCodeAccept;
 		boost::asio::ip::udp::endpoint ep;
 		std::shared_ptr<const i2p::data::RouterInfo::Address> addr;
@@ -2449,6 +2454,11 @@ namespace transport
 			}
 			return;
 		}
+		if (!IsEstablished ())
+		{
+			LogPrint (eLogWarning, "SSU2: RelayResponse came from non-established session. Dropped");
+			return;
+		}
 		auto it = m_RelaySessions.find (nonce);
 		if (it != m_RelaySessions.end ())
 		{
@@ -2535,6 +2545,11 @@ namespace transport
 	{
 		// msgs 1-4
 		if (len < 3) return;
+		if (!IsEstablished ())
+		{
+			LogPrint (eLogWarning, "SSU2: Peer test came from non-established session. Dropped");
+			return;
+		}
 		uint8_t msg = buf[0];
 		size_t offset = 3; // points to signed data
 		if (msg == 2 || msg == 4) offset += 32; // hash is presented for msg 2 and 4 only
