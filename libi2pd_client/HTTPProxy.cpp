@@ -40,6 +40,12 @@ namespace i2p
 {
 namespace proxy
 {
+	// HTTP status codes for proxy error pages
+	static constexpr int HTTP_CODE_BAD_REQUEST = 400;
+	static constexpr int HTTP_CODE_INTERNAL_ERROR = 500;
+	static constexpr int HTTP_CODE_BAD_GATEWAY = 502;
+	static constexpr int HTTP_CODE_GATEWAY_TIMEOUT = 504;
+
 	static constexpr std::array jumporder =
 	{
 		"reg.i2p",
@@ -91,10 +97,10 @@ namespace proxy
 			void SentHTTPFailed(const boost::system::error_code & ecode);
 			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
 			/* error helpers */
-			void GenericProxyError(std::string_view title, std::string_view description);
+			void GenericProxyError(std::string_view title, std::string_view description, int code = HTTP_CODE_INTERNAL_ERROR);
 			void GenericProxyInfo(std::string_view title, std::string_view description);
 			void HostNotFound(std::string_view host);
-			void SendProxyError(std::string_view content);
+			void SendProxyError(std::string_view content, int code = HTTP_CODE_INTERNAL_ERROR);
 			void SendRedirect(const std::string& address);
 
 			void ForwardToUpstreamProxy();
@@ -169,12 +175,12 @@ namespace proxy
 		Done(shared_from_this());
 	}
 
-	void HTTPReqHandler::GenericProxyError(std::string_view title, std::string_view description)
+	void HTTPReqHandler::GenericProxyError(std::string_view title, std::string_view description, int code)
 	{
 		std::stringstream ss;
 		ss << "<h1>" << tr("Proxy error") << ": " << title << "</h1>\r\n";
 		ss << "<p>" << description << "</p>\r\n";
-		SendProxyError(ss.str ());
+		SendProxyError(ss.str (), code);
 	}
 
 	void HTTPReqHandler::GenericProxyInfo(std::string_view title, std::string_view description)
@@ -199,13 +205,14 @@ namespace proxy
 				ss << "  <li><a href=\"" << js->second << host << "\">" << js->first << "</a></li>\r\n";
 		}
 		ss << "</ul>\r\n";
-		SendProxyError(ss.str ());
+		// 502: we act as a gateway and can't resolve the name to a destination
+		SendProxyError(ss.str (), HTTP_CODE_BAD_GATEWAY);
 	}
 
-	void HTTPReqHandler::SendProxyError(std::string_view content)
+	void HTTPReqHandler::SendProxyError(std::string_view content, int code)
 	{
 		i2p::http::HTTPRes res;
-		res.code = 500;
+		res.code = code;
 		res.add_header("Content-Type", "text/html; charset=UTF-8");
 		res.add_header("Connection", "close");
 		std::stringstream ss;
@@ -372,7 +379,7 @@ namespace proxy
 
 		if (m_req_len < 0) {
 			LogPrint(eLogError, "HTTPProxy: Unable to parse request");
-			GenericProxyError(tr("Invalid request"), tr("Proxy unable to parse your request"));
+			GenericProxyError(tr("Invalid request"), tr("Proxy unable to parse your request"), HTTP_CODE_BAD_REQUEST);
 			return true; /* parse error */
 		}
 
@@ -387,7 +394,7 @@ namespace proxy
 			if (!m_Addresshelper || !i2p::client::context.GetAddressBook ().IsEnabled ())
 			{
 				LogPrint(eLogWarning, "HTTPProxy: Addresshelper request rejected");
-				GenericProxyError(tr("Invalid request"), tr("Addresshelper is not supported"));
+				GenericProxyError(tr("Invalid request"), tr("Addresshelper is not supported"), HTTP_CODE_BAD_REQUEST);
 				return true;
 			}
 
@@ -456,7 +463,7 @@ namespace proxy
 			auto pos = uri.find(":");
 			if(pos == std::string::npos || pos == uri.size() - 1)
 			{
-				GenericProxyError(tr("Invalid request"), tr("Invalid request URI"));
+				GenericProxyError(tr("Invalid request"), tr("Invalid request URI"), HTTP_CODE_BAD_REQUEST);
 				return true;
 			}
 			else
@@ -467,7 +474,7 @@ namespace proxy
 				auto res = std::from_chars (portStr.data (), portStr.data () + portStr.size (), dest_port);
 				if (res.ec != std::errc () || res.ptr != portStr.data () + portStr.size ())
 				{
-					GenericProxyError(tr("Invalid request"), tr("Invalid request URI"));
+					GenericProxyError(tr("Invalid request"), tr("Invalid request URI"), HTTP_CODE_BAD_REQUEST);
 					return true;
 				}
 				dest_host = uri.substr(0, pos);
@@ -506,7 +513,7 @@ namespace proxy
 				else
 				{
 					/* relative url and missing 'Host' header */
-					GenericProxyError(tr("Invalid request"), tr("Can't detect destination host from request"));
+					GenericProxyError(tr("Invalid request"), tr("Can't detect destination host from request"), HTTP_CODE_BAD_REQUEST);
 					return true;
 				}
 			}
@@ -548,13 +555,13 @@ namespace proxy
 				if(m_ProxyURL.parse(m_OutproxyUrl))
 					ForwardToUpstreamProxy();
 				else
-					GenericProxyError(tr("Outproxy failure"), tr("Bad outproxy settings"));
+					GenericProxyError(tr("Outproxy failure"), tr("Bad outproxy settings"), HTTP_CODE_BAD_GATEWAY);
 			}
 			else
 			{
 				LogPrint (eLogWarning, "HTTPProxy: Outproxy failure for ", dest_host, ": no outproxy enabled");
 				std::stringstream ss; ss << tr("Host %s is not inside I2P network, but outproxy is not enabled", dest_host.c_str ());
-				GenericProxyError(tr("Outproxy failure"), ss.str());
+				GenericProxyError(tr("Outproxy failure"), ss.str(), HTTP_CODE_BAD_GATEWAY);
 			}
 			return true;
 		}
@@ -649,13 +656,13 @@ namespace proxy
 		else
 		{
 			/* unknown type, complain */
-			GenericProxyError(tr("Unknown outproxy URL"), m_ProxyURL.to_string());
+			GenericProxyError(tr("Unknown outproxy URL"), m_ProxyURL.to_string(), HTTP_CODE_BAD_GATEWAY);
 		}
 	}
 
 	void HTTPReqHandler::HandleUpstreamProxyResolved(const boost::system::error_code & ec, boost::asio::ip::tcp::resolver::results_type endpoints, ProxyResolvedHandler handler)
 	{
-		if(ec) GenericProxyError(tr("Cannot resolve upstream proxy"), ec.message());
+		if(ec) GenericProxyError(tr("Cannot resolve upstream proxy"), ec.message(), HTTP_CODE_BAD_GATEWAY);
 		else handler(*endpoints.begin ());
 	}
 
@@ -665,7 +672,7 @@ namespace proxy
 		{
 			if(m_RequestURL.host.size() > 255)
 			{
-				GenericProxyError(tr("Hostname is too long"), m_RequestURL.host);
+				GenericProxyError(tr("Hostname is too long"), m_RequestURL.host, HTTP_CODE_BAD_REQUEST);
 				return;
 			}
 			uint16_t port = m_RequestURL.port;
@@ -679,12 +686,12 @@ namespace proxy
 					if (!ec)
 						s->SocksProxySuccess();
 					else
-						s->GenericProxyError(tr("SOCKS proxy error"), ec.message ());
+						s->GenericProxyError(tr("SOCKS proxy error"), ec.message (), HTTP_CODE_BAD_GATEWAY);
 				});
 
 		}
 		else
-			GenericProxyError(tr("Cannot connect to upstream SOCKS proxy"), ec.message());
+			GenericProxyError(tr("Cannot connect to upstream SOCKS proxy"), ec.message(), HTTP_CODE_BAD_GATEWAY);
 	}
 
 	void HTTPReqHandler::HandoverToUpstreamProxy()
@@ -737,7 +744,7 @@ namespace proxy
 		}
 		else
 		{
-			GenericProxyError(tr("CONNECT error"), tr("Failed to connect"));
+			GenericProxyError(tr("CONNECT error"), tr("Failed to connect"), HTTP_CODE_BAD_GATEWAY);
 		}
 	}
 
@@ -748,7 +755,7 @@ namespace proxy
 			m_send_buf = m_ClientResponse.to_string();
 			boost::asio::async_write(*m_sock, boost::asio::buffer(m_send_buf), boost::asio::transfer_all(), [&] (const boost::system::error_code & ec, std::size_t transferred)
 				{
-					if(ec) GenericProxyError(tr("SOCKS proxy error"), ec.message());
+					if(ec) GenericProxyError(tr("SOCKS proxy error"), ec.message(), HTTP_CODE_BAD_GATEWAY);
 					else HandoverToUpstreamProxy();
 				});
 		} else {
@@ -756,7 +763,7 @@ namespace proxy
 			LogPrint(eLogDebug, "HTTPProxy: Send ", m_send_buf.size(), " bytes");
 			boost::asio::async_write(*m_proxysock, boost::asio::buffer(m_send_buf), boost::asio::transfer_all(), [&](const boost::system::error_code & ec, std::size_t transferred)
 				{
-					if(ec) GenericProxyError(tr("Failed to send request to upstream"), ec.message());
+					if(ec) GenericProxyError(tr("Failed to send request to upstream"), ec.message(), HTTP_CODE_BAD_GATEWAY);
 					else HandoverToUpstreamProxy();
 				});
 		}
@@ -766,8 +773,8 @@ namespace proxy
 	{
 		if(!ec) {
 			LogPrint(eLogDebug, "HTTPProxy: Connected to http upstream");
-			GenericProxyError(tr("Cannot connect"), tr("HTTP out proxy not implemented"));
-		} else GenericProxyError(tr("Cannot connect to upstream HTTP proxy"), ec.message());
+			GenericProxyError(tr("Cannot connect"), tr("HTTP out proxy not implemented"), HTTP_CODE_BAD_GATEWAY);
+		} else GenericProxyError(tr("Cannot connect to upstream HTTP proxy"), ec.message(), HTTP_CODE_BAD_GATEWAY);
 	}
 
 	/* will be called after some data received from client */
@@ -800,7 +807,7 @@ namespace proxy
 	{
 		if (!stream) {
 			LogPrint (eLogError, "HTTPProxy: Error when creating the stream, check the previous warnings for more info");
-			GenericProxyError(tr("Host is down"), tr("Can't create connection to requested host, it may be down. Please try again later."));
+			GenericProxyError(tr("Host is down"), tr("Can't create connection to requested host, it may be down. Please try again later."), HTTP_CODE_GATEWAY_TIMEOUT);
 			return;
 		}
 		if (Kill())
