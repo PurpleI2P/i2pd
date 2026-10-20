@@ -2,7 +2,7 @@
 setlocal enableextensions enabledelayedexpansion
 title Building i2pd
 
-REM Copyright (c) 2013-2022, The PurpleI2P Project
+REM Copyright (c) 2013-2026, The PurpleI2P Project
 REM This file is part of Purple i2pd project and licensed under BSD3
 REM See full license text in LICENSE file at top of project tree
 
@@ -20,7 +20,7 @@ set MSYSTEM=MINGW32
 set "WD=C:\msys64\usr\bin\"
 set "xSH=%WD%bash -lc"
 
-set "FILELIST=i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates contrib/tunnels.d contrib/webconsole"
+set "FILELIST=i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates contrib/torrents contrib/tunnels.d contrib/webconsole"
 
 REM detecting number of processors
 set /a threads=%NUMBER_OF_PROCESSORS%
