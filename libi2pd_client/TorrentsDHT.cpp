@@ -324,6 +324,16 @@ namespace torrents
 		return m_Peers.empty ();
 	}
 
+	std::unordered_set<i2p::data::IdentHash> DHTTorrent::GetPeers () const
+	{
+		auto ts = i2p::util::GetMonotonicSeconds ();
+		std::unordered_set<i2p::data::IdentHash> ret;
+		for (const auto& [ident, lastUpdateTime]: m_Peers)
+			if (ts < lastUpdateTime + DHT_TORRENT_PEER_EXPIRATION_TIME)
+				ret.emplace (ident);
+		return ret;
+	}
+
 	bool RequestInfo::AddNode (std::shared_ptr<Node> node)
 	{
 		if (!node || tried.contains (node->id)) return false;
@@ -1274,6 +1284,26 @@ namespace torrents
 				bucket = bucket->next;
 			else
 				return;
+		}
+		if (bucket->IsInBucket (m_NodeID))
+		{
+			// if torrent in our bucket try to get peers and announce to us
+			auto dhtTorrent = m_Torrents.emplace (torrent->GetInfoHash (), std::make_shared<DHTTorrent>()).first->second;
+			auto dest = m_Tunnel.GetLocalDestination ();
+			if (dest)
+			{
+				if (dhtTorrent->HasPeers ())
+				{
+					auto peers = dhtTorrent->GetPeers ();
+					peers.erase (dest->GetIdentHash ()); // don't connect to self
+					if (!peers.empty ())
+					{
+						LogPrint (eLogDebug, "TorrentsDHT: ", peers.size (), " torrent peers found in local DHT");
+						m_Tunnel.ConnectToNewPeers (torrent, peers, ePeerConnectionOriginDHT);
+					}
+				}
+				dhtTorrent->AddPeer (dest->GetIdentHash ());
+			}
 		}
 		// fill initial list of nodes to request from bucket
 		for (auto it: bucket->nodes)

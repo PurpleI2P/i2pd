@@ -158,6 +158,7 @@ namespace torrents
 			bool AddPeer (const i2p::data::IdentHash& peer);
 			bool CleanUp (uint64_t ts); // return true if empty
 			bool HasPeers () const  { return !m_Peers.empty (); };
+			std::unordered_set<i2p::data::IdentHash> GetPeers () const;
 
 		private:
 
