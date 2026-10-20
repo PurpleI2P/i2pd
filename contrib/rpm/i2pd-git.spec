@@ -27,11 +27,11 @@ BuildRequires: systemd-units
 BuildRequires: openssl-devel-engine
 %endif
 
-%if 0%{?rhel} <= 9 || 0%{?fedora} <= 43
+%if !0%{?mageia} && (0%{?rhel} && 0%{?rhel} <= 9 || 0%{?fedora} && 0%{?fedora} <= 43)
 BuildRequires: boost-json
 %endif
 
-%if 0%{?fedora} && 0%{?fedora} <= 43
+%if !0%{?mageia} && 0%{?fedora} && 0%{?fedora} <= 43
 BuildRequires: boost-url
 %endif
 
