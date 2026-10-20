@@ -506,7 +506,7 @@ namespace client
 						};
 						bool matched = false;
 						for (const auto& it: excluded)
-							if (boost::iequals (line.substr (0, it.length ()), it))
+							if (boost::istarts_with (line, it))
 							{
 								matched = true;
 								break;
@@ -514,9 +514,9 @@ namespace client
 						if (matched) continue;
 
 						// replace some headers
-						if (!m_Host.empty () && boost::iequals (line.substr (0, 5), "Host:"))
+						if (!m_Host.empty () && boost::istarts_with (line, "Host:"))
 							m_OutHeader << "Host: " << m_Host << "\r\n"; // override host
-						else if (boost::iequals (line.substr (0, 11), "Connection:"))
+						else if (boost::istarts_with (line, "Connection:"))
 						{
 							auto x = line.find("pgrade");
 							if (x != std::string::npos && x && std::tolower(line[x - 1]) == 'u') // upgrade or Upgrade
