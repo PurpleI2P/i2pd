@@ -76,7 +76,7 @@ cd build
   %endif
 %endif
 
-%if 0%{?fedora} >= 44 || 0%{?eln}
+%if 0%{?fedora} >= 44 || 0%{?mageia} >= 9 || 0%{?eln}
   ninja %{?_smp_mflags}
 %else
   make %{?_smp_mflags}
