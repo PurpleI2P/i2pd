@@ -31,7 +31,7 @@ BuildRequires: openssl-devel-engine
 BuildRequires: boost-json
 %endif
 
-%if 0%{?fedora} <= 43
+%if 0%{?fedora} && 0%{?fedora} <= 43
 BuildRequires: boost-url
 %endif
 
