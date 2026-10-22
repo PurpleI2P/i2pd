@@ -13,23 +13,14 @@ LDFLAGS ?= ${LD_DEBUG}
 CXXVER := $(shell $(CXX) -dumpversion)
 ifneq ($(findstring clang,$(CXX)),)
 	NEEDED_CXXFLAGS += -std=c++20
-ifeq ($(TORRENTS),yes)
-	LDLIBS = -lboost_json -lboost_url
-endif
 else ifeq ($(shell expr match ${CXXVER} "11"),2) # gcc 11
 	NEEDED_CXXFLAGS += -std=c++20
+# assume distro is too old, boost < 1.81
+	TORRENTS := no
 else ifeq ($(shell expr match ${CXXVER} "12"),2) # gcc 12
 	NEEDED_CXXFLAGS += -std=c++20
-ifeq ($(TORRENTS),yes)
-# assume boost >= 1.81
-	LDLIBS = -lboost_json -lboost_url
-endif
 else ifeq ($(shell expr match ${CXXVER} "1[3-9]"),2) # gcc 13+
 	NEEDED_CXXFLAGS += -std=c++23
-ifeq ($(TORRENTS),yes)
-# assume boost >= 1.81
-	LDLIBS = -lboost_json -lboost_url
-endif
 else # not supported
 $(error Compiler too old)
 endif
@@ -53,7 +44,11 @@ ifeq ($(USE_UPNP),yes)
 	LDLIBS += $(LIBDIR)/libminiupnpc.a
 endif
 	LDLIBS += -lpthread -ldl
-else
+else # USE_STATIC no
+ifeq ($(TORRENTS),yes)
+# assume boost >= 1.81
+	LDLIBS = -lboost_json -lboost_url
+endif
 	LDLIBS += -lssl -lcrypto -lz -lboost_program_options -lpthread -latomic
 ifeq ($(USE_UPNP),yes)
 	LDLIBS += -lminiupnpc
