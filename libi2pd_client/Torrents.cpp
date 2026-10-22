@@ -1573,6 +1573,9 @@ namespace torrents
 				case eMessageTypeAllowedFast:
 					HandleAllowedFastMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
 				break;
+				case eMessageTypeCancel:
+					HandleCancelMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
+				break;
 				default:
 					LogPrint (eLogWarning, "Torrents: Unexpected message type ", (int)m_ReceiveBuffer[offset], ". Ignored");
 			};
@@ -2133,6 +2136,25 @@ namespace torrents
 	{
 		LogPrint (eLogDebug, "Torrents: allowed fast msg received");
 		// ignore for now
+	}
+
+	void PeerConnection::HandleCancelMsg (const uint8_t * buf, size_t len)
+	{
+		LogPrint (eLogDebug, "Torrents: cancel msg received");
+		if (len != REQUEST_MSG_PAYLOAD_LENGTH)
+		{
+			LogPrint (eLogWarning, "Torrents: Unexpected length of cancel message ", len);
+			return;
+		}
+		uint32_t index = bufbe32toh (buf);
+		uint32_t offset = bufbe32toh (buf + 4);
+		uint32_t length = bufbe32toh (buf + 8);
+		auto it = std::find (m_IncomingRequestsQueue.begin (), m_IncomingRequestsQueue.end (), RequestedBlock{ index, offset, length });
+		if (it != m_IncomingRequestsQueue.end ())
+		{
+			SendRejectRequestMsg (index, offset, length);
+			m_IncomingRequestsQueue.erase (it);
+		}
 	}
 
 	void PeerConnection::HandleExtendedMsg (const uint8_t * buf, size_t len)
