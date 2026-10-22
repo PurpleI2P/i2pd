@@ -75,13 +75,30 @@ namespace crypto
 	{
 		uint8_t sign[DSA_SIGNATURE_LENGTH + 8];
 		size_t l = DSA_SIGNATURE_LENGTH + 8;
+		memset (signature, 0, DSA_SIGNATURE_LENGTH);
 		EVP_MD_CTX * ctx = EVP_MD_CTX_create ();
-		EVP_DigestSignInit (ctx, NULL, EVP_sha1(), NULL, m_PrivateKey);
-		EVP_DigestSign (ctx, sign, &l, buf, len);
+		if (!ctx)
+		{
+			LogPrint (eLogError, "DSA can't create MD context");
+			return;
+		}
+		// a provider without DSA support fails here, and then sign is left unset
+		bool isSigned = EVP_DigestSignInit (ctx, NULL, EVP_sha1(), NULL, m_PrivateKey) > 0 &&
+			EVP_DigestSign (ctx, sign, &l, buf, len) > 0;
 		EVP_MD_CTX_destroy (ctx);
+		if (!isSigned)
+		{
+			LogPrint (eLogError, "DSA signing failed. Is DSA supported by OpenSSL provider?");
+			return;
+		}
 		// decode r and s
 		const uint8_t * s1 = sign;
-    	DSA_SIG * sig = d2i_DSA_SIG (NULL, &s1, l);
+		DSA_SIG * sig = d2i_DSA_SIG (NULL, &s1, l);
+		if (!sig)
+		{
+			LogPrint (eLogError, "DSA can't decode signature");
+			return;
+		}
 		const BIGNUM * r, * s;
 		DSA_SIG_get0 (sig, &r, &s);
 		bn2buf (r, signature, DSA_SIGNATURE_LENGTH/2);
@@ -152,7 +169,13 @@ namespace crypto
 	{
 		uint8_t digest[20];
 		SHA1 (buf, len, digest);
+		memset (signature, 0, DSA_SIGNATURE_LENGTH);
 		DSA_SIG * sig = DSA_do_sign (digest, 20, m_PrivateKey);
+		if (!sig)
+		{
+			LogPrint (eLogError, "DSA signing failed");
+			return;
+		}
 		const BIGNUM * r, * s;
 		DSA_SIG_get0 (sig, &r, &s);
 		bn2buf (r, signature, DSA_SIGNATURE_LENGTH/2);
