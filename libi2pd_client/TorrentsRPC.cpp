@@ -9,7 +9,7 @@
 #ifndef NO_TORRENTS
 
 #include <boost/version.hpp>
-#if !defined(ANDROID) && (BOOST_VERSION >= 108100) // boost::json since 1.75, boost::url since 1.81
+#if (BOOST_VERSION >= 108100) // boost::json since 1.75, boost::url since 1.81
 #include <boost/json.hpp>
 #include <boost/url.hpp>
 #include <boost/url/encode.hpp>
