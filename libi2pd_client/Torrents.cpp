@@ -1405,6 +1405,21 @@ namespace torrents
 		}
 	}
 
+	void PeerConnection::TorrentComplete ()
+	{
+		if (m_RemoteBitfield.all ()) // seed
+			Close ();
+		else
+		{
+			ResetStats ();
+			if (m_IsInterested)
+			{
+				m_IsInterested = false;
+				SendNotinterestedMsg ();
+			}
+		}
+	}
+
 	void PeerConnection::StreamReceive ()
 	{
 		if (m_Stream && m_ReceiveBufferOffset < PEER_CONNECTION_RECEIVE_BUFFER_SIZE)

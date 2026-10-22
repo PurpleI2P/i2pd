@@ -402,6 +402,7 @@ namespace torrents
 			void Close ();
 			void ReceiveHandshake ();
 			void CheckKeepAlive (uint64_t ts);
+			void TorrentComplete ();
 
 			bool IsEstablished () const { return m_IsEstablished; };
 			bool IsPieceAvailable (size_t ind) const;

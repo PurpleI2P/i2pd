@@ -284,12 +284,7 @@ namespace torrents
 						// close connections with seeds and reset stats for remaining
 						auto conns = torrent->GetConnections ();
 						for (auto it: conns)
-						{
-							if (it->GetRemoteBitfield ().all ()) // seed
-								it->Close ();
-							else
-								it->ResetStats ();
-						}
+							it->TorrentComplete ();
 					});
 			}
 		});
