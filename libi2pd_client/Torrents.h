@@ -99,6 +99,7 @@ namespace torrents
 	constexpr size_t REJECT_REQUEST_MSG_PAYLOAD_LENGTH = 12;
 	constexpr size_t REJECT_REQUEST_MSG_LENGTH = REJECT_REQUEST_MSG_PAYLOAD_LENGTH + 5;
 	constexpr size_t HAVE_MSG_PAYLOAD_LENGTH = 4;
+	constexpr size_t PIECE_MSG_LENGTH = 13; // without actual block
 
 	// extensions
 	constexpr std::string_view EXTENSION_NAME_UT_METADATA { "ut_metadata" };

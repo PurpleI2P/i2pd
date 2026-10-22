@@ -1874,15 +1874,15 @@ namespace torrents
 	void PeerConnection::SendPieceMsg (uint32_t index, uint32_t offset, const uint8_t * data, size_t len)
 	{
 		if (!m_Stream) return;
-		std::vector<uint8_t> sendBuffer(len + 8 + 5);
-		htobe32buf (sendBuffer.data (), len + 8 + 1); // length
-		sendBuffer[4] = eMessageTypePiece; // msg ID
-		htobe32buf (sendBuffer.data () + 5, index);
-		htobe32buf (sendBuffer.data () + 9, offset);
-		memcpy (sendBuffer.data () + 13, data, len);
+		uint8_t buf[PIECE_MSG_LENGTH];
+		htobe32buf (buf, len + 8 + 1); // length
+		buf[4] = eMessageTypePiece; // msg ID
+		htobe32buf (buf + 5, index);
+		htobe32buf (buf + 9, offset);
 		LogPrint (eLogDebug, "Torrents: Sending piece index ", index, " offset ", offset, " length ", len);
 		m_NumPieces++;
-		m_Stream->AsyncSend (sendBuffer.data (), sendBuffer.size (),
+		std::vector<std::pair<const uint8_t *, size_t> > bufsToSend{ { buf, PIECE_MSG_LENGTH }, { data, len } };
+		auto sendBuffer = std::make_shared<i2p::stream::SendBuffer>(bufsToSend, len + PIECE_MSG_LENGTH,
 			[s = shared_from_this ()](const boost::system::error_code& ecode, size_t bytes_transferred)
 			{
 				if (s->m_NumPieces > 0) s->m_NumPieces--;
@@ -1921,6 +1921,7 @@ namespace torrents
 				else
 					s->Terminate ();
 			});
+		m_Stream->Send (std::move (sendBuffer));
 		m_LastSendTime = i2p::util::GetMonotonicSeconds ();
 		m_Uploaded += REQUEST_BLOCK_SIZE;
 		m_Torrent->AddUploaded (len);
