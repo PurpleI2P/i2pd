@@ -178,7 +178,10 @@ namespace torrents
 			{
 				auto partFilePath = it->GetFullFilePath (); partFilePath += ".part";
 				if (!std::filesystem::exists (partFilePath))
-					CreateAndReserveFile (partFilePath, it->GetFileLength ());
+				{
+					if (!CreateAndReserveFile (partFilePath, it->GetFileLength ()))
+						torrent->SetError (eTorrentErrorFilesystemError);
+				}
 				completed = false;
 			}
 		}
