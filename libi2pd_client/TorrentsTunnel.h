@@ -35,6 +35,8 @@ namespace i2p
 {
 namespace torrents
 {
+	constexpr uint16_t TORRENT_PORT = 6881; //  not used by required by protocol
+	constexpr uint16_t DATAGRAM_TRACKER_DEFAULT_PORT = 6969;
 	constexpr int TRACKER_RESPONSE_TIMEOUT = 8; // in seconds
 	constexpr int DATAGRAM_TRACKER_TRANSACTION_TIMEOUT = 10000; // in milliseconds
 	constexpr int DATAGRAM_TRACKER_CONNECTION_EXPIRATION = 60000; // in milliseconds

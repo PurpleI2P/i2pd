@@ -44,6 +44,8 @@ namespace torrents
 			for (const auto& it: trackersList)
 			{
 				i2p::http::URL url (it);
+				if (url.schema == "udp" && !url.port)
+					url.port = DATAGRAM_TRACKER_DEFAULT_PORT;
 				auto address = i2p::client::context.GetAddressBook ().GetAddress (url.host);
 				if (address && address->IsIdentHash ())
 				{

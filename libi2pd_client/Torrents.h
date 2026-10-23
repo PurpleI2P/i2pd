@@ -66,7 +66,6 @@ namespace torrents
 	constexpr size_t MAX_NUM_TORRENT_PIECES = 1024*1024; // 1M
 	constexpr size_t MAX_TORRENT_LENGTH = MAX_PIECE_LENGTH*MAX_NUM_TORRENT_PIECES; // 256T
 	constexpr size_t MAX_NUM_TORRENT_FILES = 10000;
-	constexpr uint16_t TORRENT_PORT = 6881; //  not used by required by protocol
 	constexpr int MIN_TRACKER_REQUESTS_INTERVAL = 15*1000; // in milliseconds
 	constexpr int MAX_TRACKER_REQUESTS_INTERVAL = 24*3600*1000; // in milliseconds
 	constexpr int DHT_TORRENT_UPDATE_INTERVAL = 880; // in seconds
