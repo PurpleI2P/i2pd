@@ -2133,6 +2133,7 @@ namespace torrents
 	{
 		m_IsChoked = true;
 		m_NumRequests = 0;
+		m_DownloadRate = 0;
 		if (m_Torrent && m_LastRequestedPieceIndex >= 0)
 			m_Torrent->GetPiece (m_LastRequestedPieceIndex).ClearAllRequests ();
 		m_LastRequestedPieceIndex = -1;
@@ -2485,7 +2486,7 @@ namespace torrents
 		if (m_LastRequestedPieceIndex >= 0)
 		{
 			m_LastRequestedPieceIndex = -1; // no request
-			if (m_IsInterested)
+			if (m_IsInterested && !m_Torrent->HasIncompletePieces (m_RemoteBitfield))
 			{
 				m_IsInterested = false;
 				SendNotinterestedMsg ();
