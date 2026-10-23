@@ -324,9 +324,9 @@ namespace torrents
 		return numBlocks;
 	}
 
-	void Piece::BlockReceived (const uint8_t * block, size_t len, size_t offset)
+	bool Piece::BlockReceived (const uint8_t * block, size_t len, size_t offset)
 	{
-		if (!len || offset + len > m_Size || !m_Blocks) return;
+		if (!len || offset + len > m_Size || !m_Blocks) return false;
 		size_t blockIndex = offset/REQUEST_BLOCK_SIZE;
 		if ((*m_Blocks)[blockIndex] == BlockStatus::Requested)
 		{
@@ -340,6 +340,7 @@ namespace torrents
 				LogPrint (eLogDebug, "Torrents: piece complete");
 				Complete ();
 			}
+			return true;
 		}
 		else
 		{
@@ -347,6 +348,7 @@ namespace torrents
 				LogPrint (eLogWarning, "Torrents: Duplicated piece block ", blockIndex);
 			else
 				LogPrint (eLogWarning, "Torrents: Late or unsolicited piece block ", blockIndex);
+			return false;
 		}
 	}
 
@@ -1836,8 +1838,7 @@ namespace torrents
 		if (len && index < m_Torrent->GetNumPieces () && !m_Torrent->IsStopped ())
 		{
 			Piece& piece = m_Torrent->GetPiece (index);
-			piece.BlockReceived (buf + 8, len, offset);
-			if (piece.IsComplete ())
+			if (piece.BlockReceived (buf + 8, len, offset) && piece.IsComplete ())
 			{
 				if (piece.VerifyHash ())
 				{

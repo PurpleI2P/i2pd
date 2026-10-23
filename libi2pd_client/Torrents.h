@@ -197,7 +197,7 @@ namespace torrents
 			size_t GetNumPeers () const { return m_NumPeers; }
 			void SetNumPeers (size_t numPeers) { m_NumPeers = numPeers; }
 
-			void BlockReceived (const uint8_t * block, size_t len, size_t offset);
+			bool BlockReceived (const uint8_t * block, size_t len, size_t offset);
 			void Dump (PieceFileFragment&& fragment);
 			bool Load (PieceFileFragment&& fragment);
 			const uint8_t * GetData () const { return m_Data; }
