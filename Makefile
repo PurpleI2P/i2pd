@@ -65,6 +65,7 @@ else ifneq (, $(findstring linux, $(SYS))$(findstring gnu, $(SYS)))
 else ifneq (, $(findstring freebsd, $(SYS))$(findstring openbsd, $(SYS)))
 	include Makefile.bsd
 else ifneq (, $(findstring haiku, $(SYS)))
+	DAEMON_SRC += $(DAEMON_SRC_DIR)/HaikuDaemon.cpp
 	include Makefile.haiku
 else ifneq (, $(findstring solaris, $(SYS)))
 	include Makefile.solaris
