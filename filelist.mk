@@ -23,4 +23,4 @@ LANG_SRC = $(wildcard $(LANG_SRC_DIR)/*.cpp)
 
 WRAP_LIB_SRC = $(wildcard $(WRAP_SRC_DIR)/*.cpp)
 
-DAEMON_SRC = $(wildcard $(DAEMON_SRC_DIR)/*.cpp)
+DAEMON_SRC = $(filter-out $(DAEMON_SRC_DIR)/HaikuDaemon.cpp,$(wildcard $(DAEMON_SRC_DIR)/*.cpp))
