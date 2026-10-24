@@ -555,6 +555,13 @@ namespace torrents
 		auto connections = torrent->GetConnections ();
 		for (auto it: connections)
 			it->Close ();
+		// save bitfield and close files
+		boost::asio::post (GetDiskIOService (), [this, torrent]()
+			{
+				for (auto it: torrent->GetFiles ())
+					it->Close ();
+				torrent->SaveTorrentResumeFile ();
+			});
 	}
 
 	void TorrentsTunnel::StopAllTorrents ()
