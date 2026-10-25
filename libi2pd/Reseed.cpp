@@ -272,13 +272,32 @@ namespace data
 				// TODO: implement all signature types
 				if (signatureType == SIGNING_KEY_TYPE_RSA_SHA512_4096 && signatureLength >= SHA512_DIGEST_LENGTH)
 				{
-					size_t pos = s.tellg ();
-					size_t tbsLen = pos + contentLength;
+					auto pos = s.tellg ();
+					if (pos < 0)
+					{
+						LogPrint (eLogError, "Reseed: Can't get SU3 stream position");
+						return 0;
+					}
+					size_t tbsLen = (size_t)pos + contentLength;
 					uint8_t * tbs = new uint8_t[tbsLen];
 					s.seekg (0, std::ios::beg);
 					s.read ((char *)tbs, tbsLen);
+					if (s.gcount () != (std::streamsize)tbsLen)
+					{
+						// tbs is uninitialized beyond what was read, don't digest it
+						LogPrint (eLogError, "Reseed: SU3 signed data is incomplete: ", s.gcount (), " of ", tbsLen);
+						delete[] tbs;
+						return 0;
+					}
 					uint8_t * signature = new uint8_t[signatureLength];
 					s.read ((char *)signature, signatureLength);
+					if (s.gcount () != (std::streamsize)signatureLength)
+					{
+						LogPrint (eLogError, "Reseed: SU3 signature is incomplete: ", s.gcount (), " of ", signatureLength);
+						delete[] signature;
+						delete[] tbs;
+						return 0;
+					}
 					// RSA-raw
 					{
 						// calculate digest
