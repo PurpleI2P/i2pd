@@ -219,26 +219,30 @@ namespace torrents
 	bool TorrentFile::Save (size_t offset, const uint8_t * buf, size_t len)
 	{
 		Open ();
-		if (m_File)
+		if (!m_File) return false;
+		m_File.seekp (offset, std::ios::beg);
+		m_File.write ((const char *)buf, len);
+		if (!m_File)
 		{
-			m_File.seekp (offset, std::ios::beg);
-			m_File.write ((const char *)buf, len);
-		}
-		else
+			LogPrint (eLogError, "Torrents: Can't write ", len, " bytes at ", offset, " to ",
+				m_FullFilePath, " : ", std::strerror (errno));
 			return false;
+		}
 		return true;
 	}
 
 	bool TorrentFile::Load (size_t offset, uint8_t * buf, size_t len)
 	{
 		Open ();
-		if (m_File)
+		if (!m_File) return false;
+		m_File.seekg (offset, std::ios::beg);
+		m_File.read ((char *)buf, len);
+		if (!m_File)
 		{
-			m_File.seekg (offset, std::ios::beg);
-			m_File.read ((char *)buf, len);
-		}
-		else
+			LogPrint (eLogError, "Torrents: Can't read ", len, " bytes at ", offset, " from ",
+				m_FullFilePath);
 			return false;
+		}
 		return true;
 	}
 
@@ -250,6 +254,14 @@ namespace torrents
 
 	void TorrentFile::Open ()
 	{
+		if (m_File.is_open () && !m_File)
+		{
+			// a failed read or write leaves the error flag set, and the stream stays
+			// open, so every later call fails until the file is reopened
+			LogPrint (eLogWarning, "Torrents: Reopening ", m_FullFilePath, " after a stream error");
+			m_File.close ();
+			m_File.clear ();
+		}
 		if (!m_File.is_open ())
 		{
 			auto mode = std::ios::binary | std::ios::in;
@@ -267,6 +279,9 @@ namespace torrents
 		if (ts > m_LastFlushTime + TORRENT_FILE_FLUSH_INTERVAL)
 		{
 			m_File.flush ();
+			if (!m_File)
+				// writes are buffered, so a full disk or a size limit shows up here
+				LogPrint (eLogError, "Torrents: Can't flush ", m_FullFilePath, " : ", std::strerror (errno));
 			m_LastFlushTime = ts;
 		}
 		m_LastAccessTime = ts;
