@@ -226,6 +226,10 @@ namespace torrents
 		{
 			LogPrint (eLogError, "Torrents: Can't write ", len, " bytes at ", offset, " to ",
 				m_FullFilePath, " : ", std::strerror (errno));
+			// the error flag stays on the stream, and the file stays open: drop it
+			// right here so the next call starts from a usable stream
+			m_File.close ();
+			m_File.clear ();
 			return false;
 		}
 		return true;
@@ -241,6 +245,8 @@ namespace torrents
 		{
 			LogPrint (eLogError, "Torrents: Can't read ", len, " bytes at ", offset, " from ",
 				m_FullFilePath);
+			m_File.close ();
+			m_File.clear ();
 			return false;
 		}
 		return true;
@@ -280,8 +286,12 @@ namespace torrents
 		{
 			m_File.flush ();
 			if (!m_File)
+			{
 				// writes are buffered, so a full disk or a size limit shows up here
 				LogPrint (eLogError, "Torrents: Can't flush ", m_FullFilePath, " : ", std::strerror (errno));
+				m_File.close ();
+				m_File.clear ();
+			}
 			m_LastFlushTime = ts;
 		}
 		m_LastAccessTime = ts;
