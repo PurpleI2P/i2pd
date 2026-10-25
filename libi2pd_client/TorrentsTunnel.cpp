@@ -1242,6 +1242,25 @@ namespace torrents
 				if (m_DHT) m_DHT->SendPingQuery (toIdent, toPort);
 			});
 	}
+
+	void TorrentsTunnel::StartVerifingTorrent (std::shared_ptr<Torrent> torrent)
+	{
+		if (!torrent) return;
+		bool isVerifing = m_VerifingTorrent.valid ();
+		if (isVerifing && m_VerifingTorrent.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+		{
+			m_VerifingTorrent.get ();
+			isVerifing = false;
+		}
+		if (!isVerifing)
+		{
+			m_VerifingTorrent = std::async (std::launch::async, [torrent]()
+				{
+					size_t numPiecesChecked;
+					return torrent->Verify (numPiecesChecked);
+				});
+		}
+	}
 }
 }
 

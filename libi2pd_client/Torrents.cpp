@@ -17,6 +17,7 @@
 #include <functional>
 #include <limits>
 #include <set>
+#include <openssl/evp.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/hex.hpp>
 #include "Log.h"
@@ -1239,6 +1240,56 @@ namespace torrents
 		for (auto it: conns)
 			if (it->IsUploading ()) numUploadingToPeers++;
 		return numUploadingToPeers;
+	}
+
+	boost::dynamic_bitset<> Torrent::Verify (size_t& numPiecesChecked) const
+	{
+		numPiecesChecked = 0;
+		boost::dynamic_bitset<> ret (m_Pieces.size ());
+		if (!m_Pieces.size ()) return ret;
+
+		EVP_MD_CTX * mdCtx = EVP_MD_CTX_new ();
+		const EVP_MD * md = EVP_get_digestbyname ("SHA1");
+		std::vector<uint8_t> piece (m_PieceLength);
+		size_t nextPieceOffset = 0;
+		bool pieceFailed = false;
+		for (auto it: m_Files)
+		{
+			std::ifstream f (it->GetFullFilePath (), std::ifstream::binary);
+			size_t remainingLen = it->GetFileLength ();
+			while (remainingLen > 0)
+			{
+				auto len = std::min (remainingLen, m_PieceLength - nextPieceOffset);
+				if (f)
+					f.read ((char *)piece.data () + nextPieceOffset, len);
+				else
+					pieceFailed = true;
+				remainingLen -= len;
+				nextPieceOffset += len;
+				if (nextPieceOffset == m_PieceLength || !remainingLen)
+				{
+					// piece complete
+					if (!pieceFailed)
+					{
+						uint8_t digest[SHA_DIGEST_LENGTH];
+						EVP_DigestInit_ex (mdCtx, md, nullptr);
+						EVP_DigestUpdate (mdCtx, piece.data (), nextPieceOffset);
+						unsigned int l = SHA_DIGEST_LENGTH;
+						EVP_DigestFinal_ex (mdCtx, digest, &l);
+						ret.set (numPiecesChecked, !memcmp (digest, m_Pieces[numPiecesChecked].GetHash (), SHA_DIGEST_LENGTH));
+					}
+					else
+						ret.reset (numPiecesChecked);
+					numPiecesChecked++;
+					nextPieceOffset = 0;
+					pieceFailed = false;
+					if (numPiecesChecked >= m_Pieces.size ()) break;
+				}
+			}
+			if (numPiecesChecked >= m_Pieces.size ()) break;
+		}
+		EVP_MD_CTX_free (mdCtx);
+		return ret;
 	}
 
 	PeerConnection::PeerConnection (std::shared_ptr<i2p::client::I2PService> owner,

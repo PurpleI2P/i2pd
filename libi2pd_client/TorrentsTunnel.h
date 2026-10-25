@@ -174,6 +174,8 @@ namespace torrents
 				std::shared_ptr<Torrent> torrent, std::string_view dest, uint16_t port,
 				uint16_t fromPort, TrackerAnnounceEvent event);
 
+			void StartVerifingTorrent (std::shared_ptr<Torrent> torrent);
+
 		private:
 
 			std::string m_Name, m_PeerID; // 20 characters
@@ -189,6 +191,7 @@ namespace torrents
 			// transactionID->(trackerID, from_port, torrent, timestamp monotonic milliseconds)
 			std::unique_ptr<TorrentsDHT> m_DHT;
 			bool m_Web;
+			std::future<boost::dynamic_bitset<> > m_VerifingTorrent;
 	};
 
 }

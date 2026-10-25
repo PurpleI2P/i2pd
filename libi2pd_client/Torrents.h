@@ -202,6 +202,7 @@ namespace torrents
 			bool Load (PieceFileFragment&& fragment);
 			const uint8_t * GetData () const { return m_Data; }
 			size_t GetSize () const { return m_Size; }
+			const uint8_t * GetHash () const { return m_Hash; }
 			bool HasBlock (size_t offset) const;
 			std::pair<size_t, size_t> GetNextBlockToRequest (); // return (offset, len) of next buffer, len = 0 if no next buffer
 			void ClearAllRequests ();
@@ -348,6 +349,8 @@ namespace torrents
 			uint64_t GetLastTrackerUpdateTime (size_t trackerID) const { return (trackerID < m_TrackerStats.size ()) ? std::get<5>(m_TrackerStats[trackerID]) : 0; }
 			std::string GetTrackerError (size_t trackerID) const { return (trackerID < m_TrackerStats.size ()) ? std::get<6>(m_TrackerStats[trackerID]) : ""; }
 			void SetTrackerError (size_t trackerID, std::string_view error);
+
+			boost::dynamic_bitset<> Verify (size_t& numPiecesChecked) const; // should be called in seperate thread
 
 		private:
 
