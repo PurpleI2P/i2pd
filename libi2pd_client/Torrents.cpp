@@ -352,15 +352,18 @@ namespace torrents
 		}
 	}
 
-	void Piece::Dump (PieceFileFragment&& fragment)
+	bool Piece::Dump (PieceFileFragment&& fragment)
 	{
+		bool saved = false;
 		m_IsSending = true;
 		if (m_Data && fragment.fragmentOffset + fragment.fragmentSize <= m_Size)
 		{
-			if (fragment.file->Save (fragment.fileOffset, m_Data + fragment.fragmentOffset, fragment.fragmentSize))
+			saved = fragment.file->Save (fragment.fileOffset, m_Data + fragment.fragmentOffset, fragment.fragmentSize);
+			if (saved)
 				LogPrint (eLogDebug, "Torrents: Saved bytes ", fragment.fileOffset, " - ", fragment.fileOffset + fragment.fragmentSize - 1, " to ", fragment.file->GetFullFilePath ());
 		}
 		m_IsSending = false;
+		return saved;
 	}
 
 	bool Piece::Load (PieceFileFragment&& fragment)
@@ -1565,6 +1568,7 @@ namespace torrents
 				break;
 				case eMessageTypeNotInterested:
 					m_IsRemoteInterested = false;
+					m_UploadRate = 0;
 				break;
 				case eMessageTypeHave:
 					HandleHaveMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
@@ -1849,8 +1853,18 @@ namespace torrents
 							if (!torrent) return; // torrent doesn't exist anymore
 							auto fragments = torrent->GetPieceFileFragments (index);
 							Piece& piece = torrent->GetPiece (index);
+							bool saved = true;
 							for (auto& it: fragments)
-								piece.Dump (std::move (it));
+								if (!piece.Dump (std::move (it)))
+								{
+									saved = false;
+									break;
+								}
+							if (!saved)
+							{
+								LogPrint (eLogWarning, "Torrents: Failed to save piece");
+								piece.InvalidateAllBlocks ();
+							}
 							torrent->SaveTorrentResumeFile ();
 						});
 					// send have
