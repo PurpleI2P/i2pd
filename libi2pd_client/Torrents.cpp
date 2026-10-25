@@ -219,7 +219,15 @@ namespace torrents
 	bool TorrentFile::Save (size_t offset, const uint8_t * buf, size_t len)
 	{
 		Open ();
-		if (!m_File) return false;
+		if (!m_File)
+		{
+			// the stream is open but failed earlier, e.g. on a flush: tell the caller
+			// and drop it, so the next call starts from a usable stream
+			LogPrint (eLogError, "Torrents: Stream for ", m_FullFilePath, " is in a failed state");
+			if (m_File.is_open ()) m_File.close ();
+			m_File.clear ();
+			return false;
+		}
 		m_File.seekp (offset, std::ios::beg);
 		m_File.write ((const char *)buf, len);
 		if (!m_File)
@@ -238,7 +246,13 @@ namespace torrents
 	bool TorrentFile::Load (size_t offset, uint8_t * buf, size_t len)
 	{
 		Open ();
-		if (!m_File) return false;
+		if (!m_File)
+		{
+			LogPrint (eLogError, "Torrents: Stream for ", m_FullFilePath, " is in a failed state");
+			if (m_File.is_open ()) m_File.close ();
+			m_File.clear ();
+			return false;
+		}
 		m_File.seekg (offset, std::ios::beg);
 		m_File.read ((char *)buf, len);
 		if (!m_File)
@@ -286,12 +300,10 @@ namespace torrents
 		{
 			m_File.flush ();
 			if (!m_File)
-			{
-				// writes are buffered, so a full disk or a size limit shows up here
+				// writes are buffered, so a full disk or a size limit shows up here.
+				// Leave the error flag on the stream: Open can't report anything, and
+				// the next Save or Load has to return false rather than lose it
 				LogPrint (eLogError, "Torrents: Can't flush ", m_FullFilePath, " : ", std::strerror (errno));
-				m_File.close ();
-				m_File.clear ();
-			}
 			m_LastFlushTime = ts;
 		}
 		m_LastAccessTime = ts;
