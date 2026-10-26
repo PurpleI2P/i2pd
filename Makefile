@@ -97,6 +97,7 @@ mk_obj_dir:
 	@mkdir -p obj/$(LANG_SRC_DIR)
 	@mkdir -p obj/$(DAEMON_SRC_DIR)
 	@mkdir -p obj/$(WRAP_SRC_DIR)
+	@mkdir -p obj/Win32
 	@mkdir -p obj/Haiku	
 
 api: $(SHLIB) $(ARLIB)
