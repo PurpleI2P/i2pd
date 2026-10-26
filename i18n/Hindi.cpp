@@ -134,7 +134,7 @@ namespace hindi // language namespace
 		{"Start graceful shutdown", "सौम्य समापन प्रारंभ करें"},
 		{"Force shutdown", "बाध्य अवसान"},
 		{"Reload external CSS styles", "बाह्य CSS शैलियों को पुनः लोड करें"},
-		{"<b>Note:</b> any action done here are not persistent and not changes your config files.", "<b>टिप्पणी:</b> यहाँ किए गए कोई भी क्रियाएँ स्थायी नहीं हैं और आपके विन्यास संचिका में कोई परिवर्तन नहीं करतीं।"},
+		{"<b>Note:</b> any action performed here is not persistent and does not change your config files.", "<b>टिप्पणी:</b> यहाँ किए गए कोई भी क्रियाएँ स्थायी नहीं हैं और आपके विन्यास संचिका में कोई परिवर्तन नहीं करतीं।"},
 		{"Logging level", "लॉगिंग स्तर"},
 		{"Transit tunnels limit", "संचरण सुरंगों की सीमा"},
 		{"Change", "बदलना"},
