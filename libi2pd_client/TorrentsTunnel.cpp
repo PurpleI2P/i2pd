@@ -625,7 +625,7 @@ namespace torrents
 			if (it == m_TorrentsByID.end ()) return false;
 			torrent = it->second.lock ();
 		}
-		if (!torrent) return false;
+		if (!torrent || torrent->IsStopped ()) return false;
 		boost::asio::post (GetService (), [this, torrent]()
 			{
 				RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone);
