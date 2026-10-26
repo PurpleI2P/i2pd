@@ -587,11 +587,10 @@ namespace torrents
 	{
 		// query
 		char type = 0;
-		bool isMalformed = false;
 		std::string transactionID, query;
-		NodeID id, target; Torrent::InfoHash infoHash;
+		std::map<std::string_view, std::string_view> arguments;
 		ParseDictionary (std::string_view ((const char *)buf, len),
-			[&type, &transactionID, &query, &id, &infoHash, &isMalformed, &target]
+			[&type, &transactionID, &query, &arguments]
 				(std::string_view key, std::string_view buf)->size_t
 			{
 				if (key == "y")
@@ -614,35 +613,16 @@ namespace torrents
 				}
 				else if (key == "a")
 				{
-					return ParseDictionary (buf,
-						[&id, &infoHash, &isMalformed, &target](std::string_view key, std::string_view buf)->size_t
-						{
-							if (key == "id")
-							{
-								auto [l, success] = ParseByteArray (buf, id);
-								if (!success) isMalformed = true;
-								return l;
-							}
-							else if (key == "info_hash")
-							{
-								auto [l, success] = ParseByteArray (buf, infoHash);
-								if (!success) isMalformed = true;
-								return l;
-							}
-							else if (key == "target")
-							{
-								auto [l, success] = ParseByteArray (buf, target);
-								if (!success) isMalformed = true;
-								return l;
-							}
-							return 0;
-						});
+					size_t l;
+					std::tie (arguments, l) = ExtractDictionary (buf);
+					return l;
 				}
 				return 0;
 			});
-		if (isMalformed)
+		NodeID id;
+		if (!ParseByteArray (arguments["id"], id).second)
 		{
-			LogPrint (eLogInfo, "TorrentsDHT: Malformed datagram received");
+			LogPrint (eLogInfo, "TorrentsDHT: Querying node id not found");
 			return;
 		}
 		if (type == 'q')
@@ -653,9 +633,21 @@ namespace torrents
 			if (query == "ping")
 				HandlePingQuery (from.GetIdentHash (), fromPort, transactionID, id);
 			else if (query == "get_peers")
-				HandleGetPeersQuery (transactionID, node, infoHash);
+			{
+				Torrent::InfoHash infoHash;
+				if (ParseByteArray (arguments["info_hash"], infoHash).second)
+					HandleGetPeersQuery (transactionID, node, infoHash);
+				else
+					LogPrint (eLogInfo, "TorrentsDHT: infoHash not found for get_peers");
+			}
 			else if (query == "find_node")
-				HandleFindNodeQuery (from.GetIdentHash (), fromPort, transactionID, target);
+			{
+				NodeID target;
+				if (ParseByteArray (arguments["target"], target).second)
+					HandleFindNodeQuery (from.GetIdentHash (), fromPort, transactionID, target);
+				else
+					LogPrint (eLogInfo, "TorrentsDHT: target not found for find_node");
+			}
 			else
 				LogPrint (eLogDebug, "TorrentsDHT: Unexpected query ", query);
 		}
