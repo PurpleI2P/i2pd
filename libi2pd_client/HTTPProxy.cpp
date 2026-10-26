@@ -349,11 +349,14 @@ namespace proxy
 		 * leave Referer if requested URL with same schema, host and port,
 		 * otherwise, drop it.
 		 */
-		if(req.GetHeader("Referer") != "") {
+		if (!req.GetHeader("Referer").empty ())
+		{
 			i2p::http::URL reqURL; reqURL.parse(req.uri);
 			i2p::http::URL refURL; refURL.parse(req.GetHeader("Referer"));
 			if(!boost::iequals(reqURL.schema, refURL.schema) || !boost::iequals(reqURL.host, refURL.host) || reqURL.port != refURL.port)
 				req.RemoveHeader("Referer");
+			else
+				req.UpdateHeader("Referer", refURL.to_string (true));
 		}
 
 		/* add headers */
