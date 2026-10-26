@@ -3,7 +3,7 @@
     position: relative;
     padding: 0;
     height: 18px;
-    min-width: 110px;
+    min-width: 120px;
 }
 
 .progress-bar {
@@ -40,6 +40,15 @@
     line-height: 1.3;
     overflow-wrap: anywhere;
     box-sizing: border-box;
+}
+
+.torrent-row {
+    cursor: pointer;
+    transition: background-color 0.05s ease;
+}
+
+.torrent-row:hover td {
+    background-color: #ff9900ce;
 }
 
 #fs-error fieldset {
@@ -106,11 +115,6 @@ fieldset {
 }
 </style>
 
-<script src="./rpc.js"></script>
-<script>
-    window.rpc = new TorrentClient();
-</script>
-
 <div id="fs-error">
     <fieldset>
         <h2 style="color: #ff3333;" id="err-string">failed to load main.js</h2>
@@ -122,13 +126,13 @@ fieldset {
     <fieldset class="fs-buttons">
         <legend>Actions</legend>
         <div class="button-column">
-            <input type="file" id="torrentf" accept=".torrent" style="display: none" />
-            <button title="Open torrent file" onclick="document.getElementById('torrentf').click()">📂</button>
+            <input type="file" id="torrent-file" accept=".torrent" style="display: none" />
+            <button title="Open torrent file" onclick="document.getElementById('torrent-file').click()">📂</button>
             <button title="Add magnet" onclick="addMagnet()">🧲</button>
         </div>
     </fieldset>
 
-    <fieldset id="fs-session-stats">
+    <fieldset id="fs-session-stats" style="display: none">
         <legend>Session stats:</legend>
         <div id="session-stats-list"></div>
     </fieldset>
@@ -139,8 +143,9 @@ fieldset {
     </fieldset>
 </div>
 
-<div class="container" id="stats"></div>
-<div id="torrents"></div>
-<div id="details"></div>
+<div id="div-torrents"></div>
+<div id="div-details"></div>
 
+<script src="./rpc.js"></script>
+<script src="./utils.js"></script>
 <script src="./main.js"></script>
