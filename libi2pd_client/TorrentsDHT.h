@@ -119,7 +119,7 @@ namespace torrents
 		bool IsEmpty () const { return nodes.empty (); }
 		bool IsInBucket (const NodeID& id) const { return id >= start && (!next || id < next->start); }
 		std::optional<NodeID> GetMiddleID () const;
-		NodeID GetRandomID (std::mt19937& rng) const;
+		NodeID GetRandomID (std::mt19937_64& rng) const;
 		bool Split ();
 	};
 
@@ -137,7 +137,7 @@ namespace torrents
 
 			std::shared_ptr<Node> AddNode (std::shared_ptr<Node> node);
 			void RemoveNode (const NodeID& id);
-			std::list<std::pair<NodeID, Bucket * > > GetExploratoryTargets (std::mt19937& rng, uint64_t ts); // (target, node to send find_node to)
+			std::list<std::pair<NodeID, Bucket * > > GetExploratoryTargets (std::mt19937_64& rng, uint64_t ts); // (target, node to send find_node to)
 			size_t DeleteExpiredNodes (uint64_t ts);
 			std::list<std::shared_ptr<Node> > GetNodesToPing (uint64_t ts);
 
@@ -300,6 +300,7 @@ namespace torrents
 		private:
 
 			TorrentsTunnel& m_Tunnel;
+			std::mt19937_64 m_Rng;
 			uint16_t m_Port;
 			std::string m_DHTFileName;
 			NodeID m_NodeID;
@@ -310,7 +311,7 @@ namespace torrents
 			std::unordered_map<i2p::data::IdentHash, uint64_t> m_FailedPeers; // peer -> failure time in monotonic seconds
 			std::unordered_map<uint64_t, std::pair<std::shared_ptr<Node>, uint64_t> > m_IncomingTokens; // token ->(node, time in monotonic second)
 			// transactionID -> (ident, port, query,  request info, time in monotonic seconds)
-			std::unordered_map<uint16_t, std::tuple<i2p::data::IdentHash, uint16_t, KRPCQuery, std::shared_ptr<RequestInfo>, uint64_t > > m_Queries;
+			std::unordered_map<uint64_t, std::tuple<i2p::data::IdentHash, uint16_t, KRPCQuery, std::shared_ptr<RequestInfo>, uint64_t > > m_Queries;
 			std::map<Torrent::InfoHash, std::shared_ptr<DHTTorrent> > m_Torrents;
 			uint64_t m_NextDHTExploratoryTime; // monotonic seconds
 	};

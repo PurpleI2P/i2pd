@@ -53,7 +53,7 @@ namespace torrents
 		return { middleID };
 	}
 
-	NodeID Bucket::GetRandomID (std::mt19937& rng) const
+	NodeID Bucket::GetRandomID (std::mt19937_64& rng) const
 	{
 		uint8_t bit = std::max (start.FindLowestBit (), next ? next->start.FindLowestBit () : -1) + 1;
 		if (bit >= NodeID::len * 8) return start;
@@ -62,11 +62,11 @@ namespace torrents
 		auto d = div (bit, 8);
 		memcpy (randomID.data (), start.data (), d.quot);
 		randomID[d.quot] = (start[d.quot] & (0xFF00 >> d.rem)) | (rng () & (0xFF >> d.rem));
-		for (size_t i = d.quot + 1; i < NodeID::len; i += 4)
+		for (size_t i = d.quot + 1; i < NodeID::len; i += 8)
 		{
-			uint32_t r = rng ();
-			if (i + 4 <= NodeID::len)
-				memcpy (randomID.data () + i, &r, 4);
+			uint64_t r = rng ();
+			if (i + 8 <= NodeID::len)
+				memcpy (randomID.data () + i, &r, 8);
 			else
 				memcpy (randomID.data () + i, &r, NodeID::len - i);
 		}
@@ -271,7 +271,7 @@ namespace torrents
 		bucket->nodes.erase (id);
 	}
 
-	std::list<std::pair<NodeID, Bucket * > > RoutingTable::GetExploratoryTargets (std::mt19937& rng, uint64_t ts)
+	std::list<std::pair<NodeID, Bucket * > > RoutingTable::GetExploratoryTargets (std::mt19937_64& rng, uint64_t ts)
 	{
 		std::list<std::pair<NodeID, Bucket * > > ret;
 		auto bucket = m_Buckets;
@@ -358,7 +358,7 @@ namespace torrents
 	}
 
 	TorrentsDHT::TorrentsDHT (TorrentsTunnel& tunnel, uint16_t port, std::string_view dhtFileName):
-		m_Tunnel (tunnel), m_Port (port), m_DHTFileName (dhtFileName),
+		m_Tunnel (tunnel), m_Rng (i2p::util::GetRngSeed ()), m_Port (port), m_DHTFileName (dhtFileName),
 		m_DHTUpdateCheckTimer (tunnel.GetService ()), m_DHTExpirationCheckTimer (tunnel.GetService ()),
 		m_DHTSendPingCheckTimer (tunnel.GetService ()), m_DHTQueryExpirationCheckTimer (tunnel.GetService ()),
 		m_NextDHTExploratoryTime (i2p::util::GetMonotonicSeconds () + DHT_INITIAL_EXPLORATORY_INTERVAL)
@@ -646,7 +646,7 @@ namespace torrents
 	{
 		LogPrint (eLogDebug, "TorrentsDHT: Get peers query msg received from ", from->id.ToBase64 ());
 
-		uint64_t token = m_Tunnel.GetLocalDestination () ? m_Tunnel.GetLocalDestination ()->GetRng ()() : 1;
+		uint64_t token = m_Rng ();
 		m_IncomingTokens.emplace (token, std::make_pair(from, i2p::util::GetMonotonicSeconds ()));
 
 		auto it = m_Torrents.find (infoHash);
@@ -715,9 +715,9 @@ namespace torrents
 	void TorrentsDHT::HandleResponse (std::string_view transactionID, const NodeID& nodeID,
 		std::map<std::string_view, std::string_view>& arguments)
 	{
-		uint16_t t = 0;
-		if (transactionID.size () >= 2)
-			memcpy (&t, transactionID.data (), 2);
+		uint64_t t = 0;
+		if (transactionID.size () >= 8)
+			memcpy (&t, transactionID.data (), 8);
 		auto it = m_Queries.find (t);
 		if (t && it != m_Queries.end ())
 		{
@@ -890,11 +890,11 @@ namespace torrents
 	void TorrentsDHT::SendQueryMsg (KRPCQuery query, std::string_view arguments,
 		const i2p::data::IdentHash& toIdent, uint16_t toPort, bool isRaw, std::shared_ptr<RequestInfo> info)
 	{
-		uint16_t transactionID = m_Tunnel.GetLocalDestination () ? static_cast<uint16_t>(m_Tunnel.GetLocalDestination ()->GetRng ()()) : 1;
+		uint64_t transactionID = m_Rng ();
 		auto msg = CreateDictionary ({
 				{ "a", arguments },
 				{ "q", CreateByteString (KRPCQueryStr[query]) },
-				{ "t", CreateByteString (std::string_view ((const char *)&transactionID, 2)) },
+				{ "t", CreateByteString (std::string_view ((const char *)&transactionID, 8)) },
 				{ "y", CreateByteString ("q") }
 									});
 		m_Queries.insert_or_assign (transactionID, std::make_tuple (toIdent, toPort,
@@ -1054,7 +1054,7 @@ namespace torrents
 	{
 		if (m_RoutingTable && m_Tunnel.GetLocalDestination ())
 		{
-			auto targets = m_RoutingTable->GetExploratoryTargets (m_Tunnel.GetLocalDestination ()->GetRng (),
+			auto targets = m_RoutingTable->GetExploratoryTargets (m_Rng,
 				i2p::util::GetMonotonicSeconds ());
 			for (auto [target, bucket]: targets)
 			{
@@ -1116,8 +1116,7 @@ namespace torrents
 			if (ts > m_NextDHTExploratoryTime)
 			{
 				Explore ();
-				m_NextDHTExploratoryTime = ts + DHT_EXPLORATORY_INTERVAL + (m_Tunnel.GetLocalDestination () ?
-					m_Tunnel.GetLocalDestination ()->GetRng ()() % DHT_EXPLORATORY_INTERVAL_VARIANCE : 0);
+				m_NextDHTExploratoryTime = ts + DHT_EXPLORATORY_INTERVAL + m_Rng () % DHT_EXPLORATORY_INTERVAL_VARIANCE;
 			}
 			ScheduleDHTUpdateCheck ();
 		}
