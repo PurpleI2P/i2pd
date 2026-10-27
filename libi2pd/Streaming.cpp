@@ -405,7 +405,8 @@ namespace stream
 
 	void Stream::SavePacket (Packet * packet)
 	{
-		if (!m_SavedPackets.insert (packet).second)
+		packet->from = nullptr;
+		if (!m_SavedPackets.emplace (packet).second)
 			m_LocalDestination.DeletePacket (packet);
 	}
 
