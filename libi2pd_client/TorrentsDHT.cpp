@@ -485,15 +485,11 @@ namespace torrents
 	void TorrentsDHT::HandleRawDatagram (const uint8_t * buf, size_t len)
 	{
 		// response or error
-		char type = 0; uint64_t token = 0;
-		bool isMalformed = false;
-		NodeID id; Torrent::InfoHash infoHash;
-		std::string_view nodes;
+		char type = 0;
 		std::string transactionID, query;
-		std::vector<std::string_view> values{""};
+		std::map<std::string_view, std::string_view> arguments;
 		ParseDictionary (std::string_view ((const char *)buf, len),
-			[&type, &transactionID, &id, &values, &token, &infoHash, &query, &isMalformed, &nodes]
-				(std::string_view key, std::string_view buf)->size_t
+			[&type, &transactionID, &query, &arguments] (std::string_view key, std::string_view buf)->size_t
 			{
 				if (key == "y")
 				{
@@ -515,48 +511,17 @@ namespace torrents
 				}
 				else if (key == "r" || key == "a")
 				{
-					return ParseDictionary (buf,
-						[&id, &values, &token, &infoHash, &isMalformed, &nodes](std::string_view key, std::string_view buf)->size_t
-						{
-							if (key == "id")
-							{
-								auto [l, success] = ParseByteArray (buf, id);
-								if (!success) isMalformed = true;
-								return l;
-							}
-							else if (key == "values")
-							{
-								auto [v, l] = ParseStringList (buf);
-								if (l) values = v;
-								return l;
-							}
-							else if (key == "nodes")
-							{
-								auto [value, l] = ExtractByteString (buf);
-								if (l) nodes = value;
-								return l;
-							}
-							else if (key == "token")
-							{
-								auto [value, l] = ExtractByteString (buf);
-								if (l && value.size () >= 8)
-									memcpy (&token, value.data (), 8);
-								return l;
-							}
-							else if (key == "info_hash")
-							{
-								auto [l, success] = ParseByteArray (buf, infoHash);
-								if (!success) isMalformed = true;
-								return l;
-							}
-							return 0;
-						});
+					size_t l;
+					std::tie (arguments, l) = ExtractDictionary (buf);
+					return l;
 				}
 				return 0;
 			});
-		if (isMalformed)
+
+		NodeID id;
+		if (!ParseByteArray (arguments["id"], id).second)
 		{
-			LogPrint (eLogInfo, "TorrentsDHT: Malformed raw datagram received");
+			LogPrint (eLogInfo, "TorrentsDHT: Queried node id not found");
 			return;
 		}
 		if (type)
@@ -564,19 +529,33 @@ namespace torrents
 			UpdateHeardFrom (id);
 			switch (type)
 			{
-				 case 'r':
-					HandleResponse (transactionID, id, token, values, nodes);
-				 break;
-				 case 'e':
+				case 'r':
+					HandleResponse (transactionID, id, arguments);
+				break;
+				case 'e':
 					LogPrint (eLogDebug, "TorrentsDHT: Error msg received");
-				 break;
-				 case 'q':
+				break;
+				case 'q':
 					if (query == "announce_peer")
-						HandleAnnouncePeer (transactionID, id, infoHash, token);
+					{
+						auto [value, l] = ExtractByteString (arguments["token"]);
+						if (l && value.size () >= 8)
+						{
+							uint64_t token = 0;
+							memcpy (&token, value.data (), 8);
+							Torrent::InfoHash infoHash;
+							if (ParseByteArray (arguments["info_hash"], infoHash).second)
+								HandleAnnouncePeer (transactionID, id, infoHash, token);
+							else
+								LogPrint (eLogInfo, "TorrentsDHT: infoHash not found for announce_peer");
+						}
+						else
+							LogPrint (eLogInfo, "TorrentsDHT: token not found for announce_peer");
+					}
 					else
 						LogPrint (eLogError, "TorrentsDHT: Query can't come as raw datagram");
 				break;
-				 default:
+				default:
 					LogPrint (eLogInfo, "TorrentsDHT: Unxpected msg type ", (int)type);
 			}
 		}
@@ -619,6 +598,7 @@ namespace torrents
 				}
 				return 0;
 			});
+
 		NodeID id;
 		if (!ParseByteArray (arguments["id"], id).second)
 		{
@@ -733,7 +713,7 @@ namespace torrents
 	}
 
 	void TorrentsDHT::HandleResponse (std::string_view transactionID, const NodeID& nodeID,
-		uint64_t token, const std::vector<std::string_view>& values, std::string_view nodes)
+		std::map<std::string_view, std::string_view>& arguments)
 	{
 		uint16_t t = 0;
 		if (transactionID.size () >= 2)
@@ -756,20 +736,42 @@ namespace torrents
 					case eKRPCQueryGetPeers:
 					{
 						LogPrint (eLogDebug, "TorrentsDHT: get_peers response received from ", nodeID.ToBase64 (), " after attempt #", info->numAttempts);
-						if (!values.empty () && values[0].empty ()) // nodes, because values not set
+						uint64_t token = 0;
+						auto [value, l] = ExtractByteString (arguments["token"]);
+						if (l && value.size () >= 8)
 						{
-							if (info && token)
-								info->AddNodeToken (std::make_shared<Node>(nodeID, ident, port), token);
-							HandleGetPeersResponseNodes (info, nodes);
+							memcpy (&token, value.data (), 8);
+							if (arguments.contains ("values"))
+							{
+								auto [values, l1] = ParseStringList (arguments["values"]);
+								if (l1)
+									HandleGetPeersResponsePeersAndAnnounce (info, values, token, ident, port + 1); // to rport
+							}
+							else
+							{
+								auto [nodes, l1] = ExtractByteString (arguments["nodes"]);
+								if (l1)
+								{
+									if (info)
+										info->AddNodeToken (std::make_shared<Node>(nodeID, ident, port), token);
+									HandleGetPeersResponseNodes (info, nodes);
+								}
+								else
+									LogPrint (eLogInfo, "TorrentsDHT: values or nodes not found in get_peers response");
+							}
 						}
-						else //values
-							HandleGetPeersResponsePeersAndAnnounce (info, values, token, ident, port + 1); // to rport
+						else
+							LogPrint (eLogInfo, "TorrentsDHT: token not found in get_peers response");
 						break;
 					}
 					case eKRPCQueryFindNode:
 					{
 						LogPrint (eLogDebug, "TorrentsDHT: find_node response received from ", nodeID.ToBase64 (), " after attempt #", info->numAttempts);
-						HandleFindNodeResponse (info, nodes);
+						auto [nodes, l] = ExtractByteString (arguments["nodes"]);
+						if (l)
+							HandleFindNodeResponse (info, nodes);
+						else
+							LogPrint (eLogInfo, "TorrentsDHT: nodes not found in find_node response");
 						break;
 					}
 					case eKRPCQueryAnnouncePeer:
