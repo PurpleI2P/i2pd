@@ -188,6 +188,11 @@ namespace transport
 
 		private:
 
+			i2p::util::MemoryPoolMt<Packet> m_PacketsPool;
+			i2p::util::MemoryPool<SSU2SentPacket> m_SentPacketsPool;
+			i2p::util::MemoryPool<SSU2IncompleteMessage> m_IncompleteMessagesPool;
+			i2p::util::MemoryPool<SSU2IncompleteMessage::Fragment> m_FragmentsPool;
+
 			ReceiveService m_ReceiveService;
 			boost::asio::ip::udp::socket m_SocketV4, m_SocketV6;
 			boost::asio::ip::address m_AddressV4, m_AddressV6;
@@ -200,10 +205,6 @@ namespace transport
 			std::unordered_map<uint32_t, std::weak_ptr<SSU2Session> > m_Relays; // we are introducer, relay tag -> session
 			std::unordered_map<uint32_t, std::pair <std::weak_ptr<SSU2Session>, uint64_t > > m_PeerTests; // nonce->(Alice, timestamp). We are Bob
 			std::list<std::pair<i2p::data::IdentHash, uint32_t> > m_Introducers, m_IntroducersV6; // introducers we are connected to
-			i2p::util::MemoryPoolMt<Packet> m_PacketsPool;
-			i2p::util::MemoryPool<SSU2SentPacket> m_SentPacketsPool;
-			i2p::util::MemoryPool<SSU2IncompleteMessage> m_IncompleteMessagesPool;
-			i2p::util::MemoryPool<SSU2IncompleteMessage::Fragment> m_FragmentsPool;
 			boost::asio::steady_timer m_TerminationTimer, m_CleanupTimer, m_ResendTimer,
 				m_IntroducersUpdateTimer, m_IntroducersUpdateTimerV6;
 			std::shared_ptr<SSU2Session> m_LastSession;
