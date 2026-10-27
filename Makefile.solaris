@@ -1,9 +1,16 @@
 CXX = g++
 INCFLAGS = -I/usr/openssl/3/include
 CXXFLAGS := -Wall -std=c++23
-LDLIBS = -L/usr/openssl/3/lib/64 -lssl -lcrypto -lboost_program_options -lz -lpthread -lsocket
+
+LDLIBS = -L/usr/openssl/3/lib/64 -lssl -lcrypto -lboost_program_options
+
+ifeq ($(TORRENTS),yes)
+	LDLIBS += -lboost_json -lboost_url
+endif
 
 ifeq ($(USE_UPNP),yes)
 	DEFINES += -DUSE_UPNP
 	LDLIBS += -lminiupnpc
 endif
+
+LDLIBS += -lz -lpthread -lsocket

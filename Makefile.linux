@@ -47,9 +47,9 @@ endif
 else # USE_STATIC no
 ifeq ($(TORRENTS),yes)
 # assume boost >= 1.81
-	LDLIBS = -lboost_json -lboost_url
+	LDLIBS_BOOST = -lboost_json -lboost_url
 endif
-	LDLIBS += -lssl -lcrypto -lz -lboost_program_options -lpthread -latomic
+	LDLIBS += -lssl -lcrypto -lz -lboost_program_options $(LDLIBS_BOOST) -lpthread -latomic
 ifeq ($(USE_UPNP),yes)
 	LDLIBS += -lminiupnpc
 endif
