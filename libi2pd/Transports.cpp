@@ -374,19 +374,8 @@ namespace transport
 		if (m_PeerTestTimer) m_PeerTestTimer->cancel ();
 		if (m_BanListCleanupTimer) m_BanListCleanupTimer->cancel ();
 
-		if (m_SSU2Server)
-		{
-			m_SSU2Server->Stop ();
-			delete m_SSU2Server;
-			m_SSU2Server = nullptr;
-		}
-
-		if (m_NTCP2Server)
-		{
-			m_NTCP2Server->Stop ();
-			delete m_NTCP2Server;
-			m_NTCP2Server = nullptr;
-		}
+		if (m_SSU2Server) m_SSU2Server->Stop ();
+		if (m_NTCP2Server) m_NTCP2Server->Stop ();
 
 		m_X25519KeysPairSupplier.Stop ();
 		m_IsRunning = false;
@@ -398,6 +387,17 @@ namespace transport
 			m_Thread = nullptr;
 		}
 		m_Peers.clear ();
+
+		if (m_SSU2Server)
+		{
+			delete m_SSU2Server;
+			m_SSU2Server = nullptr;
+		}
+		if (m_NTCP2Server)
+		{
+			delete m_NTCP2Server;
+			m_NTCP2Server = nullptr;
+		}
 	}
 
 	void Transports::Run ()
