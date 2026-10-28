@@ -482,13 +482,10 @@ namespace torrents
 		}
 	}
 
-	void TorrentsDHT::HandleRawDatagram (const uint8_t * buf, size_t len)
+	size_t TorrentsDHT::ParseKRPCMessage (const uint8_t * buf, size_t len, char& type, std::string_view& transactionID,
+		std::string_view& query, std::map<std::string_view, std::string_view>& arguments)
 	{
-		// response or error
-		char type = 0;
-		std::string transactionID, query;
-		std::map<std::string_view, std::string_view> arguments;
-		ParseDictionary (std::string_view ((const char *)buf, len),
+		return ParseDictionary (std::string_view ((const char *)buf, len),
 			[&type, &transactionID, &query, &arguments] (std::string_view key, std::string_view buf)->size_t
 			{
 				if (key == "y")
@@ -517,6 +514,19 @@ namespace torrents
 				}
 				return 0;
 			});
+	}
+
+	void TorrentsDHT::HandleRawDatagram (const uint8_t * buf, size_t len)
+	{
+		// response or error
+		char type = 0;
+		std::string_view transactionID, query;
+		std::map<std::string_view, std::string_view> arguments;
+		if (!ParseKRPCMessage (buf, len, type, transactionID, query, arguments))
+		{
+			LogPrint (eLogInfo, "TorrentsDHT: Can't parse KRCP message");
+			return;
+		}
 
 		NodeID id;
 		if (!ParseByteArray (arguments["id"], id).second)
@@ -566,38 +576,13 @@ namespace torrents
 	{
 		// query
 		char type = 0;
-		std::string transactionID, query;
+		std::string_view transactionID, query;
 		std::map<std::string_view, std::string_view> arguments;
-		ParseDictionary (std::string_view ((const char *)buf, len),
-			[&type, &transactionID, &query, &arguments]
-				(std::string_view key, std::string_view buf)->size_t
-			{
-				if (key == "y")
-				{
-					auto [value, l] = ExtractByteString (buf);
-					if (l && !value.empty ()) type = value[0];
-					return l;
-				}
-				else if (key == "t")
-				{
-					auto [value, l] = ExtractByteString (buf);
-					if (l) transactionID = value;
-					return l;
-				}
-				else if (key == "q")
-				{
-					auto [value, l] = ExtractByteString (buf);
-					if (l) query = value;
-					return l;
-				}
-				else if (key == "a")
-				{
-					size_t l;
-					std::tie (arguments, l) = ExtractDictionary (buf);
-					return l;
-				}
-				return 0;
-			});
+		if (!ParseKRPCMessage (buf, len, type, transactionID, query, arguments))
+		{
+			LogPrint (eLogInfo, "TorrentsDHT: Can't parse KRCP message");
+			return;
+		}
 
 		NodeID id;
 		if (!ParseByteArray (arguments["id"], id).second)

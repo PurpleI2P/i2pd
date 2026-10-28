@@ -245,6 +245,8 @@ namespace torrents
 
 			void HandleDatagram (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort,
 				const uint8_t * buf, size_t len, const i2p::util::Mapping * options);
+			static size_t ParseKRPCMessage (const uint8_t * buf, size_t len, char& type, std::string_view& transactionID,
+				std::string_view& query, std::map<std::string_view, std::string_view>& arguments);
 			void HandlePingQuery (const i2p::data::IdentHash& fromIdent, uint16_t fromPort,
 				std::string_view transactionID, const NodeID& nodeID);
 			void HandleGetPeersQuery (std::string_view transactionID, std::shared_ptr<Node> from, const Torrent::InfoHash& infoHash);
