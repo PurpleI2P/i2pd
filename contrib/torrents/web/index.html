@@ -48,7 +48,7 @@
 }
 
 .torrent-row:hover td {
-    background-color: #ff9900ce;
+    background-color: #ffe6008e;
 }
 
 #fs-error fieldset {
@@ -68,7 +68,7 @@ td.buttons-cell {
     max-width: 100px;
 }
 
-.buttons-cell .button-row {
+.buttons-cell {
     display: flex;
     flex-direction: row;
     width: 100%;
@@ -84,19 +84,13 @@ td.buttons-cell {
     gap: 5px;
 }
 
-.buttons-cell button,
-.buttons-column button,
-.button-row button {
+.buttons-cell button {
     flex: 1;
     margin: 0;
     border: 1px;
     border-radius: 0;
     min-width: 0;
     line-height: 1;
-}
-
-.button-row button:hover {
-    background-color: orange;
 }
 
 .fs-buttons {
@@ -113,12 +107,43 @@ fieldset {
     flex: 1;
     min-width: 0;
 }
+ 
+.torrent-rcm {
+    position: fixed;
+    z-index: 10000;
+    min-width: 100px;
+    background: #fff;
+    color: #000;
+    box-shadow: 0 4px 12px #0009;
+    border: 1px solid rgb(122, 122, 122);
+    font-size: 14px;
+}
+
+.torrent-rcm[hidden] {
+    display: none;
+}
+
+.torrent-rcm [data-action] {
+    padding: 1px 4px;
+    cursor: pointer;
+}
+
+.torrent-rcm [data-action]:hover {
+    background: #e8e8e8;
+}
+
+.torrent-rcm hr {
+    border: 0;
+    border-top: 1px solid #ddd;
+}
 </style>
+
+<div id="torrent-rcm" class="torrent-rcm" hidden></div>
 
 <div id="fs-error">
     <fieldset>
         <h2 style="color: #ff3333;" id="err-string">failed to load main.js</h2>
-        <h3 id="err-details"></h3>
+        <h3 style="white-space: pre-line;" id="err-details"></h3>
     </fieldset>
 </div>
 
@@ -126,7 +151,7 @@ fieldset {
     <fieldset class="fs-buttons">
         <legend>Actions</legend>
         <div class="button-column">
-            <input type="file" id="torrent-file" accept=".torrent" style="display: none" />
+            <input type="file" id="torrent-file" accept=".torrent" multiple style="display: none" />
             <button title="Open torrent file" onclick="document.getElementById('torrent-file').click()">📂</button>
             <button title="Add magnet" onclick="addMagnet()">🧲</button>
         </div>

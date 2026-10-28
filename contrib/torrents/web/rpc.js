@@ -44,13 +44,16 @@ window.rpc = {
 		return this.request("torrent-add", { metainfo: b64metainfo });
 	},
 
-	async removeTorrent(id, deletefiles = false) {
-		if (Array.isArray(id) && id.length === 0) 
+	async torrentRemove(ids = [], withFiles = false) {
+		if (!ids.length) // we don't want to remove all torrents
 			return;
 
+		if (ids.length === 1)
+			ids = ids[0]
+
 		return this.request("torrent-remove", {
-			ids: Array.isArray(id) ? id : [id],
-			"delete-local-data": deletefiles
+			ids: ids,
+			"delete-local-data": withFiles
 		});
 	},
 
