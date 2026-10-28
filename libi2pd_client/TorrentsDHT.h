@@ -239,6 +239,7 @@ namespace torrents
 			size_t GetNumTorrents () const { return m_Torrents.size (); }
 			size_t GetNumHeardFrom () const { return m_HeardFrom.size (); }
 			size_t GetNumFailedPeers () const { return m_FailedPeers.size (); }
+			const std::map<Torrent::InfoHash, std::shared_ptr<DHTTorrent> >& GetTorrents () const { return m_Torrents; }
 
 		private:
 

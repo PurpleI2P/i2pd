@@ -808,9 +808,18 @@ namespace torrents
 		response["supported"] = isDHTSupported;
 		if (isDHTSupported)
 		{
+			bool torrentHashesRequested = false;
+			if (jsonRequest.contains ("fields"))
+			{
+				auto fields = jsonRequest.at ("fields").as_array ();
+				torrentHashesRequested = std::find (fields.begin(), fields.end(), "torrentHashes") != fields.end ();
+			}
+
 			size_t numNodes = 0, numBuckets = 0, numTorrents = 0, numHeardFrom = 0, numFailedPeers = 0;
+			std::list<Torrent::InfoHash> infoHashes;
 			boost::asio::post (m_Tunnel->GetService (),
-				boost::asio::use_future ([this, &numNodes, &numBuckets, &numTorrents, &numHeardFrom, &numFailedPeers]()
+				boost::asio::use_future ([this, &numNodes, &numBuckets, &numTorrents,
+					&numHeardFrom, &numFailedPeers, &infoHashes, torrentHashesRequested ]()
 				{
 					const auto& dht = m_Tunnel->GetDHT ();
 					if (dht)
@@ -820,6 +829,11 @@ namespace torrents
 						numTorrents = dht->GetNumTorrents ();
 						numHeardFrom = dht->GetNumHeardFrom ();
 						numFailedPeers = dht->GetNumFailedPeers ();
+						if (torrentHashesRequested && numTorrents)
+						{
+							for (const auto& [infoHash, torrent]: dht->GetTorrents ())
+								infoHashes.push_back (infoHash);
+						}
 					}
 				})).wait ();
 			response["numNodes"] = numNodes;
@@ -827,6 +841,13 @@ namespace torrents
 			response["numTorrents"] = numTorrents;
 			response["numHeardFrom"] = numHeardFrom;
 			response["numFailedPeers"] = numFailedPeers;
+			if (torrentHashesRequested)
+			{
+				boost::json::array torrentHashes;
+				for (auto it: infoHashes)
+					torrentHashes.push_back (boost::json::value (it.ToHexString ()));
+				response["torrentHashes"] = torrentHashes;
+			}
 		}
 		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}
