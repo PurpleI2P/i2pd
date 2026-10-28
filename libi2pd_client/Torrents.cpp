@@ -516,6 +516,13 @@ namespace torrents
 		}
 	}
 
+	std::string Torrent::InfoHash::ToHexString () const
+	{
+		std::string hexString;
+		boost::algorithm::hex (begin(), end(), std::back_inserter (hexString));
+		return hexString;
+	}
+
 	Torrent::Torrent ():
 		m_AnnounceTrackerID (-1), m_Length (0), m_PieceLength (0), m_IsComplete (false),
 		m_IsStopped (false), m_IsSingleFile (true), m_Uploaded (0), m_Downloaded (0),
@@ -1716,9 +1723,7 @@ namespace torrents
 			auto torrent = GetTorrentsTunnel ()->FindTorrent (infoHash);
 			if (!torrent)
 			{
-				std::string hexHash;
-				boost::algorithm::hex (infoHash.begin(), infoHash.end(), std::back_inserter(hexHash));
-				LogPrint (eLogWarning, "Torrents: Torrent with InfoHash ", hexHash, " not found");
+				LogPrint (eLogWarning, "Torrents: Torrent with InfoHash ", infoHash.ToHexString (), " not found");
 				Terminate ();
 				return 0;
 			}

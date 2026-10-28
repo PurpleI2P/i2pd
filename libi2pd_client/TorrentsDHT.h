@@ -60,7 +60,6 @@ namespace torrents
 	using Distance = Torrent::InfoHash;
 	struct NodeID: public Torrent::InfoHash
 	{
-		static constexpr size_t len = std::tuple_size<Torrent::InfoHash>::value;
 		constexpr Distance operator^(const Torrent::InfoHash& hash) const
 		{
 			Distance d;

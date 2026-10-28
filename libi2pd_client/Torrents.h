@@ -262,7 +262,11 @@ namespace torrents
 			//  seeders, leechers, last update time in seconds since epoch, error)
 		public:
 
-			using InfoHash = std::array<uint8_t, SHA_DIGEST_LENGTH>;
+			struct InfoHash: public std::array<uint8_t, SHA_DIGEST_LENGTH>
+			{
+				static constexpr size_t len = std::tuple_size<std::array<uint8_t, SHA_DIGEST_LENGTH> >::value;
+				std::string ToHexString () const;
+			};
 
 			Torrent (std::string_view buf);
 			Torrent (const InfoHash& infoHash);

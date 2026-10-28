@@ -419,6 +419,22 @@ namespace torrents
 		return { nullptr, 0 };
 	}
 
+	std::pair<std::shared_ptr<Torrent>, int> TorrentsTunnel::AddInfoHash (const Torrent::InfoHash& infoHash)
+	{
+		auto it = m_Torrents.find (infoHash);
+		if (it == m_Torrents.end ())
+		{
+			auto torrent = std::make_shared<Torrent> (infoHash);
+			torrent->SetName (infoHash.ToHexString ());
+			auto [id, inserted] = InsertTorrent (torrent);
+			if (inserted)
+				boost::asio::post (GetService (), [this, torrent] { RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone); });
+			return { torrent, id };
+		}
+		else
+			return { it->second, FindTorrentID (it->second) };
+	}
+
 	std::pair<int, bool> TorrentsTunnel::InsertTorrent (std::shared_ptr<Torrent> torrent)
 	{
 		if (!torrent) return { 0, false };

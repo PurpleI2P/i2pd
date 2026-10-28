@@ -241,8 +241,28 @@ namespace torrents
 			std::tie (torrent, id) = m_Tunnel->AddTorrent (torrentFileContent);
 		}
 		else if (arguments.contains ("filename"))
-			std::tie (torrent, id) = m_Tunnel->AddMagnet (arguments.at ("filename").as_string ());
-
+		{
+			auto filename = arguments.at ("filename").as_string ();
+			Torrent::InfoHash infoHash;
+			bool isInfoHash = false;
+			if (filename.size () == 2*infoHash.size ()) // 40 chars
+			{
+				isInfoHash = true;
+				try
+				{
+					boost::algorithm::unhex (filename.begin(), filename.end(), infoHash.begin());
+					isInfoHash = true;
+				}
+				catch (const boost::algorithm::non_hex_input& ex)
+				{
+					isInfoHash = false;
+				}
+			}
+			if (isInfoHash)
+				std::tie (torrent, id) = m_Tunnel->AddInfoHash (infoHash);
+			else
+				std::tie (torrent, id) = m_Tunnel->AddMagnet (filename);
+		}
 		if (torrent)
 		{
 			boost::json::object response, torrentInfo;
