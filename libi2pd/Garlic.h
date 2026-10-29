@@ -20,7 +20,7 @@
 #include <memory>
 #include <random>
 #include <boost/version.hpp>
-#if (BOOST_VERSION >= 108100) // 1.81
+#if (BOOST_VERSION >= 108300) // 1.83
 #include <boost/unordered/unordered_flat_map.hpp>
 #endif
 #include "Crypto.h"
@@ -333,7 +333,7 @@ namespace garlic
 			// incoming
 			int m_NumRatchetInboundTags;
 			std::unordered_map<SessionTag, std::shared_ptr<AESDecryption>, std::hash<i2p::data::Tag<32> > > m_Tags;
-#if (BOOST_VERSION >= 108100) // 1.81
+#if (BOOST_VERSION >= 108300) // 1.83
 			boost::unordered_flat_map<uint64_t, ECIESX25519AEADRatchetIndexTagset> m_ECIESx25519Tags; // session tag -> session
 #else
 			std::unordered_map<uint64_t, ECIESX25519AEADRatchetIndexTagset> m_ECIESx25519Tags; // session tag -> session
