@@ -564,9 +564,10 @@ namespace garlic
 		auto it = m_ECIESx25519Tags.find (tag);
 		if (it != m_ECIESx25519Tags.end ())
 		{
-			if (!it->second.tagset || !it->second.tagset->HandleNextMessage (buf, len, it->second.index))
-				LogPrint (eLogError, "Garlic: Can't handle ECIES-X25519-AEAD-Ratchet message");
+			auto [index, tagset] = std::move (it->second);
 			m_ECIESx25519Tags.erase (it);
+			if (!tagset || !tagset->HandleNextMessage (buf, len, index))
+				LogPrint (eLogError, "Garlic: Can't handle ECIES-X25519-AEAD-Ratchet message");
 			return true;
 		}
 		return false;
