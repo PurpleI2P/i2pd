@@ -319,12 +319,58 @@ namespace torrents
 		m_FullFilePath = rootDir/m_FullFilePath;
 	}
 
+	int Blocks::GetNextBlockToRequest ()
+	{
+		// TODO: use find_first_off for boost >= 1.90
+		auto inv = ~m_Available;
+		size_t ind = inv.find_first ();
+		while (ind != boost::dynamic_bitset<>::npos)
+		{
+			if (!m_Requested.test_set (ind))
+				return ind;
+			ind = inv.find_next(ind);
+		}
+		return -1;
+	}
+
+	bool Blocks::BlockReceived (size_t ind)
+	{
+		if (ind < m_Available.size ())
+		{
+			m_Requested.reset (ind);
+			return !m_Available.test_set (ind);
+		}
+		return false;
+	}
+
+	bool Blocks::IsBlockAvailable (size_t ind) const
+	{
+		if (ind < m_Available.size ())
+			return m_Available.test (ind);
+		else
+			return false;
+	}
+
+	bool Blocks::IsBlockRequested (size_t ind) const
+	{
+		if (ind < m_Requested.size ())
+			return m_Requested.test (ind);
+		else
+			return false;
+	}
+
+	void Blocks::ClearRequest (size_t ind)
+	{
+		if (ind < m_Available.size ())
+			m_Requested.reset (ind);
+	}
+
 	Piece::Piece (size_t size, const uint8_t * hash):
 		m_Size (size), m_Data (nullptr), m_IsSending (false), m_IsRequested (false),
 		m_LastActivityTimestamp (0), m_NumPeers (0)
 	{
 		memcpy (m_Hash, hash, SHA_DIGEST_LENGTH);
-		m_Blocks = std::make_unique<std::vector<BlockStatus> >(GetNumBlocks (size), BlockStatus::Missing);
+		m_Blocks = std::make_unique<Blocks>(GetNumBlocks (size));
 	}
 
 	Piece::~Piece ()
@@ -343,8 +389,8 @@ namespace torrents
 	bool Piece::IsAvailable (int block) const
 	{
 		if (!m_Blocks) return true;
-		if (block < 0 || block >= (int)m_Blocks->size ()) return false;
-		return (*m_Blocks)[block] == BlockStatus::Available;
+		if (block < 0) return false;
+		return m_Blocks->IsBlockAvailable (block);
 	}
 
 	void Piece::SetIsSending (bool isSending)
@@ -366,27 +412,39 @@ namespace torrents
 	{
 		if (!len || offset + len > m_Size || !m_Blocks) return false;
 		size_t blockIndex = offset/REQUEST_BLOCK_SIZE;
-		if ((*m_Blocks)[blockIndex] == BlockStatus::Requested)
+		if (m_Blocks->IsBlockRequested (blockIndex))
 		{
 			if (!m_Data) NewDataBuffer ();
 			memcpy (m_Data + offset, block, len);
-			(*m_Blocks)[blockIndex] = BlockStatus::Available;
-			if (std::find_if (m_Blocks->begin (), m_Blocks->end (),
-				[](BlockStatus status) { return status != BlockStatus::Available; }) == m_Blocks->end ())
+			if (m_Blocks->BlockReceived (blockIndex))
 			{
-				// all blocks are available
-				LogPrint (eLogDebug, "Torrents: piece complete");
-				Complete ();
+				if (m_Blocks->IsComplete ())
+				{
+					// all blocks are available
+					LogPrint (eLogDebug, "Torrents: piece complete");
+					Complete ();
+				}
+				else
+					m_LastActivityTimestamp = i2p::util::GetMonotonicSeconds ();
 			}
 			return true;
 		}
 		else
 		{
-			if ((*m_Blocks)[blockIndex] == BlockStatus::Available)
+			if (m_Blocks->IsBlockAvailable (blockIndex))
 				LogPrint (eLogWarning, "Torrents: Duplicated piece block ", blockIndex);
 			else
 				LogPrint (eLogWarning, "Torrents: Late or unsolicited piece block ", blockIndex);
 			return false;
+		}
+	}
+
+	void Piece::BlockRequestRejected (size_t offset)
+	{
+		if (m_Blocks)
+		{
+			m_Blocks->ClearRequest (offset/REQUEST_BLOCK_SIZE);
+			m_LastActivityTimestamp = i2p::util::GetMonotonicSeconds ();
 		}
 	}
 
@@ -471,18 +529,13 @@ namespace torrents
 	{
 		if (m_Blocks)
 		{
-			size_t ind = 0;
-			for (auto& it: *m_Blocks)
+			auto ind = m_Blocks->GetNextBlockToRequest ();
+			if (ind >= 0)
 			{
-				if (it == BlockStatus::Missing)
-				{
-					it = BlockStatus::Requested;
-					auto offset = ind*REQUEST_BLOCK_SIZE;
-					m_LastActivityTimestamp = i2p::util::GetMonotonicSeconds ();
-					m_IsRequested = true;
-					return { offset, (offset + REQUEST_BLOCK_SIZE <= m_Size) ? REQUEST_BLOCK_SIZE : m_Size - offset };
-				}
-				ind++;
+				auto offset = ind*REQUEST_BLOCK_SIZE;
+				m_LastActivityTimestamp = i2p::util::GetMonotonicSeconds ();
+				m_IsRequested = true;
+				return { offset, (offset + REQUEST_BLOCK_SIZE <= m_Size) ? REQUEST_BLOCK_SIZE : m_Size - offset };
 			}
 		}
 		return { 0, 0 };
@@ -491,16 +544,13 @@ namespace torrents
 	void Piece::ClearAllRequests ()
 	{
 		m_IsRequested = false;
-		if (!m_Blocks) return;
-		for (auto& it: *m_Blocks)
-			if (it == BlockStatus::Requested)
-				it = BlockStatus::Missing;
+		if (m_Blocks) m_Blocks->ClearRequests ();
 	}
 
 	void Piece::InvalidateAllBlocks ()
 	{
 		m_Blocks = nullptr;
-		m_Blocks = std::make_unique<std::vector<BlockStatus> >(GetNumBlocks (m_Size), BlockStatus::Missing);
+		m_Blocks = std::make_unique<Blocks>(GetNumBlocks (m_Size));
 		if (m_Data)
 			DeleteDataBuffer ();
 	}
@@ -2060,6 +2110,8 @@ namespace torrents
 		uint32_t offset = bufbe32toh (buf + 4);
 		LogPrint (eLogDebug, "Torrents: Reject request msg received index ", index, " offset ", offset);
 		if (m_NumRequests > 0) m_NumRequests--;
+		if (index < m_Torrent->GetNumPieces ())
+			m_Torrent->GetPiece (index).BlockRequestRejected (offset);
 		RequestNextBlocks ();
 	}
 

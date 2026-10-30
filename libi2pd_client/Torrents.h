@@ -172,16 +172,28 @@ namespace torrents
 		PieceFileFragment (const PieceFileFragment& ) = default;
 	};
 
+	class Blocks final
+	{
+		public:
+
+			Blocks (size_t numBlocks): m_Available (numBlocks), m_Requested (numBlocks) {}
+
+			int GetNextBlockToRequest (); // -1 if no block
+			bool IsComplete () const { return m_Available.all (); };
+			bool BlockReceived (size_t ind); // return true if updated
+			bool IsBlockAvailable (size_t ind) const;
+			bool IsBlockRequested (size_t ind) const;
+			void ClearRequests () { m_Requested.reset (); }
+			void ClearRequest (size_t ind);
+
+		private:
+
+			boost::dynamic_bitset<> m_Available, m_Requested;
+	};
+
 	class PeerConnection;
 	class Piece final
 	{
-		enum class BlockStatus
-		{
-			Missing,
-			Available,
-			Requested
-		};
-
 		public:
 
 			Piece (size_t size, const uint8_t * hash);
@@ -198,6 +210,7 @@ namespace torrents
 			void SetNumPeers (size_t numPeers) { m_NumPeers = numPeers; }
 
 			bool BlockReceived (const uint8_t * block, size_t len, size_t offset);
+			void BlockRequestRejected (size_t offset);
 			bool Dump (PieceFileFragment&& fragment);
 			bool Load (PieceFileFragment&& fragment);
 			const uint8_t * GetData () const { return m_Data; }
@@ -221,7 +234,7 @@ namespace torrents
 
 			size_t m_Size;
 			uint8_t * m_Data, m_Hash[SHA_DIGEST_LENGTH];
-			std::unique_ptr<std::vector<BlockStatus> > m_Blocks;
+			std::unique_ptr<Blocks> m_Blocks;
 			bool m_IsSending, m_IsRequested;
 			uint64_t m_LastActivityTimestamp; // monotonic seconds
 			size_t m_NumPeers; // where this piece is available
