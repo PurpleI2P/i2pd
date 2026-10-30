@@ -1,0 +1,26 @@
+#
+# I2PD configuration
+#
+menu "i2pd Configuration"
+	depends on PACKAGE_i2pd
+
+config I2PD_ENABLE_TORRENT_CLIENT
+	bool "Enable built-in torrent client"
+	default n
+	help
+          This feature significantly increases memory and file system usage, check free space.
+
+config I2PD_ENABLE_UPNP
+	bool "Enable UPnP (don't forget to enable it in the i2pd.conf)"
+	default n
+	help
+          This feature can increase memory and file system usage, check free space.
+
+config I2PD_ENABLE_UI_TRANSLATIONS
+	bool "[TODO] Add user interface translation to various languages"
+	default y
+	help
+          This feature increases memory and file system usage, check free space.
+
+endmenu
+
