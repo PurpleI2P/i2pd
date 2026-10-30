@@ -366,7 +366,7 @@ namespace torrents
 	}
 
 	Piece::Piece (size_t size, const uint8_t * hash):
-		m_Size (size), m_Data (nullptr), m_IsSending (false), m_IsRequested (false),
+		m_Size (size), m_Data (nullptr), m_IsSending (false),
 		m_LastActivityTimestamp (0), m_NumPeers (0)
 	{
 		memcpy (m_Hash, hash, SHA_DIGEST_LENGTH);
@@ -531,7 +531,6 @@ namespace torrents
 			{
 				auto offset = ind*REQUEST_BLOCK_SIZE;
 				m_LastActivityTimestamp = i2p::util::GetMonotonicSeconds ();
-				m_IsRequested = true;
 				return { offset, (offset + REQUEST_BLOCK_SIZE <= m_Size) ? REQUEST_BLOCK_SIZE : m_Size - offset };
 			}
 		}
@@ -540,7 +539,6 @@ namespace torrents
 
 	void Piece::ClearAllRequests ()
 	{
-		m_IsRequested = false;
 		if (m_Blocks) m_Blocks->ClearRequests ();
 	}
 
@@ -2108,7 +2106,12 @@ namespace torrents
 		LogPrint (eLogDebug, "Torrents: Reject request msg received index ", index, " offset ", offset);
 		if (m_NumRequests > 0) m_NumRequests--;
 		if (index < m_Torrent->GetNumPieces ())
-			m_Torrent->GetPiece (index).BlockRequestRejected (offset);
+		{
+			Piece& piece = m_Torrent->GetPiece (index);
+			piece.BlockRequestRejected (offset);
+			if (m_LastRequestedPieceIndex == (int)index && !piece.IsRequested ())
+				m_LastRequestedPieceIndex = -1;
+		}
 		RequestNextBlocks ();
 	}
 

@@ -179,7 +179,8 @@ namespace torrents
 			Blocks (size_t numBlocks): m_Available (numBlocks), m_Requested (numBlocks) {}
 
 			int GetNextBlockToRequest (); // -1 if no block
-			bool IsComplete () const { return m_Available.all (); };
+			bool IsComplete () const { return m_Available.all (); }
+			bool IsRequested () const { return m_Requested.any (); }
 			bool BlockReceived (size_t ind); // return true if updated
 			bool IsBlockAvailable (size_t ind) const;
 			bool IsBlockRequested (size_t ind) const;
@@ -201,11 +202,11 @@ namespace torrents
 			~Piece ();
 
 			bool IsComplete () const { return !m_Blocks; }
-			void Complete () { m_Blocks = nullptr; m_IsRequested = false; }
+			void Complete () { m_Blocks = nullptr; }
 			bool VerifyHash () const;
 			void SetIsSending (bool isSending);
 			uint64_t GetLastActivityTimestamp () const { return m_LastActivityTimestamp; }
-			bool IsRequested () const { return m_IsRequested; }
+			bool IsRequested () const { return m_Blocks ? m_Blocks->IsRequested () : false; }
 			size_t GetNumPeers () const { return m_NumPeers; }
 			void SetNumPeers (size_t numPeers) { m_NumPeers = numPeers; }
 
@@ -235,7 +236,7 @@ namespace torrents
 			size_t m_Size;
 			uint8_t * m_Data, m_Hash[SHA_DIGEST_LENGTH];
 			std::unique_ptr<Blocks> m_Blocks;
-			bool m_IsSending, m_IsRequested;
+			bool m_IsSending;
 			uint64_t m_LastActivityTimestamp; // monotonic seconds
 			size_t m_NumPeers; // where this piece is available
 	};
