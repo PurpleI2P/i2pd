@@ -412,7 +412,7 @@ namespace torrents
 	{
 		if (!len || offset + len > m_Size || !m_Blocks) return false;
 		size_t blockIndex = offset/REQUEST_BLOCK_SIZE;
-		if (m_Blocks->IsBlockRequested (blockIndex))
+		if (!m_Blocks->IsBlockAvailable (blockIndex))
 		{
 			if (!m_Data) NewDataBuffer ();
 			memcpy (m_Data + offset, block, len);
@@ -431,10 +431,7 @@ namespace torrents
 		}
 		else
 		{
-			if (m_Blocks->IsBlockAvailable (blockIndex))
-				LogPrint (eLogWarning, "Torrents: Duplicated piece block ", blockIndex);
-			else
-				LogPrint (eLogWarning, "Torrents: Late or unsolicited piece block ", blockIndex);
+			LogPrint (eLogWarning, "Torrents: Duplicated piece block ", blockIndex);
 			return false;
 		}
 	}
