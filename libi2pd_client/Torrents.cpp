@@ -321,15 +321,24 @@ namespace torrents
 
 	int Blocks::GetNextBlockToRequest ()
 	{
-		// TODO: use find_first_off for boost >= 1.90
+#if (BOOST_VERSION >= 109000) // 1.90
+		size_t ind = m_Available.find_first_off ();
+		while (ind != boost::dynamic_bitset<>::npos)
+		{
+			if (!m_Requested.test_set (ind))
+				return ind;
+			ind = m_Available.find_next_off (ind);
+		}
+#else
 		auto inv = ~m_Available;
 		size_t ind = inv.find_first ();
 		while (ind != boost::dynamic_bitset<>::npos)
 		{
 			if (!m_Requested.test_set (ind))
 				return ind;
-			ind = inv.find_next(ind);
+			ind = inv.find_next (ind);
 		}
+#endif
 		return -1;
 	}
 
