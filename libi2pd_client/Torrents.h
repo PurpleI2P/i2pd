@@ -179,6 +179,7 @@ namespace torrents
 			Blocks (size_t numBlocks): m_Available (numBlocks), m_Requested (numBlocks) {}
 
 			int GetNextBlockToRequest (); // -1 if no block
+			int GetFirstMissingBlock () const; // -1 if no block
 			bool IsComplete () const { return m_Available.all (); }
 			bool IsRequested () const { return m_Requested.any (); }
 			bool BlockReceived (size_t ind); // return true if updated
@@ -218,7 +219,7 @@ namespace torrents
 			size_t GetSize () const { return m_Size; }
 			const uint8_t * GetHash () const { return m_Hash; }
 			bool HasBlock (size_t offset) const;
-			std::pair<size_t, size_t> GetNextBlockToRequest (); // return (offset, len) of next buffer, len = 0 if no next buffer
+			std::pair<size_t, size_t> GetNextBlockToRequest (bool isEndOfGame = false); // return (offset, len) of next buffer, len = 0 if no next buffer
 			void ClearAllRequests ();
 			void InvalidateAllBlocks ();
 			void Reset ();

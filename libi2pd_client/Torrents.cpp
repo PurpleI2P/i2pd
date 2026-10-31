@@ -342,6 +342,12 @@ namespace torrents
 		return -1;
 	}
 
+	int Blocks::GetFirstMissingBlock () const
+	{
+		size_t ind = m_Available.find_first ();
+		return (ind != boost::dynamic_bitset<>::npos) ? ind : -1;
+	}
+
 	bool Blocks::BlockReceived (size_t ind)
 	{
 		if (ind < m_Available.size ())
@@ -531,11 +537,13 @@ namespace torrents
 		return IsAvailable (offset/REQUEST_BLOCK_SIZE);
 	}
 
-	std::pair<size_t, size_t> Piece::GetNextBlockToRequest ()
+	std::pair<size_t, size_t> Piece::GetNextBlockToRequest (bool isEndOfGame)
 	{
 		if (m_Blocks)
 		{
 			auto ind = m_Blocks->GetNextBlockToRequest ();
+			if (ind < 0 && isEndOfGame)
+				 ind = m_Blocks->GetFirstMissingBlock ();
 			if (ind >= 0)
 			{
 				auto offset = ind*REQUEST_BLOCK_SIZE;
@@ -1033,16 +1041,22 @@ namespace torrents
 			// sort eligible pieces by num peers
 			std::mt19937 rng (i2p::util::GetRngSeed ());
 			uint32_t ind = 0;
+			size_t numIncompletedPieces = 0;
 			for (auto& it: m_Pieces)
 			{
-				if (!it.IsComplete () && conn->IsPieceAvailable (ind) && (!skipRequested || !it.IsRequested ()))
-					sortedByNumPeers.emplace (ind, it.GetNumPeers (), rng ());
+				if (!it.IsComplete ())
+				{
+					if (conn->IsPieceAvailable (ind) && (!skipRequested || !it.IsRequested ()))
+						sortedByNumPeers.emplace (ind, it.GetNumPeers (), rng ());
+					numIncompletedPieces++;
+				}
 				ind++;
 			}
+			bool isEndOfGame = !skipRequested && numIncompletedPieces == 1; // last piece
 			for (const auto& it: sortedByNumPeers)
 			{
 				uint32_t ind = std::get<0>(it);
-				auto [offset, len] = m_Pieces[ind].GetNextBlockToRequest ();
+				auto [offset, len] = m_Pieces[ind].GetNextBlockToRequest (isEndOfGame);
 				if (len > 0)
 					return { ind, offset, len };
 			}
@@ -1982,7 +1996,7 @@ namespace torrents
 
 	void PeerConnection::HandlePieceMsg (const uint8_t * buf, size_t len)
 	{
-		if (len < 8) return;
+		if (len < 8 || !m_IsInterested) return;
 		uint32_t index = bufbe32toh (buf);
 		uint32_t offset = bufbe32toh (buf + 4);
 		len -= 8;
@@ -2149,6 +2163,13 @@ namespace torrents
 		if (length > REQUEST_BLOCK_SIZE)
 		{
 			LogPrint (eLogWarning, "Torrents: Requested length is too long ", length);
+			return;
+		}
+		if (m_IsRemoteChoked)
+		{
+			LogPrint (eLogWarning, "Torrents: Remote peer is choked. Request rejected");
+			if (m_IsFast)
+				SendRejectRequestMsg (index, offset, length);
 			return;
 		}
 		if (index < m_Torrent->GetNumPieces ())
