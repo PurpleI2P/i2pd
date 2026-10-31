@@ -344,7 +344,12 @@ namespace torrents
 
 	int Blocks::GetFirstMissingBlock () const
 	{
-		size_t ind = m_Available.find_first ();
+#if (BOOST_VERSION >= 109000) // 1.90
+		size_t ind = m_Available.find_first_off ();
+#else
+		auto inv = ~m_Available;
+		size_t ind = inv.find_first ();
+#endif
 		return (ind != boost::dynamic_bitset<>::npos) ? ind : -1;
 	}
 
