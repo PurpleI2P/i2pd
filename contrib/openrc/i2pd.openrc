@@ -23,11 +23,11 @@ depend() {
 start_pre() {
   if [ -r /etc/default/i2pd ]; then
     . /etc/default/i2pd
-  fi
 
-  if [ "$I2PD_ENABLED" != "yes" ]; then
-    ewarn "i2pd disabled in /etc/default/i2pd"
-    exit 1
+    if [ "$I2PD_ENABLED" != "yes" ]; then
+      ewarn "i2pd disabled in /etc/default/i2pd"
+      exit 1
+    fi
   fi
 
   checkpath -d -m 0755 -o ${command_user} /var/log/i2pd
