@@ -19,6 +19,9 @@
 #include <mutex>
 #include <memory>
 #include <random>
+#if (BOOST_VERSION >= 108300) // 1.83
+#include <boost/unordered/unordered_flat_map.hpp>
+#endif
 #include "util.h"
 #include "Queue.h"
 #include "Crypto.h"
@@ -312,7 +315,11 @@ namespace tunnel
 			std::list<std::shared_ptr<InboundTunnel> > m_InboundTunnels;
 			std::list<std::shared_ptr<OutboundTunnel> > m_OutboundTunnels;
 			mutable std::mutex m_TunnelsMutex;
+#if (BOOST_VERSION >= 108300) // 1.83
+			boost::unordered_flat_map<uint32_t, std::shared_ptr<TunnelBase> > m_Tunnels; // tunnelID->tunnel known by this id
+#else
 			std::unordered_map<uint32_t, std::shared_ptr<TunnelBase> > m_Tunnels; // tunnelID->tunnel known by this id
+#endif
 			mutable std::mutex m_PoolsMutex;
 			std::list<std::shared_ptr<TunnelPool>> m_Pools;
 			std::shared_ptr<TunnelPool> m_ExploratoryPool;
