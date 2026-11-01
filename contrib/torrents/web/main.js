@@ -1,53 +1,68 @@
-// torrents from torrent-get 
-let torrents = [];
-
-// torrent id for openTorrentDetails() selector
-let selected_torrent = 0;
-
-// selection of torrents from refreshTable() for actions
-let selected_torrents = [];
-
 // update delays
-let torrents_delay = 5*1000 // 5 sec
-let stats_delay = 10*1000 // 10 sec
+const upd_delay = {
+	session_stats: 10 * 1000, // 10 sec
+	dht_stats: 30 * 1000, // 30 sec
+	torrents: 5 * 1000 // 5 sec
+}
 
+// global vars
+let gl = {
+	// torrent objects for refreshTable()
+	torrents: [],
+
+	// torrent id from refreshTable() for openTorrentDetails()
+	selector: 0,
+
+	// selection of torrent id's from refreshTable() for actions
+	selected: [],
+
+	// table sorting
+	sort: {
+		torrents: { enabled: false, row: 0, reverse: false },
+		peers: 	  { enabled: false, row: 0, reverse: false },
+		trackers: { enabled: false, row: 0, reverse: false },
+		files: 	  { enabled: false, row: 0, reverse: false }
+	}
+};
+
+// html elements
 const el = {
-    torrents: document.getElementById("div-torrents"),
+    rcm: document.getElementById("rcm"),
 
-    fs_error: document.getElementById("fs-error"),
-    err_string: document.getElementById("err-string"),
-    err_details: document.getElementById("err-details"),
+    error: document.getElementById("error"),
+    error_message: document.getElementById("error-message"),
+    error_details: document.getElementById("error-details"),
 
-    details: document.getElementById("div-details"),
-    torrent_file: document.getElementById("torrent-file"),
+    file_dialog: document.getElementById("file-dialog"),
 
+    dht_stats_fs: document.getElementById("dht-stats-fs"),
     dht_stats_list: document.getElementById("dht-stats-list"),
-    fs_dht_stats: document.getElementById("fs-dht-stats"),
 
+    session_stats_fs: document.getElementById("session-stats-fs"),
     session_stats_list: document.getElementById("session-stats-list"),
-    fs_session_stats: document.getElementById("fs-session-stats"),
 
-    torrent_rcm: document.getElementById("torrent-rcm")
+    torrents: document.getElementById("torrents"),
+    details: document.getElementById("details")
 };
 
 function now_ts() { return Math.floor(Date.now() / 1000) };
 let exh_ts = 0;
 
 // display errors
-function vis_exh(err = "", err_details = "") {
-	const is_blank = !(err || err_details);
+function vis_exh(message = "", details = "") {
+	const is_blank = !message && !details;
 
 	if (is_blank && now_ts() - exh_ts < 30)
 		return;
 
 	exh_ts = now_ts()
 
-	el.err_string.textContent = err;
-	el.err_details.textContent = err_details;
-	el.fs_error.style.display = is_blank ? "none" : "block";
+	el.error.style.display = is_blank ? "none" : "block";
+	el.error_message.textContent = message;
+	el.error_details.textContent = details;
 	if (!is_blank) {
-		console.log(err)
-		console.log(err_details)
+		console.log(message)
+		console.log(details)
 	}
 }
 
@@ -70,66 +85,11 @@ window.addEventListener("unhandledrejection", event => {
 
 // checking for loaded js files
 function js() {
-	return Boolean(window.rpc && window.util)
+	return Boolean(window.util)
 }
-
-refreshTable(); 
-refreshDhtStats();
-refreshSessionStats();
-
-setInterval(async () => {
-    await Promise.all([
-        refreshDhtStats(),
-        refreshSessionStats()
-    ]);
-}, stats_delay);
-
-setInterval(
-	async () => refreshTable(), 
-	torrents_delay
-);
-
-async function addMagnet() {
-	const input = prompt("enter the magnet link:", "");
-
-	if (!input) 
-		return;
-
-	const magnets = input.split(" ");
-
-    magnets.forEach(async magnet => {
-		const r = await rpc.addTorrentByMagnet(magnet)
-		if (magnets.length === 1 && r.result !== "success")
-			alert(r.result);
-    });
-
-	await refreshTable();
-}
-
-async function torrentRemove(ids = [], withFiles = false) {
-  	if (!js() || !ids.length) return;
-
-	let warn = `remove the following torrents${withFiles ? ' WITH FILES' : ""}?\n\n`
-
-	const objs = util.sel.idsToObj(ids)
-
-    objs.forEach(obj => {
-		warn += `#${obj.id} | ${obj.name}\n`
-    });
-
-	const confirmed = confirm(warn);
-	if (!confirmed)
-		return;
-
-	await rpc.torrentRemove(ids, withFiles);
-	await refreshTable({
-		closeDetails:
-			selected_torrent === ids[0] || util.sel.isSelected(selected_torrent)
-	});
-};
 
 // add local torrent files
-el.torrent_file.onchange = async (e) => {
+el.file_dialog.onchange = async (e) => {
 	if (!js()) return;
 
 	const input = e.target;
@@ -145,7 +105,7 @@ el.torrent_file.onchange = async (e) => {
 			Array.from(bytes, byte => String.fromCharCode(byte)).join("")
 		);
 
-		await rpc.addTorrent(b64);
+		await util.rpc.torrent.addFile(b64);
 	}));
 
     input.value = "";
@@ -173,24 +133,26 @@ el.torrents.addEventListener("click", async event => {
 	if (shift) {
 		// range selecting
 		event.preventDefault();
-		const arr = util.sel.getAllIDs();
+		const arr = util.tr.all.get_ids();
 
-		const a = arr.indexOf(selected_torrent);
+		const a = arr.indexOf(gl.selector);
 		const b = arr.indexOf(id);
 		const r = arr.slice(
 			Math.min(a, b), 
 			Math.max(a, b) + 1
 		);
 
-		ctrl ? util.sel.deselectIDs(r) : util.sel.selectIDs(r);
+		ctrl ? util.tr.deselect_ids(r) : util.tr.select_ids(r);
 		
 	} else if (ctrl) {
 		// single selecting
 		event.preventDefault();
-		util.sel.toggleID(id)
+		if (!util.tr.selected() && gl.selector != id) 
+			util.tr.select_id(gl.selector)
+		util.tr.toggle_id(id)
 	}
 
-	selected_torrent = id;
+	gl.selector = id;
 
 	await refreshTable({ fetchTorrents: false });
 });
@@ -203,6 +165,8 @@ el.torrents.addEventListener("mousedown", event => {
 
 // rcm (right-click-menu) for torrent table
 el.torrents.addEventListener("contextmenu", async event => {
+    if (!js()) return;
+
     const row = event.target.closest("tr");
 
     if (!row || !el.torrents.contains(row)) 
@@ -212,7 +176,7 @@ el.torrents.addEventListener("contextmenu", async event => {
 	if (!id) 
 		return;
 
-	const torrent = torrents.find(t => t.id == id);
+	const torrent = util.tr.all.find_by_id(id);
 	if (!torrent) 
 		return;
 
@@ -220,140 +184,150 @@ el.torrents.addEventListener("contextmenu", async event => {
 
     event.preventDefault();
 
-    selected_torrent = id;
+    gl.selector = id;
 	refreshTable({ fetchTorrents: false });
 	
 	// cleaning rcm
-	el.torrent_rcm.replaceChildren();
+	el.rcm.replaceChildren();
 
-	if (util.sel.isEnabled()) {
-		if (util.sel.isSomeStopped()) {
+	if (util.tr.id_selected(gl.selector)) {
+		if (util.tr.sel.some_stopped()) {
 			const start = document.createElement("div");
 			start.dataset.action = "start";
 			start.textContent = "▶️ Start selected";
-			el.torrent_rcm.append(start);
+			el.rcm.append(start);
 		}
 
-		if (util.sel.isSomeRunning()) {
+		if (util.tr.sel.some_running()) {
 			const pause = document.createElement("div");
 			pause.dataset.action = "pause";
 			pause.textContent = "⏸️ Pause selected";
-			el.torrent_rcm.append(pause);
+			el.rcm.append(pause);
 
 			const reannounce = document.createElement("div");
 			reannounce.dataset.action = "reannounce";
 			reannounce.textContent = "🔄 Reannounce selected";
-			el.torrent_rcm.append(reannounce);
+			el.rcm.append(reannounce);
 		}
 	}
 	else {
 		const setStatus = document.createElement("div");
 		setStatus.dataset.action = running ? "pause" : "start";
 		setStatus.textContent = running ? "⏸️ Pause" : "▶️ Start";
-		el.torrent_rcm.append(setStatus);
+		el.rcm.append(setStatus);
 
 		if (running) {
 			const reannounce = document.createElement("div");
 			reannounce.dataset.action = "reannounce";
 			reannounce.textContent = "🔄 Reannounce";
-			el.torrent_rcm.append(reannounce);
+			el.rcm.append(reannounce);
 		}
 	}
 
 	// separator
-	el.torrent_rcm.append(document.createElement("hr"));
+	el.rcm.append(document.createElement("hr"));
 	
 	const toggle = document.createElement("div");
 	toggle.dataset.action = "toggle";
-	toggle.textContent = util.sel.isSelected(id)
+	toggle.textContent = util.tr.id_selected(id)
 		? "❎ Unselect" 
 		: "✅ Select";
-	el.torrent_rcm.append(toggle);
+	el.rcm.append(toggle);
 
 	const toggle_all = document.createElement("div");
 	toggle_all.dataset.action = "toggle_all";
-	toggle_all.textContent = util.sel.allChecked() 
+	toggle_all.textContent = util.tr.all_selected() 
 		? "❎ Unselect all" 
 		: "✅ Select all";
-	el.torrent_rcm.append(toggle_all);
+	el.rcm.append(toggle_all);
 	
 	// separator
-	el.torrent_rcm.append(document.createElement("hr"));
+	el.rcm.append(document.createElement("hr"));
 
 	// delete .torrent
 	const magnet = document.createElement("div");
 	magnet.dataset.action = "magnet";
-	magnet.textContent = util.sel.isEnabled() 
+	magnet.textContent = util.tr.id_selected(gl.selector)
 		? "🧲 Copy magnet links" 
 		: "🧲 Copy magnet link";
-	el.torrent_rcm.append(magnet);
+	el.rcm.append(magnet);
 
 	// separator
-	el.torrent_rcm.append(document.createElement("hr"));
+	el.rcm.append(document.createElement("hr"));
 
 	// delete .torrent
 	const delete_ = document.createElement("div");
 	delete_.dataset.action = "delete";
-	delete_.textContent = util.sel.isEnabled() 
+	delete_.textContent = util.tr.id_selected(gl.selector)
 		? "🗑️ Delete selected" 
 		: "🗑️ Delete";
-	el.torrent_rcm.append(delete_);
+	el.rcm.append(delete_);
 
 	// delete .torrent and downloaded files
 	const deletefiles = document.createElement("div");
 	deletefiles.dataset.action = "delete_files";
-	deletefiles.textContent = util.sel.isEnabled() 
+	deletefiles.textContent = util.tr.id_selected(gl.selector)
 		? "❌ Delete selected with files" 
 		: "❌ Delete with files";
-	el.torrent_rcm.append(deletefiles);
+	el.rcm.append(deletefiles);
 
     // move the menu directly into the body
-    document.body.appendChild(el.torrent_rcm);
+    document.body.appendChild(el.rcm);
 
-    el.torrent_rcm.hidden = false;
-    el.torrent_rcm.style.position = "fixed";
-    el.torrent_rcm.style.left = `${event.clientX}px`;
-    el.torrent_rcm.style.top = `${event.clientY}px`;
+    el.rcm.hidden = false;
+    el.rcm.style.position = "fixed";
+    el.rcm.style.left = `${event.clientX}px`;
+    el.rcm.style.top = `${event.clientY}px`;
 
     // adjust the position if the menu extends beyond the window's boundaries
-    const rect = el.torrent_rcm.getBoundingClientRect();
+    const rect = el.rcm.getBoundingClientRect();
 
     if (rect.right > window.innerWidth - 5)
-        el.torrent_rcm.style.left = `${Math.max(5, window.innerWidth - rect.width - 5)}px`;
+        el.rcm.style.left = `${Math.max(5, window.innerWidth - rect.width - 5)}px`;
 
     if (rect.bottom > window.innerHeight - 5)
-        el.torrent_rcm.style.top = `${Math.max(5, window.innerHeight - rect.height - 5)}px`;
+        el.rcm.style.top = `${Math.max(5, window.innerHeight - rect.height - 5)}px`;
 });
 
 // performing the selected rcm action
-el.torrent_rcm.addEventListener("click", async event => {
+el.rcm.addEventListener("click", async event => {
+    if (!js()) return;
+
     const item = event.target.closest("[data-action]");
-    if (!item || !el.torrent_rcm.contains(item)) 
+    if (!item || !el.rcm.contains(item)) 
 		return;
 
 	const torrentActions = {
-		start: async ids => rpc.torrentStart(ids),
-		pause: async ids => rpc.torrentStop(ids),
-		reannounce: async ids => rpc.torrentReannounce(ids),
-		delete: async ids => torrentRemove(ids, false),
-		delete_files: async ids => torrentRemove(ids, true),
-		toggle: ids => util.sel.toggleID(selected_torrent),
-		toggle_all: ids => util.sel.toggleAll(),
-		magnet: ids => util.copy.magnets( util.sel.idsToObj(ids) )
+		start: async ids => util.rpc.torrent.start(ids),
+		pause: async ids => util.rpc.torrent.stop(ids),
+		reannounce: async ids => util.rpc.torrent.reannounce(ids),
+		delete: async ids => util.dialog.torrentRemove(ids, false),
+		delete_files: async ids => util.dialog.torrentRemove(ids, true),
+		toggle: ids => util.tr.toggle_id(gl.selector),
+		toggle_all: ids => util.tr.toggle_all(),
+		magnet: ids => util.copy.magnets( util.tr.all.get(ids) )
 	};
 
     const action = torrentActions[item.dataset.action];
-    if (!action || !selected_torrent || !js()) 
+    if (!action || !gl.selector) 
 		return;
 
-    el.torrent_rcm.hidden = true;
+    el.rcm.hidden = true;
 
-    action(selected_torrents.length ? selected_torrents : [selected_torrent]);
+	const is_selected = util.tr.id_selected(gl.selector)
 
-	let fetchTorrents = false
-	if (['start', 'pause', 'reannounce'].includes(item.dataset.action)) {
-		util.sel.deselectAll();
-		fetchTorrents = true
+    action(is_selected ? gl.selected : [gl.selector]);
+
+	let fetchTorrents = false;
+	switch (item.dataset.action) {
+		case 'start':
+		case 'pause':
+		case 'reannounce':
+			fetchTorrents = true;
+		case 'magnet':
+			if (is_selected)
+				util.tr.deselect_all();
+			break;
 	}
 
     await refreshTable({ fetchTorrents: fetchTorrents });
@@ -361,13 +335,15 @@ el.torrent_rcm.addEventListener("click", async event => {
 
 // close the rcm by clicking outside
 document.addEventListener("click", event => {
-    if (!el.torrent_rcm.contains(event.target))
-        el.torrent_rcm.hidden = true;
+    if (!el.rcm.contains(event.target))
+        el.rcm.hidden = true;
 });
 
 // hotkeys
 document.addEventListener("keydown", event => {
-	const ids = selected_torrents.length ? selected_torrents : [selected_torrent]
+    if (!js()) return;
+
+	const ids = util.tr.selected() ? gl.selected : [gl.selector]
 
 	const up = event.key === "ArrowUp" || event.key === "ArrowLeft"
 	const down = event.key === "ArrowRight" || event.key === "ArrowDown"
@@ -391,15 +367,15 @@ document.addEventListener("keydown", event => {
 	if (action && ids.length) {
 		event.preventDefault();
 		if (start)
-			rpc.torrentStart(ids)
+			util.rpc.torrent.start(ids)
 		else if (pause)
-			rpc.torrentStop(ids)
+			util.rpc.torrent.stop(ids)
 		else if (reannounce)
-			rpc.torrentReannounce(ids)
+			util.rpc.torrent.reannounce(ids)
 		else if (delete_files)
-			torrentRemove(ids, true);
+			util.dialog.torrentRemove(ids, true);
 		else if (delete_)
-			torrentRemove(ids, false)
+			util.dialog.torrentRemove(ids, false)
 		refreshTable({ fetchTorrents: true });
 		return;
 	}
@@ -407,31 +383,32 @@ document.addEventListener("keydown", event => {
 	// select all torrents
     if (ctrl_a) {
         event.preventDefault();
-        util.sel.selectAll()
+        util.tr.select_all()
 		refreshTable({ fetchTorrents: false });
 		return;
     }
 
 	// copy magnet link
-    if (ctrl_c) {
+    if (ctrl_c && util.tr.selected()) {
         event.preventDefault();
-		if (ids.length)
-        	util.copy.magnets( util.sel.idsToObj(ids) );
+        util.copy.magnets( util.tr.sel.get() );
+		util.tr.deselect_all()
+		refreshTable({ fetchTorrents: false });
 		return;
     }
 
 	// closing stuff
     if (esc) {
-		if (!el.torrent_rcm.hidden) {
+		if (!el.rcm.hidden) {
 			// close rcm
-			el.torrent_rcm.hidden = true;
+			el.rcm.hidden = true;
 		}
-		else if (selected_torrents.length) {
+		else if (util.tr.selected()) {
 			// deselecting torrents
-			selected_torrents = []
+			util.tr.deselect_all();
 			refreshTable({ fetchTorrents: false }); 
 		}
-		else if (selected_torrent) {
+		else if (gl.selector) {
 			// close details
 			closeTorrentDetails();
 		}
@@ -439,35 +416,35 @@ document.addEventListener("keydown", event => {
 	}
 
 	// select current torrent
-    if (selected_torrent && space) {
+    if (gl.selector && space) {
         event.preventDefault();
-        util.sel.toggleID(selected_torrent)
+        util.tr.toggle_id(gl.selector)
 		refreshTable({ fetchTorrents: false });
 		return;
     }
 
 	// moving selector
-    if (selected_torrent && (up || down)){
+    if (gl.selector && (up || down)){
 		event.preventDefault();
 
-		let idx = util.sel.objIdx(selected_torrent);
+		let idx = util.tr.all.idx(gl.selector);
 		if (up)
 			idx -= 1
 		if (down) 
 			idx += 1
 
-		if (!torrents[idx])
+		if (!gl.torrents[idx])
 			return;
 
 		if (shift) 
-			util.sel.selectID(selected_torrent)
+			util.tr.select_id(gl.selector)
 
-		selected_torrent = torrents[idx].id
+		gl.selector = gl.torrents[idx].id
 
 		if (ctrl)
-			util.sel.toggleID(selected_torrent)
+			util.tr.toggle_id(gl.selector)
 		else if (shift)
-			util.sel.selectID(selected_torrent)
+			util.tr.select_id(gl.selector)
 
 		refreshTable({ fetchTorrents: false }); 
 
@@ -478,91 +455,77 @@ document.addEventListener("keydown", event => {
 async function refreshSessionStats() {
   	if (!js()) return;
 
-	const r = await rpc.sessionStats();
+	const r = await util.rpc.stats.session();
 	
 	if (!r?.arguments?.["current-stats"])
-		return (el.fs_session_stats.style.display = "none")
+		return (el.session_stats_fs.style.display = "none")
 
 	const list = util.list.session(r.arguments["current-stats"])
 
 	el.session_stats_list.replaceChildren(list)
-	el.fs_session_stats.style.display = "block";
+	el.session_stats_fs.style.display = "block";
 }
 
 async function refreshDhtStats() {
   	if (!js()) return;
 
-	const r = await rpc.dhtStats();
+	const r = await util.rpc.stats.dht();
 	
 	if (!r?.arguments)
-		return (el.fs_dht_stats.style.display = "none")
+		return (el.dht_stats_fs.style.display = "none")
 
 	const list = util.list.dht(r.arguments)
 
 	el.dht_stats_list.replaceChildren(list)
-	el.fs_dht_stats.style.display = "block";
+	el.dht_stats_fs.style.display = "block";
 }
 
 // refresh table with torrents
 async function refreshTable({
     closeDetails = false, fetchTorrents = true
 } = {}) {
-	if (!window.rpc)
-		return vis_exh('failed to load rpc.js', "")
-
 	if (!window.util)
 		return vis_exh('failed to load utils.js', "")
 
-	if (fetchTorrents || !torrents.length) {
-		const r = await rpc.torrentGet();
+	if (fetchTorrents || !util.tr.all.count()) {
+		const r = await util.rpc.torrent.get();
 
 		if (r?.result !== "success")
 			return vis_exh('failed response', r)
 
-		torrents = r.arguments.torrents;
+		gl.torrents = r.arguments.torrents;
 	}
 
-	if (!torrents.length) {
+	if (!util.tr.all.count()) {
 		el.torrents.replaceChildren();
 		vis_exh();
 		return;
 	}
 
+	util.tr.mrproper();
+
 	if (closeDetails)
-		selected_torrent = 0
+		gl.selector = 0
 
-	tr_table = util.table.torrents(torrents)
+	el.torrents.replaceChildren(
+		util.table.torrents(gl.torrents, gl.sort.torrents)
+	);
 
-	const fs = document.createElement("fieldset");
-
-	const legend = document.createElement("legend");
-	let legend_txt =  `Torrents: ${torrents.length}`
-	if (selected_torrents.length)
-		legend_txt += `, Selected: ${selected_torrents.length}`
-	legend.textContent = legend_txt
-	fs.append(legend, tr_table.table);
-
-	el.torrents.replaceChildren(fs);
-
-	document.title = 
-		`↓${util.fmt.bytes(tr_table.allDw)} ↑${util.fmt.bytes(tr_table.allUp)}`;
-
-	selected_torrent
-		? openTorrentDetails(selected_torrent)
+	gl.selector
+		? openTorrentDetails(gl.selector)
 		: el.details.replaceChildren();
 
 	vis_exh();
-	util.sel.clearIDs();
 }
 
 function openTorrentDetails(id) {
   	if (!js()) return;
 
-	const torrent = torrents.find(t => t.id == id);
+	const torrent = util.tr.all.find_by_id(id);
 	if (!torrent) 
 		return;
 
-	selected_torrent = torrent.id
+	gl.selector = torrent.id
 
 	const fs = document.createElement("fieldset");
 
@@ -590,9 +553,9 @@ function openTorrentDetails(id) {
 
 	fs.append(
 		util.list.torrent(torrent),
-		util.table.peers(torrent.peers),
-		util.table.trackers(torrent.trackerStats),
-		util.table.files(torrent.files)
+		util.table.peers(torrent.peers, gl.sort.peers),
+		util.table.trackers(torrent.trackerStats, gl.sort.trackers),
+		util.table.files(torrent.files, gl.sort.files)
 	);
 
 	el.details.replaceChildren(fs);
@@ -601,3 +564,20 @@ function openTorrentDetails(id) {
 function closeTorrentDetails() {
 	refreshTable({ closeDetails: true, fetchTorrents: false });
 };
+
+setInterval(
+	async () => refreshSessionStats(), 
+	upd_delay.session_stats
+);
+setInterval(
+	async () => refreshDhtStats(), 
+	upd_delay.dht_stats
+);
+setInterval(
+	async () => refreshTable(), 
+	upd_delay.torrents
+);
+
+refreshTable(); 
+refreshDhtStats();
+refreshSessionStats();

@@ -1,31 +1,58 @@
 window.util = {
-    sel: {
-        redup(arr)       { return [...new Set(arr)] },
+    tr: {
+        all: {
+            get(ids = []) {
+                return ids.length 
+                    ? gl.torrents.filter(item => ids.includes(item.id))
+                    : gl.torrents;
+            },
+            get_ids()         { return this.get().map(item => item.id) },
+            count()           { return this.get().length },
+            idx(id)           { return this.get().findIndex(item => item.id === id) },
+            find_by_id(id)    { return this.get().find(item => item.id == id) },
+            find_by_hash(hex) { return this.get().find(item => item.hashString == hex) },
 
-        getObjects()     { return (torrents || []).filter(item => (selected_torrents || []).includes(item.id)); },
-        getAllIDs()      { return torrents.map(item => item.id) },
-        idsToObj(ids)    { return torrents.filter(item => (ids || []).includes(item.id)) },
-        objIdx(id)       { return torrents.findIndex(item => item.id === id) },
+            some_running() { return this.get().some(item => item.status > 0) },
+            some_stopped() { return this.get().some(item => item.status == 0) }
+        },
 
-        isEnabled()      { return Boolean(selected_torrents.length) },
-        isSelected(id)   { return selected_torrents.includes(id) },
-        isSomeRunning()  { return this.getObjects().some(item => item.status > 0) },
-        isSomeStopped()  { return this.getObjects().some(item => item.status == 0) },
-        allChecked()     { return torrents.length === selected_torrents.length },
+        sel: {
+            get(ids = []) { 
+                const objs = util.tr.all.get().filter(item => this.get_ids().includes(item.id));
+                return ids.length 
+                    ? objs.filter(item => ids.includes(item.id))
+                    : objs;
+            },
+            get_ids()         { return gl.selected },
+            count()           { return this.get_ids().length },
+            idx(id)           { return this.get().findIndex(item => item.id === id) },
+            find_by_id(id)    { return this.get().find(item => item.id == id) },
+            find_by_hash(hex) { return this.get().find(item => item.hashString == hex) },
 
-        deselectAll()    { selected_torrents = [] },
-        selectAll()      { selected_torrents = this.getAllIDs() },
-        toggleAll()      { this.allChecked() ? this.deselectAll() : this.selectAll() },
-        clearIDs()       { selected_torrents = selected_torrents.filter(n => this.getAllIDs().includes(n)) },
+            some_running() { return this.get().some(item => item.status > 0) },
+            some_stopped() { return this.get().some(item => item.status == 0) }
+        },
 
-        toggleID(id)     { this.isSelected(id) ? this.deselectID(id) : this.selectID(id) },
-        toggleIDs(ids)   { (ids || []).forEach(id => this.toggleID(id)) },
+        _redup(arr) { return [...new Set(arr)] },
 
-        deselectID(id)   { selected_torrents = this.redup( selected_torrents.filter(n => n !== id)) },
-        deselectIDs(ids) { (ids || []).forEach(id => this.deselectID(id)) },
+        // clean non-exist ids
+        mrproper()  { gl.selected = this._redup( this.sel.get_ids().filter(n => this.all.get_ids().includes(n)) ) },
 
-        selectID(id)     { selected_torrents = this.redup( [...selected_torrents, id] )},
-        selectIDs(ids)   { (ids || []).forEach(id => this.selectID(id)) }
+        selected()      { return this.sel.count() > 0 },
+        id_selected(id) { return this.sel.get_ids().includes(id) },
+        all_selected()  { return this.sel.count() >= this.all.count() },
+
+        select_id(id)        { gl.selected = this._redup( [...this.sel.get_ids(), id] )},
+        select_ids(ids = []) { ids.forEach(id => this.select_id(id)) },
+        select_all()         { gl.selected = this.all.get_ids() },
+
+        deselect_id(id)        { gl.selected = this._redup( this.sel.get_ids().filter(n => n !== id) ) },
+        deselect_ids(ids = []) { ids.forEach(id => this.deselect_id(id)) },
+        deselect_all()         { gl.selected = [] },
+
+        toggle_id(id)        { this.id_selected(id) ? this.deselect_id(id) : this.select_id(id) },
+        toggle_ids(ids = []) { ids.forEach(id => this.toggle_id(id)) },
+        toggle_all()         { this.all_selected() ? this.deselect_all() : this.select_all() }
     },
 
     copy: {
@@ -100,8 +127,137 @@ window.util = {
         }
     },
 
+    rpc: {
+        endpoint: "../rpc",
+
+        async request(method, args = {}) {
+            const res = await fetch(this.endpoint, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    method,
+                    arguments: args
+                })
+            });
+
+            return res.json();
+        },
+
+        stats: {
+            dht_fields: [
+                "numNodes", "numBuckets", "numTorrents", "numHeardFrom", "numFailedPeers"
+            ],
+
+            async session()    { return util.rpc.request("session-stats") },
+            async dht()        { return util.rpc.request("dht-stats", { fields: this.dht_fields }) },
+            async dht_hashes() { return util.rpc.request("dht-stats", { fields: ["torrentHashes"] }) }
+        },
+
+        torrent: {
+            fields: [
+                "id", "name", "status",
+                "pieceCount", "pieceSize",
+                "rateDownload", "rateUpload",
+                "downloadedEver", "uploadedEver",
+                "totalSize", "haveValid", "percentDone",
+                "files", "peers", "trackers", "trackerStats",
+                "magnetLink", "hashString", "metadataPercentComplete"
+            ],
+
+            async get()                { return util.rpc.request("torrent-get", { fields: this.fields }) },
+            async stop(ids = [])       { return util.rpc.request("torrent-stop", { ids }) },
+            async start(ids = [])      { return util.rpc.request("torrent-start", { ids }) },
+            async reannounce(ids = []) { return util.rpc.request("torrent-reannounce", { ids }) },
+            async addUrl(url)          { return util.rpc.request("torrent-add", { filename: url }) },
+            async addFile(b64)         { return util.rpc.request("torrent-add", { metainfo: b64 }) },
+
+            async remove(ids = [], withFiles = false) {
+                if (!ids.length) // we don't want to remove all torrents
+                    return;
+
+                return util.rpc.request("torrent-remove", {
+                    ids: ids.length === 1 ? ids[0] : ids,
+                    "delete-local-data": withFiles
+                });
+            }
+        }
+    },
+
+    dialog: {
+        async addMagnet() {
+            const input = prompt("enter the magnet link:", "");
+
+            if (!input) 
+                return;
+
+            const magnets = input.split(" ");
+
+            magnets.forEach(async magnet => {
+                const r = await util.rpc.torrent.addUrl(magnet)
+                if (magnets.length === 1 && r.result !== "success")
+                    alert(r.result);
+            });
+
+            await refreshTable();
+        },
+
+        async torrentRemove(ids = [], withFiles = false) {
+            if (!ids.length) return;
+
+            let warn = `remove the following torrents${withFiles ? ' WITH FILES' : ""}?\n\n`
+
+            const objs = util.tr.all.get(ids)
+
+            objs.forEach(obj => {
+                warn += `#${obj.id} | ${obj.name}\n`
+            });
+
+            const confirmed = confirm(warn);
+            if (!confirmed)
+                return;
+
+            await util.rpc.torrent.remove(ids, withFiles);
+            await refreshTable({
+                closeDetails:
+                    gl.selector === ids[0] || util.tr.id_selected(gl.selector)
+            });
+        },
+
+        async showDhtHashes() {
+            const r = await util.rpc.stats.dht_hashes();
+            if (!r?.arguments?.torrentHashes)
+                return;
+
+            const hashes = r.arguments.torrentHashes
+            if (!hashes.length)
+                return;
+
+            let known = [],
+                unknown = [];
+            hashes.forEach(hash => {
+                const q = util.tr.all.find_by_hash(hash);
+                q ? known.push(`#${q.id}:\t${hash}`) : unknown.push(hash);
+            });
+
+            let result = '';
+            if (known.length)
+                result += `Known hashes:\n${known.join("\n")}`;
+            if (unknown.length) {
+                if (known.length) 
+                    result += '\n\n'
+
+                result += `Unknown hashes:\n${unknown.join("\n")}`;
+            }
+
+            if (result)
+                alert(result);
+        }
+    },
+
     list: {
-        session(session_stats) {
+        session(args) {
             const list = document.createElement("div");
 
             const fields = {
@@ -109,18 +265,18 @@ window.util = {
                 uploadedBytes: "Uploaded"
             };
 
-            Object.keys(session_stats).forEach(key => {
-                if (key in fields) {
-                    const cell = document.createElement("li");
-                    cell.textContent = `${fields[key]}: ${util.fmt.size(session_stats[key])}`;
-                    list.appendChild(cell);
-                }
+            Object.keys(args).forEach(key => {
+                if (!(key in fields)) return;
+
+                const cell = document.createElement("li");
+                cell.textContent = `${fields[key]}: ${util.fmt.size(args[key])}`;
+                list.appendChild(cell);
             });
 
             return list
         },
 
-        dht(dht_stats) {
+        dht(args) {
             const list = document.createElement("div");
 
             const fields = {
@@ -132,12 +288,23 @@ window.util = {
                 numFailedPeers: "Failed peers"
             };
 
-            Object.keys(dht_stats).forEach(key => {
-                if (key in fields) {
-                    const cell = document.createElement("li");
-                    cell.textContent = `${fields[key]}: ${dht_stats[key]}`;
-                    list.appendChild(cell);
+            Object.keys(args).forEach(key => {
+                if (!(key in fields)) return;
+
+                const cell = document.createElement("li");
+                const text = `${fields[key]}: ${args[key]}`;
+
+                if (key === "numTorrents" && args[key] > 0) {
+                    const span = document.createElement("span");
+                    span.textContent = text;
+                    span.style.cssText = "cursor:pointer; text-decoration:underline";
+                    span.onclick = util.dialog.showDhtHashes;
+                    cell.appendChild(span);
+                } else {
+                    cell.textContent = text;
                 }
+
+                list.appendChild(cell);
             });
 
             return list
@@ -147,14 +314,35 @@ window.util = {
             if (!torrent) 
                 return document.createElement("div"); 
 
-            const keys = ["status", "hashString", "magnetLink", "pieceCount", "errorString"];
+            const keys = ["errorString", "status", "hashString", "magnetLink", "pieceCount", "downloadedEver", "uploadedEver", "ratio"];
             const list = document.createElement("ul");
+
+            const is_magnet = torrent.metadataPercentComplete < 1
 
             keys.forEach(key => {
                 const cell = document.createElement("li");
                 const value = torrent[key];
 
                 switch (key) {
+                    case "ratio":
+                        const ratio = torrent.downloadedEver > 0
+                            ? torrent.uploadedEver / torrent.downloadedEver
+                            : 0;
+
+                        if (ratio)
+                            cell.textContent = `Ratio: ${ratio.toFixed(2)}`;
+                        break;
+
+                    case "downloadedEver":
+                        if (value)
+                            cell.textContent = `Downloaded: ${util.fmt.size(value)}`;
+                        break;
+
+                    case "uploadedEver":
+                        if (value)
+                            cell.textContent = `Uploaded: ${util.fmt.size(value)}`;
+                        break;
+
                     case "hashString":
                         if (value)
                             cell.textContent = `Hash: ${value}`;
@@ -164,8 +352,10 @@ window.util = {
                         cell.textContent = `Magnet: `;
 
                         const link = document.createElement('a');
-                        link.textContent = value.length > 60 ? value.slice(0, 60) + '...' : value;
                         link.href = value;
+                        link.textContent = value.length > 60 
+                            ? value.slice(0, 60) + '...' 
+                            : value;
 
                         link.addEventListener("click", event => {
                             event.preventDefault();
@@ -191,8 +381,9 @@ window.util = {
                             "Seeding"
                         ];
 
-                        if (value >= 0 && value < enumStatus.length)
-                            cell.textContent = `Status: ${enumStatus[value]}`;
+                        cell.textContent = `Status: ${enumStatus[value] || value}`;
+                        if (value === 4 && is_magnet)
+                            cell.textContent = 'Status: Retrieving metadata'
                         break;
 
                     case "errorString":
@@ -213,39 +404,97 @@ window.util = {
     },
 
     table: {
-        torrents(torrents) {
-            if (!torrents?.length) 
-                return {
-                    "table": document.createElement("div"),
-                    "allDw": 0,
-                    "allUp": 0,
-                    "allSize": 0
-                } 
+        eta_sec(torrent) {
+            const speed = torrent.rateDownload || 0;
+            const remaining = (torrent.totalSize || 0) * (1 - (torrent.percentDone || 0));
+            return speed <= 0 
+                ? 0 
+                : remaining / speed
+        },
 
-            let allDw = allUp = allSize = 0;
+        file_progress(file) {
+            return file.length > 0 
+                ? Math.min(
+                    1,
+                    Math.max(
+                        0, 
+                        file.bytesCompleted / file.length
+                    )
+                ) : 0;
+        },
+
+        torrents(torrents, sorting) {
+            if (!torrents.length) 
+                return document.createElement("div")
 
             const table_cols = ["_select_", "id", "name", "progress", "S / L", "speedDw", "speedUp", "size", "have", "eta"];
+            const locale_row = sorting.row === 2; // "name"
+
+            if (sorting.enabled) {
+                const dir = locale_row ^ sorting.reverse ? 1 : -1;
+
+                torrents.sort((a, b) => {
+                    switch (sorting.row) {
+                        case 1: // id
+                            return (a.id - b.id) * dir;
+
+                        case 2: // name
+                            return a.name.localeCompare(b.name) * dir;
+
+                        case 3: // progress
+                            return (a.percentDone - b.percentDone) * dir;
+
+                        case 4: // S / L
+                            return (a.peers.length - b.peers.length) * dir;
+
+                        case 5: // speedDw
+                            return (a.rateDownload - b.rateDownload) * dir;
+
+                        case 6: // speedUp
+                            return (a.rateUpload - b.rateUpload) * dir;
+
+                        case 7: // size
+                            return (a.totalSize - b.totalSize) * dir;
+
+                        case 8: // have
+                            // skip empty rows
+                            const a_hv = a.haveValid == a.totalSize ? 0 : a.haveValid;
+                            const b_hv = b.haveValid == b.totalSize ? 0 : b.haveValid;
+                        
+                            return (a_hv - b_hv) * dir;
+
+                        case 9: // eta
+                            return (this.eta_sec(a) - this.eta_sec(b)) * dir;
+
+                        default:
+                            return 0;
+                    }
+                });
+            }
+
+            let allDw = allUp = allSize = 0;
 
             const table = document.createElement("table");
             table.className = "compact-table";
 
-            table_cols.forEach((item) => {
+            table_cols.forEach((item, index) => {
                 const th = document.createElement("th");
+                th.style.whiteSpace = 'nowrap'
 
                 if (item === "_select_")
                 {
-                    if (!util.sel.isEnabled())
+                    if (!util.tr.selected())
                         return;
 
                     const checkbox = document.createElement("input");
                     checkbox.type = "checkbox";
                     th.style.textAlign = "center";
                     
-                    if (util.sel.allChecked())
+                    if (util.tr.all_selected())
                         checkbox.checked = true;
 
                     checkbox.addEventListener("change", () => {
-                        util.sel.toggleAll();
+                        util.tr.toggle_all();
                         refreshTable({ fetchTorrents: false });
                     });
 
@@ -256,7 +505,33 @@ window.util = {
                 }
 
                 th.textContent = item;
-                th.style.whiteSpace = 'nowrap'
+                th.style.cursor = "pointer";
+                th.addEventListener("mouseenter", () => { th.style.textDecoration = "underline" });
+                th.addEventListener("mouseleave", () => { th.style.textDecoration = "none" });
+                th.addEventListener("mousedown", event => { event.preventDefault() });
+                th.addEventListener("click", event => {
+                    event.preventDefault();
+                    let fetchTorrents = false;
+
+                    if (sorting.enabled && index === sorting.row) {
+                        if (!sorting.reverse)
+                            sorting.reverse = true;
+                        else {
+                            sorting.enabled = false;
+                            sorting.reverse = false;
+                            fetchTorrents = true; // fetch original order
+                        }
+                    } else {
+                        sorting.enabled = true;
+                        sorting.reverse = false;
+                        sorting.row = index;
+                    }
+
+                    refreshTable({ fetchTorrents: fetchTorrents });
+                });
+
+                if (sorting.enabled && index === sorting.row)
+                    th.textContent += locale_row ^ sorting.reverse ? '↑' : '↓'
 
                 table.appendChild(th);
             });
@@ -266,7 +541,7 @@ window.util = {
                 const is_magnet = torrent.metadataPercentComplete < 1
                 
                 table_cols.forEach(key => {
-                    if (key === "_select_" && !util.sel.isEnabled())
+                    if (key === "_select_" && !util.tr.selected())
                         return;
 
                     const cell = document.createElement("td");
@@ -276,11 +551,11 @@ window.util = {
                             const checkbox = document.createElement("input");
                             checkbox.type = "checkbox";
 
-                            if (util.sel.isSelected(torrent.id))
+                            if (util.tr.id_selected(torrent.id))
                                 checkbox.checked = true;
 
                             checkbox.addEventListener("change", () => {
-                                util.sel.toggleID(torrent.id);
+                                util.tr.toggle_id(torrent.id);
                                 refreshTable({ fetchTorrents: false });
                             });
                             
@@ -289,11 +564,11 @@ window.util = {
                             break;
 
                         case "id":
-                            cell.textContent = torrent.id || " ";
+                            cell.textContent = torrent.id || "?";
                             break;
 
                         case "name":
-                            cell.textContent = torrent.name || " ";
+                            cell.textContent = torrent.name || "__none__";
                             if (torrent.errorString) {
                                 cell.style.fontWeight = "bold";
                                 cell.style.color = "#ff3333";
@@ -303,11 +578,12 @@ window.util = {
                         case "progress": {
                             cell.className = "progress-cell";
 
+                            const progress = is_magnet ? torrent.metadataPercentComplete : torrent.percentDone;
                             const percent = Math.max(
                                 0, 
                                 Math.min(
                                     100,
-                                    (torrent.percentDone * 100).toFixed(1)
+                                    (progress * 100).toFixed(1)
                                 )
                             )
 
@@ -315,19 +591,26 @@ window.util = {
                             let pr_lable = is_magnet ? '🧲' : `${percent}%`;
                             switch (torrent.status) {
                                 case 4:
-                                    pr_color = "#44abff"; // downloading
+                                    // downloading
+                                    pr_color = "#44abff";
                                     if (!torrent.rateDownload && !is_magnet) {
+                                        // stalled or idle
                                         pr_color = "#0072cf";
-                                        pr_lable += ', stalled'
+                                        pr_lable += torrent.peers.length 
+                                            ? ', stalled'
+                                            : ', idle'
                                     }
                                     break;
                                 case 6:
-                                    pr_color = "#00FF5A"; // seeding
+                                    // seeding
+                                    pr_color = "#00FF5A";
                                     break;
                                 case 0:
-                                    pr_color = "#009133"; // paused + done
+                                    // paused + done
+                                    pr_color = "#009133";
                                     if (torrent.percentDone < 1) {
-                                        pr_color = "#ffd000"; // paused
+                                        // paused
+                                        pr_color = "#ffd000";
                                         pr_lable += ', paused'
                                     }
                                     break;
@@ -411,8 +694,8 @@ window.util = {
                 if (index % 2)
                     tr.style.backgroundColor = "#ebebeb";
 
-                const is_selector = selected_torrent === torrent.id;
-                const is_selected = util.sel.isSelected(torrent.id);
+                const is_selector = gl.selector === torrent.id;
+                const is_selected = util.tr.id_selected(torrent.id);
 
                 if (is_selector)
                     tr.style.backgroundColor = "#ff9900ce";
@@ -426,7 +709,7 @@ window.util = {
                     tr.style.backgroundColor = "#8050d0";
 
                 tr.dataset.id = torrent.id
-                tr.classList.add("torrent-row");
+                tr.classList.add("highlight-row");
 
                 table.appendChild(tr);
             });
@@ -434,7 +717,7 @@ window.util = {
             // bottom row
             const tr = document.createElement("tr");
             table_cols.forEach(key => {
-                if (key === "_select_" && !util.sel.isEnabled())
+                if (key === "_select_" && !util.tr.selected())
                     return;
 
                 const cell = document.createElement("td");
@@ -466,41 +749,95 @@ window.util = {
                 cell.style.whiteSpace = 'nowrap'
                 tr.appendChild(cell);
             });
-
             table.appendChild(tr);
 
-            return {
-                "table": table,
-                "allDw": allDw,
-                "allUp": allUp,
-                "allSize": allSize
-            }
+            document.title = `↓${util.fmt.bytes(allDw)} ↑${util.fmt.bytes(allUp)}`;
+            
+            const lable = document.createElement("legend");
+            lable.textContent = `Torrents: ${util.tr.all.count()}`
+            if (util.tr.selected())
+                lable.textContent += `, Selected: ${util.tr.sel.count()}`
+
+            const fs = document.createElement("fieldset");
+            fs.append(lable, table);
+            return fs
         },
 
-        files(files) {
-            if (!files?.length) 
+        files(files_, sorting) {
+            if (!files_?.length) 
                 return document.createElement("div"); 
 
-            // files frame
-            const fs = document.createElement("fieldset");
-
-            // files frame label
-            const fs_lable = document.createElement("legend");
-            fs_lable.textContent = `Files: ${files.length}`
-            fs.appendChild(fs_lable);
+            let files = files_.slice() // keep original order
 
             // files fields
             const table_cols = ["name", "progress", "size", "have", "left"];
+            const locale_row = sorting.row === 0; // "name"
+
+            if (sorting.enabled) {
+                const dir = locale_row ^ sorting.reverse ? 1 : -1;
+
+                files.sort((a, b) => {
+                    switch (sorting.row) {
+                        case 0: // name
+                            return a.name.localeCompare(b.name) * dir;
+
+                        case 1: // progress
+                            return (this.file_progress(a) - this.file_progress(b)) * dir;
+
+                        case 2: // size
+                            return (a.length - b.length) * dir;
+
+                        case 3: // have
+                            return (a.length - b.length) * dir;
+
+                        case 4: // left
+                            const a_bc = a.length - a.bytesCompleted;
+                            const b_bc = b.length - b.bytesCompleted;
+
+                            return (a_bc - b_bc) * dir;
+
+                        default:
+                            return 0;
+                    }
+                });
+            }
 
             // files table
             const table = document.createElement("table");
             table.className = "compact-table";
 
             // files table header
-            table_cols.forEach((item) => {
+            table_cols.forEach((item, index) => {
                 const th = document.createElement("th");
-                th.textContent = item;
                 th.style.whiteSpace = 'nowrap'
+
+                th.textContent = item;
+                th.style.cursor = "pointer";
+                th.addEventListener("mouseenter", () => { th.style.textDecoration = "underline" });
+                th.addEventListener("mouseleave", () => { th.style.textDecoration = "none" });
+                th.addEventListener("mousedown", event => { event.preventDefault() });
+                th.addEventListener("click", event => {
+                    event.preventDefault();
+
+                    if (sorting.enabled && index === sorting.row) {
+                        if (!sorting.reverse)
+                            sorting.reverse = true;
+                        else {
+                            sorting.enabled = false;
+                            sorting.reverse = false;
+                        }
+                    } else {
+                        sorting.enabled = true;
+                        sorting.reverse = false;
+                        sorting.row = index;
+                    }
+
+                    refreshTable({ fetchTorrents: false });
+                });
+
+                if (sorting.enabled && index === sorting.row)
+                    th.textContent += locale_row ^ sorting.reverse ? '↑' : '↓'
+
                 table.appendChild(th);
             });
 
@@ -514,19 +851,12 @@ window.util = {
 
                     switch (key) {
                         case "name":
-                            cell.textContent = value;
+                            cell.textContent = value || "__none__";
                             break;
                         case "progress":
                             cell.className = "progress-cell";
 
-                            const progress = file.length > 0 ? 
-                                Math.min(
-                                    1,
-                                    Math.max(
-                                        0, 
-                                        file.bytesCompleted / file.length
-                                    )
-                                ) : 0;
+                            const progress = this.file_progress(file)
 
                             const percent = +(progress * 100).toFixed(1);
 
@@ -576,21 +906,19 @@ window.util = {
                 table.appendChild(tr);
             });
 
-            fs.appendChild(table);
+            const lable = document.createElement("legend");
+            lable.textContent = `Files: ${files.length}`
 
+            const fs = document.createElement("fieldset");
+            fs.append(table, lable);
             return fs
         },
 
-        trackers(trackerStats) {
-            if (!trackerStats?.length) 
+        trackers(trackerStats_, sorting) {
+            if (!trackerStats_?.length) 
                 return document.createElement("div"); 
 
-            const fs = document.createElement("fieldset");
-
-            // trackers frame label
-            const fs_lable = document.createElement("legend");
-            fs_lable.textContent = `Trackers: ${trackerStats.length}`
-            fs.appendChild(fs_lable);
+            let trackerStats = trackerStats_.slice() // keep original order
 
             // trackers fields
             const table_cols = [
@@ -598,16 +926,79 @@ window.util = {
                 "peers", "seeders", "leechers", 
                 "lastAnnounceResult", "lastAnnounceTime", "nextAnnounceTime"
             ];
+            const locale_row = sorting.row === 1 || sorting.row === 5; // "announce", "lastAnnounceResult"
+
+            if (sorting.enabled) {
+                const dir = locale_row ^ sorting.reverse ? 1 : -1;
+
+                trackerStats.sort((a, b) => {
+                    switch (sorting.row) {
+                        case 0: // id
+                            return (a.id - b.id) * dir;
+
+                        case 1: // announce
+                            return a.announce.localeCompare(b.announce) * dir;
+
+                        case 2: // peers
+                            return (a.lastAnnouncePeerCount - b.lastAnnouncePeerCount) * dir;
+
+                        case 3: // seeders
+                            return (a.seederCount - b.seederCount) * dir;
+
+                        case 4: // leechers
+                            return (a.leecherCount - b.leecherCount) * dir;
+
+                        case 5: // lastAnnounceResult
+                            return a.lastAnnounceResult.localeCompare(b.lastAnnounceResult) * dir;
+
+                        case 6: // lastAnnounceTime
+                            return (a.lastAnnounceTime - b.lastAnnounceTime) * dir;
+
+                        case 7: // nextAnnounceTime
+                            return (a.nextAnnounceTime - b.nextAnnounceTime) * dir;
+
+                        default:
+                            return 0;
+                    }
+                });
+            }
 
             // trackers table
             const table = document.createElement("table");
             table.className = "compact-table";
 
             // trackers table header
-            table_cols.forEach((item) => {
+            table_cols.forEach((item, index) => {
                 const th = document.createElement("th");
-                th.textContent = item;
                 th.style.whiteSpace = 'nowrap'
+
+                th.textContent = item;
+                th.style.cursor = "pointer";
+                th.addEventListener("mouseenter", () => { th.style.textDecoration = "underline" });
+                th.addEventListener("mouseleave", () => { th.style.textDecoration = "none" });
+                th.addEventListener("mousedown", event => { event.preventDefault() });
+                th.addEventListener("click", event => {
+                    event.preventDefault();
+
+                    if (sorting.enabled && index === sorting.row) {
+                        if (!sorting.reverse)
+                            sorting.reverse = true;
+                        else {
+                            sorting.enabled = false;
+                            sorting.reverse = false;
+                        }
+                    } else {
+                        sorting.enabled = true;
+                        sorting.reverse = false;
+                        sorting.row = index;
+                    }
+
+                    refreshTable({ fetchTorrents: false });
+                });
+
+                if (sorting.enabled && index === sorting.row)
+                    th.textContent += locale_row ^ sorting.reverse ? '↑' : '↓'
+
                 table.appendChild(th);
             });
 
@@ -654,37 +1045,91 @@ window.util = {
                 table.appendChild(tr);
             });
 
-            fs.appendChild(table);
+            const lable = document.createElement("legend");
+            lable.textContent = `Trackers: ${trackerStats.length}`
 
+            const fs = document.createElement("fieldset");
+            fs.append(lable, table);
             return fs
         },
 
-        peers(peers) {
-            if (!peers?.length) 
+        peers(peers_, sorting) {
+            if (!peers_?.length) 
                 return document.createElement("div"); 
 
-            // peers frame
-            const fs = document.createElement("fieldset");
-
-            // peers frame label
-            const fs_lable = document.createElement("legend");
-            fs_lable.textContent = `Peers: ${peers.length}`
-            fs.appendChild(fs_lable);
+            let peers = peers_.slice() // keep original order
 
             // peer fields
             const table_cols = [
-                "address", "client", "flags", 
-                "progress", "speedDw", "speedUp"
+                "address", "client", "flags", "progress", "speedDw", "speedUp"
             ];
+            const locale_row = sorting.row === 0 || sorting.row === 1; // "address", "client"
+
+            if (sorting.enabled) {
+                const dir = locale_row ^ sorting.reverse ? 1 : -1;
+
+                peers.sort((a, b) => {
+                    switch (sorting.row) {
+                        case 0: // address
+                            return a.address.localeCompare(b.address) * dir;
+
+                        case 1: // client
+                            return a.clientName.localeCompare(b.clientName) * dir;
+
+                        case 2: // flags
+                            return (a.flagStr.length - b.flagStr.length) * dir;
+
+                        case 3: // progress
+                            return (a.progress - b.progress) * dir;
+
+                        case 4: // speedDw
+                            return (a.rateToClient - b.rateToClient) * dir;
+
+                        case 5: // speedUp
+                            return (a.rateToPeer - b.rateToPeer) * dir;
+
+                        default:
+                            return 0;
+                    }
+                });
+            }
 
             // peer table
             const table = document.createElement("table");
             table.className = "compact-table";
 
             // peer table header
-            table_cols.forEach((item) => {
+            table_cols.forEach((item, index) => {
                 const th = document.createElement("th");
+                th.style.whiteSpace = 'nowrap'
+
                 th.textContent = item;
+                th.style.cursor = "pointer";
+                th.addEventListener("mouseenter", () => { th.style.textDecoration = "underline" });
+                th.addEventListener("mouseleave", () => { th.style.textDecoration = "none" });
+                th.addEventListener("mousedown", event => { event.preventDefault() });
+                th.addEventListener("click", event => {
+                    event.preventDefault();
+
+                    if (sorting.enabled && index === sorting.row) {
+                        if (!sorting.reverse)
+                            sorting.reverse = true;
+                        else {
+                            sorting.enabled = false;
+                            sorting.reverse = false;
+                        }
+                    } else {
+                        sorting.enabled = true;
+                        sorting.reverse = false;
+                        sorting.row = index;
+                    }
+
+                    refreshTable({ fetchTorrents: false });
+                });
+
+                if (sorting.enabled && index === sorting.row)
+                    th.textContent += locale_row ^ sorting.reverse ? '↑' : '↓'
+
                 table.appendChild(th);
             });
 
@@ -759,8 +1204,11 @@ window.util = {
                 table.appendChild(tr);
             });
 
-            fs.appendChild(table);
+            const lable = document.createElement("legend");
+            lable.textContent = `Peers: ${peers.length}`
 
+            const fs = document.createElement("fieldset");
+            fs.append(lable, table);
             return fs
         }
     }

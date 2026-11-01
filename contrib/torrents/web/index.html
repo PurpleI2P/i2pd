@@ -1,176 +1,159 @@
 <style>
-.progress-cell {
-    position: relative;
-    padding: 0;
-    height: 18px;
-    min-width: 120px;
-}
+    /* error */
+    #error fieldset {
+        padding: 0;
+        margin: 0;
+    }
 
-.progress-bar {
-    position: absolute;
-    inset: 0;
-    background: #e5e7eb;
-}
+    #error h2,
+    #error h3 {
+        margin: 10px;
+    }
 
-.progress-fill {
-    height: 100%;
-}
+    /* progressbar in table cell */
+    .progress-cell {
+        position: relative;
+        padding: 0;
+        height: 18px;
+        min-width: 120px;
+    }
 
-.progress-text {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    color: #111;
-    line-height: 1;
-}
+    .progress-bar,
+    .progress-text {
+        position: absolute;
+        inset: 0;
+    }
 
-.compact-table {
-    border-collapse: collapse;
-    width: 100%;
-}
+    .progress-bar {
+        background: #e5e7eb;
+    }
 
-.compact-table td,
-.compact-table th {
-    border: 1px solid black;
-    padding: 0 4px;
-    height: 18px;
-    line-height: 1.3;
-    overflow-wrap: anywhere;
-    box-sizing: border-box;
-}
+    .progress-fill {
+        height: 100%;
+    }
 
-.torrent-row {
-    cursor: pointer;
-    transition: background-color 0.05s ease;
-}
+    .progress-text {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: #111;
+        line-height: 1;
+    }
 
-.torrent-row:hover td {
-    background-color: #ffe6008e;
-}
+    /* tables */
+    .compact-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
 
-#fs-error fieldset {
-    padding: 0;
-    margin: 0;
-}
+    .compact-table td,
+    .compact-table th {
+        box-sizing: border-box;
+        height: 18px;
+        padding: 0 4px;
+        border: 1px solid black;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+    }
 
-#fs-error h2,
-#fs-error h3 {
-    margin-top: 10;
-    margin-bottom: 10;
-    margin-left: 10;
-}
+    /* highlighting row in table */
+    .highlight-row {
+        cursor: pointer;
+        transition: background-color 0.1s ease;
+    }
 
-td.buttons-cell {
-    padding: 0;
-    max-width: 100px;
-}
+    .highlight-row:hover td {
+        background: #ffe6008e;
+    }
 
-.buttons-cell {
-    display: flex;
-    flex-direction: row;
-    width: 100%;
-    height: 100%;
-    gap: 0;
-}
+    .button-column {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+        gap: 5px;
+    }
 
-.button-column {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    height: 100%;
-    gap: 5px;
-}
+    .action-buttons {
+        width: 100%;
+        max-width: 100px;
+        box-sizing: border-box;
+    }
 
-.buttons-cell button {
-    flex: 1;
-    margin: 0;
-    border: 1px;
-    border-radius: 0;
-    min-width: 0;
-    line-height: 1;
-}
+    /* right-click-menu */
+    .rcm {
+        position: fixed;
+        z-index: 10000;
+        min-width: 100px;
+        background: #fff;
+        color: #000;
+        box-shadow: 0 4px 12px #0009;
+        border: 1px solid #7a7a7a;
+        font-size: 14px;
+    }
 
-.fs-buttons {
-    width: 100%;
-    max-width: 100px;
-    box-sizing: border-box;
-}
+    .rcm[hidden] {
+        display: none;
+    }
 
-.container {
-    display: flex;
-}
+    .rcm [data-action] {
+        padding: 1px 4px;
+        cursor: pointer;
+    }
 
-fieldset {
-    flex: 1;
-    min-width: 0;
-}
- 
-.torrent-rcm {
-    position: fixed;
-    z-index: 10000;
-    min-width: 100px;
-    background: #fff;
-    color: #000;
-    box-shadow: 0 4px 12px #0009;
-    border: 1px solid rgb(122, 122, 122);
-    font-size: 14px;
-}
+    .rcm [data-action]:hover {
+        background: #e8e8e8;
+    }
 
-.torrent-rcm[hidden] {
-    display: none;
-}
+    .rcm hr {
+        border: 0;
+        border-top: 1px solid #ddd;
+    }
 
-.torrent-rcm [data-action] {
-    padding: 1px 4px;
-    cursor: pointer;
-}
+    .container {
+        display: flex;
+    }
 
-.torrent-rcm [data-action]:hover {
-    background: #e8e8e8;
-}
-
-.torrent-rcm hr {
-    border: 0;
-    border-top: 1px solid #ddd;
-}
+    fieldset {
+        flex: 1;
+        min-width: 0;
+    }
 </style>
 
-<div id="torrent-rcm" class="torrent-rcm" hidden></div>
+<div id="rcm" class="rcm" hidden></div>
 
-<div id="fs-error">
+<div id="error">
     <fieldset>
-        <h2 style="color: #ff3333;" id="err-string">failed to load main.js</h2>
-        <h3 style="white-space: pre-line;" id="err-details"></h3>
+        <h2 style="color: #ff3333;" id="error-message">failed to load main.js</h2>
+        <h3 style="white-space: pre-line;" id="error-details"></h3>
     </fieldset>
 </div>
 
 <div class="container">
-    <fieldset class="fs-buttons">
+
+    <fieldset class="action-buttons">
         <legend>Actions</legend>
         <div class="button-column">
-            <input type="file" id="torrent-file" accept=".torrent" multiple style="display: none" />
-            <button title="Open torrent file" onclick="document.getElementById('torrent-file').click()">📂</button>
-            <button title="Add magnet" onclick="addMagnet()">🧲</button>
+            <input type="file" id="file-dialog" accept=".torrent" multiple style="display: none" />
+            <button title="Open torrent file" onclick="document.getElementById('file-dialog').click()">📂</button>
+            <button title="Add magnet" onclick="util.dialog.addMagnet()">🧲</button>
         </div>
     </fieldset>
 
-    <fieldset id="fs-session-stats" style="display: none">
+    <fieldset id="session-stats-fs" style="display: none">
         <legend>Session stats:</legend>
         <div id="session-stats-list"></div>
     </fieldset>
 
-    <fieldset id="fs-dht-stats" style="display: none">
+    <fieldset id="dht-stats-fs" style="display: none">
         <legend>DHT stats:</legend>
         <div id="dht-stats-list"></div>
     </fieldset>
 </div>
 
-<div id="div-torrents"></div>
-<div id="div-details"></div>
+<div id="torrents"></div>
+<div id="details"></div>
 
-<script src="./rpc.js"></script>
 <script src="./utils.js"></script>
 <script src="./main.js"></script>
