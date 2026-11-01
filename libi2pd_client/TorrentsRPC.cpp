@@ -504,7 +504,7 @@ namespace torrents
 					return boost::json::value (ratio);
 				}
 			},
-			{ "metadataPercentComplete", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetLength () ? 1.0 : 0.0); } },
+			{ "metadataPercentComplete", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetDowloadInfoProgress ()); } },
 			{ "haveValid", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetLength () - torrent->GetLeft ()); } },
 			{ "uploadedEver", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetUploaded ()); } },
 			{ "downloadedEver", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetDownloaded ()); } },

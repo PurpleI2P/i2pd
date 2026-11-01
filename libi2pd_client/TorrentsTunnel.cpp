@@ -668,10 +668,10 @@ namespace torrents
 		});
 	}
 
-	void TorrentsTunnel::UpdateTorrentInfo (std::shared_ptr<Torrent> torrent, std::string_view info)
+	void TorrentsTunnel::UpdateTorrentInfo (std::shared_ptr<Torrent> torrent)
 	{
 		if (!torrent || torrent->IsStopped ()) return;
-		torrent->ParseInfo (info);
+		torrent->ParseInfo ();
 		torrent->SetFullPath (m_TorrentsDir/std::filesystem::path (torrent->GetName ()));
 		boost::asio::post (GetDiskIOService (), [this, torrent]()
 			{

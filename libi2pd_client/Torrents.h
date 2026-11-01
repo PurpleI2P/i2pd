@@ -187,6 +187,10 @@ namespace torrents
 			bool IsBlockRequested (size_t ind) const;
 			void ClearRequests () { m_Requested.reset (); }
 			void ClearRequest (size_t ind);
+			void Reset () { m_Available.reset (); m_Requested.reset (); }
+
+			size_t GetNumBlocks () const { return m_Available.size (); }
+			size_t GetNumReceivedBlocks () const { return m_Available.count (); }
 
 		private:
 
@@ -227,7 +231,6 @@ namespace torrents
 		private:
 
 			bool IsAvailable (int block) const;
-			size_t GetNumBlocks (size_t len) const;
 			void NewDataBuffer ();
 			void DeleteDataBuffer ();
 			void UpdateDataBuffer (uint8_t * newData);
@@ -285,7 +288,7 @@ namespace torrents
 
 			Torrent (std::string_view buf);
 			Torrent (const InfoHash& infoHash);
-			size_t ParseInfo (std::string_view buf);
+			size_t ParseInfo ();
 			std::string CreateTorrentFileContent () const;
 			void ParseTrackerResponse (size_t trackerID, std::string_view buf);
 			void HandleDatagramTrackerResponse (size_t trackerID, uint32_t interval,
@@ -371,9 +374,15 @@ namespace torrents
 
 			boost::dynamic_bitset<> Verify (size_t& numPiecesChecked) const; // should be called in seperate thread
 
+			void StartDownloadingInfo (size_t infoSize); // for magnets
+			bool UpdateInfoBlock (size_t block, const uint8_t * buf, size_t len); // return true if complete
+			int GetNextInfoBlockToRequest ();
+			float GetDowloadInfoProgress () const; // for RPC, 0.0 - 1.0
+
 		private:
 
 			Torrent ();
+			size_t ParseInfo (std::string_view buf);
 			size_t ParsePieces (std::string_view buf);
 			size_t ParsePeers (size_t trackerID, std::string_view buf);
 			size_t ParseFiles (std::string_view buf);
@@ -387,6 +396,7 @@ namespace torrents
 			std::filesystem::path m_FullPath;
 			size_t m_Length, m_PieceLength;
 			std::vector<uint8_t> m_Info; // for BEP9
+			std::unique_ptr<Blocks> m_InfoDownloadBlocks;
 			InfoHash m_InfoHash; // SHA1
 			std::vector<Piece> m_Pieces;
 			std::vector<TrackerStats> m_TrackerStats;
@@ -524,9 +534,6 @@ namespace torrents
 			// BEP10
 			std::unordered_map<uint8_t, PeerConnection::ExtendedMessageHandler> m_ExtendedMessageHandlers;
 			uint8_t m_RemoteMsgIDUtMetadata, m_RemoteMsgIDI2PPEX, m_RemoteMsgIDI2PDHT;
-			// BEP9
-			size_t m_RemoteMetadataSize;
-			std::vector<uint8_t> m_RemoteMetadata;
 			// BEP6
 			bool m_IsFast;
 			int m_SuggestedPieceIndex;
