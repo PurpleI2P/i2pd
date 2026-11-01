@@ -7,7 +7,7 @@ tunconf="/etc/i2pd/tunnels.conf"
 tundir="/etc/i2pd/tunnels.conf.d"
 
 command="/usr/bin/i2pd"
-command_args="--service --log=file --logfile=$logfile --conf=$mainconf --tunconf=$tunconf --tunnelsdir=$tundir"
+command_args="--service --log=file --logfile=$logfile --conf=$mainconf --tunconf=$tunconf --tunnelsdir=$tundir $DAEMON_OPTS"
 command_args_background="--daemon --pidfile=${pidfile}"
 description="C++ daemon for accessing the I2P network"
 required_dirs="/var/lib/i2pd"
@@ -34,8 +34,4 @@ start_pre() {
   checkpath -d -m 0755 -o i2pd:adm /run/i2pd
   checkpath -f -o i2pd:adm $logfile
   checkpath -f -o i2pd:adm $pidfile
-
-  if [ -n "$DAEMON_OPTS" ]; then
-    command_args="$command_args $DAEMON_OPTS"
-  fi
 }
