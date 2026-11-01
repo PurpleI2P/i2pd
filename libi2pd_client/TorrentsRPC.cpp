@@ -809,12 +809,15 @@ namespace torrents
 		if (isDHTSupported)
 		{
 			bool torrentHashesRequested = false;
-			if (jsonRequest.contains ("fields"))
+			if (jsonRequest.contains ("arguments"))
 			{
-				auto fields = jsonRequest.at ("fields").as_array ();
-				torrentHashesRequested = std::find (fields.begin(), fields.end(), "torrentHashes") != fields.end ();
+				auto arguments = jsonRequest.at ("arguments").as_object ();
+				if (arguments.contains ("fields"))
+				{
+					auto fields = arguments.at ("fields").as_array ();
+					torrentHashesRequested = std::find (fields.begin(), fields.end(), "torrentHashes") != fields.end ();
+				}
 			}
-
 			size_t numNodes = 0, numBuckets = 0, numTorrents = 0, numHeardFrom = 0, numFailedPeers = 0;
 			std::list<Torrent::InfoHash> infoHashes;
 			boost::asio::post (m_Tunnel->GetService (),
