@@ -596,8 +596,8 @@ namespace torrents
 	Torrent::Torrent ():
 		m_AnnounceTrackerID (-1), m_Length (0), m_PieceLength (0), m_IsComplete (false),
 		m_IsStopped (false), m_IsSingleFile (true), m_Uploaded (0), m_Downloaded (0),
-		m_NextUpdateStatusTime (0), m_NextReconnectTime (0), m_NextDHTUpdateTime (0),
-		m_LastDHTAnnounceTime (0), m_Error (eTorrentErrorNoError)
+		m_NextUpdateStatusTime (0), m_NextUpdateResumeFileTime (), m_NextReconnectTime (0),
+		m_NextDHTUpdateTime (0), m_LastDHTAnnounceTime (0), m_Error (eTorrentErrorNoError)
 	{
 	}
 
@@ -1109,10 +1109,13 @@ namespace torrents
 		if (have) // all
 		{
 			// delete resume file
-			std::error_code ec;
-			std::filesystem::remove (resumeFilePath, ec);
-			if (ec)
-				LogPrint (eLogError, "Torrents: Can't delete resume file ", resumeFilePath, " : ", ec.message ());
+			if (std::filesystem::exists (resumeFilePath))
+			{
+				std::error_code ec;
+				std::filesystem::remove (resumeFilePath, ec);
+				if (ec)
+					LogPrint (eLogError, "Torrents: Can't delete resume file ", resumeFilePath, " : ", ec.message ());
+			}
 		}
 		else
 		{
@@ -1121,6 +1124,16 @@ namespace torrents
 				f.write ((const char *)bitfield.data (), bitfield.size ());
 			else
 				LogPrint (eLogError, "Torrents: Can't open resume file ", resumeFilePath);
+		}
+	}
+
+	void Torrent::UpdateTorrentResumeFile ()
+	{
+		auto ts = i2p::util::GetMonotonicSeconds ();
+		if (ts > m_NextUpdateResumeFileTime)
+		{
+			SaveTorrentResumeFile ();
+			m_NextUpdateResumeFileTime = ts + TORRENT_RESUME_FILE_UPDATE_INTERVAL;
 		}
 	}
 
@@ -2097,7 +2110,7 @@ namespace torrents
 								LogPrint (eLogWarning, "Torrents: Failed to save piece");
 								piece.InvalidateAllBlocks ();
 							}
-							torrent->SaveTorrentResumeFile ();
+							torrent->UpdateTorrentResumeFile ();
 						});
 					// send have
 					auto conns = m_Torrent->GetConnections ();

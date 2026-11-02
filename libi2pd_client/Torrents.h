@@ -85,6 +85,7 @@ namespace torrents
 	constexpr int BANDWIDTH_RATE_SAMPLING_INTERVAL = 20; // in milliseconds
 	constexpr int TORRENT_FILE_FLUSH_INTERVAL = 30; // in seconds
 	constexpr int TORRENT_FILE_INACTIVITY_TIMEOUT = 90; // in seconds
+	constexpr int TORRENT_RESUME_FILE_UPDATE_INTERVAL = 120; // in seconds
 
 	constexpr size_t HANDSHAKE_MSG_LENGTH = 68;
 	constexpr size_t INTERESTED_MSG_LENGTH = 5;
@@ -355,6 +356,7 @@ namespace torrents
 			void AddDownloaded (size_t add) { m_Downloaded += add; }
 
 			void SaveTorrentResumeFile ();
+			void UpdateTorrentResumeFile ();
 
 			void StartCountingPeers ();
 			void ApplyPeerRemoteBitfield (const boost::dynamic_bitset<>& peerRemoteBitfield);
@@ -404,7 +406,8 @@ namespace torrents
 			bool m_IsComplete, m_IsStopped, m_IsSingleFile;
 			std::list<std::shared_ptr<TorrentFile> > m_Files;
 			size_t m_Uploaded, m_Downloaded;
-			uint64_t m_NextUpdateStatusTime, m_NextReconnectTime, m_NextDHTUpdateTime, m_LastDHTAnnounceTime; // in monotonic seconds
+			uint64_t m_NextUpdateStatusTime, m_NextUpdateResumeFileTime, m_NextReconnectTime,
+				m_NextDHTUpdateTime, m_LastDHTAnnounceTime; // in monotonic seconds
 			TorrentError m_Error;
 	};
 

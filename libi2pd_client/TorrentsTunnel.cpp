@@ -280,6 +280,7 @@ namespace torrents
 			if (completed)
 			{
 				torrent->SetComplete ();
+				torrent->SaveTorrentResumeFile ();
 				LogPrint (eLogInfo, "TorrentsTunnel: Download complete ", torrent->GetFullPath ());
 
 				boost::asio::post (GetService (), [this, torrent]()
