@@ -617,7 +617,7 @@ namespace datagram
 				if(!m_RequestingLS)
 				{
 					m_RequestingLS = true;
-					m_LocalDestination->RequestDestination(m_RemoteIdent, std::bind(&DatagramSession::HandleLeaseSetUpdated, this, std::placeholders::_1));
+					m_LocalDestination->RequestDestination(m_RemoteIdent, std::bind(&DatagramSession::HandleLeaseSetUpdated, shared_from_this (), std::placeholders::_1));
 				}
 				return nullptr;
 			}
@@ -764,7 +764,7 @@ namespace datagram
 		if (!m_RequestingLS)
 		{
 			m_RequestingLS = true;
-			m_LocalDestination->RequestDestination(m_RemoteIdent, std::bind(&DatagramSession::HandleLeaseSetUpdated, this, std::placeholders::_1));
+			m_LocalDestination->RequestDestination(m_RemoteIdent, std::bind(&DatagramSession::HandleLeaseSetUpdated, shared_from_this (), std::placeholders::_1));
 		}
 	}
 
