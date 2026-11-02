@@ -1283,7 +1283,16 @@ namespace torrents
 		auto [it, inserted] = m_Connections.emplace (*remoteIdentHash, conn);
 		if (!inserted)
 		{
+			bool replace = false;
 			if (it->second.expired ())
+				replace = true;
+			else if (conn->GetOrigin () == ePeerConnectionOriginIncoming)
+			{
+				// replace existing incoming connection
+				auto existingConn = it->second.lock ();
+				replace = existingConn && existingConn->GetOrigin () == ePeerConnectionOriginIncoming;
+			}
+			if (replace)
 			{
 				m_Connections.erase (it); // delete not longer existing
 				return m_Connections.emplace (*remoteIdentHash, conn).second; // try again
