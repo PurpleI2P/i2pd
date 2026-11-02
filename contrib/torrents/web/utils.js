@@ -158,7 +158,7 @@ window.util = {
         torrent: {
             fields: [
                 "id", "name", "status",
-                "pieceCount", "pieceSize",
+                "pieces", "pieceCount", "pieceSize",
                 "rateDownload", "rateUpload",
                 "downloadedEver", "uploadedEver",
                 "totalSize", "haveValid", "percentDone",
@@ -183,6 +183,200 @@ window.util = {
                 });
             }
         }
+    },
+
+    bitfield: {
+        bytes(b64) {
+            const decoded = window.atob(b64);
+            const bytes = new Uint8Array(decoded.length);
+            for (let i = 0; i < decoded.length; i++)
+                bytes[i] = decoded.charCodeAt(i);
+            return bytes
+        },
+
+        pieces(bytes, pieceCount) {
+            const pieces = [];
+            for (let i = 0; i < pieceCount; i++) {
+                const have = bytes[i >> 3] & ( 0x80 >> (i & 7) );
+                pieces[i] = have > 0 ? 1 : 0
+            }
+            return pieces;
+        },
+
+        // have / missing
+        stats(pieces) {
+            return [
+                pieces.filter(num => num === 1).length,
+                pieces.filter(num => num === 0).length
+            ]
+        },
+
+        // [0,0,0,1,0,1,1,1,0,1,2] => [3,1,1,3,1,2]
+        compress(pieces) {
+            const compressed = [];
+            for (const n of pieces) {
+                compressed.length && compressed[compressed.length - 1].value === n 
+                    ? compressed[compressed.length - 1].count++
+                    : compressed.push({ value: n, count: 1 });
+            }
+            return compressed.map(x => x.count)
+        },
+
+        line(pieces, width) {
+            const height = 40;
+            const compressed = this.compress(pieces);
+            const colors = pieces[0] // have first piece?
+                ? ["#06D6A0", "#3a72ff"]
+                : ["#3a72ff", "#06D6A0"];
+
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            const dpr = window.devicePixelRatio || 1;
+
+            canvas.width = Math.round(width * dpr);
+            canvas.height = Math.round(height * dpr);
+
+            canvas.style.width = "100%";
+            canvas.style.height = `${height}px`;
+            canvas.style.display = "block";
+
+            ctx.scale(dpr, dpr);
+
+            let x = 0;
+            compressed.forEach((count, i) => {
+                const rectWidth = width * count / pieces.length;
+                ctx.fillStyle = colors[i % 2];
+                ctx.fillRect(x, 0, rectWidth, height);
+                x += rectWidth;
+            });
+
+            return canvas;
+        },
+
+        grid(pieces, fs_width) {
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+
+            // resizing columns
+            const cols = pieces.length > 1000 
+                ? 200
+                : pieces.length > 500 
+                    ? 100 
+                    : 50;
+
+            // number of rows depends on the number of pieces
+            const rows = Math.ceil(pieces.length / cols);
+
+            // cell size is determined by the fieldset width
+            const cellSize = fs_width / cols;
+
+            const width = fs_width;
+            const height = rows * cellSize;
+
+            const colors = ["#3a72ff", "#06D6A0"];
+
+            const dpr = window.devicePixelRatio || 1;
+
+            canvas.width = Math.round(width * dpr);
+            canvas.height = Math.round(height * dpr);
+
+            canvas.style.width = "100%";
+            canvas.style.height = "auto";
+            canvas.style.display = "block";
+
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            for (let i = 0; i < pieces.length; i++) {
+                const row = Math.floor(i / cols);
+                const col = i % cols;
+
+                ctx.fillStyle = colors[pieces[i]];
+
+                const x1 = Math.round( col * cellSize * dpr ) / dpr;
+                const y1 = Math.round( row * cellSize * dpr ) / dpr;
+                const x2 = Math.round( (col * cellSize + cellSize) * dpr ) / dpr;
+                const y2 = Math.round( (row * cellSize + cellSize) * dpr ) / dpr;
+
+                ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
+            }
+
+            ctx.fillStyle = "#000000";
+
+            const border = 1 / dpr;
+            const count = pieces.length;
+
+            const fullRows = Math.floor(count / cols);
+            const actualRows = Math.ceil(count / cols);
+            const remainder = count % cols;
+
+            const bottomWidth = (remainder || cols) * cellSize;
+            const bottomY = actualRows * cellSize;
+            const rightX = Math.min(count, cols) * cellSize;
+
+            // vertical borders
+            for (let col = 1; col < cols; col++) {
+                const x = Math.round(col * cellSize * dpr) / dpr;
+                const height = (fullRows + (col <= remainder && remainder > 0 ? 1 : 0)) * cellSize;
+
+                ctx.fillRect(x - border / 2, 0, border, height);
+            }
+
+            // horizontal borders
+            for (let row = 1; row < actualRows; row++) {
+                const y = Math.round(row * cellSize * dpr) / dpr;
+                ctx.fillRect(0, y - border / 2, width, border);
+            }
+
+            // bottom
+            ctx.fillRect(0, bottomY - border / 2, bottomWidth, border);
+
+            // top
+            ctx.fillRect(0, 0, rightX, border);
+
+            // left
+            ctx.fillRect(0, 0, border, rows * cellSize);
+
+            // right
+            ctx.fillRect(rightX - border, 0, border, fullRows * cellSize);
+
+            return canvas;
+        },
+
+        fs(torrent) {
+            if (!torrent?.pieceCount) 
+                return document.createElement("div"); 
+
+            const bytes = this.bytes(torrent.pieces);
+            if (!bytes) 
+                return document.createElement("div");
+
+            const pieces = this.pieces(bytes, torrent.pieceCount);
+            if (!pieces) 
+                return document.createElement("div");
+
+            const cvs = gl.bitfield_grid
+                ? this.grid(pieces, el.details.clientWidth)
+                : this.line(pieces, el.details.clientWidth)
+
+            cvs.style.cursor = "pointer";
+            cvs.addEventListener("click", () => {
+                gl.bitfield_grid = !gl.bitfield_grid;
+                refreshTable({ fetchTorrents: false });
+            });
+
+            const lable = document.createElement("legend");
+            lable.textContent = 
+                `Pieces: ${torrent.pieceCount} x ${util.fmt.size(torrent.pieceSize)}`;
+            
+            const stats = this.stats(pieces);
+            if (stats[1])
+                lable.textContent += ` (have ${stats[0]}, remaining ${stats[1]})`
+
+            const fs = document.createElement("fieldset");
+            fs.append(lable, cvs);
+            return fs
+        }
+
     },
 
     dialog: {
@@ -314,7 +508,7 @@ window.util = {
             if (!torrent) 
                 return document.createElement("div"); 
 
-            const keys = ["errorString", "status", "hashString", "magnetLink", "pieceCount", "downloadedEver", "uploadedEver", "ratio"];
+            const keys = ["errorString", "status", "hashString", "magnetLink", "totalSize", "downloadedEver", "uploadedEver", "ratio"];
             const list = document.createElement("ul");
 
             const is_magnet = torrent.metadataPercentComplete < 1
@@ -331,6 +525,20 @@ window.util = {
 
                         if (ratio)
                             cell.textContent = `Ratio: ${ratio.toFixed(2)}`;
+                        break;
+
+                    case "totalSize":
+                        if (!value)
+                            break;
+                            
+                        cell.textContent =
+                            `Total size: ${util.fmt.size(torrent.totalSize)}`;
+
+                        if (torrent.haveValid === 0 || torrent.haveValid === torrent.totalSize)
+                            break;
+
+                        cell.textContent += 
+                            ` (have ${util.fmt.size(torrent.haveValid)}, remaining ${util.fmt.size(torrent.totalSize - torrent.haveValid)})`
                         break;
 
                     case "downloadedEver":
@@ -363,11 +571,6 @@ window.util = {
                         });
                         cell.appendChild(link);
 
-                        break;
-
-                    case "pieceCount":
-                        if (value)
-                            cell.textContent = `Pieces: ${value} x ${util.fmt.size(torrent.pieceSize)}`;
                         break;
 
                     case "status":

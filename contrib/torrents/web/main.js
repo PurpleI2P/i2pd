@@ -16,6 +16,9 @@ let gl = {
 	// selection of torrent id's from refreshTable() for actions
 	selected: [],
 
+	// display pieces as grid instead of lines
+	bitfield_grid: false, 
+
 	// table sorting
 	sort: {
 		torrents: { enabled: false, row: 0, reverse: false },
@@ -553,6 +556,7 @@ function openTorrentDetails(id) {
 
 	fs.append(
 		util.list.torrent(torrent),
+		util.bitfield.fs(torrent),
 		util.table.peers(torrent.peers, gl.sort.peers),
 		util.table.trackers(torrent.trackerStats, gl.sort.trackers),
 		util.table.files(torrent.files, gl.sort.files)
