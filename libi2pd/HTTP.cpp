@@ -135,9 +135,10 @@ namespace http
 
 			/* hostname[:port][/path] */
 			if (pos_p >= url.length ()) return false; /* nothing left after schema or user part */
+			std::size_t pos_b = std::string::npos; // position of ']' for ipv6 host
 			if (url.at(pos_p) == '[') // ipv6
 			{
-				auto pos_b = url.find(']', pos_p);
+				pos_b = url.find(']', pos_p);
 				if (pos_b == std::string::npos) return false;
 				ipv6 = true;
 				pos_c = url.find_first_of(":/", pos_b);
@@ -148,7 +149,7 @@ namespace http
 			if (pos_c == std::string::npos) {
 				/* only hostname, without post and path */
 				host = ipv6 ?
-					url.substr(pos_p + 1, url.length() - 1) :
+					url.substr(pos_p + 1, pos_b - pos_p - 1) :
 					url.substr(pos_p, std::string::npos);
 				return true;
 			} else if (url.at(pos_c) == ':') {

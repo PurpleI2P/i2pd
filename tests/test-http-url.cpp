@@ -125,6 +125,17 @@ int main() {
   assert(url->frag == "frag");
   delete url;
 
+  /* ipv6 host without port or path: must not capture the closing ']' */
+  url = new URL;
+  assert(url->parse("http://[2001:db8::1]") == true);
+  assert(url->schema == "http");
+  assert(url->ipv6 == true);
+  assert(url->host == "2001:db8::1");
+  assert(url->port == 0);
+  assert(url->path == "");
+  assert(url->to_string() == "http://[2001:db8::1]");
+  delete url;
+
   /* nothing after the schema or the user part: must not throw */
   url = new URL;
   assert(url->parse("http://") == false);
