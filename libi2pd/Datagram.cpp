@@ -34,6 +34,8 @@ namespace datagram
 
 	DatagramDestination::~DatagramDestination ()
 	{
+		for (auto it: m_Sessions)
+			it.second->Stop ();
 		m_Sessions.clear();
 	}
 
@@ -557,6 +559,7 @@ namespace datagram
 
 	void DatagramSession::Stop ()
 	{
+		m_SendQueue.clear ();
 	}
 
 	void DatagramSession::SendMsg(std::shared_ptr<I2NPMessage> msg)
