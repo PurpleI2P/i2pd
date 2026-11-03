@@ -201,9 +201,7 @@ namespace stream
 
 		m_SendBuffer.CleanUp ();
 
-		for (auto it: m_ReceiveQueue)
-			delete it;
-		m_ReceiveQueue.clear ();
+		m_ReceiveQueue.clear_and_dispose([](Packet * p) { delete p; });
 
 		m_NACKedPackets.clear ();
 
@@ -427,7 +425,7 @@ namespace stream
 		size_t packetLength = packet->GetLength ();
 		if (packetLength > 0)
 		{
-			m_ReceiveQueue.push_back (packet);
+			m_ReceiveQueue.push_back (*packet);
 			if (m_SizeToReceive)
 			{
 				if (packetLength < m_SizeToReceive)
@@ -1494,18 +1492,14 @@ namespace stream
 		auto it = m_ReceiveQueue.begin ();
 		while (pos < len && it != m_ReceiveQueue.end ())
 		{
-			Packet * packet = *it;
-			size_t l = std::min (packet->GetLength (), len - pos);
-			memcpy (buf + pos, packet->GetBuffer (), l);
+			Packet& packet = *it;
+			size_t l = std::min (packet.GetLength (), len - pos);
+			memcpy (buf + pos, packet.GetBuffer (), l);
 			pos += l;
-			packet->offset += l;
-			if (!packet->GetLength ())
-			{
-				m_LocalDestination.DeletePacket (packet);
-				it++;
-			}
+			packet.offset += l;
+			if (!packet.GetLength ())
+				it = m_ReceiveQueue.erase_and_dispose (it, [this](Packet * p){ m_LocalDestination.DeletePacket (p); });
 		}
-		m_ReceiveQueue.erase (m_ReceiveQueue.begin (), it);
 		return pos;
 	}
 
