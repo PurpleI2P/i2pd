@@ -17,6 +17,9 @@
 #include <mutex>
 #include <random>
 #include <future>
+#if (BOOST_VERSION >= 108300) // 1.83
+#include <boost/unordered/unordered_flat_map.hpp>
+#endif
 #include "util.h"
 #include "SSU2Session.h"
 #include "SSU2OutOfSession.h"
@@ -73,6 +76,11 @@ namespace transport
 		};
 
 		public:
+#if (BOOST_VERSION >= 108300) // 1.83
+			using SSU2Sessions = boost::unordered_flat_map<uint64_t, std::shared_ptr<SSU2Session> >;
+#else
+			using SSU2Sessions = std::unordered_map<uint64_t, std::shared_ptr<SSU2Session> >;
+#endif
 
 			SSU2Server ();
 			~SSU2Server () {};
@@ -97,8 +105,6 @@ namespace transport
 			bool IsMaxNumIntroducers (bool v4) const { return (v4 ? m_Introducers.size () : m_IntroducersV6.size ()) >= SSU2_MAX_NUM_INTRODUCERS; }
 			bool IsSyncClockFromPeers () const { return m_IsSyncClockFromPeers; };
 			void AdjustTimeOffset (int64_t offset, std::shared_ptr<const i2p::data::IdentityEx> from);
-
-			using SSU2Sessions = std::unordered_map<uint64_t, std::shared_ptr<SSU2Session> >;
 
 			bool AddSession (std::shared_ptr<SSU2Session> session);
 			void RemoveSession (uint64_t connID);
