@@ -612,11 +612,7 @@ namespace client
 			{
 				for (auto& it: files)
 				{
-#if __cplusplus >= 202002L // C++20
 					if (!it.ends_with (".conf")) continue;
-#else
-					if (it.substr(it.size() - 5) != ".conf") continue; // skip files which not ends with ".conf"
-#endif
 					LogPrint(eLogDebug, "Clients: Tunnels extra config file: ", it);
 					ReadTunnels (it, numClientTunnels, numServerTunnels);
 				}
@@ -723,10 +719,13 @@ namespace client
 						localDestination = m_SharedLocalDestination;
 					else if (keys.length () > 0)
 					{
-						auto it = destinations.find (keys);
-						if (it != destinations.end ())
-							localDestination = it->second;
-						else
+						if (keys != "transient")
+						{
+							auto it = destinations.find (keys);
+							if (it != destinations.end ())
+								localDestination = it->second;
+						}
+						if (!localDestination)
 						{
 							i2p::data::PrivateKeys k;
 							if(LoadPrivateKeys (k, keys, sigType, cryptoType))
@@ -909,13 +908,16 @@ namespace client
 						localDestination = m_SharedLocalDestination;
 					else
 					{
-						auto it = destinations.find (keys);
-						if (it != destinations.end ())
+						if (keys != "transient")
 						{
-							localDestination = it->second;
-							localDestination->SetPublic (true);
+							auto it = destinations.find (keys);
+							if (it != destinations.end ())
+							{
+								localDestination = it->second;
+								localDestination->SetPublic (true);
+							}
 						}
-						else
+						if (!localDestination)
 						{
 							i2p::data::PrivateKeys k;
 							if(!LoadPrivateKeys (k, keys, sigType, cryptoType))
@@ -1060,13 +1062,16 @@ namespace client
 						options.Insert (I2CP_PARAM_INBOUND_NICKNAME, name);
 
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
-					auto it = destinations.find (keys);
-					if (it != destinations.end ())
+					if (keys != "transient")
 					{
-						localDestination = it->second;
-						localDestination->SetPublic (true);
+						auto it = destinations.find (keys);
+						if (it != destinations.end ())
+						{
+							localDestination = it->second;
+							localDestination->SetPublic (true);
+						}
 					}
-					else
+					if (!localDestination)
 					{
 						i2p::data::PrivateKeys k;
 						if(!LoadPrivateKeys (k, keys, sigType, i2p::data::CRYPTO_KEY_TYPE_ELGAMAL))
@@ -1075,7 +1080,8 @@ namespace client
 						if (!localDestination)
 						{
 							localDestination = CreateNewLocalDestination (k, true, &options);
-							destinations[keys] = localDestination;
+							if (keys != "transient")
+								destinations[keys] = localDestination;
 						}
 						else
 							localDestination->SetPublic (true);
