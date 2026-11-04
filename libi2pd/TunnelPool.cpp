@@ -105,19 +105,19 @@ namespace tunnel
 	void TunnelPool::DetachTunnels ()
 	{
 		{
-			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
+			std::lock_guard<std::mutex> l(m_InboundTunnelsMutex);
 			for (auto& it: m_InboundTunnels)
 				it->SetTunnelPool (nullptr);
 			m_InboundTunnels.clear ();
 		}
 		{
-			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
+			std::lock_guard<std::mutex> l(m_OutboundTunnelsMutex);
 			for (auto& it: m_OutboundTunnels)
 				it->SetTunnelPool (nullptr);
 			m_OutboundTunnels.clear ();
 		}
 		{
-			std::unique_lock<std::mutex> l(m_TestsMutex);
+			std::lock_guard<std::mutex> l(m_TestsMutex);
 			m_Tests.clear ();
 		}
 	}
@@ -139,7 +139,7 @@ namespace tunnel
 	{
 		if (!m_IsActive) return;
 		{
-			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
+			std::lock_guard<std::mutex> l(m_InboundTunnelsMutex);
 			if (createdTunnel->IsRecreated ())
 			{
 				// find and mark old tunnel as expired
@@ -163,12 +163,12 @@ namespace tunnel
 		{
 			expiredTunnel->SetTunnelPool (nullptr);
 			{
-				std::unique_lock<std::mutex> l(m_TestsMutex);
+				std::lock_guard<std::mutex> l(m_TestsMutex);
 				for (auto& it: m_Tests)
 					if (it.second.second == expiredTunnel) it.second.second = nullptr;
 			}
 
-			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
+			std::lock_guard<std::mutex> l(m_InboundTunnelsMutex);
 			m_InboundTunnels.erase (expiredTunnel);
 		}
 	}
@@ -177,7 +177,7 @@ namespace tunnel
 	{
 		if (!m_IsActive) return;
 		{
-			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
+			std::lock_guard<std::mutex> l(m_OutboundTunnelsMutex);
 			m_OutboundTunnels.insert (createdTunnel);
 		}
 	}
@@ -188,12 +188,12 @@ namespace tunnel
 		{
 			expiredTunnel->SetTunnelPool (nullptr);
 			{
-				std::unique_lock<std::mutex> l(m_TestsMutex);
+				std::lock_guard<std::mutex> l(m_TestsMutex);
 				for (auto& it: m_Tests)
 					if (it.second.first == expiredTunnel) it.second.first = nullptr;
 			}
 
-			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
+			std::lock_guard<std::mutex> l(m_OutboundTunnelsMutex);
 			m_OutboundTunnels.erase (expiredTunnel);
 		}
 	}
@@ -203,7 +203,7 @@ namespace tunnel
 		std::vector<std::shared_ptr<InboundTunnel> > v;
 		int i = 0;
 		std::shared_ptr<InboundTunnel> slowTunnel;
-		std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
+		std::lock_guard<std::mutex> l(m_InboundTunnelsMutex);
 		for (const auto& it : m_InboundTunnels)
 		{
 			if (i >= num) break;
@@ -226,14 +226,14 @@ namespace tunnel
 	std::shared_ptr<OutboundTunnel> TunnelPool::GetNextOutboundTunnel (std::shared_ptr<OutboundTunnel> excluded,
 		i2p::data::RouterInfo::CompatibleTransports compatible)
 	{
-		std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
+		std::lock_guard<std::mutex> l(m_OutboundTunnelsMutex);
 		return GetNextTunnel (m_OutboundTunnels, excluded, compatible);
 	}
 
 	std::shared_ptr<InboundTunnel> TunnelPool::GetNextInboundTunnel (std::shared_ptr<InboundTunnel> excluded,
 		i2p::data::RouterInfo::CompatibleTransports compatible)
 	{
-		std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
+		std::lock_guard<std::mutex> l(m_InboundTunnelsMutex);
 		return GetNextTunnel (m_InboundTunnels, excluded, compatible);
 	}
 
@@ -284,7 +284,7 @@ namespace tunnel
 		bool freshTunnel = false;
 		if (old)
 		{
-			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
+			std::lock_guard<std::mutex> l(m_OutboundTunnelsMutex);
 			for (const auto& it: m_OutboundTunnels)
 				if (it->IsEstablished () && old->GetEndpointIdentHash () == it->GetEndpointIdentHash ())
 				{
@@ -310,7 +310,7 @@ namespace tunnel
 	{
 		int num = 0;
 		{
-			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
+			std::lock_guard<std::mutex> l(m_OutboundTunnelsMutex);
 			for (const auto& it : m_OutboundTunnels)
 				if (it->IsEstablished ()) num++;
 		}
@@ -324,7 +324,7 @@ namespace tunnel
 
 		num = 0;
 		{
-			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
+			std::lock_guard<std::mutex> l(m_InboundTunnelsMutex);
 			for (const auto& it : m_InboundTunnels)
 				if (it->IsEstablished ()) num++;
 		}
@@ -344,7 +344,7 @@ namespace tunnel
 	{
 		decltype(m_Tests) tests;
 		{
-			std::unique_lock<std::mutex> l(m_TestsMutex);
+			std::lock_guard<std::mutex> l(m_TestsMutex);
 			tests.swap(m_Tests);
 		}
 
@@ -357,10 +357,15 @@ namespace tunnel
 				if (it.second.first->GetState () == eTunnelStateTestFailed)
 				{
 					it.second.first->SetState (eTunnelStateFailed);
-					std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
-					if (m_OutboundTunnels.size () > 1) // don't fail last tunnel
-						m_OutboundTunnels.erase (it.second.first);
-					else
+					bool isLast = false;
+					{
+						std::lock_guard<std::mutex> l(m_OutboundTunnelsMutex);
+						if (m_OutboundTunnels.size () > 1) // don't fail last tunnel
+							m_OutboundTunnels.erase (it.second.first);
+						else
+							isLast = true;
+					}
+					if (isLast)
 					{
 						it.second.first->SetState (eTunnelStateTestFailed);
 						CreateOutboundTunnel (ts); // create new tunnel immediately because last one failed
@@ -377,13 +382,18 @@ namespace tunnel
 					{
 						bool failed = false;
 						{
-							std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
-							if (m_InboundTunnels.size () > 1) // don't fail last tunnel
+							bool isLast = false;
 							{
-								m_InboundTunnels.erase (it.second.second);
-								failed = true;
+								std::lock_guard<std::mutex> l(m_InboundTunnelsMutex);
+								if (m_InboundTunnels.size () > 1) // don't fail last tunnel
+								{
+									m_InboundTunnels.erase (it.second.second);
+									failed = true;
+								}
+								else
+									isLast = true;
 							}
-							else
+							if (isLast)
 							{
 								it.second.second->SetState (eTunnelStateTestFailed);
 								CreateInboundTunnel (ts); // create new tunnel immediately because last one failed
@@ -405,7 +415,7 @@ namespace tunnel
 		std::vector<std::pair<std::shared_ptr<OutboundTunnel>, std::shared_ptr<InboundTunnel> > > newTests;
 		std::vector<std::shared_ptr<OutboundTunnel> > outboundTunnels;
 		{
-			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
+			std::lock_guard<std::mutex> l(m_OutboundTunnelsMutex);
 			for (auto& it: m_OutboundTunnels)
 				if (it->IsEstablished ())
 					outboundTunnels.push_back (it);
@@ -414,7 +424,7 @@ namespace tunnel
 		std::shuffle (outboundTunnels.begin(), outboundTunnels.end(), tunnels.GetRng ());
 		std::vector<std::shared_ptr<InboundTunnel> > inboundTunnels;
 		{
-			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
+			std::lock_guard<std::mutex> l(m_InboundTunnelsMutex);
 			for (auto& it: m_InboundTunnels)
 				if (it->IsEstablished ())
 					inboundTunnels.push_back (it);
@@ -433,7 +443,7 @@ namespace tunnel
 			uint32_t msgID;
 			RAND_bytes ((uint8_t *)&msgID, 4);
 			{
-				std::unique_lock<std::mutex> l(m_TestsMutex);
+				std::lock_guard<std::mutex> l(m_TestsMutex);
 				m_Tests[msgID] = it;
 			}
 			auto msg = CreateTunnelTestMsg (msgID);
@@ -444,11 +454,11 @@ namespace tunnel
 					// if test msg dropped locally it's outbound tunnel to blame
 					outbound->SetState (eTunnelStateFailed);
 					{
-						std::unique_lock<std::mutex> l(s->m_TestsMutex);
+						std::lock_guard<std::mutex> l(s->m_TestsMutex);
 						s->m_Tests.erase (msgID);
 					}
 					{
-						std::unique_lock<std::mutex> l(s->m_OutboundTunnelsMutex);
+						std::lock_guard<std::mutex> l(s->m_OutboundTunnelsMutex);
 						s->m_OutboundTunnels.erase (outbound);
 					}
 				};
@@ -508,7 +518,7 @@ namespace tunnel
 		decltype(m_Tests)::mapped_type test;
 		bool found = false;
 		{
-			std::unique_lock<std::mutex> l(m_TestsMutex);
+			std::lock_guard<std::mutex> l(m_TestsMutex);
 			auto it = m_Tests.find (msgID);
 			if (it != m_Tests.end ())
 			{
@@ -897,7 +907,7 @@ namespace tunnel
 	std::shared_ptr<InboundTunnel> TunnelPool::GetLowestLatencyInboundTunnel(std::shared_ptr<InboundTunnel> exclude) const
 	{
 		std::shared_ptr<InboundTunnel> tun = nullptr;
-		std::unique_lock<std::mutex> lock(m_InboundTunnelsMutex);
+		std::lock_guard<std::mutex> lock(m_InboundTunnelsMutex);
 		int min = 1000000;
 		for (const auto & itr : m_InboundTunnels) {
 			if(!itr->LatencyIsKnown()) continue;
@@ -913,7 +923,7 @@ namespace tunnel
 	std::shared_ptr<OutboundTunnel> TunnelPool::GetLowestLatencyOutboundTunnel(std::shared_ptr<OutboundTunnel> exclude) const
 	{
 		std::shared_ptr<OutboundTunnel> tun = nullptr;
-		std::unique_lock<std::mutex> lock(m_OutboundTunnelsMutex);
+		std::lock_guard<std::mutex> lock(m_OutboundTunnelsMutex);
 		int min = 1000000;
 		for (const auto & itr : m_OutboundTunnels) {
 			if(!itr->LatencyIsKnown()) continue;
