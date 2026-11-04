@@ -1025,9 +1025,15 @@ namespace torrents
 		if (numPieces % 8) bitfieldSize++;
 		std::vector<uint8_t> ret(bitfieldSize); // filled with 0
 		boost::dynamic_bitset<> availablePieces (numPieces);
-		auto connections = GetConnections ();
-		for (auto it: connections)
-			availablePieces |= it->GetRemoteBitfield ();
+		if (IsComplete ())
+			availablePieces.set ();
+		else
+		{
+			auto connections = GetConnections ();
+			for (auto it: connections)
+				if (it->GetRemoteBitfield ().size () == numPieces)
+					availablePieces |= it->GetRemoteBitfield ();
+		}
 		if (availablePieces.any ())
 		{
 			size_t idx = 0;
