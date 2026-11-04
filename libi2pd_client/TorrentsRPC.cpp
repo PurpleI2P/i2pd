@@ -279,7 +279,7 @@ namespace torrents
 			else
 			{
 				response["torrent-duplicate"] = torrentInfo;
-				LogPrint (eLogDebug, "TorrentsRPC: duplicate torrent ", torrentInfo["name"].as_string ());
+				LogPrint (eLogWarning, "TorrentsRPC: duplicate torrent ", torrentInfo["name"].as_string ());
 			}
 			return SuccessResponse (GetTag (jsonRequest), std::move (response));
 		}
@@ -1089,7 +1089,7 @@ namespace torrents
 		{
 			if (ec == boost::beast::errc::no_such_file_or_directory)
 			{
-				LogPrint (eLogDebug, "TorrentsRPC: Requested file not found ", filePath.string ());
+				LogPrint (eLogWarning, "TorrentsRPC: Requested file not found ", filePath.string ());
 				SendResponse (boost::beast::http::status::not_found);
 			}
 			else
