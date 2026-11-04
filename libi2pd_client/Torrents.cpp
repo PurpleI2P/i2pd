@@ -1018,6 +1018,35 @@ namespace torrents
 		return complete;
 	}
 
+	std::vector<uint8_t> Torrent::CreateAvailableBitfield ()
+	{
+		size_t numPieces = m_Pieces.size ();
+		size_t bitfieldSize = numPieces / 8;
+		if (numPieces % 8) bitfieldSize++;
+		std::vector<uint8_t> ret(bitfieldSize); // filled with 0
+		boost::dynamic_bitset<> availablePieces (numPieces);
+		auto connections = GetConnections ();
+		for (auto it: connections)
+			availablePieces |= it->GetRemoteBitfield ();
+		if (availablePieces.any ())
+		{
+			size_t idx = 0;
+			for (size_t i = 0; i < ret.size (); i++) // bytes
+			{
+				uint8_t bit = 0x80;
+				for (int j = 0; j < 8; j++)
+				{
+					if (idx >= numPieces) break;
+					if (availablePieces.test (idx))
+						ret[i] |= bit;
+					bit >>= 1;
+					idx++;
+				}
+			}
+		}
+		return ret;
+	}
+
 	RequestedBlock Torrent::GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn, bool skipRequested)
 	{
 		if (conn)

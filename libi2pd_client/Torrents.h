@@ -329,6 +329,7 @@ namespace torrents
 			Piece& GetPiece (int index) { return m_Pieces[index]; }
 			std::pair<std::vector<uint8_t>, boost::logic::tribool> CreateBitfield () const; // (bitfield, true - all false - none)
 			bool ApplyBitfield (const std::vector<uint8_t>& bitfield); // return true if complete
+			std::vector<uint8_t> CreateAvailableBitfield ();
 			std::unordered_set<i2p::data::IdentHash> GetNonConnectedPeers ();
 			std::unordered_set<i2p::data::IdentHash> GetNonConnectedPeers (size_t trackerID);
 			RequestedBlock GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn, bool skipRequested = true);

@@ -465,8 +465,17 @@ namespace torrents
 				{
 					auto [bitfield, have] = torrent->CreateBitfield ();
 					std::string b64pieces;
-					b64pieces.resize (boost::beast::detail::base64::encoded_size (bitfield.size()));
-					boost::beast::detail::base64::encode (b64pieces.data (), bitfield.data(), bitfield.size());
+					b64pieces.resize (boost::beast::detail::base64::encoded_size (bitfield.size ()));
+					boost::beast::detail::base64::encode (b64pieces.data (), bitfield.data (), bitfield.size ());
+					return boost::json::value(b64pieces);
+				}
+			},
+			{ "piecesAvailable", [](std::shared_ptr<Torrent> torrent)
+				{
+					auto availableBitfield = torrent->CreateAvailableBitfield ();
+					std::string b64pieces;
+					b64pieces.resize (boost::beast::detail::base64::encoded_size (availableBitfield.size ()));
+					boost::beast::detail::base64::encode (b64pieces.data (),  availableBitfield.data (),  availableBitfield.size ());
 					return boost::json::value(b64pieces);
 				}
 			},
