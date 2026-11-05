@@ -2835,7 +2835,7 @@ namespace torrents
 
 	void PeerConnection::UpdateInterested ()
 	{
-		if (m_IsInterested && !m_Torrent->HasIncompletePieces (m_RemoteBitfield))
+		if (m_LastRequestedPieceIndex < 0 && m_IsInterested && !m_Torrent->HasIncompletePieces (m_RemoteBitfield))
 		{
 			m_IsInterested = false;
 			SendNotinterestedMsg ();
@@ -2843,7 +2843,6 @@ namespace torrents
 			m_LastBlockDownloadTimestamp = 0;
 			m_ReceivedSinceLastTimestamp = 0;
 			m_NumRequests = 0;
-			m_LastRequestedPieceIndex = -1;
 		}
 	}
 }
