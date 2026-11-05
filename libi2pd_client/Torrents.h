@@ -451,6 +451,7 @@ namespace torrents
 			std::string_view GetRemoteName () const { return m_RemoteName; }
 			std::optional<i2p::data::IdentHash> GetRemoteIdentHash () const;
 			PeerConnectionOrigin GetOrigin () const { return m_Origin; }
+			void UpdateInterested ();
 
 			// stats
 			void ResetStats ();

@@ -1114,7 +1114,7 @@ namespace torrents
 
 	bool Torrent::UpdateStatus (uint64_t ts)
 	{
-		GetConnections (); // cleanup expired connections
+		auto conns = GetConnections (); // cleanup expired connections
 		if (!m_Length) return false; // non ready magnet
 		bool complete = true;
 		for (auto& it: m_Pieces)
@@ -1123,6 +1123,9 @@ namespace torrents
 			if (m_IsStopped || (ts > it.GetLastActivityTimestamp () + PIECE_INACTIVITY_TIMEOUT)) // piece was inactive recently
 				it.Reset ();
 		}
+		if (!complete)
+			for (auto it: conns)
+				it->UpdateInterested ();
 		return complete;
 	}
 
@@ -2787,11 +2790,7 @@ namespace torrents
 		if (m_LastRequestedPieceIndex >= 0)
 		{
 			m_LastRequestedPieceIndex = -1; // no request
-			if (m_IsInterested && !m_Torrent->HasIncompletePieces (m_RemoteBitfield))
-			{
-				m_IsInterested = false;
-				SendNotinterestedMsg ();
-			}
+			UpdateInterested ();
 		}
 		return {};
 	}
@@ -2832,6 +2831,20 @@ namespace torrents
 				return ident->GetIdentHash ();
 		}
 		return {};
+	}
+
+	void PeerConnection::UpdateInterested ()
+	{
+		if (m_IsInterested && !m_Torrent->HasIncompletePieces (m_RemoteBitfield))
+		{
+			m_IsInterested = false;
+			SendNotinterestedMsg ();
+			m_DownloadRate = 0;
+			m_LastBlockDownloadTimestamp = 0;
+			m_ReceivedSinceLastTimestamp = 0;
+			m_NumRequests = 0;
+			m_LastRequestedPieceIndex = -1;
+		}
 	}
 }
 }
