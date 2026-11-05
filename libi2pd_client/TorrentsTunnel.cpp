@@ -347,7 +347,11 @@ namespace torrents
 						InitTorrentFiles (torrent);
 					});
 			if (!torrent->GetError ())
-				boost::asio::post (GetService (), [this, torrent] { RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone); });
+				boost::asio::post (GetService (), [this, torrent]
+				{
+					RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone);
+					if (m_DHT) m_DHT->GetPeersAndAnnounce (torrent);
+				});
 			return { torrent, id };
 		}
 		else
@@ -410,7 +414,11 @@ namespace torrents
 					torrent->SetName (name.empty () ? hexStr : name);
 					auto [id, inserted] = InsertTorrent (torrent);
 					if (inserted)
-						boost::asio::post (GetService (), [this, torrent] { RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone); });
+						boost::asio::post (GetService (), [this, torrent]
+						{
+							RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone);
+							if (m_DHT) m_DHT->GetPeersAndAnnounce (torrent);
+						});
 					return { torrent, id };
 				}
 				else
@@ -429,7 +437,11 @@ namespace torrents
 			torrent->SetName (infoHash.ToHexString ());
 			auto [id, inserted] = InsertTorrent (torrent);
 			if (inserted)
-				boost::asio::post (GetService (), [this, torrent] { RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone); });
+				boost::asio::post (GetService (), [this, torrent]
+				{
+					RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone);
+					if (m_DHT) m_DHT->GetPeersAndAnnounce (torrent);
+				});
 			return { torrent, id };
 		}
 		else
