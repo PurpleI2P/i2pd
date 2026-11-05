@@ -11,6 +11,7 @@ window.util = {
             idx(id)           { return this.get().findIndex(item => item.id === id) },
             find_by_id(id)    { return this.get().find(item => item.id == id) },
             find_by_hash(hex) { return this.get().find(item => item.hashString == hex) },
+            size_sum()        { return this.get().reduce((size_sum, { totalSize }) => size_sum + totalSize, 0)},
 
             some_running() { return this.get().some(item => item.status > 0) },
             some_stopped() { return this.get().some(item => item.status == 0) }
@@ -28,6 +29,7 @@ window.util = {
             idx(id)           { return this.get().findIndex(item => item.id === id) },
             find_by_id(id)    { return this.get().find(item => item.id == id) },
             find_by_hash(hex) { return this.get().find(item => item.hashString == hex) },
+            size_sum()        { return this.get().reduce((size_sum, { totalSize }) => size_sum + totalSize, 0)},
 
             some_running() { return this.get().some(item => item.status > 0) },
             some_stopped() { return this.get().some(item => item.status == 0) }
@@ -57,11 +59,6 @@ window.util = {
 
     copy: {
         text(text) {
-            try {
-                if (navigator.clipboard?.writeText)
-                    navigator.clipboard.writeText(text);
-            } catch {}
-
             const textarea = document.createElement("textarea");
             textarea.value = text;
             textarea.style.cssText = "position:fixed;opacity:0";
@@ -158,7 +155,7 @@ window.util = {
         torrent: {
             fields: [
                 "id", "name", "status",
-                "pieces", "pieceCount", "pieceSize",
+                "pieces", "pieceCount", "pieceSize", "piecesAvailable",
                 "rateDownload", "rateUpload",
                 "downloadedEver", "uploadedEver",
                 "totalSize", "haveValid", "percentDone",
@@ -187,6 +184,9 @@ window.util = {
 
     bitfield: {
         bytes(b64) {
+            if (!b64) 
+                return;
+
             const decoded = window.atob(b64);
             const bytes = new Uint8Array(decoded.length);
             for (let i = 0; i < decoded.length; i++)
@@ -194,40 +194,51 @@ window.util = {
             return bytes
         },
 
-        pieces(bytes, pieceCount) {
+        pieces(pieceCount = 0, bytesHave, bytesAvailable) {
+            if (!pieceCount || !bytesHave) 
+                return [];
+
             const pieces = [];
             for (let i = 0; i < pieceCount; i++) {
-                const have = bytes[i >> 3] & ( 0x80 >> (i & 7) );
-                pieces[i] = have > 0 ? 1 : 0
+                const mask = 0x80 >> (i & 7);
+                const byte = i >> 3;
+
+                pieces[i] = bytesHave?.[byte] & mask
+                    ? true // downloaded
+                    : bytesAvailable == null || bytesAvailable[byte] & mask
+                        ? false // not downloaded, but available
+                        : null; // not available (stalled)
             }
             return pieces;
         },
 
-        // have / missing
         stats(pieces) {
-            return [
-                pieces.filter(num => num === 1).length,
-                pieces.filter(num => num === 0).length
-            ]
+            return pieces.reduce((stats, piece) => {
+                switch (piece) {
+                    case true:  stats[0]++; break; // downloaded
+                    case false: stats[1]++; break; // not downloaded, but available
+                    case null:  stats[2]++; break; // not available (stalled)
+                }
+                return stats;
+            }, [0, 0, 0]);
         },
 
-        // [0,0,0,1,0,1,1,1,0,1,2] => [3,1,1,3,1,2]
+        // [true,true,true,false,false,null] => [[3, true], [2, false], [1, null]]
         compress(pieces) {
             const compressed = [];
             for (const n of pieces) {
-                compressed.length && compressed[compressed.length - 1].value === n 
-                    ? compressed[compressed.length - 1].count++
-                    : compressed.push({ value: n, count: 1 });
+                compressed.length && compressed[compressed.length - 1][1] == n
+                    ? compressed[compressed.length - 1][0]++
+                    : compressed.push([1, n]);
             }
-            return compressed.map(x => x.count)
+            return compressed
         },
 
         line(pieces, width) {
             const height = 40;
+            const colors = ["#3a72ff", "#06d6a0"];
+            
             const compressed = this.compress(pieces);
-            const colors = pieces[0] // have first piece?
-                ? ["#06D6A0", "#3a72ff"]
-                : ["#3a72ff", "#06D6A0"];
 
             const canvas = document.createElement("canvas");
             const ctx = canvas.getContext("2d");
@@ -243,40 +254,42 @@ window.util = {
             ctx.scale(dpr, dpr);
 
             let x = 0;
-            compressed.forEach((count, i) => {
-                const rectWidth = width * count / pieces.length;
-                ctx.fillStyle = colors[i % 2];
+            for (const [amount, status] of compressed) {
+                const rectWidth = width * amount / pieces.length;
+
+                ctx.fillStyle = status === null
+                    ? "#555555"
+                    : colors[Number(status)];
+
                 ctx.fillRect(x, 0, rectWidth, height);
                 x += rectWidth;
-            });
+            };
 
             return canvas;
         },
 
+
         grid(pieces, fs_width) {
+            const compressed = this.compress(pieces);
+
             const canvas = document.createElement("canvas");
             const ctx = canvas.getContext("2d");
-
-            // resizing columns
-            const cols = pieces.length > 1000 
+            const dpr = window.devicePixelRatio || 1;
+            
+            const cols = pieces.length > 1000
                 ? 200
-                : pieces.length > 500 
-                    ? 100 
+                : pieces.length > 500
+                    ? 100
                     : 50;
 
-            // number of rows depends on the number of pieces
             const rows = Math.ceil(pieces.length / cols);
-
-            // cell size is determined by the fieldset width
             const cellSize = fs_width / cols;
 
             const width = fs_width;
             const height = rows * cellSize;
 
-            const colors = ["#3a72ff", "#06D6A0"];
-
-            const dpr = window.devicePixelRatio || 1;
-
+            const colors = ["#3a72ff", "#06d6a0"];
+            
             canvas.width = Math.round(width * dpr);
             canvas.height = Math.round(height * dpr);
 
@@ -286,39 +299,52 @@ window.util = {
 
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-            for (let i = 0; i < pieces.length; i++) {
-                const row = Math.floor(i / cols);
-                const col = i % cols;
+            // draw consecutive cells of the same color as one rectangle
+            let position = 0;
 
-                ctx.fillStyle = colors[pieces[i]];
+            for (const [amount, status] of compressed) {
+                let remaining = amount;
 
-                const x1 = Math.round( col * cellSize * dpr ) / dpr;
-                const y1 = Math.round( row * cellSize * dpr ) / dpr;
-                const x2 = Math.round( (col * cellSize + cellSize) * dpr ) / dpr;
-                const y2 = Math.round( (row * cellSize + cellSize) * dpr ) / dpr;
+                ctx.fillStyle = status === null
+                    ? "#555555"
+                    : colors[Number(status)];
 
-                ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
+                while (remaining > 0) {
+                    const col = position % cols;
+                    const row = Math.floor(position / cols);
+
+                    const length = Math.min(remaining, cols - col);
+
+                    const x1 = Math.round(col * cellSize * dpr) / dpr;
+                    const y1 = Math.round(row * cellSize * dpr) / dpr;
+                    const x2 = Math.round((col + length) * cellSize * dpr) / dpr;
+                    const y2 = Math.round((row + 1) * cellSize * dpr) / dpr;
+
+                    ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
+
+                    position += length;
+                    remaining -= length;
+                }
             }
 
+            // borders
             ctx.fillStyle = "#000000";
 
             const border = 1 / dpr;
-            const count = pieces.length;
 
-            const fullRows = Math.floor(count / cols);
-            const actualRows = Math.ceil(count / cols);
-            const remainder = count % cols;
+            const fullRows = Math.floor(pieces.length / cols);
+            const actualRows = Math.ceil(pieces.length / cols);
+            const remainder = pieces.length % cols;
 
             const bottomWidth = (remainder || cols) * cellSize;
             const bottomY = actualRows * cellSize;
-            const rightX = Math.min(count, cols) * cellSize;
+            const rightX = Math.min(pieces.length, cols) * cellSize;
 
             // vertical borders
             for (let col = 1; col < cols; col++) {
                 const x = Math.round(col * cellSize * dpr) / dpr;
-                const height = (fullRows + (col <= remainder && remainder > 0 ? 1 : 0)) * cellSize;
-
-                ctx.fillRect(x - border / 2, 0, border, height);
+                const h = (fullRows + (col <= remainder && remainder > 0 ? 1 : 0)) * cellSize;
+                ctx.fillRect(x - border / 2, 0, border, h);
             }
 
             // horizontal borders
@@ -342,22 +368,24 @@ window.util = {
             return canvas;
         },
 
-        fs(torrent) {
+        torrent(torrent) {
             if (!torrent?.pieceCount) 
                 return document.createElement("div"); 
 
-            const bytes = this.bytes(torrent.pieces);
-            if (!bytes) 
+            const bytesHave = this.bytes(torrent.pieces);
+            if (!bytesHave)
                 return document.createElement("div");
 
-            const pieces = this.pieces(bytes, torrent.pieceCount);
-            if (!pieces) 
-                return document.createElement("div");
+            const bytesAvailable = this.bytes(torrent.piecesAvailable);
 
+            const pieces = this.pieces(torrent.pieceCount, bytesHave, bytesAvailable);
+            if (!pieces)
+                return document.createElement("div");
+            
             const cvs = gl.bitfield_grid
                 ? this.grid(pieces, el.details.clientWidth)
                 : this.line(pieces, el.details.clientWidth)
-
+                
             cvs.style.cursor = "pointer";
             cvs.addEventListener("click", () => {
                 gl.bitfield_grid = !gl.bitfield_grid;
@@ -369,14 +397,15 @@ window.util = {
                 `Pieces: ${torrent.pieceCount} x ${util.fmt.size(torrent.pieceSize)}`;
             
             const stats = this.stats(pieces);
-            if (stats[1])
-                lable.textContent += ` (have ${stats[0]}, remaining ${stats[1]})`
+            if (stats[1] || stats[2]) {
+                const unavailable = stats[2] ? `, not available: ${stats[2]}` : "";
+                lable.textContent += ` (have: ${stats[0]}, remaining: ${stats[1] + stats[2]}${unavailable})`;
+            }
 
             const fs = document.createElement("fieldset");
             fs.append(lable, cvs);
             return fs
         }
-
     },
 
     dialog: {
@@ -388,13 +417,14 @@ window.util = {
 
             const magnets = input.split(" ");
 
-            magnets.forEach(async magnet => {
-                const r = await util.rpc.torrent.addUrl(magnet)
-                if (magnets.length === 1 && r.result !== "success")
-                    alert(r.result);
-            });
+            const results = await Promise.all(
+                magnets.map(magnet => util.rpc.torrent.addUrl(magnet))
+            );
 
-            await refreshTable();
+            if (magnets.length === 1 && results[0].result !== "success")
+                alert(results[0].result);
+
+            await refreshTable({ fetchTorrents: true });
         },
 
         async torrentRemove(ids = [], withFiles = false) {
@@ -402,9 +432,8 @@ window.util = {
 
             let warn = `remove the following torrents${withFiles ? ' WITH FILES' : ""}?\n\n`
 
-            const objs = util.tr.all.get(ids)
-
-            objs.forEach(obj => {
+            const all = util.tr.all.get(ids)
+            all.forEach(obj => {
                 warn += `#${obj.id} | ${obj.name}\n`
             });
 
@@ -412,10 +441,15 @@ window.util = {
             if (!confirmed)
                 return;
 
+            const is_selected = util.tr.id_selected(gl.selector);
+            if (is_selected)
+                util.tr.deselect_all();
+
             await util.rpc.torrent.remove(ids, withFiles);
             await refreshTable({
+                fetchTorrents: true,
                 closeDetails:
-                    gl.selector === ids[0] || util.tr.id_selected(gl.selector)
+                    gl.selector === ids[0] || is_selected
             });
         },
 
@@ -428,8 +462,7 @@ window.util = {
             if (!hashes.length)
                 return;
 
-            let known = [],
-                unknown = [];
+            let known = [], unknown = [];
             hashes.forEach(hash => {
                 const q = util.tr.all.find_by_hash(hash);
                 q ? known.push(`#${q.id}:\t${hash}`) : unknown.push(hash);
@@ -538,7 +571,7 @@ window.util = {
                             break;
 
                         cell.textContent += 
-                            ` (have ${util.fmt.size(torrent.haveValid)}, remaining ${util.fmt.size(torrent.totalSize - torrent.haveValid)})`
+                            ` (have: ${util.fmt.size(torrent.haveValid)}, remaining: ${util.fmt.size(torrent.totalSize - torrent.haveValid)})`
                         break;
 
                     case "downloadedEver":
@@ -631,7 +664,8 @@ window.util = {
                 return document.createElement("div")
 
             const table_cols = ["_select_", "id", "name", "progress", "S / L", "speedDw", "speedUp", "size", "have", "eta"];
-            const locale_row = sorting.row === 2; // "name"
+            const locale_row = 
+                sorting.row === 2; // "name"
 
             if (sorting.enabled) {
                 const dir = locale_row ^ sorting.reverse ? 1 : -1;
@@ -957,9 +991,14 @@ window.util = {
             document.title = `↓${util.fmt.bytes(allDw)} ↑${util.fmt.bytes(allUp)}`;
             
             const lable = document.createElement("legend");
-            lable.textContent = `Torrents: ${util.tr.all.count()}`
-            if (util.tr.selected())
-                lable.textContent += `, Selected: ${util.tr.sel.count()}`
+            
+            if (util.tr.selected()) {
+                lable.textContent = `Selected: ${util.tr.sel.count()} / ${util.tr.all.count()}`
+                const size_sum = util.tr.sel.size_sum();
+                if (size_sum)
+                    lable.textContent += ` (${util.fmt.size(size_sum)})`
+            } else
+                lable.textContent = `Torrents: ${util.tr.all.count()}`
 
             const fs = document.createElement("fieldset");
             fs.append(lable, table);
@@ -974,7 +1013,8 @@ window.util = {
 
             // files fields
             const table_cols = ["name", "progress", "size", "have", "left"];
-            const locale_row = sorting.row === 0; // "name"
+            const locale_row = 
+                sorting.row === 0; // "name"
 
             if (sorting.enabled) {
                 const dir = locale_row ^ sorting.reverse ? 1 : -1;
@@ -1129,7 +1169,8 @@ window.util = {
                 "peers", "seeders", "leechers", 
                 "lastAnnounceResult", "lastAnnounceTime", "nextAnnounceTime"
             ];
-            const locale_row = sorting.row === 1 || sorting.row === 5; // "announce", "lastAnnounceResult"
+            const locale_row = 
+                sorting.row === 1 || sorting.row === 5; // "announce", "lastAnnounceResult"
 
             if (sorting.enabled) {
                 const dir = locale_row ^ sorting.reverse ? 1 : -1;
@@ -1231,7 +1272,7 @@ window.util = {
                             break;
                         case "lastAnnounceTime":
                         case "nextAnnounceTime":
-                            cell.textContent = new Date(value * 1000).toLocaleString();
+                            cell.textContent = new Date(value * 1000).toLocaleTimeString();
                             break;
                     }
 
@@ -1256,6 +1297,19 @@ window.util = {
             return fs
         },
 
+        peer_from(flagStr) {
+            switch (true) {
+                case flagStr.includes("I"):
+                    return "Incoming";
+                case flagStr.includes("X"):
+                    return "PEX";
+                case flagStr.includes("H"):
+                    return "DHT";
+                default:
+                    return "Tracker";
+            }
+        },
+        
         peers(peers_, sorting) {
             if (!peers_?.length) 
                 return document.createElement("div"); 
@@ -1264,9 +1318,10 @@ window.util = {
 
             // peer fields
             const table_cols = [
-                "address", "client", "flags", "progress", "speedDw", "speedUp"
+                "address", "client", "flags", "from", "progress", "speedDw", "speedUp"
             ];
-            const locale_row = sorting.row === 0 || sorting.row === 1; // "address", "client"
+            const locale_row = 
+                sorting.row === 0 || sorting.row === 1 || sorting.row === 3; // "address", "client", "from"
 
             if (sorting.enabled) {
                 const dir = locale_row ^ sorting.reverse ? 1 : -1;
@@ -1282,13 +1337,16 @@ window.util = {
                         case 2: // flags
                             return (a.flagStr.length - b.flagStr.length) * dir;
 
-                        case 3: // progress
+                        case 3: // from
+                            return this.peer_from(a.flagStr).localeCompare(this.peer_from(b.flagStr)) * dir;
+
+                        case 4: // progress
                             return (a.progress - b.progress) * dir;
 
-                        case 4: // speedDw
+                        case 5: // speedDw
                             return (a.rateToClient - b.rateToClient) * dir;
 
-                        case 5: // speedUp
+                        case 6: // speedUp
                             return (a.rateToPeer - b.rateToPeer) * dir;
 
                         default:
@@ -1355,6 +1413,10 @@ window.util = {
 
                         case "flags":
                             cell.textContent = peer.flagStr || "";
+                            break;
+
+                        case "from":
+                            cell.textContent = this.peer_from(peer.flagStr);
                             break;
 
                         case "progress":

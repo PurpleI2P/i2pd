@@ -370,15 +370,16 @@ document.addEventListener("keydown", event => {
 	if (action && ids.length) {
 		event.preventDefault();
 		if (start)
-			util.rpc.torrent.start(ids)
+			util.rpc.torrent.start(ids);
 		else if (pause)
-			util.rpc.torrent.stop(ids)
-		else if (reannounce)
-			util.rpc.torrent.reannounce(ids)
-		else if (delete_files)
+			util.rpc.torrent.stop(ids);
+		else if (reannounce) {
+			util.rpc.torrent.reannounce(ids);
+			util.tr.deselect_all();
+		} else if (delete_files)
 			util.dialog.torrentRemove(ids, true);
 		else if (delete_)
-			util.dialog.torrentRemove(ids, false)
+			util.dialog.torrentRemove(ids, false);
 		refreshTable({ fetchTorrents: true });
 		return;
 	}
@@ -432,9 +433,9 @@ document.addEventListener("keydown", event => {
 
 		let idx = util.tr.all.idx(gl.selector);
 		if (up)
-			idx -= 1
+			idx--;
 		if (down) 
-			idx += 1
+			idx++;
 
 		if (!gl.torrents[idx])
 			return;
@@ -444,10 +445,10 @@ document.addEventListener("keydown", event => {
 
 		gl.selector = gl.torrents[idx].id
 
-		if (ctrl)
-			util.tr.toggle_id(gl.selector)
-		else if (shift)
+		if (shift)
 			util.tr.select_id(gl.selector)
+		else if (ctrl)
+			util.tr.toggle_id(gl.selector)
 
 		refreshTable({ fetchTorrents: false }); 
 
@@ -490,25 +491,27 @@ async function refreshTable({
 	if (!window.util)
 		return vis_exh('failed to load utils.js', "")
 
+	if (closeDetails)
+		gl.selector = 0
+
+	util.tr.mrproper();
+
 	if (fetchTorrents || !util.tr.all.count()) {
 		const r = await util.rpc.torrent.get();
 
 		if (r?.result !== "success")
 			return vis_exh('failed response', r)
 
+		if (!r.arguments.torrents.length) {
+			el.torrents.replaceChildren();
+			el.details.replaceChildren();
+			util.tr.deselect_all()
+			vis_exh();
+			return;
+		}
+
 		gl.torrents = r.arguments.torrents;
 	}
-
-	if (!util.tr.all.count()) {
-		el.torrents.replaceChildren();
-		vis_exh();
-		return;
-	}
-
-	util.tr.mrproper();
-
-	if (closeDetails)
-		gl.selector = 0
 
 	el.torrents.replaceChildren(
 		util.table.torrents(gl.torrents, gl.sort.torrents)
@@ -556,7 +559,7 @@ function openTorrentDetails(id) {
 
 	fs.append(
 		util.list.torrent(torrent),
-		util.bitfield.fs(torrent),
+		util.bitfield.torrent(torrent),
 		util.table.peers(torrent.peers, gl.sort.peers),
 		util.table.trackers(torrent.trackerStats, gl.sort.trackers),
 		util.table.files(torrent.files, gl.sort.files)
