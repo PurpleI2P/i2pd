@@ -585,7 +585,7 @@ namespace torrents
 		for (auto it: connections)
 			it->Close ();
 		// save bitfield and close files
-		boost::asio::post (GetDiskIOService (), [this, torrent]()
+		boost::asio::post (GetDiskIOService (), [torrent]()
 			{
 				for (auto it: torrent->GetFiles ())
 					it->Close ();
