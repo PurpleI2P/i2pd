@@ -16,6 +16,7 @@
 #include "Log.h"
 #include "Timestamp.h"
 #include "I2PEndian.h"
+#include "Base.h"
 #include "AddressBook.h"
 #include "ClientContext.h"
 #include "TorrentsTunnel.h"
@@ -388,16 +389,28 @@ namespace torrents
 				static constexpr std::string_view namePrefix { "dn=" };
 				if (param.starts_with (hashPrefix))
 				{
-					hexStr = param.substr (hashPrefix.size (), infoHash.size ()*2);
-					try
+					if (param.size () == hashPrefix.size () + infoHash.size ()*2)
 					{
-						boost::algorithm::unhex (hexStr.begin(), hexStr.end(), infoHash.begin());
+						// hex string
+						hexStr = param.substr (hashPrefix.size (), infoHash.size ()*2);
+						try
+						{
+							boost::algorithm::unhex (hexStr.begin(), hexStr.end(), infoHash.begin());
+							isInfoHashFound = true;
+						}
+						catch (std::exception& ex)
+						{
+							LogPrint (eLogInfo, "TorentsTunnel: Can't unhex magnet hash ", hexStr);
+						}
+					}
+					else if (i2p::data::Base32ToByteStream (param.substr (hashPrefix.size ()), infoHash.data (), infoHash.size ()) == infoHash.size ())
+					{
+						// base32 string
 						isInfoHashFound = true;
+						hexStr = infoHash.ToHexString ();
 					}
-					catch (std::exception& ex)
-					{
-						LogPrint (eLogInfo, "TorentsTunnel: Can't unhex magnet hash ", hexStr);
-					}
+					else
+						LogPrint (eLogInfo, "TorentsTunnel: Unexpected magnet param ", param);
 				}
 				else if (param.starts_with (trackerPrefix))
 					announce = i2p::http::UrlDecode (param.substr (trackerPrefix.size ()));
