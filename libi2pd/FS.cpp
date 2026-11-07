@@ -300,16 +300,16 @@ namespace fs {
 		root = path + i2p::fs::dirSep + name;
 	}
 
-	bool HashedStorage::Init(const char * chars, size_t count)
+	bool HashedStorage::Init(std::span<const char> chars)
 	{
 		try
 		{
 			if (!fs_lib::exists(root))
 				fs_lib::create_directories(root);
 
-			for (size_t i = 0; i < count; i++)
+			for (auto ch: chars)
 			{
-				auto p = root + i2p::fs::dirSep + prefix1 + chars[i];
+				auto p = root + i2p::fs::dirSep + prefix1 + ch;
 				if (fs_lib::exists(p))
 					continue;
 #if TARGET_OS_SIMULATOR

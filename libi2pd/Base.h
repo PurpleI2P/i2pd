@@ -12,6 +12,7 @@
 #include <inttypes.h>
 #include <string>
 #include <string_view>
+#include <span>
 #include <cstdlib>
 
 namespace i2p
@@ -21,8 +22,8 @@ namespace data
 	std::string ByteStreamToBase64 (const uint8_t * InBuffer, size_t InCount);
 	size_t Base64ToByteStream (std::string_view base64Str, uint8_t * OutBuffer, size_t len);
 
-	const char * GetBase32SubstitutionTable ();
-	const char * GetBase64SubstitutionTable ();
+	std::span<const char> GetBase32SubstitutionTable ();
+	std::span<const char> GetBase64SubstitutionTable ();
 	constexpr bool IsBase64 (char ch)
 	{
 		return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '-' || ch == '~';

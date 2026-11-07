@@ -13,6 +13,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <span>
 #include <functional>
 #include <filesystem>
 #include <inttypes.h>
@@ -27,8 +28,10 @@
 #	endif
 #endif
 
-namespace i2p {
-namespace fs {
+namespace i2p
+{
+namespace fs
+{
 	extern std::string dirSep;
 
 	/**
@@ -64,7 +67,7 @@ namespace fs {
 				name(n), prefix1(p1), prefix2(p2), suffix(s) {};
 
 			/** create subdirs in storage */
-			bool Init(const char* chars, size_t cnt);
+			bool Init(std::span<const char> chars);
 			const std::string & GetRoot() const { return root; }
 			const std::string & GetName() const { return name; }
 			/** set directory where to place storage directory */

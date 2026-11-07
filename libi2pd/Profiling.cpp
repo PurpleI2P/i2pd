@@ -304,7 +304,7 @@ namespace data
 	void InitProfilesStorage ()
 	{
 		g_ProfilesStorage.SetPlace(i2p::fs::GetDataDir());
-		g_ProfilesStorage.Init(i2p::data::GetBase64SubstitutionTable(), 64);
+		g_ProfilesStorage.Init(i2p::data::GetBase64SubstitutionTable());
 	}
 
 	static void SaveProfilesToDisk (std::list<std::pair<i2p::data::IdentHash, std::shared_ptr<RouterProfile> > >&& profiles)
