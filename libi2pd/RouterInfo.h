@@ -18,6 +18,7 @@
 #include <array>
 #include <iostream>
 #include <memory>
+#include <filesystem>
 #include <utility> // for C++20 with boost < 1.81
 #include <boost/asio.hpp>
 #ifndef __cpp_lib_atomic_shared_ptr
@@ -219,7 +220,7 @@ namespace data
 #else
 			typedef boost::shared_ptr<Addresses> AddressesPtr;
 #endif
-			RouterInfo (const std::string& fullPath);
+			RouterInfo (const std::filesystem::path& fullPath);
 			RouterInfo (const RouterInfo& ) = delete;
 			RouterInfo& operator=(const RouterInfo& ) = delete;
 			RouterInfo (std::shared_ptr<Buffer>&& buf, size_t len);
@@ -301,7 +302,7 @@ namespace data
 			void ExcludeReachableTransports (CompatibleTransports transports) { m_ReachableTransports &= ~transports; };
 
 			const uint8_t * GetBuffer () const { return m_Buffer ? m_Buffer->data () : nullptr; };
-			const uint8_t * LoadBuffer (const std::string& fullPath); // load if necessary
+			const uint8_t * LoadBuffer (const std::filesystem::path& fullPath); // load if necessary
 			size_t GetBufferLen () const { return m_Buffer ? m_Buffer->GetBufferLen () : 0; };
 			void DeleteBuffer () { m_Buffer = nullptr; m_IsBufferScheduledToDelete = false; };
 			std::shared_ptr<Buffer> GetSharedBuffer () const { return m_Buffer; };
@@ -312,8 +313,8 @@ namespace data
 
 			bool IsUpdated () const { return m_IsUpdated; };
 			void SetUpdated (bool updated) { m_IsUpdated = updated; };
-			bool SaveToFile (const std::string& fullPath);
-			static bool SaveToFile (const std::string& fullPath, std::shared_ptr<Buffer> buf);
+			bool SaveToFile (const std::filesystem::path& fullPath);
+			static bool SaveToFile (const std::filesystem::path& fullPath, std::shared_ptr<Buffer> buf);
 
 			std::shared_ptr<RouterProfile> GetProfile () const;
 			void DropProfile () { m_Profile = nullptr; };
@@ -345,8 +346,8 @@ namespace data
 
 		private:
 
-			bool LoadFile (const std::string& fullPath);
-			void ReadFromFile (const std::string& fullPath);
+			bool LoadFile (const std::filesystem::path& fullPath);
+			void ReadFromFile (const std::filesystem::path& fullPath);
 			bool ReadFromBuffer (const uint8_t * buf, size_t len); // return false if malformed
 			void ReadFromBuffer (bool verifySignature);
 			std::string_view ExtractString (const uint8_t * buf, size_t len) const;

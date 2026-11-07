@@ -44,7 +44,7 @@ namespace data
 		m_Addresses = AddressesPtr(new Addresses ()); // create empty list
 	}
 
-	RouterInfo::RouterInfo (const std::string& fullPath):
+	RouterInfo::RouterInfo (const std::filesystem::path& fullPath):
 		m_FamilyID (0), m_IsUpdated (false), m_IsUnreachable (false), m_IsFloodfill (false),
 		m_IsBufferScheduledToDelete (false), m_SupportedTransports (0),
 		m_ReachableTransports (0), m_PublishedTransports (0), m_Caps (0), m_Version (0),
@@ -126,7 +126,7 @@ namespace data
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch ();
 	}
 
-	bool RouterInfo::LoadFile (const std::string& fullPath)
+	bool RouterInfo::LoadFile (const std::filesystem::path& fullPath)
 	{
 		std::ifstream s(fullPath, std::ifstream::binary);
 		if (s.is_open ())
@@ -152,7 +152,7 @@ namespace data
 		return true;
 	}
 
-	void RouterInfo::ReadFromFile (const std::string& fullPath)
+	void RouterInfo::ReadFromFile (const std::filesystem::path& fullPath)
 	{
 		if (LoadFile (fullPath))
 			ReadFromBuffer (false);
@@ -606,7 +606,7 @@ namespace data
 		return bufbe64toh (buf + size) > m_Timestamp;
 	}
 
-	const uint8_t * RouterInfo::LoadBuffer (const std::string& fullPath)
+	const uint8_t * RouterInfo::LoadBuffer (const std::filesystem::path& fullPath)
 	{
 		if (!m_Buffer)
 		{
@@ -618,7 +618,7 @@ namespace data
 		return m_Buffer->data ();
 	}
 
-	bool RouterInfo::SaveToFile (const std::string& fullPath, std::shared_ptr<Buffer> buf)
+	bool RouterInfo::SaveToFile (const std::filesystem::path& fullPath, std::shared_ptr<Buffer> buf)
 	{
 		if (!buf) return false;
 		std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
@@ -631,7 +631,7 @@ namespace data
 		return true;
 	}
 
-	bool RouterInfo::SaveToFile (const std::string& fullPath)
+	bool RouterInfo::SaveToFile (const std::filesystem::path& fullPath)
 	{
 		if (m_IsUnreachable) return false; // don't save bad router
 		if (!m_Buffer)
