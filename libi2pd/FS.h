@@ -50,36 +50,36 @@ namespace fs
 	 * std::vector<std::string> files;
 	 * h.Traverse(files);   <- finds all files in storage and saves in given vector
 	 */
-	class HashedStorage
+	class HashedStorage final
 	{
-		protected:
-
-			std::string root;    /**< path to storage with it's name included */
-			std::string name;    /**< name of the storage */
-			std::string prefix1; /**< hashed directory prefix */
-			std::string prefix2; /**< prefix of file in storage */
-			std::string suffix;  /**< suffix of file in storage (extension) */
-
 		public:
 
-			typedef std::function<void(const std::string &)> FilenameVisitor;
-			HashedStorage(const char *n, const char *p1, const char *p2, const char *s):
+			using FilenameVisitor = std::function<void(const std::filesystem::path& )>;
+			HashedStorage(const std::filesystem::path& n, std::string_view p1, std::string_view p2, std::string_view s):
 				name(n), prefix1(p1), prefix2(p2), suffix(s) {};
 
 			/** create subdirs in storage */
 			bool Init(std::span<const char> chars);
-			const std::string & GetRoot() const { return root; }
-			const std::string & GetName() const { return name; }
+			const std::filesystem::path& GetRoot() const { return root; }
+			const std::filesystem::path& GetName() const { return name; }
 			/** set directory where to place storage directory */
-			void SetPlace(const std::string & path);
+			void SetPlace (const std::filesystem::path& p);
 			/** path to file with given ident */
-			std::string Path(const std::string & ident) const;
+			std::filesystem::path Path(const std::string& ident) const;
 			/** remove file by ident */
-			void Remove(const std::string & ident);
-			/** find all files in storage and store list in provided vector */
-			void Traverse(std::vector<std::string> & files);
+			void Remove(const std::string& ident);
+			/** find all files in storage and return  */
+			std::vector<std::filesystem::path> Traverse ();
 			/** visit every file in this storage with a visitor */
 			void Iterate(FilenameVisitor v);
+
+		private:
+
+			std::filesystem::path root;    /**< path to storage with it's name included */
+			std::filesystem::path name;    /**< name of the storage */
+			std::string prefix1; /**< hashed directory prefix */
+			std::string prefix2; /**< prefix of file in storage */
+			std::string suffix;  /**< suffix of file in storage (extension) */
 	};
 
 	/** @brief Returns current application name, default 'i2pd' */
@@ -186,13 +186,9 @@ namespace fs
 	}
 
 	template<typename Storage, typename... Filename>
-	std::string StorageRootPath (const Storage& storage, Filename... filenames)
+	std::filesystem::path StorageRootPath (const Storage& storage, Filename... filenames)
 	{
-		std::stringstream s("");
-		s << storage.GetRoot ();
-		_ExpandPath(s, filenames...);
-
-		return s.str();
+		return storage.GetRoot ()/(filenames/...);
 	}
 
 } // fs

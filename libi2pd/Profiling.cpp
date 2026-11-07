@@ -353,9 +353,7 @@ namespace data
 
 	static void DeleteFilesFromDisk ()
 	{
-		std::vector<std::string> files;
-		g_ProfilesStorage.Traverse(files);
-
+		auto files = g_ProfilesStorage.Traverse ();
 		struct stat st;
 		std::time_t now = std::time(nullptr);
 		for (const auto& path: files)

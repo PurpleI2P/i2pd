@@ -531,9 +531,9 @@ namespace data
 		i2p::transport::transports.SendMessages(ih, std::move (requests));
 	}
 
-	bool NetDb::LoadRouterInfo (const std::string& path, uint64_t ts)
+	bool NetDb::LoadRouterInfo (const std::filesystem::path& p, uint64_t ts)
 	{
-		auto r = std::make_shared<RouterInfo>(path);
+		auto r = std::make_shared<RouterInfo>(p);
 		if (r->GetRouterIdentity () && !r->IsUnreachable () && r->HasValidAddresses () &&
 			ts < r->GetTimestamp () + 24*60*60*NETDB_MAX_OFFLINE_EXPIRATION_TIMEOUT*1000LL && // too old
 			(r->GetVersion () >= NETDB_MIN_ALLOWED_VERSION || r->IsHighBandwidth ())) // old version
@@ -547,8 +547,8 @@ namespace data
 		}
 		else
 		{
-			LogPrint(eLogWarning, "NetDb: RI from ", path, " is invalid or too old. Delete");
-			i2p::fs::Remove(path);
+			LogPrint(eLogWarning, "NetDb: RI from ", p, " is invalid or too old. Delete");
+			i2p::fs::Remove(p);
 		}
 		return true;
 	}
@@ -562,7 +562,7 @@ namespace data
 
 	void NetDb::VisitStoredRouterInfos(RouterInfoVisitor v)
 	{
-		m_Storage.Iterate([v] (const std::string & filename)
+		m_Storage.Iterate([v] (const std::filesystem::path& filename)
 		{
 			auto ri = std::make_shared<i2p::data::RouterInfo>(filename);
 				v(ri);
@@ -629,8 +629,7 @@ namespace data
 		m_Floodfills.Clear ();
 
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
-		std::vector<std::string> files;
-		m_Storage.Traverse(files);
+		auto files = m_Storage.Traverse ();
 		for (const auto& path : files)
 			LoadRouterInfo (path, ts);
 

@@ -13,6 +13,7 @@
 #include <fstream>
 #include <chrono>
 #include <future>
+#include <filesystem>
 #include <openssl/rand.h>
 #include <boost/algorithm/string.hpp>
 #include "Base.h"
@@ -28,13 +29,6 @@
 #include "BoostStream.h"
 #include "AddressBook.h"
 
-#if STD_FILESYSTEM
-#include <filesystem>
-namespace fs_lib = std::filesystem;
-#else
-#include <boost/filesystem.hpp>
-namespace fs_lib = boost::filesystem;
-#endif
 
 namespace i2p
 {
@@ -67,12 +61,12 @@ namespace client
 
 		private:
 
-			int LoadFromFile (const std::string& filename, Addresses& addresses); // returns -1 if can't open file, otherwise number of records
+			int LoadFromFile (const std::filesystem::path& filename, Addresses& addresses); // returns -1 if can't open file, otherwise number of records
 
 		private:
 
 			i2p::fs::HashedStorage storage;
-			std::string etagsPath, indexPath, localPath;
+			std::filesystem::path etagsPath, indexPath, localPath;
 			bool m_IsPersist = false;
 			std::string m_HostsFile; // file to dump hosts.txt, empty if not used
 			std::unordered_map<i2p::data::IdentHash, std::pair<std::vector<uint8_t>, uint64_t> > m_FullAddressCache; // ident hash -> (full ident buffer, last access timestamp)
@@ -182,7 +176,7 @@ namespace client
 		storage.Remove( ident.ToBase32() );
 	}
 
-	int AddressBookFilesystemStorage::LoadFromFile (const std::string& filename, Addresses& addresses)
+	int AddressBookFilesystemStorage::LoadFromFile (const std::filesystem::path& filename, Addresses& addresses)
 	{
 		int num = 0;
 		std::ifstream f (filename, std::ifstream::in); // in text mode
@@ -290,7 +284,7 @@ namespace client
 
 	void AddressBookFilesystemStorage::SaveEtag (const i2p::data::IdentHash& subscription, const std::string& etag, const std::string& lastModified)
 	{
-		std::string fname = etagsPath + i2p::fs::dirSep + subscription.ToBase32 () + ".txt";
+		auto fname = etagsPath/(subscription.ToBase32 () + ".txt");
 		std::ofstream f (fname, std::ofstream::out | std::ofstream::trunc);
 		if (f)
 		{
@@ -301,7 +295,7 @@ namespace client
 
 	bool AddressBookFilesystemStorage::GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified)
 	{
-		std::string fname = etagsPath + i2p::fs::dirSep + subscription.ToBase32 () + ".txt";
+		auto fname = etagsPath/(subscription.ToBase32 () + ".txt");
 		std::ifstream f (fname, std::ofstream::in);
 		if (!f || f.eof ()) return false;
 		std::getline (f, etag);
@@ -313,11 +307,11 @@ namespace client
 	void AddressBookFilesystemStorage::ResetEtags ()
 	{
 		LogPrint (eLogError, "Addressbook: Resetting eTags");
-		for (fs_lib::directory_iterator it (etagsPath); it != fs_lib::directory_iterator (); ++it)
+		for (std::filesystem::directory_iterator it (etagsPath); it != std::filesystem::directory_iterator (); ++it)
 		{
-			if (!fs_lib::is_regular_file (it->status ()))
+			if (!std::filesystem::is_regular_file (it->status ()))
 				continue;
-			fs_lib::remove (it->path ());
+			std::filesystem::remove (it->path ());
 		}
 	}
 

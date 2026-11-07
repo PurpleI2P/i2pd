@@ -296,36 +296,38 @@ namespace fs {
 		return path;
 	}
 
-	void HashedStorage::SetPlace(const std::string &path) {
-		root = path + i2p::fs::dirSep + name;
+	void HashedStorage::SetPlace (const std::filesystem::path& p)
+	{
+		root = p/name;
 	}
 
 	bool HashedStorage::Init(std::span<const char> chars)
 	{
 		try
 		{
-			if (!fs_lib::exists(root))
-				fs_lib::create_directories(root);
+			if (!std::filesystem::exists (root))
+				std::filesystem::create_directories(root);
 
 			for (auto ch: chars)
 			{
-				auto p = root + i2p::fs::dirSep + prefix1 + ch;
-				if (fs_lib::exists(p))
+				auto p = root/(prefix1 + ch);
+				if (std::filesystem::exists(p))
 					continue;
 #if TARGET_OS_SIMULATOR
 				// ios simulator fs says it is case sensitive, but it is not
-				boost::system::error_code ec;
-				if (fs_lib::create_directory(p, ec))
+				std::error_code ec;
+				if (std::filesystem::create_directory(p, ec))
 					continue;
-				switch (ec.value()) {
-					case boost::system::errc::file_exists:
-					case boost::system::errc::success:
+				switch (ec.value())
+				{
+					case std::errc::file_exists:
+					case std::errc::success:
 						continue;
 					default:
-						throw boost::system::system_error( ec, __func__ );
+						throw std::system_error( ec, __func__ );
 				}
 #else
-				if (fs_lib::create_directory(p))
+				if (std::filesystem::create_directory(p))
 					continue; /* ^ throws exception on failure */
 #endif
 				return false;
@@ -340,43 +342,43 @@ namespace fs {
 		return true;
 	}
 
-	std::string HashedStorage::Path(const std::string & ident) const {
+	std::filesystem::path HashedStorage::Path(const std::string& ident) const
+	{
 		std::string safe_ident = ident;
 		std::replace(safe_ident.begin(), safe_ident.end(), '/',	'-');
 		std::replace(safe_ident.begin(), safe_ident.end(), '\\', '-');
 
-		std::stringstream t("");
-		t << this->root << i2p::fs::dirSep;
-		t << prefix1 << safe_ident[0] << i2p::fs::dirSep;
-		t << prefix2 << safe_ident    << "." << suffix;
-
-		return t.str();
+		return root/(prefix1 + safe_ident[0])/(prefix2 + safe_ident + "." + suffix);
 	}
 
-	void HashedStorage::Remove(const std::string & ident) {
-		std::string path = Path(ident);
-		if (!fs_lib::exists(path))
+	void HashedStorage::Remove(const std::string& ident)
+	{
+		auto p = Path (ident);
+		if (!std::filesystem::exists(p))
 			return;
-		fs_lib::remove(path);
+		std::filesystem::remove(p);
 	}
 
-	void HashedStorage::Traverse(std::vector<std::string> & files) {
-		Iterate([&files] (const std::string & fname) {
-			files.push_back(fname);
-		});
+	std::vector<std::filesystem::path> HashedStorage::Traverse ()
+	{
+		std::vector<std::filesystem::path> files;
+		Iterate([&files] (const std::filesystem::path& p)
+			{
+				files.push_back (p);
+			});
+		return files;
 	}
 
 	void HashedStorage::Iterate(FilenameVisitor v)
 	{
-		fs_lib::path p(root);
-		fs_lib::recursive_directory_iterator it(p);
-		fs_lib::recursive_directory_iterator end;
+		std::filesystem::recursive_directory_iterator it (root);
+		std::filesystem::recursive_directory_iterator end;
 
-		for ( ; it != end; it++) {
-			if (!fs_lib::is_regular_file( it->status() ))
+		for ( ; it != end; it++)
+		{
+			if (!std::filesystem::is_regular_file (it->status()))
 				continue;
-			const std::string & t = it->path().string();
-			v(t);
+			v(it->path ());
 		}
 	}
 } // fs
