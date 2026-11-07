@@ -72,7 +72,7 @@ namespace data
 
 		// save to file
 		std::string ident = identHash.ToBase64 ();
-		std::string path = g_ProfilesStorage.Path(ident);
+		std::string path = g_ProfilesStorage.Path(ident).string ();
 
 		try
 		{
@@ -89,7 +89,7 @@ namespace data
 	{
 		m_IsUpdated = false;
 		std::string ident = identHash.ToBase64 ();
-		std::string path = g_ProfilesStorage.Path(ident);
+		std::string path = g_ProfilesStorage.Path(ident).string ();
 		boost::property_tree::ptree pt;
 
 		if (!i2p::fs::Exists(path))
@@ -358,7 +358,7 @@ namespace data
 		std::time_t now = std::time(nullptr);
 		for (const auto& path: files)
 		{
-			if (stat(path.c_str(), &st) != 0)
+			if (stat(path.string ().c_str(), &st) != 0)
 			{
 				LogPrint(eLogWarning, "Profiling: Can't stat(): ", path);
 				continue;
@@ -366,7 +366,7 @@ namespace data
 			if (now - st.st_mtime >= PEER_PROFILE_EXPIRATION_TIMEOUT)
 			{
 				LogPrint(eLogDebug, "Profiling: Removing expired peer profile: ", path);
-				i2p::fs::Remove(path);
+				i2p::fs::Remove(path.string ());
 			}
 		}
 	}

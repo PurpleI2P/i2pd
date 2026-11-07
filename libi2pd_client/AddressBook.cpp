@@ -81,8 +81,8 @@ namespace client
 		{
 			// init ETags
 			etagsPath = i2p::fs::StorageRootPath (storage, "etags");
-			if (!i2p::fs::Exists (etagsPath))
-				i2p::fs::CreateDirectory (etagsPath);
+			if (!i2p::fs::Exists (etagsPath.string ()))
+				i2p::fs::CreateDirectory (etagsPath.string ());
 			// init address files
 			indexPath = i2p::fs::StorageRootPath (storage, "addresses.csv");
 			localPath = i2p::fs::StorageRootPath (storage, "local.csv");
@@ -109,7 +109,7 @@ namespace client
 			LogPrint(eLogDebug, "Addressbook: Persistence is disabled");
 			return nullptr;
 		}
-		std::string filename = storage.Path(ident.ToBase32());
+		auto filename = storage.Path(ident.ToBase32());
 		std::ifstream f(filename, std::ifstream::binary);
 		if (!f.is_open ())
 		{
@@ -155,7 +155,7 @@ namespace client
 		}
 		if (m_IsPersist && !buf.empty ())
 		{
-			std::string path = storage.Path(address->GetIdentHash().ToBase32());
+			auto path = storage.Path(address->GetIdentHash().ToBase32());
 			std::ofstream f (path, std::ofstream::binary | std::ofstream::out);
 			if (!f.is_open ())
 			{
