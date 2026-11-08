@@ -49,7 +49,7 @@ namespace http {
 	static void LoadExtCSS (std::string fileName = "style")
 	{
 		std::stringstream s;
-		std::string styleFile = i2p::fs::DataDirPath ("webconsole/"+fileName+".css");
+		std::string styleFile = i2p::fs::DataDirPath ("webconsole/"+fileName+".css").string ();
 		if (i2p::fs::Exists(styleFile)) {
 			std::ifstream f(styleFile, std::ifstream::binary);
 			s << f.rdbuf();

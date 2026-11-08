@@ -93,11 +93,11 @@ namespace util
 		i2p::fs::DetectDataDir(datadir, IsService());
 		i2p::fs::Init();
 
-		datadir = i2p::fs::GetDataDir();
+		datadir = i2p::fs::GetDataDir().string ();
 
 		if (config == "")
 		{
-			config = i2p::fs::DataDirPath("i2pd.conf");
+			config = i2p::fs::DataDirPath("i2pd.conf").string ();
 			if (!i2p::fs::Exists (config)) {
 				// use i2pd.conf only if exists
 				config = ""; /* reset */
@@ -134,7 +134,7 @@ namespace util
 				for(auto r : rules)
 					out << r << " ";
 				pledge(out.str().c_str(), nullptr);
-			}		
+			}
 
 
 		};
@@ -170,7 +170,7 @@ namespace util
 			}
 			i2p::config::GetOption("reseed.file", reseed_file);
 			i2p::config::GetOption("openbsd.pledge_file", openbsd_pledge_file);
-			i2p::config::GetOption("tunconf", tunconf); 
+			i2p::config::GetOption("tunconf", tunconf);
 			if(tunconf == "")
 			{
 				tunconf = datadir+"/tunnels.conf";
@@ -179,7 +179,7 @@ namespace util
 			{
 				config = datadir+"/i2pd.conf";
 			}
-			i2p::config::GetOption("pidfile", pidfile); 
+			i2p::config::GetOption("pidfile", pidfile);
 			if(pidfile == "")
 			{
 				pidfile = datadir+"/i2pd.pid";
@@ -265,7 +265,7 @@ namespace util
 		std::string certsdir; i2p::config::GetOption("certsdir", certsdir);
 		i2p::fs::SetCertsDir(certsdir);
 
-		certsdir = i2p::fs::GetCertsDir();
+		certsdir = i2p::fs::GetCertsDir().string ();
 
 		std::string logs     = ""; i2p::config::GetOption("log",        logs);
 		std::string logfile  = ""; i2p::config::GetOption("logfile",    logfile);
@@ -290,7 +290,7 @@ namespace util
 			i2p::log::Logger().SendTo (logstream);
 		} else if (logs == "file") {
 			if (logfile == "")
-				logfile = i2p::fs::DataDirPath("i2pd.log");
+				logfile = i2p::fs::DataDirPath("i2pd.log").string ();
 			LogPrint(eLogInfo, "Log: Sending messages to ", logfile);
 			i2p::log::Logger().SendTo (logfile);
 #ifndef _WIN32

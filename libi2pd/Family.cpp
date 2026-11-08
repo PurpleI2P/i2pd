@@ -81,7 +81,7 @@ namespace data
 
 	void Families::LoadCertificates ()
 	{
-		std::string certDir = i2p::fs::GetCertsDir() + i2p::fs::dirSep + "family";
+		auto certDir = i2p::fs::GetCertsDir()/"family";
 
 		std::vector<std::filesystem::path> files;
 		int numCertificates = 0;
@@ -154,7 +154,7 @@ namespace data
 		auto filename = i2p::fs::DataDirPath("family", (family + ".key"));
 		std::string sig;
 		SSL_CTX * ctx = SSL_CTX_new (TLS_method ());
-		int ret = SSL_CTX_use_PrivateKey_file (ctx, filename.c_str (), SSL_FILETYPE_PEM);
+		int ret = SSL_CTX_use_PrivateKey_file (ctx, filename.string().c_str (), SSL_FILETYPE_PEM);
 		if (ret)
 		{
 			SSL * ssl = SSL_new (ctx);

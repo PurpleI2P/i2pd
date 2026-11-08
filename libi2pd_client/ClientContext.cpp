@@ -297,7 +297,7 @@ namespace client
 		}
 
 		bool success = true;
-		std::string fullPath = i2p::fs::DataDirPath (filename);
+		auto fullPath = i2p::fs::DataDirPath (filename);
 		std::ifstream s(fullPath, std::ifstream::binary);
 		if (s.is_open ())
 		{
@@ -593,7 +593,7 @@ namespace client
 		int numClientTunnels = 0, numServerTunnels = 0;
 		std::string tunConf; i2p::config::GetOption("tunconf", tunConf);
 		if (tunConf.empty ())
-			tunConf = i2p::fs::DataDirPath ("tunnels.conf");
+			tunConf = i2p::fs::DataDirPath ("tunnels.conf").string ();
 
 		if (i2p::fs::Exists (tunConf))
 		{
@@ -603,7 +603,7 @@ namespace client
 
 		std::string tunDir; i2p::config::GetOption("tunnelsdir", tunDir);
 		if (tunDir.empty ())
-			tunDir = i2p::fs::DataDirPath ("tunnels.d");
+			tunDir = i2p::fs::DataDirPath ("tunnels.d").string ();
 
 		if (i2p::fs::Exists (tunDir))
 		{

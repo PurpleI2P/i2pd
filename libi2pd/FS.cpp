@@ -33,37 +33,37 @@ namespace i2p
 namespace fs
 {
 	std::string appName = "i2pd";
-	std::string dataDir = "";
-	std::string certsDir = "";
-#ifdef _WIN32
-	std::string dirSep = "\\";
-#else
-	std::string dirSep = "/";
-#endif
+	std::filesystem::path dataDir = "";
+	std::filesystem::path certsDir = "";
 
-	const std::string & GetAppName () {
+	const std::string & GetAppName ()
+	{
 		return appName;
 	}
 
-	void SetAppName (const std::string& name) {
+	void SetAppName (const std::string& name)
+	{
 		appName = name;
 	}
 
-	const std::string & GetDataDir () {
+	const std::filesystem::path& GetDataDir ()
+	{
 		return dataDir;
 	}
 
-	const std::string & GetCertsDir () {
+	const std::filesystem::path& GetCertsDir ()
+	{
 		return certsDir;
 	}
 
 	const std::string GetUTF8DataDir () {
 #ifdef _WIN32
+		std::string str = dataDir.string ();
 		int size = MultiByteToWideChar(CP_ACP, 0,
-			dataDir.c_str(), dataDir.size(), nullptr, 0);
+			str.c_str(), str.size(), nullptr, 0);
 		std::wstring utf16Str(size, L'\0');
 		MultiByteToWideChar(CP_ACP, 0,
-			dataDir.c_str(), dataDir.size(), &utf16Str[0], size);
+			str.c_str(), str.size(), &utf16Str[0], size);
 		int utf8Size = WideCharToMultiByte(CP_UTF8, 0,
 			utf16Str.c_str(), utf16Str.size(), nullptr, 0, nullptr, nullptr);
 		std::string utf8Str(utf8Size, '\0');
@@ -71,13 +71,15 @@ namespace fs
 			utf16Str.c_str(), utf16Str.size(), &utf8Str[0], utf8Size, nullptr, nullptr);
 		return utf8Str;
 #else
-		return dataDir; // linux, osx, android uses UTF-8 by default
+		return dataDir.string (); // linux, osx, android uses UTF-8 by default
 #endif
 	}
 
-	void DetectDataDir(const std::string & cmdline_param, bool isService) {
+	void DetectDataDir(const std::string & cmdline_param, bool isService)
+	{
 		// with 'datadir' option
-		if (cmdline_param != "") {
+		if (cmdline_param != "")
+		{
 			dataDir = cmdline_param;
 			return;
 		}
@@ -97,9 +99,9 @@ namespace fs
 				exit(1);
 			}
 			else
-				dataDir = (std::filesystem::path(commonAppData)/appName).string ();
+				dataDir = std::filesystem::path(commonAppData)/appName;
 #else
-			dataDir = "/var/lib/" + appName;
+			dataDir = std::filesystem::path ("/var/lib")/appName;
 #endif
 			return;
 		}
@@ -125,7 +127,7 @@ namespace fs
 
 			// if config file exists in .exe's folder use it
 			if(std::filesystem::exists(execPath/"i2pd.conf")) // TODO: magic string
-				dataDir = execPath.string ();
+				dataDir = execPath;
 			else // otherwise %appdata%
 			{
 				if(SHGetFolderPathW(NULL, CSIDL_APPDATA, NULL, 0, localAppData) != S_OK)
@@ -138,21 +140,21 @@ namespace fs
 					exit(1);
 				}
 				else
-					dataDir = (std::filesystem::path(localAppData)/appName).string();
+					dataDir = std::filesystem::path(localAppData)/appName;
 			}
 		}
 		return;
 #elif defined(MAC_OSX)
 		char *home = getenv("HOME");
 		dataDir = (home != NULL && strlen(home) > 0) ? home : "";
-		dataDir += "/Library/Application Support/" + appName;
+		dataDir /= "/Library/Application Support"/appName;
 		return;
 #elif defined(__HAIKU__)
 		char home[PATH_MAX]; // /boot/home/config/settings
 		if (find_directory(B_USER_SETTINGS_DIRECTORY, -1, false, home, PATH_MAX) == B_OK)
-			dataDir = std::string(home) + "/" + appName;
+			dataDir = std::filesystem::path(home)/appName;
 		else
-			dataDir = "/tmp/" + appName;
+			dataDir = std::filesystem::path("/tmp")/appName;
 		return;
 #else /* other unix */
 #if defined(ANDROID)
@@ -160,22 +162,22 @@ namespace fs
 		if (!ext) ext = "/sdcard";
 		if (std::filesystem::exists(ext))
 		{
-			dataDir = std::string (ext) + "/" + appName;
+			dataDir = std::filesystem::path (ext)/appName;
 			return;
 		}
 #endif // ANDROID
 		// use /home/user/.i2pd or /tmp/i2pd
 		char *home = getenv("HOME");
-		if (home != NULL && strlen(home) > 0) {
-			dataDir = std::string(home) + "/." + appName;
-		} else {
-			dataDir = "/tmp/" + appName;
-		}
+		if (home != NULL && strlen(home) > 0)
+			dataDir = std::filesystem::path(home)/(std::string (".") + appName);
+		else
+			dataDir = std::filesystem::path("/tmp")/appName;
 		return;
 #endif
 	}
 
-	void SetCertsDir(const std::string & cmdline_certsdir) {
+	void SetCertsDir(const std::string& cmdline_certsdir)
+	{
 		if (cmdline_certsdir != "")
 		{
 			if (cmdline_certsdir[cmdline_certsdir.length()-1] == '/')
@@ -184,21 +186,20 @@ namespace fs
 				certsDir = cmdline_certsdir;
 		}
 		else
-		{
 			certsDir = i2p::fs::DataDirPath("certificates");
-		}
 		return;
 	}
 
-	bool Init() {
+	bool Init()
+	{
 		if (!std::filesystem::exists(dataDir))
 			std::filesystem::create_directory(dataDir);
 
-		std::string destinations = DataDirPath("destinations");
+		auto destinations = DataDirPath("destinations");
 		if (!std::filesystem::exists(destinations))
 			std::filesystem::create_directory(destinations);
 
-		std::string tags = DataDirPath("tags");
+		auto tags = DataDirPath("tags");
 		if (!std::filesystem::exists(tags))
 			std::filesystem::create_directory(tags);
 		else

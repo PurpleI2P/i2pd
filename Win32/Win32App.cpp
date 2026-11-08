@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2025, The PurpleI2P Project
+* Copyright (c) 2013-2026, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -203,7 +203,7 @@ namespace win32
 					}
 					case ID_DATADIR:
 					{
-						std::string datadir(i2p::fs::GetDataDir());
+						std::string datadir(i2p::fs::GetDataDir().string ());
 						ShellExecute(NULL, "explore", datadir.c_str(), NULL, NULL, SW_SHOWNORMAL);
 						return 0;
 					}

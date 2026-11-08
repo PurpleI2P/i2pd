@@ -589,7 +589,7 @@ namespace data
 
 	void Reseeder::LoadCertificates ()
 	{
-		std::string certDir = i2p::fs::GetCertsDir() + i2p::fs::dirSep + "reseed";
+		auto certDir = i2p::fs::GetCertsDir()/"reseed";
 
 		std::vector<std::filesystem::path> files;
 		int numCertificates = 0;

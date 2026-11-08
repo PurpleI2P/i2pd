@@ -22,8 +22,6 @@ namespace i2p
 {
 namespace fs
 {
-	extern std::string dirSep;
-
 	/**
 	 * @brief Class to work with NetDb & Router profiles
 	 *
@@ -78,10 +76,10 @@ namespace fs
 	void SetAppName (const std::string& name);
 
 	/** @brief Returns datadir path */
-	const std::string & GetDataDir();
+	const std::filesystem::path& GetDataDir();
 
 	/** @brief Returns certsdir path */
-	const std::string & GetCertsDir();
+	const std::filesystem::path& GetCertsDir();
 
 	/** @brief Returns datadir path in UTF-8 encoding */
 	const std::string GetUTF8DataDir();
@@ -147,17 +145,6 @@ namespace fs
 	bool CreateDirectory (const std::string& path);
 	std::filesystem::path CreatePrivateFile (const std::filesystem::path& path);
 
-	template<typename T>
-	void _ExpandPath(std::stringstream & path, T c) {
-		path << i2p::fs::dirSep << c;
-	}
-
-	template<typename T, typename ... Other>
-	void _ExpandPath(std::stringstream & path, T c, Other ... other) {
-		_ExpandPath(path, c);
-		_ExpandPath(path, other ...);
-	}
-
 	/**
 	 * @brief Get path relative to datadir
 	 *
@@ -167,12 +154,9 @@ namespace fs
 	 * i2p::fs::Path("test", "file.txt") -> '/tmp/i2pd/test/file.txt'
 	 */
 	template<typename ... Other>
-	std::string DataDirPath(Other ... components) {
-		std::stringstream s("");
-		s << i2p::fs::GetDataDir();
-		_ExpandPath(s, components ...);
-
-		return s.str();
+	std::filesystem::path DataDirPath(Other ... components)
+	{
+		return (i2p::fs::GetDataDir()/.../components);
 	}
 
 	template<typename Storage, typename... Filename>
