@@ -98,10 +98,9 @@ namespace util
 		if (config == "")
 		{
 			config = i2p::fs::DataDirPath("i2pd.conf").string ();
-			if (!i2p::fs::Exists (config)) {
+			if (!std::filesystem::exists (config))
 				// use i2pd.conf only if exists
 				config = ""; /* reset */
-			}
 		}
 
 		i2p::config::ParseConfig(config);

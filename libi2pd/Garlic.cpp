@@ -975,7 +975,7 @@ namespace garlic
 		std::string ident = GetIdentHash().ToBase32();
 		auto path  = i2p::fs::DataDirPath("tags", (ident + ".tags"));
 		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-		if (ts < i2p::fs::GetLastUpdateTime (path.string ()) + INCOMING_TAGS_EXPIRATION_TIMEOUT)
+		if (ts < i2p::fs::GetLastUpdateTime (path) + INCOMING_TAGS_EXPIRATION_TIMEOUT)
 		{
 			// might contain non-expired tags
 			std::ifstream f (path, std::ifstream::binary);
@@ -1009,7 +1009,7 @@ namespace garlic
 					LogPrint (eLogInfo, "Garlic: ", m_Tags.size (), " tags loaded for ", ident);
 			}
 		}
-		i2p::fs::Remove (path.string ());
+		i2p::fs::Remove (path);
 	}
 
 	void CleanUpTagsFiles ()
@@ -1018,8 +1018,8 @@ namespace garlic
 		i2p::fs::ReadDir (i2p::fs::DataDirPath("tags"), files);
 		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 		for (auto it: files)
-			if (ts >= i2p::fs::GetLastUpdateTime (it.string ()) + INCOMING_TAGS_EXPIRATION_TIMEOUT)
-				i2p::fs::Remove (it.string ());
+			if (ts >= i2p::fs::GetLastUpdateTime (it) + INCOMING_TAGS_EXPIRATION_TIMEOUT)
+				i2p::fs::Remove (it);
 	}
 
 	void GarlicDestination::HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len,

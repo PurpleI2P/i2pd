@@ -595,7 +595,7 @@ namespace client
 		if (tunConf.empty ())
 			tunConf = i2p::fs::DataDirPath ("tunnels.conf").string ();
 
-		if (i2p::fs::Exists (tunConf))
+		if (std::filesystem::exists (tunConf))
 		{
             LogPrint(eLogDebug, "Clients: Tunnels config file: ", tunConf);
             ReadTunnels (tunConf, numClientTunnels, numServerTunnels);
@@ -605,7 +605,7 @@ namespace client
 		if (tunDir.empty ())
 			tunDir = i2p::fs::DataDirPath ("tunnels.d").string ();
 
-		if (i2p::fs::Exists (tunDir))
+		if (std::filesystem::exists (tunDir))
 		{
 			std::vector<std::filesystem::path> files;
 			if (i2p::fs::ReadDir (tunDir, files))

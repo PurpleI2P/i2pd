@@ -225,11 +225,7 @@ namespace fs
 		return true;
 	}
 
-	bool Exists(const std::string & path) {
-		return std::filesystem::exists(path);
-	}
-
-	uint32_t GetLastUpdateTime (const std::string & path)
+	uint32_t GetLastUpdateTime (const std::filesystem::path& path)
 	{
 		if (!std::filesystem::exists(path))
 			return 0;
@@ -246,7 +242,7 @@ namespace fs
 		return std::chrono::system_clock::to_time_t(sctp);
 	}
 
-	bool Remove(const std::string & path)
+	bool Remove(const std::filesystem::path& path)
 	{
 		if (!std::filesystem::exists(path))
 			return false;
@@ -267,7 +263,7 @@ namespace fs
 		return true;
 	}
 
-	bool CreateDirectory (const std::string& path)
+	bool CreateDirectory (const std::filesystem::path& path)
 	{
 		if (std::filesystem::exists(path) && std::filesystem::is_directory (std::filesystem::status (path)))
 			return true;

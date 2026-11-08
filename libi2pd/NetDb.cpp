@@ -548,7 +548,7 @@ namespace data
 		else
 		{
 			LogPrint(eLogWarning, "NetDb: RI from ", p, " is invalid or too old. Delete");
-			i2p::fs::Remove(p.string ()); // TODO:
+			i2p::fs::Remove(p);
 		}
 		return true;
 	}

@@ -81,8 +81,8 @@ namespace client
 		{
 			// init ETags
 			etagsPath = i2p::fs::StorageRootPath (storage, "etags");
-			if (!i2p::fs::Exists (etagsPath.string ()))
-				i2p::fs::CreateDirectory (etagsPath.string ());
+			if (!std::filesystem::exists (etagsPath))
+				i2p::fs::CreateDirectory (etagsPath);
 			// init address files
 			indexPath = i2p::fs::StorageRootPath (storage, "addresses.csv");
 			localPath = i2p::fs::StorageRootPath (storage, "local.csv");

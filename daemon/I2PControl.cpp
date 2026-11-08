@@ -61,7 +61,7 @@ namespace client
 			i2pcp_crt = i2p::fs::DataDirPath(i2pcp_crt).string ();
 		if (!i2pcp_key.empty () && i2pcp_key[0] != '/')
 			i2pcp_key = i2p::fs::DataDirPath(i2pcp_key).string ();
-		if (!i2p::fs::Exists (i2pcp_crt) || !i2p::fs::Exists (i2pcp_key))
+		if (!std::filesystem::exists (i2pcp_crt) || !std::filesystem::exists (i2pcp_key))
 		{
 			LogPrint (eLogInfo, "I2PControl: Creating new certificate for control connection ", i2pcp_crt, " key ", i2pcp_key);
 			CreateCertificate (i2pcp_crt.c_str(), i2pcp_key.c_str());

@@ -48,15 +48,16 @@ namespace http {
 
 	static void LoadExtCSS (std::string fileName = "style")
 	{
-		std::stringstream s;
-		std::string styleFile = i2p::fs::DataDirPath ("webconsole/"+fileName+".css").string ();
-		if (i2p::fs::Exists(styleFile)) {
+		auto styleFile = i2p::fs::DataDirPath ("webconsole", fileName + ".css");
+		if (std::filesystem::exists(styleFile))
+		{
+			std::stringstream s;
 			std::ifstream f(styleFile, std::ifstream::binary);
 			s << f.rdbuf();
 			externalCSS = s.str();
-		} else if (externalCSS.length() != 0) { // clean up external style if file was removed
-			externalCSS = "";
 		}
+		else if (!externalCSS.empty ()) // clean up external style if file was removed
+			externalCSS = "";
 	}
 
 	static void GetStyles (std::stringstream& s)

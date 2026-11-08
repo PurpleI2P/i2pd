@@ -129,20 +129,13 @@ namespace fs
 	 * @param path Absolute path to file
 	 * @return true on success, false if file not exists, throws exception on error
 	 */
-	bool Remove(const std::string & path);
+	bool Remove (const std::filesystem::path& path);
 
 	bool Rename (std::string_view from, std::string_view to);
 
-	/**
-	 * @brief Check existence of file
-	 * @param path Absolute path to file
-	 * @return true if file exists, false otherwise
-	 */
-	bool Exists(const std::string & path);
+	uint32_t GetLastUpdateTime (const std::filesystem::path& path); // seconds since epoch
 
-	uint32_t GetLastUpdateTime (const std::string & path); // seconds since epoch
-
-	bool CreateDirectory (const std::string& path);
+	bool CreateDirectory (const std::filesystem::path& path);
 	std::filesystem::path CreatePrivateFile (const std::filesystem::path& path);
 
 	/**

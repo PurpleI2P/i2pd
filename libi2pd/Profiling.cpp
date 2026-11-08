@@ -89,10 +89,10 @@ namespace data
 	{
 		m_IsUpdated = false;
 		std::string ident = identHash.ToBase64 ();
-		std::string path = g_ProfilesStorage.Path(ident).string ();
+		auto path = g_ProfilesStorage.Path(ident);
 		boost::property_tree::ptree pt;
 
-		if (!i2p::fs::Exists(path))
+		if (!std::filesystem::exists(path))
 		{
 			LogPrint(eLogWarning, "Profiling: No profile yet for ", ident);
 			return;
@@ -100,8 +100,9 @@ namespace data
 
 		try
 		{
-			boost::property_tree::read_ini (path, pt, std::locale::classic());
-		} catch (std::exception& ex)
+			boost::property_tree::read_ini (path.string (), pt, std::locale::classic());
+		}
+		catch (std::exception& ex)
 		{
 			/* boost exception verbose enough */
 			LogPrint (eLogError, "Profiling: ", ex.what ());
@@ -366,7 +367,7 @@ namespace data
 			if (now - st.st_mtime >= PEER_PROFILE_EXPIRATION_TIMEOUT)
 			{
 				LogPrint(eLogDebug, "Profiling: Removing expired peer profile: ", path);
-				i2p::fs::Remove(path.string ());
+				i2p::fs::Remove(path);
 			}
 		}
 	}
