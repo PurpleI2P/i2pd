@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2025, The PurpleI2P Project
+* Copyright (c) 2013-2026, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -50,7 +50,7 @@ namespace data
 					if (family) family[0] = 0;
 					auto pkey = X509_get_pubkey (cert);
 					if (pkey)
-					{	
+					{
 						int curve = 0;
 #if (OPENSSL_VERSION_NUMBER >= 0x030000000) // since 3.0.0
 						char groupName[20];
@@ -58,9 +58,9 @@ namespace data
 							curve = OBJ_txt2nid (groupName);
 						else
 							curve = -1;
-#endif						
+#endif
 						if (!curve || curve == NID_X9_62_prime256v1)
-						{	
+						{
 							if (!m_SigningKeys.emplace (cn, std::make_pair(pkey, (int)m_SigningKeys.size () + 1)).second)
 							{
 								EVP_PKEY_free (pkey);
@@ -69,7 +69,7 @@ namespace data
 						}
 						else
 							LogPrint (eLogWarning, "Family: elliptic curve ", curve, " is not supported");
-					}	
+					}
 				}
 			}
 			SSL_free (ssl);
@@ -91,8 +91,10 @@ namespace data
 			return;
 		}
 
-		for (const std::string & file : files) {
-			if (file.size () < 4 || file.compare(file.size() - 4, 4, ".crt") != 0) {
+		for (const auto& file: files)
+		{
+			if (!file.ends_with (".crt"))
+			{
 				LogPrint(eLogWarning, "Family: ignoring file ", file);
 				continue;
 			}
@@ -114,7 +116,7 @@ namespace data
 		}
 		auto it = m_SigningKeys.find (family);
 		if (it != m_SigningKeys.end () && it->second.first)
-		{	
+		{
 			memcpy (buf, family.c_str (), len);
 			memcpy (buf + len, (const uint8_t *)ident, 32);
 			len += 32;
@@ -132,8 +134,8 @@ namespace data
 				auto ret = EVP_DigestVerify (ctx, sign, l, buf, len) == 1;
 				EVP_MD_CTX_destroy (ctx);
 				return ret;
-			}	
-		}	
+			}
+		}
 		// TODO: process key
 		return true;
 	}
@@ -163,7 +165,7 @@ namespace data
 				curve = OBJ_txt2nid (groupName);
 			else
 				curve = -1;
-#endif	
+#endif
 			if ((!curve || curve == NID_X9_62_prime256v1) && family.length () + 32 <= 100)
 			{
 				uint8_t buf[100], sign[72], signature[64];
@@ -186,7 +188,7 @@ namespace data
 				i2p::crypto::bn2buf (s, signature + 32, 32);
 				ECDSA_SIG_free(sig1);
 				sig = ByteStreamToBase64 (signature, 64);
-			}	
+			}
 			else if (family.length () + 32 > 100)
 				LogPrint (eLogError, "Family: ", family, " is too long");
 			else

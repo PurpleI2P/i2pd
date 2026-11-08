@@ -599,8 +599,10 @@ namespace data
 			return;
 		}
 
-		for (const std::string & file : files) {
-			if (file.compare(file.size() - 4, 4, ".crt") != 0) {
+		for (const auto& file : files)
+		{
+			if (!file.ends_with (".crt"))
+			{
 				LogPrint(eLogWarning, "Reseed: Ignoring file ", file);
 				continue;
 			}
