@@ -82,7 +82,7 @@ namespace torrents
 	constexpr size_t MAX_INCOMING_REQUESTS_QUEUE_SIZE = 32;
 	constexpr int PIECE_INACTIVITY_TIMEOUT = 22; // in seconds
 	constexpr int HANDSHAKE_RECEIVE_TIMEOUT = 20; // in seconds
-	constexpr int BANDWIDTH_RATE_SAMPLING_INTERVAL = 20; // in milliseconds
+	constexpr int BANDWIDTH_RATE_SAMPLING_INTERVAL = 250; // in milliseconds
 	constexpr int TORRENT_FILE_FLUSH_INTERVAL = 30; // in seconds
 	constexpr int TORRENT_FILE_INACTIVITY_TIMEOUT = 90; // in seconds
 	constexpr int TORRENT_RESUME_FILE_UPDATE_INTERVAL = 120; // in seconds

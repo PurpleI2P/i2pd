@@ -2175,10 +2175,7 @@ namespace torrents
 			auto delta = ts - m_LastBlockDownloadTimestamp;
 			if (delta >= BANDWIDTH_RATE_SAMPLING_INTERVAL)
 			{
-				if (m_DownloadRate)
-					m_DownloadRate = (m_DownloadRate + m_ReceivedSinceLastTimestamp*1000/delta)/2;
-				else
-					m_DownloadRate = m_ReceivedSinceLastTimestamp*1000/delta;
+				m_DownloadRate = m_ReceivedSinceLastTimestamp*1000/delta;
 				m_LastBlockDownloadTimestamp = ts;
 				m_ReceivedSinceLastTimestamp = 0;
 			}
@@ -2223,10 +2220,7 @@ namespace torrents
 						auto delta = ts - s->m_LastBlockUploadTimestamp;
 						if (delta >= BANDWIDTH_RATE_SAMPLING_INTERVAL)
 						{
-							if (s->m_UploadRate)
-								s->m_UploadRate = (s->m_UploadRate + s->m_SentSinceLastTimestamp*1000/delta)/2;
-							else
-								s->m_UploadRate = s->m_SentSinceLastTimestamp*1000/delta;
+							s->m_UploadRate = s->m_SentSinceLastTimestamp*1000/delta;
 							s->m_LastBlockUploadTimestamp = ts;
 							s->m_SentSinceLastTimestamp = 0;
 						}
