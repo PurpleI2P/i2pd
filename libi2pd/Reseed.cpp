@@ -591,22 +591,23 @@ namespace data
 	{
 		std::string certDir = i2p::fs::GetCertsDir() + i2p::fs::dirSep + "reseed";
 
-		std::vector<std::string> files;
+		std::vector<std::filesystem::path> files;
 		int numCertificates = 0;
 
-		if (!i2p::fs::ReadDir(certDir, files)) {
+		if (!i2p::fs::ReadDir(certDir, files))
+		{
 			LogPrint(eLogWarning, "Reseed: Can't load reseed certificates from ", certDir);
 			return;
 		}
 
 		for (const auto& file : files)
 		{
-			if (!file.ends_with (".crt"))
+			if (file.extension () != ".crt")
 			{
 				LogPrint(eLogWarning, "Reseed: Ignoring file ", file);
 				continue;
 			}
-			LoadCertificate (file);
+			LoadCertificate (file.string ());
 			numCertificates++;
 		}
 		LogPrint (eLogInfo, "Reseed: ", numCertificates, " certificates loaded");

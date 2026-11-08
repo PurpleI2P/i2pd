@@ -27,7 +27,6 @@ ifeq ($(USE_WINXP_FLAGS), yes)
 endif
 
 LDLIBS += \
-	$(MINGW_PREFIX)/lib/libboost_filesystem-mt.a \
 	$(MINGW_PREFIX)/lib/libboost_program_options-mt.a \
 	$(MINGW_PREFIX)/lib/libboost_json-mt.a \
 	$(MINGW_PREFIX)/lib/libboost_url-mt.a \

@@ -18,16 +18,6 @@
 #include <filesystem>
 #include <inttypes.h>
 
-#ifndef STD_FILESYSTEM
-#	if (_WIN32 && __GNUG__) // MinGW GCC somehow incorrectly converts paths
-#		define STD_FILESYSTEM 0
-#	elif (!TARGET_OS_SIMULATOR && __has_include(<filesystem>)) // supports std::filesystem
-#		define STD_FILESYSTEM 1
-#	else
-#		define STD_FILESYSTEM 0
-#	endif
-#endif
-
 namespace i2p
 {
 namespace fs
@@ -134,7 +124,7 @@ namespace fs
 	 * @param files Vector to store found files
 	 * @return true on success and false if directory not exists
 	 */
-	bool ReadDir(const std::string & path, std::vector<std::string> & files);
+	bool ReadDir(const std::filesystem::path& path, std::vector<std::filesystem::path> & files);
 
 	/**
 	 * @brief Remove file with given path

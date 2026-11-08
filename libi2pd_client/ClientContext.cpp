@@ -607,14 +607,14 @@ namespace client
 
 		if (i2p::fs::Exists (tunDir))
 		{
-			std::vector<std::string> files;
+			std::vector<std::filesystem::path> files;
 			if (i2p::fs::ReadDir (tunDir, files))
 			{
 				for (auto& it: files)
 				{
-					if (!it.ends_with (".conf")) continue;
+					if (it.extension () != ".conf") continue;
 					LogPrint(eLogDebug, "Clients: Tunnels extra config file: ", it);
-					ReadTunnels (it, numClientTunnels, numServerTunnels);
+					ReadTunnels (it.string (), numClientTunnels, numServerTunnels);
 				}
 			}
 		}

@@ -10,9 +10,6 @@
 #include <fstream>
 
 #if defined(MAC_OSX)
-#if !STD_FILESYSTEM
-#include <boost/system/system_error.hpp>
-#endif
 #include <TargetConditionals.h>
 #endif
 
@@ -31,16 +28,10 @@
 #include "Log.h"
 #include "Garlic.h"
 
-#if STD_FILESYSTEM
-#include <filesystem>
-namespace fs_lib = std::filesystem;
-#else
-#include <boost/filesystem.hpp>
-namespace fs_lib = boost::filesystem;
-#endif
-
-namespace i2p {
-namespace fs {
+namespace i2p
+{
+namespace fs
+{
 	std::string appName = "i2pd";
 	std::string dataDir = "";
 	std::string certsDir = "";
@@ -106,7 +97,7 @@ namespace fs {
 				exit(1);
 			}
 			else
-				dataDir = (fs_lib::path(commonAppData)/appName).string ();
+				dataDir = (std::filesystem::path(commonAppData)/appName).string ();
 #else
 			dataDir = "/var/lib/" + appName;
 #endif
@@ -130,10 +121,10 @@ namespace fs {
 		}
 		else
 		{
-			auto execPath = fs_lib::path(localAppData).parent_path();
+			auto execPath = std::filesystem::path(localAppData).parent_path();
 
 			// if config file exists in .exe's folder use it
-			if(fs_lib::exists(execPath/"i2pd.conf")) // TODO: magic string
+			if(std::filesystem::exists(execPath/"i2pd.conf")) // TODO: magic string
 				dataDir = execPath.string ();
 			else // otherwise %appdata%
 			{
@@ -147,7 +138,7 @@ namespace fs {
 					exit(1);
 				}
 				else
-					dataDir = (fs_lib::path(localAppData)/appName).string();
+					dataDir = (std::filesystem::path(localAppData)/appName).string();
 			}
 		}
 		return;
@@ -167,7 +158,7 @@ namespace fs {
 #if defined(ANDROID)
 		const char * ext = getenv("EXTERNAL_STORAGE");
 		if (!ext) ext = "/sdcard";
-		if (fs_lib::exists(ext))
+		if (std::filesystem::exists(ext))
 		{
 			dataDir = std::string (ext) + "/" + appName;
 			return;
@@ -200,46 +191,47 @@ namespace fs {
 	}
 
 	bool Init() {
-		if (!fs_lib::exists(dataDir))
-			fs_lib::create_directory(dataDir);
+		if (!std::filesystem::exists(dataDir))
+			std::filesystem::create_directory(dataDir);
 
 		std::string destinations = DataDirPath("destinations");
-		if (!fs_lib::exists(destinations))
-			fs_lib::create_directory(destinations);
+		if (!std::filesystem::exists(destinations))
+			std::filesystem::create_directory(destinations);
 
 		std::string tags = DataDirPath("tags");
-		if (!fs_lib::exists(tags))
-			fs_lib::create_directory(tags);
+		if (!std::filesystem::exists(tags))
+			std::filesystem::create_directory(tags);
 		else
 			i2p::garlic::CleanUpTagsFiles ();
 
 		return true;
 	}
 
-	bool ReadDir(const std::string & path, std::vector<std::string> & files) {
-		if (!fs_lib::exists(path))
+	bool ReadDir(const std::filesystem::path& path, std::vector<std::filesystem::path>& files)
+	{
+		if (!std::filesystem::exists(path))
 			return false;
-		fs_lib::directory_iterator it(path);
-		fs_lib::directory_iterator end;
+		std::filesystem::directory_iterator it(path);
+		std::filesystem::directory_iterator end;
 
 		for ( ; it != end; it++) {
-			if (!fs_lib::is_regular_file(it->status()))
+			if (!std::filesystem::is_regular_file(it->status()))
 				continue;
-			files.push_back(it->path().string());
+			files.push_back(it->path());
 		}
 
 		return true;
 	}
 
 	bool Exists(const std::string & path) {
-		return fs_lib::exists(path);
+		return std::filesystem::exists(path);
 	}
 
 	uint32_t GetLastUpdateTime (const std::string & path)
 	{
-		if (!fs_lib::exists(path))
+		if (!std::filesystem::exists(path))
 			return 0;
-#if STD_FILESYSTEM
+
 		std::error_code ec;
 		auto t = std::filesystem::last_write_time (path, ec);
 		if (ec) return 0;
@@ -250,25 +242,20 @@ namespace fs {
 		    t - decltype(t)::clock::now() + std::chrono::system_clock::now());
 #endif
 		return std::chrono::system_clock::to_time_t(sctp);
-#else
-		boost::system::error_code ec;
-		auto t = boost::filesystem::last_write_time (path, ec);
-		return ec ? 0 : t;
-#endif
 	}
 
 	bool Remove(const std::string & path)
 	{
-		if (!fs_lib::exists(path))
+		if (!std::filesystem::exists(path))
 			return false;
-		return fs_lib::remove(path);
+		return std::filesystem::remove(path);
 	}
 
 	bool Rename (std::string_view from, std::string_view to)
 	{
 		try
 		{
-			fs_lib::rename (from, to);
+			std::filesystem::rename (from, to);
 		}
 		catch (std::exception& ex)
 		{
@@ -280,9 +267,9 @@ namespace fs {
 
 	bool CreateDirectory (const std::string& path)
 	{
-		if (fs_lib::exists(path) && fs_lib::is_directory (fs_lib::status (path)))
+		if (std::filesystem::exists(path) && std::filesystem::is_directory (std::filesystem::status (path)))
 			return true;
-		return fs_lib::create_directory(path);
+		return std::filesystem::create_directory(path);
 	}
 
 	std::filesystem::path CreatePrivateFile (const std::filesystem::path& path)

@@ -1014,12 +1014,12 @@ namespace garlic
 
 	void CleanUpTagsFiles ()
 	{
-		std::vector<std::string> files;
+		std::vector<std::filesystem::path> files;
 		i2p::fs::ReadDir (i2p::fs::DataDirPath("tags"), files);
 		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 		for (auto it: files)
-			if (ts >= i2p::fs::GetLastUpdateTime (it) + INCOMING_TAGS_EXPIRATION_TIMEOUT)
-				i2p::fs::Remove (it);
+			if (ts >= i2p::fs::GetLastUpdateTime (it.string ()) + INCOMING_TAGS_EXPIRATION_TIMEOUT)
+				i2p::fs::Remove (it.string ());
 	}
 
 	void GarlicDestination::HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len,
