@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2024, The PurpleI2P Project
+* Copyright (c) 2013-2026, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -18,6 +18,7 @@
 #include <memory>
 #include <thread>
 #include <functional>
+#include <filesystem>
 #include "Queue.h"
 
 #ifndef _WIN32
@@ -44,8 +45,10 @@ enum LogType {
 #endif
 };
 
-namespace i2p {
-namespace log {
+namespace i2p
+{
+namespace log
+{
 
 	struct LogMsg; /* forward declaration */
 
@@ -56,7 +59,7 @@ namespace log {
 			enum LogType m_Destination;
 			enum LogLevel m_MinLevel;
 			std::shared_ptr<std::ostream> m_LogStream;
-			std::string m_Logfile;
+			std::filesystem::path m_Logfile;
 			std::time_t m_LastTimestamp;
 			char m_LastDateTime[64];
 			i2p::util::Queue<std::shared_ptr<LogMsg> > m_Queue;
@@ -103,7 +106,7 @@ namespace log {
 			 * @brief Sets log destination to logfile
 			 * @param path Path to logfile
 			 */
-			void SendTo (const std::string &path);
+			void SendTo (const std::filesystem::path& path);
 
 			/**
 			 * @brief Sets log destination to given output stream
@@ -163,7 +166,7 @@ namespace log {
 inline bool CheckLogLevel (LogLevel level) noexcept
 {
 	return level <= i2p::log::Logger().GetLogLevel ();
-}	
+}
 
 /** internal usage only -- folding args array to single string */
 template<typename TValue>
@@ -180,7 +183,7 @@ void LogPrint (std::stringstream& s, TValue&& arg) noexcept
 template<typename... TArgs>
 void LogPrint (LogLevel level, TArgs&&... args) noexcept
 {
-	if (!CheckLogLevel (level)) return; 
+	if (!CheckLogLevel (level)) return;
 
 	// fold message to single string
 	std::stringstream ss;

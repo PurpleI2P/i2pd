@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2026, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -14,8 +14,10 @@
 //for std::transform
 #include <algorithm>
 
-namespace i2p {
-namespace log {
+namespace i2p
+{
+namespace log
+{
 	static Log logger;
 	/**
 	 * @brief Maps our loglevel to their symbolic name
@@ -70,7 +72,7 @@ namespace log {
 
 	Log::Log():
 	m_Destination(eLogStdout), m_MinLevel(eLogInfo),
-	m_LogStream (nullptr), m_Logfile(""), m_HasColors(true), m_TimeFormat("%H:%M:%S"),
+	m_LogStream (nullptr), m_HasColors(true), m_TimeFormat("%H:%M:%S"),
 	m_IsRunning (false), m_Thread (nullptr)
 	{
 	}
@@ -211,7 +213,7 @@ namespace log {
 		m_Queue.Put(msg);
 	}
 
-	void Log::SendTo (const std::string& path)
+	void Log::SendTo (const std::filesystem::path& path)
 	{
 		if (m_LogStream) m_LogStream = nullptr; // close previous
 		auto flags = std::ofstream::out | std::ofstream::app;
