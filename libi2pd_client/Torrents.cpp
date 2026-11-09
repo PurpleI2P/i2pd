@@ -2237,7 +2237,7 @@ namespace torrents
 						if (delta >= BANDWIDTH_RATE_SAMPLING_INTERVAL)
 						{
 							auto rate = s->m_SentSinceLastTimestamp*1000/delta;
-							s->m_UploadRate = s->m_PrevUploadRate ? (rate + s->m_PrevUploadRate) : rate;
+							s->m_UploadRate = s->m_PrevUploadRate ? (rate + s->m_PrevUploadRate)/2 : rate;
 							s->m_PrevUploadRate = rate;
 							s->m_LastBlockUploadTimestamp = ts;
 							s->m_SentSinceLastTimestamp = 0;
