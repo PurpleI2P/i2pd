@@ -82,7 +82,8 @@ namespace torrents
 	constexpr size_t MAX_INCOMING_REQUESTS_QUEUE_SIZE = 32;
 	constexpr int PIECE_INACTIVITY_TIMEOUT = 22; // in seconds
 	constexpr int HANDSHAKE_RECEIVE_TIMEOUT = 20; // in seconds
-	constexpr int BANDWIDTH_RATE_SAMPLING_INTERVAL = 2500; // in milliseconds
+	constexpr int BANDWIDTH_RATE_SAMPLING_INTERVAL = 1500; // in milliseconds
+	constexpr int PEER_INACTIVITY_INTERVAL = 16000; // in milliseconds
 	constexpr int TORRENT_FILE_FLUSH_INTERVAL = 30; // in seconds
 	constexpr int TORRENT_FILE_INACTIVITY_TIMEOUT = 90; // in seconds
 	constexpr int TORRENT_RESUME_FILE_UPDATE_INTERVAL = 120; // in seconds
@@ -498,6 +499,7 @@ namespace torrents
 			size_t FillRequestMsg (uint8_t * buf, uint32_t index, uint32_t offset, uint32_t len);
 			void SendInterestedMsg ();
 			void SendNotinterestedMsg ();
+			void HandleNotinterestedMsg ();
 			void SendUnchokeMsg ();
 			void SendChokeMsg ();
 			void HandleChokeMsg ();

@@ -1852,8 +1852,7 @@ namespace torrents
 					}
 				break;
 				case eMessageTypeNotInterested:
-					m_IsRemoteInterested = false;
-					m_UploadRate = 0;
+					HandleNotinterestedMsg ();
 				break;
 				case eMessageTypeHave:
 					HandleHaveMsg (m_ReceiveBuffer + offset + 1, msgLen - 1);
@@ -2419,6 +2418,14 @@ namespace torrents
 		WriteToStream (buf, NOTINTERESTED_MSG_LENGTH);
 	}
 
+	void PeerConnection::HandleNotinterestedMsg ()
+	{
+		m_IsRemoteInterested = false;
+		m_UploadRate = 0;
+		m_LastBlockUploadTimestamp = 0;
+		m_SentSinceLastTimestamp = 0;
+	}
+
 	void PeerConnection::SendChokeMsg ()
 	{
 		uint8_t buf[CHOKE_MSG_LENGTH];
@@ -2837,6 +2844,16 @@ namespace torrents
 			m_LastBlockDownloadTimestamp = 0;
 			m_ReceivedSinceLastTimestamp = 0;
 			m_NumRequests = 0;
+		}
+		if (m_IsRemoteInterested && !m_NumPieces)
+		{
+			auto ts = i2p::util::GetMonotonicMilliseconds ();
+			if (ts > m_LastBlockUploadTimestamp + PEER_INACTIVITY_INTERVAL)
+			{
+				m_UploadRate = 0;
+				m_LastBlockUploadTimestamp = 0;
+				m_SentSinceLastTimestamp = 0;
+			}
 		}
 	}
 }
