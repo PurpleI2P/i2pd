@@ -56,20 +56,11 @@ namespace fs
 		return certsDir;
 	}
 
-	const std::string GetUTF8DataDir () {
+	std::string GetUTF8DataDir ()
+	{
 #ifdef _WIN32
-		std::string str = dataDir.string ();
-		int size = MultiByteToWideChar(CP_ACP, 0,
-			str.c_str(), str.size(), nullptr, 0);
-		std::wstring utf16Str(size, L'\0');
-		MultiByteToWideChar(CP_ACP, 0,
-			str.c_str(), str.size(), &utf16Str[0], size);
-		int utf8Size = WideCharToMultiByte(CP_UTF8, 0,
-			utf16Str.c_str(), utf16Str.size(), nullptr, 0, nullptr, nullptr);
-		std::string utf8Str(utf8Size, '\0');
-		WideCharToMultiByte(CP_UTF8, 0,
-			utf16Str.c_str(), utf16Str.size(), &utf8Str[0], utf8Size, nullptr, nullptr);
-		return utf8Str;
+		std::u8string u8 = dataDir.u8string ();
+		return { u8.begin (), u8.end () };
 #else
 		return dataDir.string (); // linux, osx, android uses UTF-8 by default
 #endif

@@ -82,7 +82,7 @@ namespace fs
 	const std::filesystem::path& GetCertsDir();
 
 	/** @brief Returns datadir path in UTF-8 encoding */
-	const std::string GetUTF8DataDir();
+	std::string GetUTF8DataDir();
 
 	/**
 	 * @brief Set datadir either from cmdline option or using autodetection
