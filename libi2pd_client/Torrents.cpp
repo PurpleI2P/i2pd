@@ -1580,9 +1580,24 @@ namespace torrents
 
 	void PeerConnection::ResetStats ()
 	{
-		m_DownloadRate = 0; m_UploadRate = 0;
-		m_LastBlockDownloadTimestamp = 0; m_LastBlockUploadTimestamp = 0;
-		m_ReceivedSinceLastTimestamp = 0; m_SentSinceLastTimestamp = 0;
+		ResetDownloadStats ();
+		ResetUploadStats ();
+	}
+
+	void PeerConnection::ResetDownloadStats ()
+	{
+		m_DownloadRate = 0;
+		m_PrevDownloadRate = 0;
+		m_LastBlockDownloadTimestamp = 0;
+		m_ReceivedSinceLastTimestamp = 0;
+	}
+
+	void PeerConnection::ResetUploadStats ()
+	{
+		m_UploadRate = 0;
+		m_PrevUploadRate = 0;
+		m_LastBlockUploadTimestamp = 0;
+		m_SentSinceLastTimestamp = 0;
 	}
 
 	void PeerConnection::ScheduleHandshakeReceiveTimer ()
@@ -2174,7 +2189,9 @@ namespace torrents
 			auto delta = ts - m_LastBlockDownloadTimestamp;
 			if (delta >= BANDWIDTH_RATE_SAMPLING_INTERVAL)
 			{
-				m_DownloadRate = m_ReceivedSinceLastTimestamp*1000/delta;
+				auto rate = m_ReceivedSinceLastTimestamp*1000/delta;
+				m_DownloadRate = m_PrevDownloadRate ? (rate + m_PrevDownloadRate)/2 : rate;
+				m_PrevDownloadRate = rate;
 				m_LastBlockDownloadTimestamp = ts;
 				m_ReceivedSinceLastTimestamp = 0;
 			}
@@ -2219,7 +2236,9 @@ namespace torrents
 						auto delta = ts - s->m_LastBlockUploadTimestamp;
 						if (delta >= BANDWIDTH_RATE_SAMPLING_INTERVAL)
 						{
-							s->m_UploadRate = s->m_SentSinceLastTimestamp*1000/delta;
+							auto rate = s->m_SentSinceLastTimestamp*1000/delta;
+							s->m_UploadRate = s->m_PrevUploadRate ? (rate + s->m_PrevUploadRate) : rate;
+							s->m_PrevUploadRate = rate;
 							s->m_LastBlockUploadTimestamp = ts;
 							s->m_SentSinceLastTimestamp = 0;
 						}
@@ -2421,9 +2440,7 @@ namespace torrents
 	void PeerConnection::HandleNotinterestedMsg ()
 	{
 		m_IsRemoteInterested = false;
-		m_UploadRate = 0;
-		m_LastBlockUploadTimestamp = 0;
-		m_SentSinceLastTimestamp = 0;
+		ResetUploadStats ();
 	}
 
 	void PeerConnection::SendChokeMsg ()
@@ -2446,7 +2463,7 @@ namespace torrents
 	{
 		m_IsChoked = true;
 		m_NumRequests = 0;
-		m_DownloadRate = 0;
+		ResetDownloadStats ();
 		if (m_Torrent && m_LastRequestedPieceIndex >= 0)
 			m_Torrent->GetPiece (m_LastRequestedPieceIndex).ClearAllRequests ();
 		m_LastRequestedPieceIndex = -1;
@@ -2840,20 +2857,14 @@ namespace torrents
 		{
 			m_IsInterested = false;
 			SendNotinterestedMsg ();
-			m_DownloadRate = 0;
-			m_LastBlockDownloadTimestamp = 0;
-			m_ReceivedSinceLastTimestamp = 0;
+			ResetDownloadStats ();
 			m_NumRequests = 0;
 		}
 		if (m_IsRemoteInterested && !m_NumPieces)
 		{
 			auto ts = i2p::util::GetMonotonicMilliseconds ();
 			if (ts > m_LastBlockUploadTimestamp + PEER_INACTIVITY_INTERVAL)
-			{
-				m_UploadRate = 0;
-				m_LastBlockUploadTimestamp = 0;
-				m_SentSinceLastTimestamp = 0;
-			}
+				ResetUploadStats ();
 		}
 	}
 }

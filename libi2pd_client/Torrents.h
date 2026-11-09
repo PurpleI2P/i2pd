@@ -469,6 +469,8 @@ namespace torrents
 
 		private:
 
+			void ResetDownloadStats ();
+			void ResetUploadStats ();
 			void Terminate ();
 			void ScheduleHandshakeReceiveTimer ();
 			std::shared_ptr<TorrentsTunnel> GetTorrentsTunnel () const;
@@ -545,7 +547,7 @@ namespace torrents
 			bool m_IsFast;
 			int m_SuggestedPieceIndex;
 			// stats
-			uint64_t m_DownloadRate, m_UploadRate; // B/sec
+			uint64_t m_DownloadRate, m_UploadRate, m_PrevDownloadRate, m_PrevUploadRate; // B/sec
 			uint64_t m_LastBlockDownloadTimestamp, m_LastBlockUploadTimestamp; // monotonic milliseconds
 			size_t m_ReceivedSinceLastTimestamp, m_SentSinceLastTimestamp; // bytes
 			size_t m_Downloaded, m_Uploaded; // bytes
