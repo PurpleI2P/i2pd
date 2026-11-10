@@ -297,7 +297,7 @@ namespace torrents
 		boost::property_tree::ptree pt;
 		try
 		{
-			boost::property_tree::read_ini (magnetFilePath, pt, std::locale::classic());
+			boost::property_tree::read_ini (magnetFilePath.string (), pt, std::locale::classic());
 			name = pt.get ("dn", "");
 			announce = pt.get ("tr", "");
 		}
