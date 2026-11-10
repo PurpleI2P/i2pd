@@ -137,6 +137,9 @@ namespace torrents
 			void ReadTorrentFile (const std::filesystem::path& torrentFilePath);
 			void SaveTorrentFile (std::shared_ptr<Torrent> torrent);
 			void InitTorrentFiles (std::shared_ptr<Torrent> torrent);
+			void SaveMagnetFile (std::shared_ptr<Torrent> torrent);
+			void ReadMagnetFile (const std::filesystem::path& magnetFilePath);
+			std::pair<std::shared_ptr<Torrent>, int> AddMagnet (const Torrent::InfoHash& infoHash, std::string_view name, std::string_view announce);
 			std::pair<int, bool> InsertTorrent (std::shared_ptr<Torrent> torrent); // returns id > 0 if success and 0 if failed, true if innserted
 			void RemoveTorrent (std::shared_ptr<Torrent> torrent, bool deleteFiles);
 			int FindTorrentID (std::shared_ptr<Torrent> torrent) const; // 0 if not found

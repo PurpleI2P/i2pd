@@ -13,6 +13,8 @@
 #include <boost/algorithm/hex.hpp>
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/ini_parser.hpp>
 #include "Log.h"
 #include "Timestamp.h"
 #include "I2PEndian.h"
@@ -81,9 +83,14 @@ namespace torrents
 		if (!m_TorrentsDir.empty() && std::filesystem::exists (m_TorrentsDir) &&
 			std::filesystem::is_directory (m_TorrentsDir))
 		{
+			// .torrent files first
 			for (const auto& it: std::filesystem::directory_iterator (m_TorrentsDir))
 				if (std::filesystem::is_regular_file (it.status()) && it.path ().extension () == ".torrent")
 					ReadTorrentFile (it.path ());
+			// .magnet files after
+			for (const auto& it: std::filesystem::directory_iterator (m_TorrentsDir))
+				if (std::filesystem::is_regular_file (it.status()) && it.path ().extension () == ".magnet")
+					ReadMagnetFile (it.path ());
         }
 
 		ScheduleTrackerRequestsCheck ();
@@ -248,6 +255,58 @@ namespace torrents
 			}
 		}
 		return true;
+	}
+
+	void TorrentsTunnel::SaveMagnetFile (std::shared_ptr<Torrent> torrent)
+	{
+		if (!torrent) return;
+		auto filename = m_TorrentsDir/(torrent->GetInfoHash ().ToHexString () + ".magnet");
+		boost::property_tree::ptree pt;
+		pt.put ("dn", torrent->GetName ());
+		pt.put ("tr", torrent->GetAnnounce ());
+		try
+		{
+			boost::property_tree::write_ini (filename.string (), pt, 0, std::locale::classic());
+		}
+		catch (std::exception& ex)
+		{
+			LogPrint (eLogInfo, "TorrentsTunel: Can't save magnet file ", filename.string (), " : ", ex.what ());
+		}
+	}
+
+	void TorrentsTunnel::ReadMagnetFile (const std::filesystem::path& magnetFilePath)
+	{
+		if (magnetFilePath.extension () != ".magnet" || !std::filesystem::exists (magnetFilePath)) return;
+		auto hexStr = magnetFilePath.stem ().string ();
+		Torrent::InfoHash infoHash;
+		try
+		{
+			boost::algorithm::unhex (hexStr.begin(), hexStr.end(), infoHash.begin());
+		}
+		catch (std::exception& ex)
+		{
+			LogPrint (eLogInfo, "TorentsTunnel: Can't unhex magnet hash for filename ", magnetFilePath);
+			return;
+		}
+		if (m_Torrents.contains (infoHash))
+		{
+			LogPrint (eLogInfo, "TorentsTunnel: Torrent with info hash ", infoHash.ToHexString (), " already exists");
+			return;
+		}
+		std::string name, announce;
+		boost::property_tree::ptree pt;
+		try
+		{
+			boost::property_tree::read_ini (magnetFilePath, pt, std::locale::classic());
+			name = pt.get ("dn", "");
+			announce = pt.get ("tr", "");
+		}
+		catch (std::exception& ex)
+		{
+			LogPrint (eLogInfo, "TorrentsTunnel: Can't load magnet file ", magnetFilePath.string (), " : ", ex.what ());
+			// continue
+		}
+		AddMagnet (infoHash, name, announce);
 	}
 
 	void TorrentsTunnel::CompleteTorrent (std::shared_ptr<Torrent> torrent)
@@ -422,16 +481,11 @@ namespace torrents
 				auto it = m_Torrents.find (infoHash);
 				if (it == m_Torrents.end ())
 				{
-					auto torrent = std::make_shared<Torrent> (infoHash);
-					if (!announce.empty ()) torrent->SetAnnounce (announce);
-					torrent->SetName (name.empty () ? hexStr : name);
-					auto [id, inserted] = InsertTorrent (torrent);
-					if (inserted)
-						boost::asio::post (GetService (), [this, torrent]
-						{
-							RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone);
-							if (m_DHT) m_DHT->GetPeersAndAnnounce (torrent);
-						});
+					auto [torrent, id] = AddMagnet (infoHash, name.empty () ? hexStr : name, announce);
+					boost::asio::post (GetDiskIOService (), [this, torrent]()
+					{
+						SaveMagnetFile (torrent);
+					});
 					return { torrent, id };
 				}
 				else
@@ -439,6 +493,22 @@ namespace torrents
 			}
 		}
 		return { nullptr, 0 };
+	}
+
+	std::pair<std::shared_ptr<Torrent>, int> TorrentsTunnel::AddMagnet (
+		const Torrent::InfoHash& infoHash, std::string_view name, std::string_view announce)
+	{
+		auto torrent = std::make_shared<Torrent> (infoHash);
+		if (!announce.empty ()) torrent->SetAnnounce (announce);
+		if (!name.empty ()) torrent->SetName (name);
+		auto [id, inserted] = InsertTorrent (torrent);
+		if (inserted)
+			boost::asio::post (GetService (), [this, torrent]
+			{
+				RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone);
+				if (m_DHT) m_DHT->GetPeersAndAnnounce (torrent);
+			});
+		return { torrent, id };
 	}
 
 	std::pair<std::shared_ptr<Torrent>, int> TorrentsTunnel::AddInfoHash (const Torrent::InfoHash& infoHash)
@@ -520,14 +590,16 @@ namespace torrents
 	{
 		if (!torrent) return;
 		StopTorrent (torrent);
-		boost::asio::post (GetDiskIOService (), [torrent, deleteFiles]()
+		boost::asio::post (GetDiskIOService (), [this, torrent, deleteFiles]()
 			{
+				// delete torrent file
 				auto fullPath = torrent->GetFullPath ();
 				auto torrentFilePath = fullPath; torrentFilePath += ".torrent";
 				std::error_code ec;
 				std::filesystem::remove (torrentFilePath, ec);
 				if (ec)
 					LogPrint (eLogError, "TorrentsTunnel: Can't delete ", torrentFilePath);
+				// delete resume file
 				auto resumeFilePath = fullPath; resumeFilePath += ".resume";
 				if (std::filesystem::exists (resumeFilePath))
 				{
@@ -535,6 +607,10 @@ namespace torrents
 					if (ec)
 						LogPrint (eLogError, "TorrentsTunnel: Can't delete ", resumeFilePath);
 				}
+				// delete magnet file
+				auto magnetFile = m_TorrentsDir/(torrent->GetInfoHash ().ToHexString () + ".magnet");
+				if (std::filesystem::exists (magnetFile))
+					std::filesystem::remove (magnetFile);
 				if (deleteFiles)
 				{
 					if (std::filesystem::exists (fullPath))
@@ -703,6 +779,10 @@ namespace torrents
 			{
 				SaveTorrentFile (torrent);
 				InitTorrentFiles (torrent);
+				// delete magnet file
+				auto filename = m_TorrentsDir/(torrent->GetInfoHash ().ToHexString () + ".magnet");
+				if (std::filesystem::exists (filename))
+					std::filesystem::remove (filename);
 			});
 	}
 
