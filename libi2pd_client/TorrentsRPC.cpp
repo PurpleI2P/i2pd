@@ -433,19 +433,11 @@ namespace torrents
 					 return boost::json::value ((float)(torrent->GetLength () - torrent->GetLeft ())/(float)torrent->GetLength ());
 				}
 			},
-			{ "hashString", [](std::shared_ptr<Torrent> torrent)
-				{
-					std::string hexHash;
-					boost::algorithm::hex (torrent->GetInfoHash ().begin(), torrent->GetInfoHash ().end(), std::back_inserter(hexHash));
-					return boost::json::value(hexHash);
-				}
-			},
+			{ "hashString", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetInfoHash ().ToHexString ()); } },
 			{ "magnetLink", [](std::shared_ptr<Torrent> torrent)
 				{
-					std::string hexHash;
-					boost::algorithm::hex (torrent->GetInfoHash ().begin(), torrent->GetInfoHash ().end(), std::back_inserter(hexHash));
 					std::string magnet("magnet:?xt=urn:btih:");
-					magnet += hexHash;
+					magnet += torrent->GetInfoHash ().ToHexString ();
 					if (!torrent->GetName ().empty ())
 					{
 						magnet += "&dn=";
@@ -1193,8 +1185,9 @@ namespace torrents
 					LogPrint (eLogDebug, "TorrentsRPC: Accepted incoming request");
 					auto session = std::make_shared<TorrentsRPCSession>(*this, std::move(socket));
 					session->ReceiveRequest ();
-					Accept ();
 				}
+				if (ecode != boost::asio::error::operation_aborted && ecode != boost::asio::error::no_descriptors)
+					Accept ();
 			});
 	}
 }
