@@ -391,9 +391,8 @@ namespace torrents
 	inline size_t GetNumBlocks (size_t len)
 #endif
 	{
-		auto d = lldiv (len, REQUEST_BLOCK_SIZE);
-		int numBlocks = d.quot;
-		if (d.rem > 0) numBlocks++;
+		auto [numBlocks, rem] = lldiv (len, REQUEST_BLOCK_SIZE);
+		if (rem > 0) numBlocks++;
 		return numBlocks;
 	}
 
@@ -436,7 +435,12 @@ namespace torrents
 	{
 		if (!m_Blocks || !len || len > REQUEST_BLOCK_SIZE || offset + len > m_Size ||
 			(len < REQUEST_BLOCK_SIZE && offset + len != m_Size)) return false;
-		size_t blockIndex = offset/REQUEST_BLOCK_SIZE;
+		auto [blockIndex, rem] = lldiv (offset, REQUEST_BLOCK_SIZE);
+		if (rem)
+		{
+			LogPrint (eLogInfo, "Torrents: block offset is not aligned to 16K ", offset);
+			return false;
+		}
 		if (!m_Blocks->IsBlockAvailable (blockIndex))
 		{
 			if (!m_Data) NewDataBuffer ();
@@ -2295,9 +2299,11 @@ namespace torrents
 		uint32_t index = bufbe32toh (buf);
 		uint32_t offset = bufbe32toh (buf + 4);
 		uint32_t length = bufbe32toh (buf + 8);
-		if (length > REQUEST_BLOCK_SIZE)
+		if (length > REQUEST_BLOCK_SIZE || offset % REQUEST_BLOCK_SIZE)
 		{
-			LogPrint (eLogWarning, "Torrents: Requested length is too long ", length);
+			LogPrint (eLogWarning, "Torrents: Requested length is too long ", length, " or offset is not aligned ", offset);
+			if (m_IsFast)
+				SendRejectRequestMsg (index, offset, length);
 			return;
 		}
 		if (m_IsRemoteChoked)
