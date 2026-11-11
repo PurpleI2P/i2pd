@@ -516,15 +516,11 @@ namespace torrents
 		auto it = m_Torrents.find (infoHash);
 		if (it == m_Torrents.end ())
 		{
-			auto torrent = std::make_shared<Torrent> (infoHash);
-			torrent->SetName (infoHash.ToHexString ());
-			auto [id, inserted] = InsertTorrent (torrent);
-			if (inserted)
-				boost::asio::post (GetService (), [this, torrent]
-				{
-					RequestTorrentTrackers (torrent, eTrackerAnnounceEventNone);
-					if (m_DHT) m_DHT->GetPeersAndAnnounce (torrent);
-				});
+			auto [torrent, id] = AddMagnet (infoHash, infoHash.ToHexString (), "");
+			boost::asio::post (GetDiskIOService (), [this, torrent]()
+			{
+				SaveMagnetFile (torrent);
+			});
 			return { torrent, id };
 		}
 		else
