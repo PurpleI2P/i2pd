@@ -84,7 +84,7 @@ namespace stream
 	const bool LOSS_BASED_CONTROL_ENABLED = 0; // 0/1
 	const uint64_t STREAMING_DESTINATION_POOLS_CLEANUP_INTERVAL = 646; // in seconds
 
-	struct Packet: boost::intrusive::list_base_hook<>
+	struct Packet: boost::intrusive::list_base_hook<boost::intrusive::link_mode<boost::intrusive::normal_link> >
 	{
 		size_t len, offset;
 		uint8_t buf[MAX_PACKET_SIZE];
@@ -297,7 +297,7 @@ namespace stream
 			size_t m_SizeToReceive; // before invoke AsyncReceive handler
 			std::set<Packet *, PacketCmp> m_SavedPackets;
 			std::list<Packet *> m_SentPackets;
-			std::list<Packet *> m_NACKedPackets;
+			boost::intrusive::list<Packet> m_NACKedPackets;
 			boost::asio::steady_timer m_ReceiveTimer, m_SendTimer, m_ResendTimer, m_AckSendTimer;
 			size_t m_NumSentBytes, m_NumReceivedBytes;
 			uint16_t m_Port;

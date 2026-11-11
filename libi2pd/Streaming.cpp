@@ -748,7 +748,7 @@ namespace stream
 		m_IsNAcked = false;
 		m_IsResendNeeded = false;
 		int nackCount = packet->GetNACKCount ();
-		std::list<Packet *> newNACKedPackets;
+		m_NACKedPackets.clear ();
 		for (auto it = m_SentPackets.begin (); it != m_SentPackets.end ();)
 		{
 			auto seqn = (*it)->GetSeqn ();
@@ -760,7 +760,7 @@ namespace stream
 					for (int i = 0; i < nackCount; i++)
 						if (seqn == packet->GetNACK (i))
 						{
-							newNACKedPackets.push_back (*it);
+							m_NACKedPackets.push_back (*(*it));
 							m_IsNAcked = true;
 							nacked = true;
 							break;
@@ -794,7 +794,6 @@ namespace stream
 			else
 				break;
 		}
-		m_NACKedPackets.swap (newNACKedPackets);
 
 		if (m_LastACKRecieveTime)
 		{
@@ -1817,16 +1816,16 @@ namespace stream
 		std::list<Packet *> packets;
 		if (m_IsNAcked && !m_IsClientChoked && !m_IsClientChoked2)
 		{
-			for (auto it : m_NACKedPackets)
+			for (auto& it : m_NACKedPackets)
 			{
-				if (ts >= it->sendTime + m_RTO)
+				if (ts >= it.sendTime + m_RTO)
 				{
-					if (ts < it->sendTime + m_RTO*3)
-						it->resent = true;
+					if (ts < it.sendTime + m_RTO*3)
+						it.resent = true;
 					else
-						it->resent = false;
-					it->sendTime = ts;
-					packets.emplace_back (it);
+						it.resent = false;
+					it.sendTime = ts;
+					packets.emplace_back (&it);
 					if ((int)packets.size () >= m_NumPacketsToSend) break;
 				}
 			}
