@@ -434,7 +434,8 @@ namespace torrents
 
 	bool Piece::BlockReceived (const uint8_t * block, size_t len, size_t offset)
 	{
-		if (!len || offset + len > m_Size || !m_Blocks) return false;
+		if (!m_Blocks || !len || len > REQUEST_BLOCK_SIZE || offset + len > m_Size ||
+			(len < REQUEST_BLOCK_SIZE && offset + len != m_Size)) return false;
 		size_t blockIndex = offset/REQUEST_BLOCK_SIZE;
 		if (!m_Blocks->IsBlockAvailable (blockIndex))
 		{
@@ -2310,7 +2311,7 @@ namespace torrents
 		{
 			LogPrint (eLogDebug, "Torrents: Received request index ", index, " offset ", offset, " length ", length);
 			Piece& piece = m_Torrent->GetPiece (index);
-			if (piece.HasBlock (offset) && offset + length <= piece.GetSize ())
+			if (piece.IsComplete () && offset + length <= piece.GetSize ())
 			{
 				if (m_NumPieces >= MAX_NUM_PIECES)
 				{
