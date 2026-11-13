@@ -563,6 +563,13 @@ namespace proxy
 					if (m_parseleft == 0) EnterState(GET_PORT);
 				break;
 				case GET5_HOST_SIZE:
+					if (!*sock_buff)
+					{
+						// zero length would make m_parseleft wrap around in GET5_HOST
+						LogPrint(eLogError, "SOCKS: v5 rejected zero-length hostname");
+						SocksRequestFailed(SOCKS5_GEN_FAIL);
+						return false;
+					}
 					EnterState(GET5_HOST, *sock_buff);
 				break;
 				case GET5_HOST:

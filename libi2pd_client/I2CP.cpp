@@ -253,6 +253,13 @@ namespace client
 	void I2CPDestination::SendMsgTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident, uint32_t nonce)
 	{
 		auto msg = m_I2NPMsgsPool.AcquireSharedMt ();
+		if (len + 4 > msg->maxLen - msg->len) // 4 bytes length
+		{
+			LogPrint (eLogError, "I2CP: Message payload of ", len, " bytes exceeds max I2NP message size");
+			if (m_Owner)
+				m_Owner->SendMessageStatusMessage (nonce, eI2CPMessageStatusGuaranteedFailure);
+			return;
+		}
 		uint8_t * buf = msg->GetPayload ();
 		htobe32buf (buf, len);
 		memcpy (buf + 4, payload, len);
@@ -394,6 +401,11 @@ namespace client
 		}
 		// create Data message
 		auto msg = m_I2NPMsgsPool.AcquireSharedMt ();
+		if (len + 4 > msg->maxLen - msg->len) // 4 bytes length
+		{
+			LogPrint (eLogError, "I2CP: Message payload of ", len, " bytes exceeds max I2NP message size");
+			return false; // caller falls back to SendMsgTo, which reports the failure
+		}
 		uint8_t * buf = msg->GetPayload ();
 		htobe32buf (buf, len);
 		memcpy (buf + 4, payload, len);
@@ -776,7 +788,7 @@ namespace client
 				i2p::data::IdentityEx ident;
 				if(ident.FromBuffer(buf, len - sizeof(uint16_t)))
 				{
-					if (ident == *m_Destination->GetIdentity())
+					if (m_Destination && ident == *m_Destination->GetIdentity()) // no destination before CreateSession
 					{
 						size_t identsz = ident.GetFullLen();
 						buf += identsz;
