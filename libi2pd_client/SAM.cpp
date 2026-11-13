@@ -353,6 +353,13 @@ namespace client
 			}
 			else
 			{
+				if (bytes_transferred >= SAM_SOCKET_BUFFER_SIZE)
+				{
+					// buffer is full without end of line, next read would be zero-length
+					LogPrint (eLogError, "SAM: Message exceeds ", SAM_SOCKET_BUFFER_SIZE, " bytes without end of line");
+					Terminate ("SAM: message is too long");
+					return;
+				}
 				LogPrint (eLogWarning, "SAM: Incomplete message ", bytes_transferred);
 				m_BufferOffset = bytes_transferred;
 				// try to receive remaining message
