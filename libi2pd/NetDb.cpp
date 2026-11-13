@@ -903,6 +903,11 @@ namespace data
 		{
 			if (CheckLogLevel (eLogDebug))
 				LogPrint (eLogDebug, "NetDb: Store request: RouterInfo ", ident.ToBase64());
+			if (offset + 2 > len)
+			{
+				LogPrint (eLogError, "NetDb: RouterInfo store msg is too short ", len);
+				return;
+			}
 			size_t size = bufbe16toh (buf + offset);
 			offset += 2;
 			if (size > MAX_RI_BUFFER_SIZE || size > len - offset)
