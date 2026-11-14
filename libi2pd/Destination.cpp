@@ -332,12 +332,12 @@ namespace client
 		{
 			std::lock_guard<std::mutex> l(m_IncomingMsgsQueueMutex);
 			empty = m_IncomingMsgsQueue.empty ();
-			m_IncomingMsgsQueue.push_back (msg);
+			m_IncomingMsgsQueue.emplace_back (msg);
 		}
 		if (empty)
 			boost::asio::post (m_Service, [s = shared_from_this ()]()
 			{
-				std::list<std::shared_ptr<I2NPMessage> > receivedMsgs;
+				std::vector<std::shared_ptr<I2NPMessage> > receivedMsgs;
 				{
 					std::lock_guard<std::mutex> l(s->m_IncomingMsgsQueueMutex);
 					s->m_IncomingMsgsQueue.swap (receivedMsgs);
