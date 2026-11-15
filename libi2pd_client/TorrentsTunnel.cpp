@@ -29,7 +29,7 @@ namespace torrents
 {
 	TorrentsTunnel::TorrentsTunnel (std::string_view name, std::shared_ptr<i2p::client::ClientDestination> localDestination,
 		std::string_view torrentsDir, std::string_view trackers, bool dht, std::string_view dhtFileName, bool web):
-		i2p::client::I2PService (localDestination), m_Name (name), m_PeerID ("-I2PD-"),
+		i2p::client::I2PService (localDestination), m_Name (name), m_DHTFileName (dhtFileName), m_PeerID ("-I2PD-"),
 		m_TorrentsDir (torrentsDir), m_TrackerRequestsCheckTimer (GetService ()),
 		m_KeepAliveCheckTimer (GetService ()), m_ReconnectCheckTimer (GetService ()),
 		m_TorrentsStatusUpdateTimer (GetService ()), m_Web (web)
@@ -64,7 +64,7 @@ namespace torrents
 				m_Trackers.emplace_back (TrackerInfo{ it.second, true, 0, 0, 0 });
 		}
 		if (dht)
-			m_DHT = std::make_unique<TorrentsDHT>(*this, TORRENT_PORT + (localDestination ? localDestination->GetRng()() % (65535 - TORRENT_PORT - 1) : 1), dhtFileName);
+			m_DHT = std::make_unique<TorrentsDHT>(*this, TORRENT_PORT + (localDestination ? localDestination->GetRng()() % (65535 - TORRENT_PORT - 1) : 1), m_DHTFileName);
 	}
 
 	void TorrentsTunnel::Start ()
@@ -1363,6 +1363,31 @@ namespace torrents
 			{
 				if (m_DHT) m_DHT->SendPingQuery (toIdent, toPort);
 			});
+	}
+
+	void TorrentsTunnel::StartDHT ()
+	{
+		boost::asio::post (GetService (), [this]()
+		{
+			if (!m_DHT)
+			{
+				m_DHT = std::make_unique<TorrentsDHT>(*this, TORRENT_PORT + (GetLocalDestination () ?
+					GetLocalDestination ()->GetRng()() % (65535 - TORRENT_PORT - 1) : 1), m_DHTFileName);
+				m_DHT->Start ();
+			}
+		});
+	}
+
+	void TorrentsTunnel::StopDHT ()
+	{
+		boost::asio::post (GetService (), [this]()
+		{
+			if (m_DHT)
+			{
+				m_DHT->Stop ();
+				m_DHT = nullptr;
+			}
+		});
 	}
 
 	void TorrentsTunnel::StartVerifingTorrent (std::shared_ptr<Torrent> torrent)

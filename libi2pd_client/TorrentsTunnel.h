@@ -126,6 +126,8 @@ namespace torrents
 			std::pair<uint16_t, uint16_t> GetDHTPorts () const { return { m_DHT ? m_DHT->GetPort () : 0, m_DHT ? m_DHT->GetRPort () : 0 }; }
 			bool SupportsDHT () const { return (bool)m_DHT; }
 			const std::unique_ptr<TorrentsDHT>& GetDHT () const { return m_DHT; }
+			void StartDHT ();
+			void StopDHT ();
 			bool SupportsWeb () const { return m_Web; }
 
 			const char* GetName() const override { return m_Name.c_str (); }
@@ -182,7 +184,7 @@ namespace torrents
 
 		private:
 
-			std::string m_Name, m_PeerID; // 20 characters
+			std::string m_Name, m_DHTFileName, m_PeerID; // 20 characters
 			std::filesystem::path m_TorrentsDir;
 			std::vector<TrackerInfo> m_Trackers;
 			std::map<Torrent::InfoHash, std::shared_ptr<Torrent> > m_Torrents;

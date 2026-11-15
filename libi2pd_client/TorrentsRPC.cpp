@@ -67,6 +67,7 @@ namespace torrents
 			std::string HandleTorrentStop (boost::json::object&& jsonRequest);
 			std::string HandleTorrentStart (boost::json::object&& jsonRequest);
 			std::string HandleSessionGet (boost::json::object&& jsonRequest); // for transmission-rpc library
+			std::string HandleSessionSet (boost::json::object&& jsonRequest);
 			std::string HandleSessionStats (boost::json::object&& jsonRequest);
 			std::string HandleTorrentSet (boost::json::object&& jsonRequest);
 			std::string HandleTorrentReannounce (boost::json::object&& jsonRequest);
@@ -127,6 +128,7 @@ namespace torrents
 			{ "torrent-stop", &JSONRPCHandler::HandleTorrentStop },
 			{ "torrent-start", &JSONRPCHandler::HandleTorrentStart  },
 			{ "session-get", &JSONRPCHandler::HandleSessionGet },
+			{ "session-set", &JSONRPCHandler::HandleSessionSet },
 			{ "session-stats", &JSONRPCHandler::HandleSessionStats },
 			{ "torrent-set", &JSONRPCHandler::HandleTorrentSet },
 			{ "torrent-reannounce", &JSONRPCHandler::HandleTorrentReannounce },
@@ -223,6 +225,21 @@ namespace torrents
 		response["units"] = units;
 		response["utp-enabled"] = true;
 		response["version"] = "4.0.0 (280ace12f8)";
+		return SuccessResponse (GetTag (jsonRequest), std::move (response));
+	}
+
+	std::string JSONRPCHandler::HandleSessionSet (boost::json::object&& jsonRequest)
+	{
+		boost::json::object response; // always empty
+		auto arguments = jsonRequest.at ("arguments").as_object ();
+		if (arguments.contains ("dht-enabled"))
+		{
+			auto dhtEnabled = arguments.at ("dht-enabled").as_bool ();
+			if (dhtEnabled)
+				m_Tunnel->StartDHT ();
+			else
+				m_Tunnel->StopDHT ();
+		}
 		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}
 
@@ -1053,7 +1070,7 @@ namespace torrents
 		}
 
 		std::string contentType ("");
-		auto filePath = std::filesystem::path (i2p::fs::GetDataDir ()) / "torrents" / "web";
+		auto filePath = i2p::fs::GetDataDir () / "torrents" / "web";
 		if (fileSubUrl.empty ())
 		{
 			filePath /= "index.html";
