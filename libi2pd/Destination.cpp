@@ -337,13 +337,13 @@ namespace client
 		if (empty)
 			boost::asio::post (m_Service, [s = shared_from_this ()]()
 			{
-				std::vector<std::shared_ptr<I2NPMessage> > receivedMsgs;
 				{
 					std::lock_guard<std::mutex> l(s->m_IncomingMsgsQueueMutex);
-					s->m_IncomingMsgsQueue.swap (receivedMsgs);
+					s->m_IncomingMsgsQueue.swap (s->m_ProcessedMsgs);
 				}
-			    for (auto& it: receivedMsgs)
+			    for (auto& it: s->m_ProcessedMsgs)
 			    	s->HandleGarlicMessage (it);
+			    s->m_ProcessedMsgs.clear ();
 			});
 	}
 
