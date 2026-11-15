@@ -71,11 +71,15 @@ namespace torrents
 	{
 		i2p::client::I2PService::Start ();
 		m_DiskIOService.Start ();
+		auto prevNumRatchetInboundTags = GetLocalDestination ()->GetNumRatchetInboundTags ();
 		auto dgramDest = GetLocalDestination ()->CreateDatagramDestination (true, i2p::datagram::eDatagramV1); // V1 for DHT
 		if (dgramDest)
+		{
+			GetLocalDestination ()->SetNumRatchetInboundTags (prevNumRatchetInboundTags); // we don't need to overwrite number of tags for DHT/datagram trackers
 			dgramDest->SetRawReceiver (std::bind (&TorrentsTunnel::HandleRecvFromI2PRaw,
 				std::static_pointer_cast<TorrentsTunnel>(shared_from_this ()),
 				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+		}
 		if (m_DHT) m_DHT->Start ();
 
 		Accept ();
