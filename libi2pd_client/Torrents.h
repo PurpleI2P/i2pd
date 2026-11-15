@@ -81,6 +81,7 @@ namespace torrents
 	constexpr size_t MAX_NUM_PIECES = 6;
 	constexpr size_t MAX_INCOMING_REQUESTS_QUEUE_SIZE = 32;
 	constexpr int PIECE_INACTIVITY_TIMEOUT = 22; // in seconds
+	constexpr int PIECE_PARTIAL_DATA_TIMEOUT = 300; // in seconds, release buffer of abandoned incomplete piece
 	constexpr int HANDSHAKE_RECEIVE_TIMEOUT = 20; // in seconds
 	constexpr int BANDWIDTH_RATE_SAMPLING_INTERVAL = 1500; // in milliseconds
 	constexpr int PEER_INACTIVITY_INTERVAL = 16000; // in milliseconds
@@ -212,6 +213,7 @@ namespace torrents
 			void Complete () { m_Blocks = nullptr; }
 			bool VerifyHash () const;
 			void SetIsSending (bool isSending);
+			void SetIsSaving (bool isSaving) { m_IsSaving = isSaving; } // pending write to disk
 			uint64_t GetLastActivityTimestamp () const { return m_LastActivityTimestamp; }
 			bool IsRequested () const { return m_Blocks ? m_Blocks->IsRequested () : false; }
 			size_t GetNumPeers () const { return m_NumPeers; }
@@ -222,6 +224,7 @@ namespace torrents
 			bool Dump (PieceFileFragment&& fragment);
 			bool Load (PieceFileFragment&& fragment);
 			const uint8_t * GetData () const { return m_Data; }
+			bool HasData () const { return m_Data != nullptr; }
 			size_t GetSize () const { return m_Size; }
 			const uint8_t * GetHash () const { return m_Hash; }
 			bool HasBlock (size_t offset) const;
@@ -229,6 +232,7 @@ namespace torrents
 			void ClearAllRequests ();
 			void InvalidateAllBlocks ();
 			void Reset ();
+			void ReleasePartialData (); // drop buffer and received blocks of incomplete piece
 
 		private:
 
@@ -242,7 +246,7 @@ namespace torrents
 			size_t m_Size;
 			uint8_t * m_Data, m_Hash[SHA_DIGEST_LENGTH];
 			std::unique_ptr<Blocks> m_Blocks;
-			bool m_IsSending;
+			bool m_IsSending, m_IsSaving;
 			uint64_t m_LastActivityTimestamp; // monotonic seconds
 			size_t m_NumPeers; // where this piece is available
 	};
@@ -337,6 +341,7 @@ namespace torrents
 			std::vector<PieceFileFragment> GetPieceFileFragments (int index) const;
 			std::vector<size_t> GetFilesCompleted () const; // completed size per file
 			bool UpdateStatus (uint64_t ts); // return true if complete
+			void ReleaseInactivePieces (uint64_t ts); // free data buffers of inactive pieces
 			uint64_t GetNextUpdateStatusTime () { return m_NextUpdateStatusTime; }
 			void SetNextUpdateStatusTime (uint64_t nextUpdateStatusTime) { m_NextUpdateStatusTime = nextUpdateStatusTime; }
 			uint64_t GetNextReconnectTime () { return m_NextReconnectTime; }

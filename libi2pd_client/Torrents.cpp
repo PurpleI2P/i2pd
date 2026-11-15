@@ -397,7 +397,7 @@ namespace torrents
 	}
 
 	Piece::Piece (size_t size, const uint8_t * hash):
-		m_Size (size), m_Data (nullptr), m_IsSending (false),
+		m_Size (size), m_Data (nullptr), m_IsSending (false), m_IsSaving (false),
 		m_LastActivityTimestamp (0), m_NumPeers (0)
 	{
 		memcpy (m_Hash, hash, SHA_DIGEST_LENGTH);
@@ -476,15 +476,13 @@ namespace torrents
 
 	bool Piece::Dump (PieceFileFragment&& fragment)
 	{
-		bool saved = false;
-		m_IsSending = true;
+		bool saved = false; // caller keeps buffer alive with SetIsSaving
 		if (m_Data && fragment.fragmentOffset + fragment.fragmentSize <= m_Size)
 		{
 			saved = fragment.file->Save (fragment.fileOffset, m_Data + fragment.fragmentOffset, fragment.fragmentSize);
 			if (saved)
 				LogPrint (eLogDebug, "Torrents: Saved bytes ", fragment.fileOffset, " - ", fragment.fileOffset + fragment.fragmentSize - 1, " to ", fragment.file->GetFullFilePath ());
 		}
-		m_IsSending = false;
 		return saved;
 	}
 
@@ -575,7 +573,10 @@ namespace torrents
 
 	void Piece::InvalidateAllBlocks ()
 	{
-		if (m_Blocks) m_Blocks->Reset ();
+		if (m_Blocks)
+			m_Blocks->Reset ();
+		else // piece was marked complete, e.g. hash mismatch or failed to save
+			m_Blocks = std::make_unique<Blocks>(GetNumBlocks (m_Size));
 		if (m_Data)
 			DeleteDataBuffer ();
 	}
@@ -584,10 +585,20 @@ namespace torrents
 	{
 		if (m_Blocks)
 			ClearAllRequests ();
-		else if (m_Data && !m_IsSending)
+		else if (m_Data && !m_IsSending && !m_IsSaving)
 		{
 			DeleteDataBuffer ();
 			LogPrint (eLogDebug, "Torrents: piece's data deleted");
+		}
+	}
+
+	void Piece::ReleasePartialData ()
+	{
+		// incomplete piece without outstanding requests keeps a full piece-size buffer forever otherwise
+		if (m_Blocks && m_Data && !m_IsSending && !m_Blocks->IsRequested ())
+		{
+			InvalidateAllBlocks ();
+			LogPrint (eLogDebug, "Torrents: incomplete piece's data released");
 		}
 	}
 
@@ -1100,7 +1111,8 @@ namespace torrents
 				if (!it.IsComplete ())
 				{
 					if (conn->IsPieceAvailable (ind) && (!skipRequested || !it.IsRequested ()))
-						sortedByNumPeers.emplace (ind, it.GetNumPeers (), rng ());
+						// finish already started pieces first, otherwise their buffers pile up in memory
+						sortedByNumPeers.emplace (ind, it.HasData () ? 0 : it.GetNumPeers () + 1, rng ());
 					numIncompletedPieces++;
 				}
 				ind++;
@@ -1123,15 +1135,32 @@ namespace torrents
 		if (!m_Length) return false; // non ready magnet
 		bool complete = true;
 		for (auto& it: m_Pieces)
-		{
-			if (!it.IsComplete ()) complete = false;
-			if (m_IsStopped || (ts > it.GetLastActivityTimestamp () + PIECE_INACTIVITY_TIMEOUT)) // piece was inactive recently
-				it.Reset ();
-		}
+			if (!it.IsComplete ()) { complete = false; break; }
+		ReleaseInactivePieces (ts);
 		if (!complete)
 			for (auto it: conns)
 				it->UpdateInterested ();
 		return complete;
+	}
+
+	void Torrent::ReleaseInactivePieces (uint64_t ts)
+	{
+		if (!m_Length) return; // non ready magnet
+		size_t numReleased = 0;
+		for (auto& it: m_Pieces)
+		{
+			auto lastActivity = it.GetLastActivityTimestamp ();
+			if (m_IsStopped || (ts > lastActivity + PIECE_INACTIVITY_TIMEOUT)) // piece was inactive recently
+				it.Reset (); // clears requests of incomplete piece, deletes data of complete piece
+			if (!it.IsComplete () && it.HasData () && !it.IsRequested () &&
+				(m_IsStopped || ts > lastActivity + PIECE_PARTIAL_DATA_TIMEOUT)) // abandoned incomplete piece
+			{
+				it.ReleasePartialData ();
+				if (!it.HasData ()) numReleased++;
+			}
+		}
+		if (numReleased)
+			LogPrint (eLogInfo, "Torrents: Released data of ", numReleased, " incomplete pieces of ", m_Name);
 	}
 
 	void Torrent::SetComplete ()
@@ -2148,8 +2177,9 @@ namespace torrents
 			{
 				if (piece.VerifyHash ())
 				{
+					piece.SetIsSaving (true); // keep data until written to disk, cleared by disk IO thread
 					boost::asio::post (GetTorrentsTunnel ()->GetDiskIOService (),
-						[index, t = std::weak_ptr<Torrent> (m_Torrent)]() mutable
+						[index, t = std::weak_ptr<Torrent> (m_Torrent), tunnel = GetTorrentsTunnel ()]() mutable
 						{
 							auto torrent = t.lock ();
 							if (!torrent) return; // torrent doesn't exist anymore
@@ -2162,10 +2192,16 @@ namespace torrents
 									saved = false;
 									break;
 								}
+							piece.SetIsSaving (false);
 							if (!saved)
 							{
 								LogPrint (eLogWarning, "Torrents: Failed to save piece");
-								piece.InvalidateAllBlocks ();
+								// re-download, blocks are recreated in tunnel's thread
+								boost::asio::post (tunnel->GetService (), [index, t]()
+									{
+										auto torrent = t.lock ();
+										if (torrent) torrent->GetPiece (index).InvalidateAllBlocks ();
+									});
 							}
 							torrent->UpdateTorrentResumeFile ();
 						});

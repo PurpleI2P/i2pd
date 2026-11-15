@@ -1110,6 +1110,8 @@ namespace torrents
 						else
 							UpdatePeersPerPiece (it.second);
 					}
+					else
+						it.second->ReleaseInactivePieces (ts); // stopped or idle complete torrent
 					boost::asio::post (GetDiskIOService (), [torrent = it.second, ts]()
 					{
 						for (auto it: torrent->GetFiles ())
