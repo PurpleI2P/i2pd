@@ -575,7 +575,10 @@ namespace torrents
 
 	void Piece::InvalidateAllBlocks ()
 	{
-		if (m_Blocks) m_Blocks->Reset ();
+		if (m_Blocks)
+			m_Blocks->Reset ();
+		else
+			m_Blocks = std::make_unique<Blocks>(GetNumBlocks (m_Size));
 		if (m_Data)
 			DeleteDataBuffer ();
 	}
