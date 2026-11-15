@@ -1100,7 +1100,7 @@ namespace torrents
 				if (!it.IsComplete ())
 				{
 					if (conn->IsPieceAvailable (ind) && (!skipRequested || !it.IsRequested ()))
-						sortedByNumPeers.emplace (ind, it.GetNumPeers (), rng ());
+						sortedByNumPeers.emplace (ind, it.GetNumPeers (), it.GetData () ? 0 : rng ()); // partially donwloaded piece has higher priority
 					numIncompletedPieces++;
 				}
 				ind++;
