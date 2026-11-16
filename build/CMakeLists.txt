@@ -399,7 +399,7 @@ if(WITH_BINARY)
   endif()
 
   if(WIN32)
-    list(APPEND MINGW_EXTRA "wsock32" "ws2_32" "iphlpapi")
+    list(APPEND MINGW_EXTRA "wsock32" "ws2_32" "iphlpapi" "bcrypt")
     # OpenSSL may require Crypt32 library on MSVC build, which is not added by CMake lesser than 3.21
     if(MSVC AND ${CMAKE_VERSION} VERSION_LESS 3.21)
       list(APPEND MINGW_EXTRA "crypt32")
