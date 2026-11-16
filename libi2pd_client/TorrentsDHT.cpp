@@ -404,6 +404,13 @@ namespace torrents
 		m_DHTQueryExpirationCheckTimer.cancel ();
 		if (m_DHTFileName[0]) // first byte zero means non persistent
 			Save (GetDHTFilePath (m_DHTFileName));
+		auto dest = m_Tunnel.GetLocalDestination ();
+		if (dest)
+		{
+			auto dgramDest = dest->GetDatagramDestination ();
+			if (dgramDest)
+				dgramDest->ResetReceiver ();
+		}
 	}
 
 	std::filesystem::path TorrentsDHT::GetDHTFilePath (std::string_view filename) const
