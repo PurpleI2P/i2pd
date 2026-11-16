@@ -40,7 +40,8 @@ LDLIBS += \
 	-lgdi32 \
 	-lole32 \
 	-luuid \
-	-lpthread
+	-lpthread \
+	-lbcrypt
 
 ifeq ($(USE_WIN32_APP), yes)
 	DEFINES += -DWIN32_APP
