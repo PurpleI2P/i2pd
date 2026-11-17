@@ -119,6 +119,7 @@ namespace torrents
 			void StopAllTorrents ();
 			bool StartTorrent (int id);
 			void StartAllTorrents ();
+			bool VerifyTorrent (int id);
 			bool ReannounceTorrent (int id);
 			void ReannounceAllTorrents ();
 			void ConnectToNewPeers (std::shared_ptr<Torrent> torrent, std::unordered_set<i2p::data::IdentHash>& newPeers, PeerConnectionOrigin origin);
@@ -181,8 +182,6 @@ namespace torrents
 				uint16_t fromPort, TrackerAnnounceEvent event);
 
 			bool StartVerifyingTorrent (std::shared_ptr<Torrent> torrent);
-			void CancelVerifyingTorrent ();
-			size_t GetNumPiecesChecked () const { return m_NumPiecesChecked; }
 
 		private:
 
@@ -201,8 +200,6 @@ namespace torrents
 			bool m_Web;
 			//verifying
 			std::future<boost::dynamic_bitset<> > m_VerifyingTorrent;
-			std::stop_source m_CancelVerifying;
-			size_t m_NumPiecesChecked;
 	};
 
 }

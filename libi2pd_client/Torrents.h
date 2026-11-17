@@ -28,7 +28,6 @@
 #include <optional>
 #include <filesystem>
 #include <fstream>
-#include <stop_token>
 #include "util.h"
 #include "Streaming.h"
 #include "I2PService.h"
@@ -379,12 +378,13 @@ namespace torrents
 			std::string GetTrackerError (size_t trackerID) const { return (trackerID < m_TrackerStats.size ()) ? std::get<6>(m_TrackerStats[trackerID]) : ""; }
 			void SetTrackerError (size_t trackerID, std::string_view error);
 
-			boost::dynamic_bitset<> Verify (size_t& numPiecesChecked, std::stop_token s) const; // should be called in seperate thread
+			boost::dynamic_bitset<> Verify (); // should be called in seperate thread
 
 			void StartDownloadingInfo (size_t infoSize); // for magnets
 			bool UpdateInfoBlock (size_t block, const uint8_t * buf, size_t len); // return true if complete
 			int GetNextInfoBlockToRequest ();
 			float GetDowloadInfoProgress () const; // for RPC, 0.0 - 1.0
+			float GetRecheckProgress () const; // for RPC, 0.0 - 1.0
 
 		private:
 
@@ -414,6 +414,7 @@ namespace torrents
 			uint64_t m_NextUpdateStatusTime, m_NextUpdateResumeFileTime, m_NextReconnectTime,
 				m_NextDHTUpdateTime, m_LastDHTAnnounceTime; // in monotonic seconds
 			TorrentError m_Error;
+			size_t m_NumPiecesChecked; // for Verify
 	};
 
 	enum PeerConnectionOrigin

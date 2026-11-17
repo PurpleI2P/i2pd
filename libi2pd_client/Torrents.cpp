@@ -606,7 +606,7 @@ namespace torrents
 		m_IsStopped (false), m_IsSingleFile (true),  m_IsVerifying (false), m_Uploaded (0),
 		m_Downloaded (0), m_NextUpdateStatusTime (0), m_NextUpdateResumeFileTime (),
 		m_NextReconnectTime (0), m_NextDHTUpdateTime (0), m_LastDHTAnnounceTime (0),
-		m_Error (eTorrentErrorNoError)
+		m_Error (eTorrentErrorNoError), m_NumPiecesChecked (0)
 	{
 	}
 
@@ -1437,9 +1437,9 @@ namespace torrents
 		return numUploadingToPeers;
 	}
 
-	boost::dynamic_bitset<> Torrent::Verify (size_t& numPiecesChecked, std::stop_token s) const
+	boost::dynamic_bitset<> Torrent::Verify ()
 	{
-		numPiecesChecked = 0;
+		m_NumPiecesChecked = 0;
 		boost::dynamic_bitset<> ret (m_Pieces.size ());
 		if (!m_Pieces.size ()) return ret;
 
@@ -1459,7 +1459,6 @@ namespace torrents
 					f.read ((char *)piece.data () + nextPieceOffset, len);
 				else
 					pieceFailed = true;
-				if (s.stop_requested ()) return ret;
 				remainingLen -= len;
 				nextPieceOffset += len;
 				if (nextPieceOffset == m_PieceLength || !remainingLen)
@@ -1472,17 +1471,17 @@ namespace torrents
 						EVP_DigestUpdate (mdCtx, piece.data (), nextPieceOffset);
 						unsigned int l = SHA_DIGEST_LENGTH;
 						EVP_DigestFinal_ex (mdCtx, digest, &l);
-						ret.set (numPiecesChecked, !memcmp (digest, m_Pieces[numPiecesChecked].GetHash (), SHA_DIGEST_LENGTH));
+						ret.set (m_NumPiecesChecked, !memcmp (digest, m_Pieces[m_NumPiecesChecked].GetHash (), SHA_DIGEST_LENGTH));
 					}
 					else
-						ret.reset (numPiecesChecked);
-					numPiecesChecked++;
+						ret.reset (m_NumPiecesChecked);
+					m_NumPiecesChecked++;
 					nextPieceOffset = 0;
 					pieceFailed = false;
-					if (numPiecesChecked >= m_Pieces.size ()) break;
+					if (m_NumPiecesChecked >= m_Pieces.size ()) break;
 				}
 			}
-			if (numPiecesChecked >= m_Pieces.size ()) break;
+			if (m_NumPiecesChecked >= m_Pieces.size ()) break;
 		}
 		EVP_MD_CTX_free (mdCtx);
 		return ret;
@@ -1536,6 +1535,12 @@ namespace torrents
 		if (m_Length > 0) return 1.0;
 		if (!m_InfoDownloadBlocks || !m_InfoDownloadBlocks->GetNumBlocks ()) return 0.0;
 		return (float)m_InfoDownloadBlocks->GetNumReceivedBlocks ()/(float)m_InfoDownloadBlocks->GetNumBlocks ();
+	}
+
+	float Torrent::GetRecheckProgress () const
+	{
+		if (m_IsVerifying) return 0;
+		return (float)m_NumPiecesChecked/(float)m_Pieces.size ();
 	}
 
 	PeerConnection::PeerConnection (std::shared_ptr<i2p::client::I2PService> owner,

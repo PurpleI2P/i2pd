@@ -32,7 +32,7 @@ namespace torrents
 		i2p::client::I2PService (localDestination), m_Name (name), m_DHTFileName (dhtFileName), m_PeerID ("-I2PD-"),
 		m_TorrentsDir (torrentsDir), m_TrackerRequestsCheckTimer (GetService ()),
 		m_KeepAliveCheckTimer (GetService ()), m_ReconnectCheckTimer (GetService ()),
-		m_TorrentsStatusUpdateTimer (GetService ()), m_Web (web), m_NumPiecesChecked (0)
+		m_TorrentsStatusUpdateTimer (GetService ()), m_Web (web)
 	{
 		if (localDestination)
 			m_PeerID += localDestination->GetIdentHash ().ToBase64 ();
@@ -734,6 +734,20 @@ namespace torrents
 		});
 	}
 
+	bool TorrentsTunnel::VerifyTorrent (int id)
+	{
+		std::shared_ptr<Torrent> torrent;
+		{
+			std::lock_guard<std::mutex> l(m_TorrentsMutex);
+			auto it = m_TorrentsByID.find (id);
+			if (it == m_TorrentsByID.end ()) return false;
+			torrent = it->second.lock ();
+			if (!torrent) return false;
+		}
+		if (!torrent->IsComplete ()) return false;
+		return StartVerifyingTorrent (torrent);
+	}
+
 	bool TorrentsTunnel::ReannounceTorrent (int id)
 	{
 		std::shared_ptr<Torrent> torrent;
@@ -1392,7 +1406,7 @@ namespace torrents
 
 	bool TorrentsTunnel::StartVerifyingTorrent (std::shared_ptr<Torrent> torrent)
 	{
-		if (!torrent) return false;
+		if (!torrent || torrent->IsVerifying ()) return false;
 		bool isVerifying = m_VerifyingTorrent.valid ();
 		if (isVerifying && m_VerifyingTorrent.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
 		{
@@ -1401,23 +1415,15 @@ namespace torrents
 		}
 		if (!isVerifying)
 		{
-			m_NumPiecesChecked = 0;
-			m_CancelVerifying = {};
-			m_VerifyingTorrent = std::async (std::launch::async, [torrent, this]() mutable
+			m_VerifyingTorrent = std::async (std::launch::async, [torrent, this]()
 				{
 					torrent->SetVerifying (true);
-					auto res = torrent->Verify (m_NumPiecesChecked, m_CancelVerifying.get_token ());
+					auto res = torrent->Verify ();
 					torrent->SetVerifying (false);
 					return res;
 				});
 		}
 		return !isVerifying;
-	}
-
-	void TorrentsTunnel::CancelVerifyingTorrent ()
-	{
-		if (m_VerifyingTorrent.valid ())
-			m_CancelVerifying.request_stop ();
 	}
 }
 }

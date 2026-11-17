@@ -66,6 +66,7 @@ namespace torrents
 			std::string HandleTorrentGet (boost::json::object&& jsonRequest);
 			std::string HandleTorrentStop (boost::json::object&& jsonRequest);
 			std::string HandleTorrentStart (boost::json::object&& jsonRequest);
+			std::string HandleTorrentVerify (boost::json::object&& jsonRequest);
 			std::string HandleSessionGet (boost::json::object&& jsonRequest); // for transmission-rpc library
 			std::string HandleSessionSet (boost::json::object&& jsonRequest);
 			std::string HandleSessionStats (boost::json::object&& jsonRequest);
@@ -126,7 +127,8 @@ namespace torrents
 			{ "torrent-remove", &JSONRPCHandler::HandleTorrentRemove },
 			{ "torrent-get", &JSONRPCHandler::HandleTorrentGet },
 			{ "torrent-stop", &JSONRPCHandler::HandleTorrentStop },
-			{ "torrent-start", &JSONRPCHandler::HandleTorrentStart  },
+			{ "torrent-start", &JSONRPCHandler::HandleTorrentStart },
+			{ "torrent-verify", &JSONRPCHandler::HandleTorrentVerify },
 			{ "session-get", &JSONRPCHandler::HandleSessionGet },
 			{ "session-set", &JSONRPCHandler::HandleSessionSet },
 			{ "session-stats", &JSONRPCHandler::HandleSessionStats },
@@ -530,7 +532,7 @@ namespace torrents
 			{ "isStalled", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(false); } }, // TODO:
 			{ "labels", [](std::shared_ptr<Torrent> torrent) { return boost::json::array(); } },
 			{ "queuePosition", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(1); } },
-			{ "recheckProgress", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(0); } },
+			{ "recheckProgress", [](std::shared_ptr<Torrent> torrent) { return boost::json::value(torrent->GetRecheckProgress ()); } },
 
 			// follow the global settings
 			// TR_RATIOLIMIT_GLOBAL = 0,
@@ -784,6 +786,16 @@ namespace torrents
 				m_Tunnel->StartTorrent (id);
 		else
 			m_Tunnel->StartAllTorrents ();
+		boost::json::object response; // always empty
+		return SuccessResponse (GetTag (jsonRequest), std::move (response));
+	}
+
+	std::string JSONRPCHandler::HandleTorrentVerify (boost::json::object&& jsonRequest)
+	{
+		auto arguments = jsonRequest.at ("arguments").as_object ();
+		auto torrentIds = GetTorrentIds (arguments);
+		if (!torrentIds.empty ())
+			m_Tunnel->VerifyTorrent (torrentIds[0]); // TODO
 		boost::json::object response; // always empty
 		return SuccessResponse (GetTag (jsonRequest), std::move (response));
 	}
