@@ -603,9 +603,10 @@ namespace torrents
 
 	Torrent::Torrent ():
 		m_AnnounceTrackerID (-1), m_Length (0), m_PieceLength (0), m_IsComplete (false),
-		m_IsStopped (false), m_IsSingleFile (true), m_Uploaded (0), m_Downloaded (0),
-		m_NextUpdateStatusTime (0), m_NextUpdateResumeFileTime (), m_NextReconnectTime (0),
-		m_NextDHTUpdateTime (0), m_LastDHTAnnounceTime (0), m_Error (eTorrentErrorNoError)
+		m_IsStopped (false), m_IsSingleFile (true),  m_IsVerifying (false), m_Uploaded (0),
+		m_Downloaded (0), m_NextUpdateStatusTime (0), m_NextUpdateResumeFileTime (),
+		m_NextReconnectTime (0), m_NextDHTUpdateTime (0), m_LastDHTAnnounceTime (0),
+		m_Error (eTorrentErrorNoError)
 	{
 	}
 
@@ -1329,6 +1330,7 @@ namespace torrents
 
 	TorrentStatus Torrent::GetStatus () const
 	{
+		if (m_IsVerifying) return eTorrentStatusVerifyingLocalData;
 		if (m_IsStopped) return eTorrentStatusStopped;
 		if (m_IsComplete) return eTorrentStatusSeeding;
 		return eTorrentStatusDownloading;
@@ -1435,7 +1437,7 @@ namespace torrents
 		return numUploadingToPeers;
 	}
 
-	boost::dynamic_bitset<> Torrent::Verify (size_t& numPiecesChecked) const
+	boost::dynamic_bitset<> Torrent::Verify (size_t& numPiecesChecked, std::stop_token s) const
 	{
 		numPiecesChecked = 0;
 		boost::dynamic_bitset<> ret (m_Pieces.size ());
@@ -1457,6 +1459,7 @@ namespace torrents
 					f.read ((char *)piece.data () + nextPieceOffset, len);
 				else
 					pieceFailed = true;
+				if (s.stop_requested ()) return ret;
 				remainingLen -= len;
 				nextPieceOffset += len;
 				if (nextPieceOffset == m_PieceLength || !remainingLen)

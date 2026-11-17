@@ -32,7 +32,7 @@ namespace torrents
 		i2p::client::I2PService (localDestination), m_Name (name), m_DHTFileName (dhtFileName), m_PeerID ("-I2PD-"),
 		m_TorrentsDir (torrentsDir), m_TrackerRequestsCheckTimer (GetService ()),
 		m_KeepAliveCheckTimer (GetService ()), m_ReconnectCheckTimer (GetService ()),
-		m_TorrentsStatusUpdateTimer (GetService ()), m_Web (web)
+		m_TorrentsStatusUpdateTimer (GetService ()), m_Web (web), m_NumPiecesChecked (0)
 	{
 		if (localDestination)
 			m_PeerID += localDestination->GetIdentHash ().ToBase64 ();
@@ -1390,23 +1390,34 @@ namespace torrents
 		});
 	}
 
-	void TorrentsTunnel::StartVerifingTorrent (std::shared_ptr<Torrent> torrent)
+	bool TorrentsTunnel::StartVerifyingTorrent (std::shared_ptr<Torrent> torrent)
 	{
-		if (!torrent) return;
-		bool isVerifing = m_VerifingTorrent.valid ();
-		if (isVerifing && m_VerifingTorrent.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+		if (!torrent) return false;
+		bool isVerifying = m_VerifyingTorrent.valid ();
+		if (isVerifying && m_VerifyingTorrent.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
 		{
-			m_VerifingTorrent.get ();
-			isVerifing = false;
+			m_VerifyingTorrent.get ();
+			isVerifying = false;
 		}
-		if (!isVerifing)
+		if (!isVerifying)
 		{
-			m_VerifingTorrent = std::async (std::launch::async, [torrent]()
+			m_NumPiecesChecked = 0;
+			m_CancelVerifying = {};
+			m_VerifyingTorrent = std::async (std::launch::async, [torrent, this]() mutable
 				{
-					size_t numPiecesChecked;
-					return torrent->Verify (numPiecesChecked);
+					torrent->SetVerifying (true);
+					auto res = torrent->Verify (m_NumPiecesChecked, m_CancelVerifying.get_token ());
+					torrent->SetVerifying (false);
+					return res;
 				});
 		}
+		return !isVerifying;
+	}
+
+	void TorrentsTunnel::CancelVerifyingTorrent ()
+	{
+		if (m_VerifyingTorrent.valid ())
+			m_CancelVerifying.request_stop ();
 	}
 }
 }

@@ -180,7 +180,9 @@ namespace torrents
 				std::shared_ptr<Torrent> torrent, std::string_view dest, uint16_t port,
 				uint16_t fromPort, TrackerAnnounceEvent event);
 
-			void StartVerifingTorrent (std::shared_ptr<Torrent> torrent);
+			bool StartVerifyingTorrent (std::shared_ptr<Torrent> torrent);
+			void CancelVerifyingTorrent ();
+			size_t GetNumPiecesChecked () const { return m_NumPiecesChecked; }
 
 		private:
 
@@ -197,7 +199,10 @@ namespace torrents
 			// transactionID->(trackerID, from_port, torrent, timestamp monotonic milliseconds)
 			std::unique_ptr<TorrentsDHT> m_DHT;
 			bool m_Web;
-			std::future<boost::dynamic_bitset<> > m_VerifingTorrent;
+			//verifying
+			std::future<boost::dynamic_bitset<> > m_VerifyingTorrent;
+			std::stop_source m_CancelVerifying;
+			size_t m_NumPiecesChecked;
 	};
 
 }

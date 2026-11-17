@@ -28,6 +28,7 @@
 #include <optional>
 #include <filesystem>
 #include <fstream>
+#include <stop_token>
 #include "util.h"
 #include "Streaming.h"
 #include "I2PService.h"
@@ -302,7 +303,9 @@ namespace torrents
 			void SetStopped (bool stopped) { m_IsStopped = stopped; }
 			bool IsActive () const { return !m_Connections.empty (); }
 			TorrentStatus GetStatus () const;
-			bool IsSingleFile () const { return m_IsSingleFile; };
+			bool IsSingleFile () const { return m_IsSingleFile; }
+			bool IsVerifying () const { return m_IsVerifying; }
+			void SetVerifying (bool verifying) { m_IsVerifying = verifying; }
 
 			std::string_view GetAnnounce () const { return m_Announce; }
 			void SetAnnounce (std::string_view announce) { m_Announce = announce; }
@@ -376,7 +379,7 @@ namespace torrents
 			std::string GetTrackerError (size_t trackerID) const { return (trackerID < m_TrackerStats.size ()) ? std::get<6>(m_TrackerStats[trackerID]) : ""; }
 			void SetTrackerError (size_t trackerID, std::string_view error);
 
-			boost::dynamic_bitset<> Verify (size_t& numPiecesChecked) const; // should be called in seperate thread
+			boost::dynamic_bitset<> Verify (size_t& numPiecesChecked, std::stop_token s) const; // should be called in seperate thread
 
 			void StartDownloadingInfo (size_t infoSize); // for magnets
 			bool UpdateInfoBlock (size_t block, const uint8_t * buf, size_t len); // return true if complete
@@ -405,7 +408,7 @@ namespace torrents
 			std::vector<Piece> m_Pieces;
 			std::vector<TrackerStats> m_TrackerStats;
 			std::unordered_map<i2p::data::IdentHash, std::weak_ptr<PeerConnection> > m_Connections; // remote ident hash -> connection
-			bool m_IsComplete, m_IsStopped, m_IsSingleFile;
+			bool m_IsComplete, m_IsStopped, m_IsSingleFile, m_IsVerifying;
 			std::list<std::shared_ptr<TorrentFile> > m_Files;
 			size_t m_Uploaded, m_Downloaded;
 			uint64_t m_NextUpdateStatusTime, m_NextUpdateResumeFileTime, m_NextReconnectTime,
