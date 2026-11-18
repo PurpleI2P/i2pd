@@ -139,7 +139,7 @@ namespace util
 		if (!m_IsRunning)
 		{
 			m_IsRunning = true;
-			m_Thread = std::make_unique<std::jthread> (std::bind (&RunnableService::Run, this));
+			m_Thread = std::make_unique<std::thread> (std::bind (&RunnableService::Run, this));
 		}
 	}
 
