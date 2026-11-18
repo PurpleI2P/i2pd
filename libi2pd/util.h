@@ -234,7 +234,7 @@ namespace util
 
 			std::string m_Name;
 			volatile bool m_IsRunning;
-			std::unique_ptr<std::thread> m_Thread;
+			std::unique_ptr<std::jthread> m_Thread;
 			boost::asio::io_context m_Service;
 	};
 
