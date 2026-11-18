@@ -281,7 +281,7 @@ namespace torrents
 	void TorrentsTunnel::ReadMagnetFile (const std::filesystem::path& magnetFilePath)
 	{
 		if (magnetFilePath.extension () != ".magnet" || !std::filesystem::exists (magnetFilePath)) return;
-		auto hexStr = magnetFilePath.stem ().string ();
+		auto hexStr = magnetFilePath.stem ().string ().substr (0, 40);
 		Torrent::InfoHash infoHash;
 		try
 		{
