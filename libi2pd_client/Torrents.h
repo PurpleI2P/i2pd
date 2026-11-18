@@ -414,7 +414,7 @@ namespace torrents
 			uint64_t m_NextUpdateStatusTime, m_NextUpdateResumeFileTime, m_NextReconnectTime,
 				m_NextDHTUpdateTime, m_LastDHTAnnounceTime; // in monotonic seconds
 			TorrentError m_Error;
-			size_t m_NumPiecesChecked; // for Verify
+			std::atomic<size_t> m_NumPiecesChecked; // for Verify
 	};
 
 	enum PeerConnectionOrigin
