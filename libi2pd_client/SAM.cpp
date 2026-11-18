@@ -1502,11 +1502,20 @@ namespace client
 			LogPrint (eLogError, "SAM: Datagram invalid destination ", destination);
 			return;
 		}
-		auto sendTo = [datagramDest, type = Type, fromPort, toPort]
+		auto sendTo = [datagramDest, type = Type, version = DatagramVersion, fromPort, toPort]
 			(const uint8_t * p, size_t l, const i2p::data::IdentHash& ident)
 		{
 			if (type == SAMSessionType::eSAMSessionTypeDatagram)
-				datagramDest->SendDatagramTo (p, l, ident, fromPort, toPort);
+			{
+				// use this subsession's datagram version, not the destination default fixed by the first subsession
+				auto session = datagramDest->GetSession (ident);
+				if (session)
+				{
+					session->SetVersion (version);
+					datagramDest->SendDatagram (session, p, l, fromPort, toPort);
+					datagramDest->FlushSendQueue (session);
+				}
+			}
 			else if (type == SAMSessionType::eSAMSessionTypeRaw)
 				datagramDest->SendRawDatagramTo (p, l, ident, fromPort, toPort);
 			else
