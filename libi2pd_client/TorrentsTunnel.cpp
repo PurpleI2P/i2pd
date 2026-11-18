@@ -1415,7 +1415,7 @@ namespace torrents
 		}
 		if (!isVerifying)
 		{
-			m_VerifyingTorrent = std::async (std::launch::async, [torrent, this]()
+			m_VerifyingTorrent = std::async (std::launch::async, [torrent]()
 				{
 					torrent->SetVerifying (true);
 					auto res = torrent->Verify ();

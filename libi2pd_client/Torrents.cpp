@@ -1539,7 +1539,7 @@ namespace torrents
 
 	float Torrent::GetRecheckProgress () const
 	{
-		if (m_IsVerifying) return 0;
+		if (!m_IsVerifying) return 0;
 		return (float)m_NumPiecesChecked/(float)m_Pieces.size ();
 	}
 
