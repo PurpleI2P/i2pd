@@ -744,8 +744,14 @@ namespace torrents
 			torrent = it->second.lock ();
 			if (!torrent) return false;
 		}
-		if (!torrent->IsComplete ()) return false;
-		return StartVerifyingTorrent (torrent);
+		if (torrent->IsStopped ())
+			return StartVerifyingTorrent (torrent, true);
+		boost::asio::post (GetService (), [this, torrent]()
+		{
+			StopTorrent (torrent);
+			StartVerifyingTorrent (torrent, false);
+		});
+		return true;
 	}
 
 	bool TorrentsTunnel::ReannounceTorrent (int id)
@@ -1404,7 +1410,7 @@ namespace torrents
 		});
 	}
 
-	bool TorrentsTunnel::StartVerifyingTorrent (std::shared_ptr<Torrent> torrent)
+	bool TorrentsTunnel::StartVerifyingTorrent (std::shared_ptr<Torrent> torrent, bool stopped)
 	{
 		if (!torrent || torrent->IsVerifying ()) return false;
 		bool isVerifying = m_VerifyingTorrent.valid ();
@@ -1415,12 +1421,18 @@ namespace torrents
 		}
 		if (!isVerifying)
 		{
-			m_VerifyingTorrent = std::async (std::launch::async, [torrent]()
+			m_VerifyingTorrent = std::async (std::launch::async, [this, torrent, stopped]()
 				{
 					torrent->SetVerifying (true);
-					auto res = torrent->Verify ();
+					bool success = torrent->Verify ();
 					torrent->SetVerifying (false);
-					return res;
+					if (!stopped)
+						boost::asio::post (GetService (), [this, torrent]()
+						{
+							torrent->SetStopped (false);
+							RequestTorrentTrackers (torrent, eTrackerAnnounceEventStarted);
+						});
+					return success;
 				});
 		}
 		return !isVerifying;

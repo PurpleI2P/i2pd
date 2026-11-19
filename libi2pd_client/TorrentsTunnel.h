@@ -181,7 +181,7 @@ namespace torrents
 				std::shared_ptr<Torrent> torrent, std::string_view dest, uint16_t port,
 				uint16_t fromPort, TrackerAnnounceEvent event);
 
-			bool StartVerifyingTorrent (std::shared_ptr<Torrent> torrent);
+			bool StartVerifyingTorrent (std::shared_ptr<Torrent> torrent, bool stopped);
 
 		private:
 
@@ -199,7 +199,7 @@ namespace torrents
 			std::unique_ptr<TorrentsDHT> m_DHT;
 			bool m_Web;
 			//verifying
-			std::future<boost::dynamic_bitset<> > m_VerifyingTorrent;
+			std::future<bool> m_VerifyingTorrent;
 	};
 
 }

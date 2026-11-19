@@ -1437,26 +1437,33 @@ namespace torrents
 		return numUploadingToPeers;
 	}
 
-	boost::dynamic_bitset<> Torrent::Verify ()
+	bool Torrent::Verify ()
 	{
 		m_NumPiecesChecked = 0;
-		boost::dynamic_bitset<> ret (m_Pieces.size ());
-		if (!m_Pieces.size ()) return ret;
+		bool failed = false;
+		if (!m_Pieces.size ()) return true;
 
 		EVP_MD_CTX * mdCtx = EVP_MD_CTX_new ();
 		const EVP_MD * md = EVP_get_digestbyname ("SHA1");
 		std::vector<uint8_t> piece (m_PieceLength);
 		size_t nextPieceOffset = 0;
-		bool pieceFailed = false;
+		bool pieceFailed = false, verifyPiece = m_Pieces[0].IsComplete ();
 		for (auto it: m_Files)
 		{
-			std::ifstream f (it->GetFullFilePath (), std::ifstream::binary);
+			auto filename = it->GetFullFilePath ();
+			if (it->IsPart ()) filename += ".part";
+			std::ifstream f (filename, std::ifstream::binary);
 			size_t remainingLen = it->GetFileLength ();
 			while (remainingLen > 0)
 			{
 				auto len = std::min (remainingLen, m_PieceLength - nextPieceOffset);
 				if (f)
-					f.read ((char *)piece.data () + nextPieceOffset, len);
+				{
+					if (verifyPiece)
+						f.read ((char *)piece.data () + nextPieceOffset, len);
+					else
+						f.seekg (len, std::ios::cur);
+				}
 				else
 					pieceFailed = true;
 				remainingLen -= len;
@@ -1464,27 +1471,36 @@ namespace torrents
 				if (nextPieceOffset == m_PieceLength || !remainingLen)
 				{
 					// piece complete
-					if (!pieceFailed)
+					if (verifyPiece)
 					{
-						uint8_t digest[SHA_DIGEST_LENGTH];
-						EVP_DigestInit_ex (mdCtx, md, nullptr);
-						EVP_DigestUpdate (mdCtx, piece.data (), nextPieceOffset);
-						unsigned int l = SHA_DIGEST_LENGTH;
-						EVP_DigestFinal_ex (mdCtx, digest, &l);
-						ret.set (m_NumPiecesChecked, !memcmp (digest, m_Pieces[m_NumPiecesChecked].GetHash (), SHA_DIGEST_LENGTH));
+						if (!pieceFailed)
+						{
+							uint8_t digest[SHA_DIGEST_LENGTH];
+							EVP_DigestInit_ex (mdCtx, md, nullptr);
+							EVP_DigestUpdate (mdCtx, piece.data (), nextPieceOffset);
+							unsigned int l = SHA_DIGEST_LENGTH;
+							EVP_DigestFinal_ex (mdCtx, digest, &l);
+							if (memcmp (digest, m_Pieces[m_NumPiecesChecked].GetHash (), SHA_DIGEST_LENGTH))
+							{
+								LogPrint (eLogDebug, "Torrents: piece ", m_NumPiecesChecked, " verification failed");
+								m_Pieces[m_NumPiecesChecked].InvalidateAllBlocks ();
+								failed = true;
+							}
+						}
+						else
+							failed = true;
 					}
-					else
-						ret.reset (m_NumPiecesChecked);
 					m_NumPiecesChecked++;
 					nextPieceOffset = 0;
 					pieceFailed = false;
 					if (m_NumPiecesChecked >= m_Pieces.size ()) break;
+					verifyPiece = m_Pieces[m_NumPiecesChecked].IsComplete ();
 				}
 			}
 			if (m_NumPiecesChecked >= m_Pieces.size ()) break;
 		}
 		EVP_MD_CTX_free (mdCtx);
-		return ret;
+		return !failed;
 	}
 
 	void Torrent::StartDownloadingInfo (size_t infoSize)

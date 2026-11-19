@@ -150,6 +150,7 @@ namespace torrents
 			size_t GetFileLength () const { return m_FileLength; }
 			uint64_t GetLastAccessTime () const { return m_LastAccessTime; }
 			void SetIsPart (bool isPart) { m_IsPart = isPart; }
+			bool IsPart () const { return m_IsPart; }
 			void UpdateFullPath (const std::filesystem::path& rootDir);
 
 		private:
@@ -378,7 +379,7 @@ namespace torrents
 			std::string GetTrackerError (size_t trackerID) const { return (trackerID < m_TrackerStats.size ()) ? std::get<6>(m_TrackerStats[trackerID]) : ""; }
 			void SetTrackerError (size_t trackerID, std::string_view error);
 
-			boost::dynamic_bitset<> Verify (); // should be called in seperate thread
+			bool Verify (); // should be called in seperate thread
 
 			void StartDownloadingInfo (size_t infoSize); // for magnets
 			bool UpdateInfoBlock (size_t block, const uint8_t * buf, size_t len); // return true if complete
