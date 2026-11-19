@@ -1539,7 +1539,9 @@ namespace http {
 		else if (cmd == HTTP_COMMAND_KILLSTREAM)
 		{
 			std::string b32 = params["b32"];
-			uint32_t streamID = std::stoul(params["streamID"], nullptr);
+			uint32_t streamID = 0;
+			try { streamID = std::stoul(params["streamID"], nullptr); }
+			catch (std::exception&) {} // invalid streamID stays 0, rejected below
 
 			i2p::data::IdentHash ident;
 			ident.FromBase32 (b32);
@@ -1598,7 +1600,9 @@ namespace http {
 		}
 		else if (cmd == HTTP_COMMAND_LIMITTRANSIT)
 		{
-			uint32_t limit = std::stoul(params["limit"], nullptr);
+			uint32_t limit = 0;
+			try { limit = std::stoul(params["limit"], nullptr); }
+			catch (std::exception&) {} // invalid limit stays 0, rejected below
 			if (limit >= 2 && limit <= TRANSIT_TUNNELS_LIMIT)
 				i2p::tunnel::tunnels.SetMaxNumTransitTunnels (limit);
 			else {
