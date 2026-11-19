@@ -649,7 +649,7 @@ namespace data
 			}
 		}
 
-		int updatedCount = 0, deletedCount = 0, deletedFloodfillsCount = 0;
+		size_t updatedCount = 0, deletedCount = 0, deletedFloodfillsCount = 0;
 		auto total = m_RouterInfos.size ();
 		auto totalFloodfills = m_Floodfills.GetSize ();
 		uint64_t expirationTimeout = NETDB_MAX_EXPIRATION_TIMEOUT*1000LL;
@@ -736,10 +736,10 @@ namespace data
 
 			if (r->IsUnreachable ())
 			{
-				if (r->IsFloodfill ()) deletedFloodfillsCount++;
+				if (r->IsFloodfill () && deletedFloodfillsCount < totalFloodfills) deletedFloodfillsCount++;
 				// delete RI file
 				removeFromDisk.emplace_back (ident.ToBase64());
-				deletedCount++;
+				if (deletedCount < total) deletedCount++;
 				if (total - deletedCount < NETDB_MIN_ROUTERS) checkForExpiration = false;
 			}
 		} // m_RouterInfos iteration
