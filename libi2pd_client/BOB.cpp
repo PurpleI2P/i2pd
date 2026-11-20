@@ -612,7 +612,7 @@ namespace client
 				}
 				signatureType = std::stoi(operand);
 			}
-			catch (std::invalid_argument& ex)
+			catch (std::exception& ex) // also catches out_of_range on a too long number
 			{
 				LogPrint (eLogWarning, "BOB: Error on newkeys: ", ex.what ());
 			}
@@ -667,7 +667,8 @@ namespace client
 		LogPrint (eLogDebug, "BOB: outport ", operand);
 		if (*operand)
 		{
-			int port = std::stoi(operand);
+			int port = -1;
+			try { port = std::stoi(operand); } catch (std::exception&) {} // invalid port stays -1, rejected below
 			if (port >= 0 && port < 65536)
 			{
 				m_OutPort = port;
@@ -697,7 +698,8 @@ namespace client
 		LogPrint (eLogDebug, "BOB: inport ", operand);
 		if (*operand)
 		{
-			int port = std::stoi(operand);
+			int port = -1;
+			try { port = std::stoi(operand); } catch (std::exception&) {} // invalid port stays -1, rejected below
 			if (port >= 0 && port < 65536)
 			{
 				m_InPort = port;
