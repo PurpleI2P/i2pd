@@ -467,9 +467,15 @@ namespace stream
 			return false;
 		}
 		if (!flags) return true;
+		const uint8_t * optionEnd = optionData + optionSize;
 		bool immediateAckRequested = false;
 		if (flags & PACKET_FLAG_DELAY_REQUESTED)
 		{
+			if (optionEnd - optionData < 2)
+			{
+				LogPrint (eLogInfo, "Streaming: Options too short for requested delay. Discarded");
+				return false;
+			}
 			uint16_t delayRequested = bufbe16toh (optionData);
 			if (!delayRequested) // 0 requests an immediate ack
 				immediateAckRequested = true;
@@ -526,7 +532,20 @@ namespace stream
 			verified = false;
 			if (m_RemoteLeaseSet) m_RemoteIdentity = m_RemoteLeaseSet->GetIdentity ();
 			if (!m_RemoteIdentity)
-				m_RemoteIdentity = std::make_shared<i2p::data::IdentityEx>(optionData, optionSize);
+			{
+				auto identity = std::make_shared<i2p::data::IdentityEx>();
+				if (!identity->FromBuffer (optionData, optionEnd - optionData))
+				{
+					LogPrint (eLogInfo, "Streaming: Invalid FROM identity. Discarded");
+					return false;
+				}
+				m_RemoteIdentity = identity;
+			}
+			if (m_RemoteIdentity->GetFullLen () > (size_t)(optionEnd - optionData))
+			{
+				LogPrint (eLogInfo, "Streaming: Options too short for FROM identity. Discarded");
+				return false;
+			}
 			if (m_RemoteIdentity->IsRSA ())
 			{
 				LogPrint (eLogInfo, "Streaming: Incoming stream from RSA destination ", m_RemoteIdentity->GetIdentHash ().ToBase64 (), " Discarded");
@@ -558,6 +577,11 @@ namespace stream
 
 		if (flags & PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED)
 		{
+			if (optionEnd - optionData < 2)
+			{
+				LogPrint (eLogInfo, "Streaming: Options too short for max packet size. Discarded");
+				return false;
+			}
 			uint16_t maxPacketSize = bufbe16toh (optionData);
 			LogPrint (eLogDebug, "Streaming: Max packet size ", maxPacketSize);
 			optionData += 2;
@@ -597,6 +621,11 @@ namespace stream
 			if (verified)
 			{
 				// skip offline signature
+				if (optionEnd - optionData < 6)
+				{
+					LogPrint (eLogInfo, "Streaming: Options too short for offline signature. Discarded");
+					return false;
+				}
 				optionData += 4; // timestamp
 				uint16_t keyType = bufbe16toh (optionData); optionData += 2; // key type
 				std::unique_ptr<i2p::crypto::Verifier> transientVerifier (i2p::data::IdentityEx::CreateVerifier (keyType));
@@ -605,8 +634,13 @@ namespace stream
 					LogPrint (eLogInfo, "Streaming: Unknown offline signature key type ", (int)keyType);
 					return false;
 				}
-				optionData += transientVerifier->GetPublicKeyLen (); // public key
-				optionData += m_RemoteIdentity->GetSignatureLen (); // signature
+				size_t len = transientVerifier->GetPublicKeyLen () + m_RemoteIdentity->GetSignatureLen ();
+				if ((size_t)(optionEnd - optionData) < len)
+				{
+					LogPrint (eLogInfo, "Streaming: Options too short for offline signature. Discarded");
+					return false;
+				}
+				optionData += len; // public key and signature
 			}
 			else
 			{
@@ -615,15 +649,19 @@ namespace stream
 				if (m_TransientVerifier)
 				{
 					// skip option data
-					optionData += 6; // timestamp and key type
-					optionData += m_TransientVerifier->GetPublicKeyLen (); // public key
-					optionData += m_RemoteIdentity->GetSignatureLen (); // signature
+					size_t len = 6 + m_TransientVerifier->GetPublicKeyLen () + m_RemoteIdentity->GetSignatureLen (); // timestamp, key type, public key and signature
+					if ((size_t)(optionEnd - optionData) < len)
+					{
+						LogPrint (eLogInfo, "Streaming: Options too short for offline signature. Discarded");
+						return false;
+					}
+					optionData += len;
 				}
 				else
 				{
 					// transient key
 					size_t offset = 0;
-					m_TransientVerifier = i2p::data::ProcessOfflineSignature (m_RemoteIdentity, optionData, optionSize - (optionData - packet->GetOptionData ()), offset);
+					m_TransientVerifier = i2p::data::ProcessOfflineSignature (m_RemoteIdentity, optionData, optionEnd - optionData, offset);
 					optionData += offset;
 					if (!m_TransientVerifier)
 					{
