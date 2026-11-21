@@ -1275,7 +1275,7 @@ namespace i2p
 	bool RouterContext::HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload,
 		size_t len, uint32_t msgID, i2p::garlic::ECIESX25519AEADRatchetSession * from)
 	{
-		if (typeID == eI2NPTunnelTest)
+		if (typeID == eI2NPTunnelTest && len >= TUNNEL_TEST_SIZE)
 		{
 			// try tunnel test
 			auto pool = GetTunnelPool ();
