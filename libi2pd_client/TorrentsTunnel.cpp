@@ -1014,7 +1014,8 @@ namespace torrents
 						if (!it.second->GetNextTrackerRequestTime (i) &&  // first time
 							(std::get<1>(m_Trackers[i]) || it.second->GetAnnounceTrackerID () == (int)i))
 						{
-							auto initialInterval = GetLocalDestination ()->GetRng()() % TRACKER_INITIAL_REQUEST_INTERVAL_VARIANCE;
+							auto initialInterval = GetLocalDestination ()->GetRng()() %
+								(TRACKER_INITIAL_REQUEST_INTERVAL_VARIANCE*(m_Torrents.size ()/TRACKER_INITIAL_REQUEST_BATCH_SIZE + 1));
 							if (initialInterval <= TRACKER_REQUESTS_CHECK_TIMEOUT) initialInterval = 0; // request immeditely
 							it.second->SetNextTrackerRequestTime (i, ts + initialInterval);
 						}
