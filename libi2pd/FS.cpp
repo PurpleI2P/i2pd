@@ -138,7 +138,7 @@ namespace fs
 #elif defined(MAC_OSX)
 		char *home = getenv("HOME");
 		dataDir = (home != NULL && strlen(home) > 0) ? home : "";
-		dataDir /= "/Library/Application Support";
+		dataDir /= "Library/Application Support";
 		dataDir /= appName;
 		return;
 #elif defined(__HAIKU__)
