@@ -135,8 +135,8 @@ namespace torrents
 	{
 		public:
 
-			TorrentFile (const std::filesystem::path & fullFilePath, size_t fileLength):
-				m_FullFilePath (fullFilePath), m_FileLength (fileLength), m_IsPart (true),
+			TorrentFile (const std::filesystem::path& fullFilePath, size_t fileLength, bool isPadding = false):
+				m_FullFilePath (fullFilePath), m_FileLength (fileLength), m_IsPart (true), m_IsPadding (isPadding),
 				m_LastAccessTime (0), m_LastFlushTime (0) {};
 
 			bool Save (size_t offset, const uint8_t * buf, size_t len);
@@ -151,13 +151,14 @@ namespace torrents
 			uint64_t GetLastAccessTime () const { return m_LastAccessTime; }
 			void SetIsPart (bool isPart) { m_IsPart = isPart; }
 			bool IsPart () const { return m_IsPart; }
+			bool IsPadding () const { return m_IsPadding; }
 			void UpdateFullPath (const std::filesystem::path& rootDir);
 
 		private:
 
 			std::filesystem::path m_FullFilePath;
 			size_t m_FileLength;
-			bool m_IsPart;
+			bool m_IsPart, m_IsPadding;
 			std::fstream m_File;
 			uint64_t m_LastAccessTime, m_LastFlushTime; // monotonic seconds
 	};

@@ -218,6 +218,7 @@ namespace torrents
 
 	bool TorrentFile::Save (size_t offset, const uint8_t * buf, size_t len)
 	{
+		if (m_IsPadding) return true;
 		Open ();
 		if (!m_File)
 		{
@@ -245,6 +246,11 @@ namespace torrents
 
 	bool TorrentFile::Load (size_t offset, uint8_t * buf, size_t len)
 	{
+		if (m_IsPadding)
+		{
+			memset (buf, 0, len);
+			return true;
+		}
 		Open ();
 		if (!m_File)
 		{
@@ -799,8 +805,8 @@ namespace torrents
 		m_Files.clear ();
 		return ParseList (buf, [this](std::string_view file)->size_t
 			{
-				std::filesystem::path filePath; size_t fileLength = 0;
-				auto len = ParseDictionary (file, [&filePath, &fileLength](std::string_view key, std::string_view value)->size_t
+				std::filesystem::path filePath; size_t fileLength = 0; bool isPadding = false;
+				auto len = ParseDictionary (file, [&filePath, &fileLength, &isPadding](std::string_view key, std::string_view value)->size_t
 					{
 						if (key == "path")
 						{
@@ -833,12 +839,19 @@ namespace torrents
 							}
 							return l;
 						}
+						else if (key == "attr")
+						{
+							auto [attr, l] = ExtractByteString (value);
+							if (l)
+								isPadding = attr.find ('p') != std::string_view::npos; // padding
+							return l;
+						}
 						return 0;
 					});
 				if (len && fileLength && !filePath.empty ())
 				{
 					if (m_Files.size () < MAX_NUM_TORRENT_FILES)
-						m_Files.emplace_back (std::make_shared<TorrentFile> (filePath, fileLength));
+						m_Files.emplace_back (std::make_shared<TorrentFile> (filePath, fileLength, isPadding));
 					else
 						m_Error = eTorrentErrorMalformedMetaInfo;
 					if (m_Length + fileLength <= MAX_TORRENT_LENGTH)
@@ -1457,7 +1470,9 @@ namespace torrents
 			while (remainingLen > 0)
 			{
 				auto len = std::min (remainingLen, m_PieceLength - nextPieceOffset);
-				if (f)
+				if (it->IsPadding ())
+					memset (piece.data () + nextPieceOffset, 0, len);
+				else if (f)
 				{
 					if (verifyPiece)
 						f.read ((char *)piece.data () + nextPieceOffset, len);
