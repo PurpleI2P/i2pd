@@ -1,5 +1,6 @@
 # root directory holding homebrew
 # brew install boost openssl@3.5 cmake make
+# (openssl@4 is used if openssl@3.5 is not installed)
 
 ifeq ($(shell uname -m), x86_64)
 	BREWROOT = /usr/local
@@ -8,7 +9,7 @@ else
 endif
 
 BOOSTROOT = ${BREWROOT}/opt/boost
-SSLROOT = ${BREWROOT}/opt/openssl@3.5
+SSLROOT ?= $(firstword $(wildcard $(addprefix ${BREWROOT}/opt/,openssl@3.5 openssl@4)) ${BREWROOT}/opt/openssl@3.5)
 UPNPROOT = ${BREWROOT}/opt/miniupnpc
 
 CXXFLAGS ?= ${CXX_DEBUG} -Wall -Wno-overloaded-virtual
