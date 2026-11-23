@@ -739,7 +739,11 @@ namespace http {
 					else
 					{
 						ls.reset (new i2p::data::LeaseSet2 (storeType));
-						ls->Update (leaseSet->GetBuffer(), leaseSet->GetBufferLen(), nullptr, false);
+						// copy to buffer with leading store type
+						std::vector<uint8_t> buf(leaseSet->GetBufferLen() + 1);
+						buf[0] = storeType;
+						memcpy (buf.data () + 1, leaseSet->GetBuffer(), leaseSet->GetBufferLen());
+						ls->Update (buf.data () + 1, buf.size () - 1, nullptr, false);
 					}
 					if (!ls) return;
 					s << "<div class=\"leaseset listitem";
