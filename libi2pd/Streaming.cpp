@@ -1991,7 +1991,7 @@ namespace stream
 							m_CurrentRemoteLease = nullptr;
 						}
 					}
-					if (m_LastReceivedSequenceNumber == 0 && m_SequenceNumber == 1)
+					if (m_LastReceivedSequenceNumber == 0 && m_SequenceNumber == 1 && m_SavedPackets.empty ())
 					{
 						if (m_NumResendAttempts > 1)
 						{
