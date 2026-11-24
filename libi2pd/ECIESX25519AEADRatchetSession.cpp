@@ -694,8 +694,6 @@ namespace garlic
 #if OPENSSL_PQ
 		if (m_PQKeys)
 		{
-			m_NSRCK = std::make_unique<std::array<uint8_t, 64> >();
-			memcpy (m_NSRCK->data (), m_CK, 64);
 			size_t cipherTextLen = i2p::crypto::GetMLKEMCipherTextLen (m_RemoteStaticKeyType);
 			std::vector<uint8_t> kemCiphertext(cipherTextLen);
 			m_PQKeys->Encaps (kemCiphertext.data (), sharedSecret);
@@ -706,6 +704,8 @@ namespace garlic
 				return false;
 			}
 			MixHash (out + offset, cipherTextLen + 16);
+			m_EncryptedCT = std::make_unique<std::vector<uint8_t> >(cipherTextLen + 16);
+			memcpy (m_EncryptedCT->data (), out + offset, m_EncryptedCT->size ());
 			MixKey (sharedSecret);
 			offset += cipherTextLen + 16;
 		}
@@ -765,33 +765,15 @@ namespace garlic
 #if OPENSSL_PQ
 		if (m_PQKeys)
 		{
-			if (m_NSRCK)
+			if (m_EncryptedCT)
 			{
-				size_t cipherTextLen = i2p::crypto::GetMLKEMCipherTextLen (m_RemoteStaticKeyType);
-				std::vector<uint8_t> kemCiphertext(cipherTextLen);
-				uint8_t sharedSecret[32];
-				m_PQKeys->Encaps (kemCiphertext.data (), sharedSecret);
-
-				memcpy (m_CK, m_NSRCK->data (), 64); // restore key
-				if (!Encrypt (kemCiphertext.data (), out + offset, cipherTextLen))
-				{
-					LogPrint (eLogWarning, "Garlic: Next NSR ML-KEM ciphertext section AEAD encryption failed");
-					return false;
-				}
-				MixHash (out + offset, cipherTextLen + 16);
-				MixKey (sharedSecret);
-				offset += cipherTextLen + 16;
-				// we must apply Alice's static key again, TODO: store shared secret
-				if (!m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret)) // sharedSecret = x25519(besk, apk)
-				{
-					LogPrint (eLogWarning, "Garlic: Incorrect Alice static key");
-					return false;
-				}
-				MixKey (sharedSecret);
+				memcpy (out + offset, m_EncryptedCT->data (), m_EncryptedCT->size ()),
+				MixHash (out + offset, m_EncryptedCT->size ());
+				offset += m_EncryptedCT->size ();
 			}
 			else
 			{
-				LogPrint (eLogWarning, "Garlic: No stored CK");
+				LogPrint (eLogWarning, "Garlic: No stored CT");
 				return false;
 			}
 		}
@@ -1015,7 +997,7 @@ namespace garlic
 				m_EphemeralKeys = nullptr;
 #if OPENSSL_PQ
 				m_PQKeys = nullptr;
-				m_NSRCK = nullptr;
+				m_EncryptedCT = nullptr;
 #endif
 				[[fallthrough]];
 			case eSessionStateEstablished:
