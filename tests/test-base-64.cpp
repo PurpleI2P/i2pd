@@ -38,8 +38,7 @@ int main() {
   assert(Base64ToByteStream(in, (uint8_t *) out, sizeof(out)) == 0);
 
   in = "dG/z.A=="; /* invalid b64 : char not from alphabet */
-//  assert(Base64ToByteStream(in, strlen(in), (uint8_t *) out, sizeof(out)) == 0);
-//  ^^^ fails, current implementation not checks acceptable symbols
+  assert(Base64ToByteStream(in, (uint8_t *) out, sizeof(out)) == 0);
 
   return 0;
 }

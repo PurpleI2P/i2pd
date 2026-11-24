@@ -178,6 +178,8 @@ namespace data
 		auto endOfOutBuffer = OutBuffer + outCount;
 		for (int i = 0; i < d.quot; i++)
 		{
+			if (!IsBase64(*ps)) return 0;
+
 			acc_1 = iT64[uint8_t(*ps++)];
 			acc_2 = iT64[uint8_t(*ps++)];
 			acc_1 <<= 2;
