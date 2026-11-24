@@ -186,7 +186,7 @@ namespace torrents
 				it->SetFullPath (torrent->GetFullPath ());
 			else
 				it->UpdateFullPath (torrent->GetFullPath ());
-			if (!std::filesystem::exists (it->GetFullFilePath ()))
+			if (!it->IsPadding () && !std::filesystem::exists (it->GetFullFilePath ()))
 			{
 				auto partFilePath = it->GetFullFilePath (); partFilePath += ".part";
 				if (!std::filesystem::exists (partFilePath))
@@ -320,24 +320,27 @@ namespace torrents
 			bool completed = true;
 			for (auto it: torrent->GetFiles ())
 			{
-				auto partFilePath = it->GetFullFilePath (); partFilePath += ".part";
-				if (std::filesystem::exists (partFilePath))
+				if (!it->IsPadding ())
 				{
-					it->Close (); // make sure file is closed before renaming
-					std::error_code ec;
-					std::filesystem::rename (partFilePath, it->GetFullFilePath (), ec);
-					if (!ec)
-						it->Complete ();
+					auto partFilePath = it->GetFullFilePath (); partFilePath += ".part";
+					if (std::filesystem::exists (partFilePath))
+					{
+						it->Close (); // make sure file is closed before renaming
+						std::error_code ec;
+						std::filesystem::rename (partFilePath, it->GetFullFilePath (), ec);
+						if (!ec)
+							it->Complete ();
+						else
+						{
+							completed = false;
+							LogPrint (eLogError, "TorrentsTunnel: Can't rename ", partFilePath);
+						}
+					}
 					else
 					{
-						completed = false;
-						LogPrint (eLogError, "TorrentsTunnel: Can't rename ", partFilePath);
+						LogPrint (eLogError, "TorrentsTunnel: ", partFilePath, " doesn't exist");
+						it->Complete ();
 					}
-				}
-				else
-				{
-					LogPrint (eLogError, "TorrentsTunnel: ", partFilePath, " doesn't exist");
-					it->Complete ();
 				}
 			}
 

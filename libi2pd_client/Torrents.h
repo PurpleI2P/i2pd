@@ -136,7 +136,7 @@ namespace torrents
 		public:
 
 			TorrentFile (const std::filesystem::path& fullFilePath, size_t fileLength, bool isPadding = false):
-				m_FullFilePath (fullFilePath), m_FileLength (fileLength), m_IsPart (true), m_IsPadding (isPadding),
+				m_FullFilePath (fullFilePath), m_FileLength (fileLength), m_IsPart (!isPadding), m_IsPadding (isPadding),
 				m_LastAccessTime (0), m_LastFlushTime (0) {};
 
 			bool Save (size_t offset, const uint8_t * buf, size_t len);
@@ -220,6 +220,7 @@ namespace torrents
 			void SetNumPeers (size_t numPeers) { m_NumPeers = numPeers; }
 
 			bool BlockReceived (const uint8_t * block, size_t len, size_t offset);
+			void SetPaddingBlock (size_t offset);
 			void BlockRequestRejected (size_t offset);
 			bool Dump (PieceFileFragment&& fragment);
 			bool Load (PieceFileFragment&& fragment);
@@ -397,6 +398,7 @@ namespace torrents
 			size_t ParseFiles (std::string_view buf);
 			static std::string AdjustName (std::string_view name); // name field from torrent file before to become file path
 			void CheckTrackerStatsSize (size_t trackerID);
+			void SetPaddingBlocks ();
 
 		private:
 
@@ -410,7 +412,7 @@ namespace torrents
 			std::vector<Piece> m_Pieces;
 			std::vector<TrackerStats> m_TrackerStats;
 			std::unordered_map<i2p::data::IdentHash, std::weak_ptr<PeerConnection> > m_Connections; // remote ident hash -> connection
-			bool m_IsComplete, m_IsStopped, m_IsSingleFile, m_IsVerifying;
+			bool m_IsComplete, m_IsStopped, m_IsSingleFile, m_HasPaddings, m_IsVerifying;
 			std::list<std::shared_ptr<TorrentFile> > m_Files;
 			size_t m_Uploaded, m_Downloaded;
 			uint64_t m_NextUpdateStatusTime, m_NextUpdateResumeFileTime, m_NextReconnectTime,

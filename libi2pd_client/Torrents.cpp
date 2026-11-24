@@ -471,6 +471,16 @@ namespace torrents
 		}
 	}
 
+	void Piece::SetPaddingBlock (size_t offset)
+	{
+		auto [blockIndex, rem] = lldiv (offset, REQUEST_BLOCK_SIZE);
+		if (offset >= m_Size || rem || !m_Blocks) return;
+		size_t len = (offset + REQUEST_BLOCK_SIZE >= m_Size) ? REQUEST_BLOCK_SIZE : m_Size - offset;
+		if (!m_Data) NewDataBuffer ();
+		memset (m_Data + offset, 0, len);
+		m_Blocks->BlockReceived (blockIndex);
+	}
+
 	void Piece::BlockRequestRejected (size_t offset)
 	{
 		if (m_Blocks)
@@ -609,8 +619,8 @@ namespace torrents
 
 	Torrent::Torrent ():
 		m_AnnounceTrackerID (-1), m_Length (0), m_PieceLength (0), m_IsComplete (false),
-		m_IsStopped (false), m_IsSingleFile (true),  m_IsVerifying (false), m_Uploaded (0),
-		m_Downloaded (0), m_NextUpdateStatusTime (0), m_NextUpdateResumeFileTime (),
+		m_IsStopped (false), m_IsSingleFile (true), m_HasPaddings (false), m_IsVerifying (false),
+		m_Uploaded (0), m_Downloaded (0), m_NextUpdateStatusTime (0), m_NextUpdateResumeFileTime (),
 		m_NextReconnectTime (0), m_NextDHTUpdateTime (0), m_LastDHTAnnounceTime (0),
 		m_Error (eTorrentErrorNoError), m_NumPiecesChecked (0)
 	{
@@ -746,6 +756,7 @@ namespace torrents
 		}
 		if (m_IsSingleFile && !m_Name.empty ()) // single file
 			m_Files.emplace_back (std::make_shared<TorrentFile> (m_Name, m_Length));
+		if (m_HasPaddings) SetPaddingBlocks ();
 		// save info
 		m_Info.resize (len);
 		memcpy (m_Info.data (), (const uint8_t *)buf.data (), len);
@@ -851,7 +862,10 @@ namespace torrents
 				if (len && fileLength && !filePath.empty ())
 				{
 					if (m_Files.size () < MAX_NUM_TORRENT_FILES)
+					{
 						m_Files.emplace_back (std::make_shared<TorrentFile> (filePath, fileLength, isPadding));
+						if (isPadding) m_HasPaddings = true;
+					}
 					else
 						m_Error = eTorrentErrorMalformedMetaInfo;
 					if (m_Length + fileLength <= MAX_TORRENT_LENGTH)
@@ -1572,6 +1586,52 @@ namespace torrents
 	{
 		if (!m_IsVerifying) return 0;
 		return (float)m_NumPiecesChecked/(float)m_Pieces.size ();
+	}
+
+	void Torrent::SetPaddingBlocks ()
+	{
+		size_t offset  = 0;
+		for (const auto& it: m_Files)
+		{
+			if (it->IsPadding ())
+			{
+				auto [pieceIndex, pieceOffset] = lldiv (offset, m_PieceLength);
+				if ((size_t)pieceIndex > m_Pieces.size ()) return;
+				size_t fileOffset = 0;
+				while (fileOffset < it->GetFileLength ())
+				{
+					if (!pieceOffset && fileOffset + m_PieceLength <= it->GetFileLength ())
+					{
+						// whole piece in padding
+						m_Pieces[pieceIndex].Complete ();
+						fileOffset += m_PieceLength;
+						pieceIndex++;
+					}
+					else
+					{
+						size_t remainingPieceSize = m_PieceLength - pieceOffset;
+						if (fileOffset + remainingPieceSize <= it->GetFileLength ())
+						{
+							// rest of piece is padding
+							Piece& piece = m_Pieces[pieceIndex];
+							auto [blockIndex, rem] = lldiv (pieceOffset, REQUEST_BLOCK_SIZE);
+							if (rem) blockIndex++;
+							size_t blockOffset = blockIndex*REQUEST_BLOCK_SIZE;
+							while (blockOffset < piece.GetSize ())
+							{
+								piece.SetPaddingBlock (blockOffset);
+								blockOffset += REQUEST_BLOCK_SIZE;
+							}
+							fileOffset += remainingPieceSize;
+							pieceIndex++;
+						}
+						else
+							fileOffset = it->GetFileLength ();
+					}
+				}
+			}
+			offset += it->GetFileLength ();
+		}
 	}
 
 	PeerConnection::PeerConnection (std::shared_ptr<i2p::client::I2PService> owner,
