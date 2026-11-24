@@ -694,18 +694,18 @@ namespace garlic
 #if OPENSSL_PQ
 		if (m_PQKeys)
 		{
+			m_NSRCK = std::make_unique<std::array<uint8_t, 64> >();
+			memcpy (m_NSRCK->data (), m_CK, 64);
 			size_t cipherTextLen = i2p::crypto::GetMLKEMCipherTextLen (m_RemoteStaticKeyType);
-			std::vector<uint8_t> kemCiphertext(cipherTextLen);
-			m_PQKeys->Encaps (kemCiphertext.data (), sharedSecret);
+			m_NSRCT = std::make_unique<std::vector<uint8_t> >(cipherTextLen);
+			m_PQKeys->Encaps (m_NSRCT->data (), sharedSecret);
 
-			if (!Encrypt (kemCiphertext.data (), out + offset, cipherTextLen))
+			if (!Encrypt (m_NSRCT->data (), out + offset, cipherTextLen))
 			{
 				LogPrint (eLogWarning, "Garlic: NSR ML-KEM ciphertext section AEAD encryption failed");
 				return false;
 			}
 			MixHash (out + offset, cipherTextLen + 16);
-			m_EncryptedCT = std::make_unique<std::vector<uint8_t> >(cipherTextLen + 16);
-			memcpy (m_EncryptedCT->data (), out + offset, m_EncryptedCT->size ());
 			MixKey (sharedSecret);
 			offset += cipherTextLen + 16;
 		}
@@ -765,15 +765,24 @@ namespace garlic
 #if OPENSSL_PQ
 		if (m_PQKeys)
 		{
-			if (m_EncryptedCT)
+			if (m_NSRCT && m_NSRCK)
 			{
-				memcpy (out + offset, m_EncryptedCT->data (), m_EncryptedCT->size ()),
-				MixHash (out + offset, m_EncryptedCT->size ());
-				offset += m_EncryptedCT->size ();
+				uint8_t ck[64];
+				memcpy (ck, m_CK, 64);
+				memcpy (m_CK, m_NSRCK->data (), 64); // restore key
+				size_t cipherTextLen = i2p::crypto::GetMLKEMCipherTextLen (m_RemoteStaticKeyType);
+				if (!Encrypt (m_NSRCT->data (), out + offset, cipherTextLen))
+				{
+					LogPrint (eLogWarning, "Garlic: Next NSR ML-KEM ciphertext section AEAD encryption failed");
+					return false;
+				}
+				MixHash (out + offset, cipherTextLen + 16);
+				offset += cipherTextLen + 16;
+				memcpy (m_CK, ck, 64); // restore CK
 			}
 			else
 			{
-				LogPrint (eLogWarning, "Garlic: No stored CT");
+				LogPrint (eLogWarning, "Garlic: No stored CK or CT");
 				return false;
 			}
 		}
@@ -997,7 +1006,8 @@ namespace garlic
 				m_EphemeralKeys = nullptr;
 #if OPENSSL_PQ
 				m_PQKeys = nullptr;
-				m_EncryptedCT = nullptr;
+				m_NSRCK = nullptr;
+				m_NSRCT = nullptr;
 #endif
 				[[fallthrough]];
 			case eSessionStateEstablished:
