@@ -475,7 +475,7 @@ namespace torrents
 	{
 		auto [blockIndex, rem] = lldiv (offset, REQUEST_BLOCK_SIZE);
 		if (offset >= m_Size || rem || !m_Blocks) return;
-		size_t len = (offset + REQUEST_BLOCK_SIZE >= m_Size) ? REQUEST_BLOCK_SIZE : m_Size - offset;
+		size_t len = (offset + REQUEST_BLOCK_SIZE <= m_Size) ? REQUEST_BLOCK_SIZE : m_Size - offset;
 		if (!m_Data) NewDataBuffer ();
 		memset (m_Data + offset, 0, len);
 		m_Blocks->BlockReceived (blockIndex);
