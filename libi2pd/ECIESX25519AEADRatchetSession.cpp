@@ -781,6 +781,13 @@ namespace garlic
 				MixHash (out + offset, cipherTextLen + 16);
 				MixKey (sharedSecret);
 				offset += cipherTextLen + 16;
+				// we must apply Alice's static key again, TODO: store shared secret
+				if (!m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret)) // sharedSecret = x25519(besk, apk)
+				{
+					LogPrint (eLogWarning, "Garlic: Incorrect Alice static key");
+					return false;
+				}
+				MixKey (sharedSecret);
 			}
 			else
 			{
