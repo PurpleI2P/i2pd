@@ -191,12 +191,13 @@ namespace crypto
 
 // DH/ElGamal
 
-#if !IS_X86_64
+#if IS_X86_64
+	const int ELGAMAL_FULL_EXPONENT_NUM_BITS = 2048;
+	const int ELGAMAL_FULL_EXPONENT_NUM_BYTES = ELGAMAL_FULL_EXPONENT_NUM_BITS/8;
+#else
 	const int ELGAMAL_SHORT_EXPONENT_NUM_BITS = 226;
 	const int ELGAMAL_SHORT_EXPONENT_NUM_BYTES = ELGAMAL_SHORT_EXPONENT_NUM_BITS/8+1;
 #endif
-	const int ELGAMAL_FULL_EXPONENT_NUM_BITS = 2048;
-	const int ELGAMAL_FULL_EXPONENT_NUM_BYTES = ELGAMAL_FULL_EXPONENT_NUM_BITS/8;
 
 	#define elgp GetCryptoConstants ().elgp
 	#define elgg GetCryptoConstants ().elgg

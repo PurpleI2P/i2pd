@@ -1425,7 +1425,7 @@ namespace torrents
 		bool isVerifying = m_VerifyingTorrent.valid ();
 		if (isVerifying && m_VerifyingTorrent.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
 		{
-			m_VerifyingTorrent.get ();
+			(void)m_VerifyingTorrent.get (); // reap finished task, result not needed
 			isVerifying = false;
 		}
 		if (!isVerifying)
