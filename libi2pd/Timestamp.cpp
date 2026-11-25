@@ -268,7 +268,7 @@ namespace util
 		sprintf_s(date, 9, "%04i%02i%02i", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
 #else
 		gmtime_r(&t, &tm);
-		sprintf(date, "%04i%02i%02i", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
+		snprintf(date, 9, "%04i%02i%02i", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
 #endif
 	}
 
