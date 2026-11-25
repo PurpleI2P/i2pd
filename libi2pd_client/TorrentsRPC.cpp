@@ -699,11 +699,14 @@ namespace torrents
 		size_t ind = 0;
 		for (const auto& it: torrentFiles)
 		{
-			boost::json::object file;
-			file["name"] = std::filesystem::relative (it->GetFullFilePath (), torrentsDir).string ();
-			file["length"] = it->GetFileLength ();
-			file["bytesCompleted"] = (ind < filesCompleted.size ()) ? filesCompleted[ind] : 0;
-			files.push_back (file);
+			if (!it->IsPadding ())
+			{
+				boost::json::object file;
+				file["name"] = std::filesystem::relative (it->GetFullFilePath (), torrentsDir).string ();
+				file["length"] = it->GetFileLength ();
+				file["bytesCompleted"] = (ind < filesCompleted.size ()) ? filesCompleted[ind] : 0;
+				files.push_back (file);
+			}
 			ind++;
 		}
 		return files;
