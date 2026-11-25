@@ -778,7 +778,7 @@ namespace garlic
 				}
 				MixHash (out + offset, cipherTextLen + 16);
 				offset += cipherTextLen + 16;
-				memcpy (m_CK, ck, 64); // restore CK
+				memcpy (m_CK, ck, 64); m_N = 0; // restore CK and nonce
 			}
 			else
 			{
