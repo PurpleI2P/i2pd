@@ -469,14 +469,19 @@ namespace torrents
 							LogPrint (eLogInfo, "TorentsTunnel: Can't unhex magnet hash ", hexStr);
 						}
 					}
-					else if (i2p::data::Base32ToByteStream (param.substr (hashPrefix.size ()), infoHash.data (), infoHash.size ()) == infoHash.size ())
-					{
-						// base32 string
-						isInfoHashFound = true;
-						hexStr = infoHash.ToHexString ();
-					}
 					else
-						LogPrint (eLogInfo, "TorentsTunnel: Unexpected magnet param ", param);
+					{
+						std::string b32 (param.substr (hashPrefix.size ()));
+						boost::algorithm::to_lower (b32);
+						if (i2p::data::Base32ToByteStream (b32, infoHash.data (), infoHash.size ()) == infoHash.size ())
+						{
+							// base32 string
+							isInfoHashFound = true;
+							hexStr = infoHash.ToHexString ();
+						}
+						else
+							LogPrint (eLogInfo, "TorentsTunnel: Unexpected magnet param ", param);
+					}
 				}
 				else if (param.starts_with (trackerPrefix))
 					announce = i2p::http::UrlDecode (param.substr (trackerPrefix.size ()));
