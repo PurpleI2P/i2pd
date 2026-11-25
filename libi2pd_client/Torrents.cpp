@@ -1497,7 +1497,7 @@ namespace torrents
 					pieceFailed = true;
 				remainingLen -= len;
 				nextPieceOffset += len;
-				if (nextPieceOffset == m_PieceLength || !remainingLen)
+				if (nextPieceOffset == m_Pieces[m_NumPiecesChecked].GetSize ())
 				{
 					// piece complete
 					if (verifyPiece)
