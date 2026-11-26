@@ -277,7 +277,6 @@ namespace config {
 				"https://reseed-fr.i2pd.xyz/,"
 				"https://reseed.onion.im/,"
 				"https://i2pseed.creativecowpat.net:8443/,"
-				"https://coconut.incognet.io/," // expired cert
 				"https://reseed-pl.i2pd.xyz/,"
 				"https://www2.mk16.de/,"
 			    "https://i2p.novg.net/,"
