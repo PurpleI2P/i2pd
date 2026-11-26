@@ -1055,7 +1055,11 @@ namespace client
 					try
 					{
 						i2p::data::CryptoKeyType cryptoType = std::stoi(it1);
-#if !OPENSSL_PQ
+#if OPENSSL_PQ
+						if (cryptoType > i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD && !i2p::crypto::IsMLKEMSupported (cryptoType))
+							LogPrint (eLogWarning, "Destination: Crypto type ", cryptoType, " is not supported by this build. Skipped");
+						else
+#else
 						if (cryptoType <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) // skip PQ keys if not supported
 #endif
 						{

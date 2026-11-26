@@ -287,7 +287,7 @@ namespace garlic
 		bool decrypted = false;
 		auto cryptoType = GetOwner ()->GetRatchetsHighestCryptoType ();
 #if OPENSSL_PQ
-		if (cryptoType > i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) // we support post quantum
+		if (cryptoType > i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD && i2p::crypto::IsMLKEMSupported (cryptoType)) // we support post quantum
 		{
 			i2p::crypto::InitNoiseIKStateMLKEM (GetNoiseState (), cryptoType, GetOwner ()->GetEncryptionPublicKey (cryptoType)); // bpk
 			MixHash (m_Aepk, 32); // h = SHA256(h || aepk)
@@ -302,13 +302,15 @@ namespace garlic
 					std::vector<uint8_t> encapsKey(keyLen);
 					if (Decrypt (buf, encapsKey.data (), keyLen))
 					{
-						decrypted = true; // encaps section has right hash
-						MixHash (buf, keyLen + 16);
-						buf += keyLen + 16;
-						len -= keyLen + 16;
-
 						m_PQKeys = i2p::crypto::CreateMLKEMKeys (cryptoType);
-						m_PQKeys->SetPublicKey (encapsKey.data ());
+						if (m_PQKeys)
+						{
+							decrypted = true; // encaps section has right hash
+							MixHash (buf, keyLen + 16);
+							buf += keyLen + 16;
+							len -= keyLen + 16;
+							m_PQKeys->SetPublicKey (encapsKey.data ());
+						}
 					}
 				}
 				// if PQ failed it's valid situation meaning regular ECIES_X25519(type 4)
@@ -587,8 +589,13 @@ namespace garlic
 #if OPENSSL_PQ
 		if (m_RemoteStaticKeyType >= i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM512_X25519_AEAD)
 		{
-			i2p::crypto::InitNoiseIKStateMLKEM (GetNoiseState (), m_RemoteStaticKeyType, m_RemoteStaticKey); // bpk
 			m_PQKeys = i2p::crypto::CreateMLKEMKeys (m_RemoteStaticKeyType);
+			if (!m_PQKeys)
+			{
+				LogPrint (eLogError, "Garlic: Crypto type ", m_RemoteStaticKeyType, " is not supported");
+				return false;
+			}
+			i2p::crypto::InitNoiseIKStateMLKEM (GetNoiseState (), m_RemoteStaticKeyType, m_RemoteStaticKey); // bpk
 			m_PQKeys->GenerateKeys ();
 		}
 		else

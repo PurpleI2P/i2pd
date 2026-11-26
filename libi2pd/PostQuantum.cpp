@@ -233,8 +233,7 @@ namespace crypto
 
 	std::unique_ptr<MLKEMKeys> CreateMLKEMKeys (i2p::data::CryptoKeyType type)
 	{
-		if (type <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ||
-		    type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD > (int)MLKEMS.size ()) return nullptr;
+		if (!IsMLKEMSupported (type)) return nullptr;
 		return std::make_unique<MLKEMKeys>((MLKEMTypes)(type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD - 1));
 	}
 

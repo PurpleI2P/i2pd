@@ -15,6 +15,7 @@
 #include "NetDb.hpp"
 #include "Tunnel.h"
 #include "CryptoKey.h"
+#include "PostQuantum.h"
 #include "Signature.h"
 #include "LeaseSet.h"
 
@@ -420,7 +421,9 @@ namespace data
 				i2p::crypto::GetCryptoPublicKeyLen (keyType) == encryptionKeyLen) // key length mismatch or unknown key type
 			{
 				// we pick max key type if preferred not found
-#if !OPENSSL_PQ
+#if OPENSSL_PQ
+				if (keyType <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD || i2p::crypto::IsMLKEMSupported (keyType)) // skip PQ keys if not supported
+#else
 				if (keyType <= i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) // skip PQ keys if not supported
 #endif
 				{

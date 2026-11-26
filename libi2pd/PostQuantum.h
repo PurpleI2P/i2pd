@@ -60,6 +60,15 @@ namespace crypto
 		return std::get<2>(MLKEMS[type - i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD - 1]);
 	}
 
+	constexpr bool IsMLKEMSupported (i2p::data::CryptoKeyType type)
+	{
+#ifdef LIBRESSL_VERSION_NUMBER
+		return type == i2p::data::CRYPTO_KEY_TYPE_ECIES_MLKEM768_X25519_AEAD;
+#else
+		return GetMLKEMPublicKeyLen (type) > 0;
+#endif
+	}
+
 	class MLKEMKeys
 	{
 		public:
