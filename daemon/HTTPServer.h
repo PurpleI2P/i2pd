@@ -11,8 +11,9 @@
 
 #include <inttypes.h>
 #include <string>
+#include <string_view>
 #include <memory>
-#include <map>
+#include <unordered_map>
 #include <thread>
 #include <boost/asio.hpp>
 #include <sstream>
@@ -44,7 +45,7 @@ namespace http
 			void HandleRequest (const HTTPReq & req);
 			void HandlePage    (const HTTPReq & req, HTTPRes & res, std::stringstream& data);
 			void HandleCommand (const HTTPReq & req, HTTPRes & res, std::stringstream& data);
-			void SendReply     (HTTPRes & res, std::string & content);
+			void SendReply     (HTTPRes&& res, std::string_view content);
 			uint32_t CreateToken ();
 
 		private:
@@ -58,7 +59,7 @@ namespace http
 			std::string pass;
 			std::string expected_host;
 
-			static std::map<uint32_t, uint32_t> m_Tokens; // token->timestamp in seconds
+			static std::unordered_map<uint32_t, uint32_t> m_Tokens; // token->timestamp in seconds
 	};
 
 	class HTTPServer

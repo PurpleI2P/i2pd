@@ -1352,16 +1352,14 @@ namespace http {
 
 	void HTTPConnection::HandleRequest (const HTTPReq & req)
 	{
-		std::stringstream s;
-		std::string content;
 		HTTPRes res;
-
 		LogPrint(eLogDebug, "HTTPServer: Request: ", req.uri);
 
-		if (needAuth && !CheckAuth(req)) {
+		if (needAuth && !CheckAuth(req))
+		{
 			res.code = 401;
 			res.add_header("WWW-Authenticate", "Basic realm=\"WebAdmin\"");
-			SendReply(res, content);
+			SendReply(std::move (res), "");
 			return;
 		}
 
@@ -1371,41 +1369,39 @@ namespace http {
 		{
 			std::string http_hostname;
 			i2p::config::GetOption("http.hostname", http_hostname);
-			std::string host = req.GetHeader("Host");
+			auto host = req.GetHeader("Host");
 			auto idx = host.find(':');
 			/* strip out port so it's just host */
 			if (idx != std::string::npos && idx > 0)
-			{
 				host = host.substr(0, idx);
-			}
 			if (!(host == expected_host || host == http_hostname))
 			{
 				/* deny request as it's from a non whitelisted hostname */
 				res.code = 403;
-				content = "host mismatch";
-				SendReply(res, content);
+				SendReply(std::move (res), "host mismatch");
 				return;
 			}
 		}
 
 		// HTML head start
+		std::stringstream s;
 		ShowPageHead (s);
-		if (req.uri.find("page=") != std::string::npos) {
+		if (req.uri.find ("page=") != std::string::npos)
 			HandlePage (req, res, s);
-		} else if (req.uri.find("cmd=") != std::string::npos) {
+		else if (req.uri.find ("cmd=") != std::string::npos)
 			HandleCommand (req, res, s);
-		} else {
+		else
+		{
 			ShowStatus (s, true, i2p::http::OutputFormatEnum::forWebConsole);
 			res.add_header("Refresh", "10");
 		}
 		ShowPageTail (s);
 
 		res.code = 200;
-		content = s.str ();
-		SendReply (res, content);
+		SendReply (std::move (res), s.str ());
 	}
 
-	std::map<uint32_t, uint32_t> HTTPConnection::m_Tokens;
+	std::unordered_map<uint32_t, uint32_t> HTTPConnection::m_Tokens;
 
 	uint32_t HTTPConnection::CreateToken ()
 	{
@@ -1692,7 +1688,7 @@ namespace http {
 		res.add_header("Refresh", redirect.c_str());
 	}
 
-	void HTTPConnection::SendReply (HTTPRes& reply, std::string& content)
+	void HTTPConnection::SendReply (HTTPRes&& reply, std::string_view content)
 	{
 		reply.add_header("X-Frame-Options", "SAMEORIGIN");
 		reply.add_header("X-Content-Type-Options", "nosniff");
