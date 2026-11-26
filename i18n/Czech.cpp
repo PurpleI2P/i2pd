@@ -134,7 +134,7 @@ namespace czech // language namespace
 		{"Start graceful shutdown", "Zahájit hladké vypnutí"},
 		{"Force shutdown", "Vynutit vypnutí"},
 		{"Reload external CSS styles", "Znovu načíst externí CSS"},
-		{"<b>Note:</b> any action done here are not persistent and not changes your config files.", "<b>Poznámka:</b> žádná vykonaná akce zde není trvalá a nemění konfigurační soubory."},
+		{"<b>Note:</b> any action performed here is not persistent and does not change your config files.", "<b>Poznámka:</b> žádná vykonaná akce zde není trvalá a nemění konfigurační soubory."},
 		{"Logging level", "Úroveň logování"},
 		{"Transit tunnels limit", "Limit tranzitních tunelů"},
 		{"Change", "Změnit"},

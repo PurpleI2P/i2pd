@@ -81,7 +81,7 @@ namespace turkish // language namespace
 		{"Start graceful shutdown", "Düzgün durdurmayı başlat"},
 		{"Force shutdown", "Durdurmaya zorla"},
 		{"Reload external CSS styles", "Harici CSS stilini yeniden yükle"},
-		{"<b>Note:</b> any action done here are not persistent and not changes your config files.", "<b>Not:</b> burada yapılan ayarların hiçbiri kalıcı değildir ve ayar dosyalarınızı değiştirmez."},
+		{"<b>Note:</b> any action performed here is not persistent and does not change your config files.", "<b>Not:</b> burada yapılan ayarların hiçbiri kalıcı değildir ve ayar dosyalarınızı değiştirmez."},
 		{"Logging level", "Kayıt tutma seviyesi"},
 		{"Transit tunnels limit", "Transit tünel limiti"},
 		{"Change", "Değiştir"},

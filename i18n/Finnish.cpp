@@ -134,7 +134,7 @@ namespace finnish // language namespace
 		{"Start graceful shutdown", "Käynnistä hallittu sulkeminen"},
 		{"Force shutdown", "Pakota sammutus"},
 		{"Reload external CSS styles", "Lataa ulkoiset CSS-tyylit uudelleen"},
-		{"<b>Note:</b> any action done here are not persistent and not changes your config files.", "<b>Huom:</b> täällä tehdyt toimet eivät ole pysyviä, eikä niillä muuteta asetustiedostojasi."},
+		{"<b>Note:</b> any action performed here is not persistent and does not change your config files.", "<b>Huom:</b> täällä tehdyt toimet eivät ole pysyviä, eikä niillä muuteta asetustiedostojasi."},
 		{"Logging level", "Lokitustaso"},
 		{"Transit tunnels limit", "Läpikulkutunneleiden enimmäismäärä"},
 		{"Change", "Vaihda"},

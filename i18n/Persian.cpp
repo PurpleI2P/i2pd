@@ -134,7 +134,7 @@ namespace persian // language namespace
 		{"Start graceful shutdown", "شروع خاموش‌سازی امن"},
 		{"Force shutdown", "خاموش کردن اجباری"},
 		{"Reload external CSS styles", "بارگذاری دوباره سبک‌های CSS خارجی"},
-		{"<b>Note:</b> any action done here are not persistent and not changes your config files.", "<b>نکته:</b> هر تغییری که در اینجا انجام شود ماندگار نیست و تغییری در فایل‌های پیکربندی شما ایجاد نمی‌کند."},
+		{"<b>Note:</b> any action performed here is not persistent and does not change your config files.", "<b>نکته:</b> هر تغییری که در اینجا انجام شود ماندگار نیست و تغییری در فایل‌های پیکربندی شما ایجاد نمی‌کند."},
 		{"Logging level", "سطح ثبت گزارش"},
 		{"Transit tunnels limit", "محدودیت تونل‌های عبوری"},
 		{"Change", "تغییر"},

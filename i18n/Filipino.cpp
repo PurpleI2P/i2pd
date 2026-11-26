@@ -134,7 +134,7 @@ namespace filipino // language namespace
 		{"Start graceful shutdown", "Simulan ang graceful shutdown"},
 		{"Force shutdown", "Pwersahang mag-shutdown"},
 		{"Reload external CSS styles", "I-reload ang mga external na istilio ng CSS"},
-		{"<b>Note:</b> any action done here are not persistent and not changes your config files.", "<b>Tandaan:</b> hindi mananatili ang mga pagbabago na ginawa dito at hindi babaguhin ang mga config file."},
+		{"<b>Note:</b> any action performed here is not persistent and does not change your config files.", "<b>Tandaan:</b> hindi mananatili ang mga pagbabago na ginawa dito at hindi babaguhin ang mga config file."},
 		{"Logging level", "Antas ng pag-log"},
 		{"Transit tunnels limit", "Pinakamataas na transit tunnel"},
 		{"Change", "Palitan"},
