@@ -756,7 +756,6 @@ namespace torrents
 		}
 		if (m_IsSingleFile && !m_Name.empty ()) // single file
 			m_Files.emplace_back (std::make_shared<TorrentFile> (m_Name, m_Length));
-		if (m_HasPaddings) SetPaddingBlocks ();
 		// save info
 		m_Info.resize (len);
 		memcpy (m_Info.data (), (const uint8_t *)buf.data (), len);
@@ -1619,7 +1618,8 @@ namespace torrents
 							size_t blockOffset = blockIndex*REQUEST_BLOCK_SIZE;
 							while (blockOffset < piece.GetSize ())
 							{
-								piece.SetPaddingBlock (blockOffset);
+								if (!piece.IsComplete ())
+									piece.SetPaddingBlock (blockOffset);
 								blockOffset += REQUEST_BLOCK_SIZE;
 							}
 							fileOffset += remainingPieceSize;

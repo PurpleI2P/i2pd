@@ -222,6 +222,8 @@ namespace torrents
 			else
 				std::filesystem::remove (resumeFilePath);
 		}
+		if (!torrent->IsComplete () && torrent->HasPaddings ())
+			torrent->SetPaddingBlocks ();
 	}
 
 	bool TorrentsTunnel::CreateAndReserveFile (const std::filesystem::path& filePath, size_t reserve)

@@ -306,6 +306,7 @@ namespace torrents
 			bool IsActive () const { return !m_Connections.empty (); }
 			TorrentStatus GetStatus () const;
 			bool IsSingleFile () const { return m_IsSingleFile; }
+			bool HasPaddings () const { return m_HasPaddings; }
 			bool IsVerifying () const { return m_IsVerifying; }
 			void SetVerifying (bool verifying) { m_IsVerifying = verifying; }
 
@@ -336,6 +337,7 @@ namespace torrents
 			std::pair<std::vector<uint8_t>, boost::logic::tribool> CreateBitfield () const; // (bitfield, true - all false - none)
 			bool ApplyBitfield (const std::vector<uint8_t>& bitfield); // return true if complete
 			std::vector<uint8_t> CreateAvailableBitfield ();
+			void SetPaddingBlocks ();
 			std::unordered_set<i2p::data::IdentHash> GetNonConnectedPeers ();
 			std::unordered_set<i2p::data::IdentHash> GetNonConnectedPeers (size_t trackerID);
 			RequestedBlock GetNextBlockToRequest (std::shared_ptr<PeerConnection> conn, bool skipRequested = true);
@@ -398,7 +400,6 @@ namespace torrents
 			size_t ParseFiles (std::string_view buf);
 			static std::string AdjustName (std::string_view name); // name field from torrent file before to become file path
 			void CheckTrackerStatsSize (size_t trackerID);
-			void SetPaddingBlocks ();
 
 		private:
 
