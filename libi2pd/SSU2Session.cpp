@@ -2110,7 +2110,7 @@ namespace transport
 		if (ExtractEndpoint (buf, len, ep))
 		{
 			LogPrint (eLogInfo, "SSU2: Our external address is ", ep);
-			if (!i2p::transport::transports.IsInReservedRange (ep.address ()))
+			if (!ep.address ().is_unspecified () &&  !i2p::transport::transports.IsInReservedRange (ep.address ()))
 			{
 				i2p::context.UpdateAddress (ep.address ());
 				// check our port
@@ -2167,6 +2167,8 @@ namespace transport
 					}
 				}
 			}
+			else
+				LogPrint (eLogWarning, "SSU2: Unexpected our external address ", ep, " received from ", m_RemoteEndpoint);
 		}
 	}
 
