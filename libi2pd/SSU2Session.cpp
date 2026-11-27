@@ -860,7 +860,7 @@ namespace transport
 						auto keyLen = i2p::crypto::GetMLKEMPublicKeyLen ((i2p::data::CryptoKeyType)(m_Version + 2));
 						if (len < keyLen + 16 + 90)
 						{
-							LogPrint (eLogWarning, "SSU2: SessionRequest version ", m_Version, " message too short ", len);
+							LogPrint (eLogWarning, "SSU2: SessionRequest version ", (int)m_Version, " message too short ", len);
 							return false;
 						}
 					}
