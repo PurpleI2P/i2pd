@@ -1,0 +1,13 @@
+services:
+  i2pd:
+    container_name: i2pd2
+    image: purplei2p/i2pd
+    #optional
+    entrypoint: ["./entrypoint.sh", "--loglevel error"]
+    ports:
+      - 127.0.0.1:7656:7656
+      - 127.0.0.1:7070:7070
+      - 127.0.0.1:4444:4444
+    volumes:
+      - /path/to/i2pd/data:/home/i2pd/data                 # make sure data directory and it's contents are owned by 100:65533
+      - /path/to/i2pd/i2pd_certificates:/i2pd_certificates # make sure i2pd_certificates is owned by root:root and 755 permissions on the directory
