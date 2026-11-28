@@ -365,6 +365,42 @@ namespace torrents
 		});
 	}
 
+	void TorrentsTunnel::VerifyAndCompleteTorrent (std::shared_ptr<Torrent> torrent)
+	{
+		if (!torrent || torrent->IsComplete ()) return;
+		boost::asio::post (GetDiskIOService (), [this, torrent]()
+		{
+			// we start verification from disk I/O thread to make sure all pending pieces get written
+			if (!StartVerifyingTorrent (torrent, false, [this, torrent](bool success)
+				{
+					boost::asio::post (GetService (), [this, torrent, success]()
+					{
+						if (success)
+						{
+							LogPrint (eLogDebug, "TorrentsTunnels: Torrent verified ", torrent->GetName ());
+							CompleteTorrent (torrent);
+						}
+						else
+						{
+							LogPrint (eLogWarning, "TorrentsTunnels: Torrent verification failed ", torrent->GetName ());
+							// we must close connections to send new bitfield
+							auto connections = torrent->GetConnections ();
+							for (auto it: connections)
+								it->Close ();
+						};
+					});
+				}))
+			{
+				// TODO: add to queue
+				LogPrint (eLogInfo, "TorrentsTunnels: Can't verify torrent ", torrent->GetName ());
+				boost::asio::post (GetService (), [this, torrent]()
+				{
+					CompleteTorrent (torrent);
+				});
+			}
+		});
+	}
+
 	std::shared_ptr<Torrent> TorrentsTunnel::FindTorrent (const Torrent::InfoHash& infoHash) const
 	{
 		std::lock_guard<std::mutex> l(m_TorrentsMutex);
@@ -719,11 +755,16 @@ namespace torrents
 		}
 		boost::asio::post (GetService (), [this, torrent]()
 			{
-				torrent->SetStopped (false);
-				// inform trackers that we started
-				RequestTorrentTrackers (torrent, eTrackerAnnounceEventStarted);
+				StartTorrent (torrent);
 			});
 		return true;
+	}
+
+	void TorrentsTunnel::StartTorrent (std::shared_ptr<Torrent> torrent)
+	{
+		torrent->SetStopped (false);
+		// inform trackers that we started
+		RequestTorrentTrackers (torrent, eTrackerAnnounceEventStarted);
 	}
 
 	void TorrentsTunnel::StartAllTorrents ()
@@ -737,10 +778,7 @@ namespace torrents
 		boost::asio::post (GetService (), [this, torrentsToStart = std::move (torrentsToStart)]()
 		{
 			for (auto it: torrentsToStart) // TODO: announce with random intervals
-			{
-				it->SetStopped (false);
-				RequestTorrentTrackers (it, eTrackerAnnounceEventStarted);
-			}
+				StartTorrent (it);
 		});
 	}
 
@@ -1140,7 +1178,7 @@ namespace torrents
 						if (it.second->UpdateStatus (ts))
 						{
 							if (!it.second->IsComplete ())
-								CompleteTorrent (it.second);
+								VerifyAndCompleteTorrent (it.second);
 						}
 						else
 							UpdatePeersPerPiece (it.second);
@@ -1421,18 +1459,19 @@ namespace torrents
 		});
 	}
 
-	bool TorrentsTunnel::StartVerifyingTorrent (std::shared_ptr<Torrent> torrent, bool stopped)
+	bool TorrentsTunnel::StartVerifyingTorrent (std::shared_ptr<Torrent> torrent,
+		bool stopped, std::function<void (bool)> verificationComplete)
 	{
 		if (!torrent || torrent->IsVerifying ()) return false;
 		bool isVerifying = m_VerifyingTorrent.valid ();
 		if (isVerifying && m_VerifyingTorrent.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
 		{
-			(void)m_VerifyingTorrent.get (); // reap finished task, result not needed
+			m_VerifyingTorrent.get ();
 			isVerifying = false;
 		}
 		if (!isVerifying)
 		{
-			m_VerifyingTorrent = std::async (std::launch::async, [this, torrent, stopped]()
+			m_VerifyingTorrent = std::async (std::launch::async, [this, torrent, stopped, verificationComplete]()
 				{
 					torrent->SetVerifying (true);
 					bool success = torrent->Verify ();
@@ -1443,7 +1482,8 @@ namespace torrents
 							torrent->SetStopped (false);
 							RequestTorrentTrackers (torrent, eTrackerAnnounceEventStarted);
 						});
-					return success;
+					if (verificationComplete)
+						verificationComplete (success);
 				});
 		}
 		return !isVerifying;

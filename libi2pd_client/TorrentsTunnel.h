@@ -22,6 +22,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <mutex>
+#include <functional>
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include "HTTP.h"
@@ -149,7 +150,9 @@ namespace torrents
 			int FindTorrentID (std::shared_ptr<Torrent> torrent) const; // 0 if not found
 			bool CreateAndReserveFile (const std::filesystem::path& filePath, size_t reserve);
 			void CompleteTorrent (std::shared_ptr<Torrent> torrent);
+			void VerifyAndCompleteTorrent (std::shared_ptr<Torrent> torrent);
 			void StopTorrent (std::shared_ptr<Torrent> torrent);
+			void StartTorrent (std::shared_ptr<Torrent> torrent);
 			bool RequestTracker (size_t trackerID, std::shared_ptr<Torrent> torrent, TrackerAnnounceEvent event);
 			void RequestTorrentTrackers (std::shared_ptr<Torrent> torrent, TrackerAnnounceEvent event);
 			void TrackerRequestSent (const boost::beast::error_code& ecode, size_t bytes_transferred,
@@ -182,7 +185,8 @@ namespace torrents
 				std::shared_ptr<Torrent> torrent, std::string_view dest, uint16_t port,
 				uint16_t fromPort, TrackerAnnounceEvent event);
 
-			bool StartVerifyingTorrent (std::shared_ptr<Torrent> torrent, bool stopped);
+			bool StartVerifyingTorrent (std::shared_ptr<Torrent> torrent, bool stopped,
+				std::function<void (bool)> verificationComplete = nullptr);
 
 		private:
 
@@ -200,7 +204,7 @@ namespace torrents
 			std::unique_ptr<TorrentsDHT> m_DHT;
 			bool m_Web;
 			//verifying
-			std::future<bool> m_VerifyingTorrent;
+			std::future<void> m_VerifyingTorrent;
 	};
 
 }
